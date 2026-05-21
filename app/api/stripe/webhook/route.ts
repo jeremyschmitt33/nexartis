@@ -5,47 +5,95 @@ import { stripe } from '@/lib/stripe'
 
 /**
  * POST /api/stripe/webhook
- * Recoit les evenements Stripe (paiement reussi, annulation, etc.)
- * IMPORTANT : Cette route ne doit PAS verifier l'auth utilisateur.
- * Elle verifie la signature Stripe a la place.
+ *
+ * Recoit les evenements Stripe (paiement reussi, annulation, etc.).
+ *
+ * SECURITE :
+ * - Cette route ne doit PAS verifier l'auth utilisateur, elle verifie
+ *   la SIGNATURE Stripe a la place (stripe.webhooks.constructEvent).
+ * - La signature use le RAW body, pas le JSON parse : on lit req.text()
+ *   AVANT toute autre operation.
+ *
+ * IDEMPOTENCE (P9 audit) :
+ * - Stripe rejoue les events en cas de timeout ou d'erreur 5xx renvoyee
+ *   par notre endpoint. Sans protection, on traiterait 2x le meme event
+ *   -> double activation d'abonnement, doublons en DB, etc.
+ * - On s'appuie sur la table public.stripe_webhook_events (cf migration
+ *   sql/create-stripe-webhook-events.sql) :
+ *     1. INSERT ON CONFLICT DO NOTHING (event_id = PK = unique cote Stripe)
+ *     2. Si l'event est deja processed_ok = true -> return 200 sans rien faire
+ *     3. Sinon on traite normalement, puis UPDATE processed_ok = true
+ *     4. En cas d'erreur dans le traitement, on stocke error_message mais on
+ *        laisse processed_ok = false -> Stripe retentera, et la prochaine
+ *        tentative repassera dans le handler.
+ *
+ * PURGE :
+ * - Voir sql/create-stripe-webhook-events.sql pour la requete de purge a 90j.
+ *   A executer ponctuellement ou via pg_cron.
  */
 export async function POST(req: NextRequest) {
+  // 1. Lire le RAW body AVANT toute autre operation (requis pour la signature)
+  const body = await req.text()
+  const signature = req.headers.get('stripe-signature')
+
+  if (!signature) {
+    return NextResponse.json({ error: 'Signature manquante' }, { status: 400 })
+  }
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.error('STRIPE_WEBHOOK_SECRET non configure')
+    return NextResponse.json({ error: 'Configuration webhook manquante' }, { status: 500 })
+  }
+
+  // 2. Verifier la signature Stripe (empeche les faux webhooks)
+  let event: Stripe.Event
   try {
-    const body = await req.text()
-    const signature = req.headers.get('stripe-signature')
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err)
+    return NextResponse.json({ error: 'Signature invalide' }, { status: 400 })
+  }
 
-    if (!signature) {
-      return NextResponse.json({ error: 'Signature manquante' }, { status: 400 })
-    }
+  // 3. Client Supabase admin (service role) pour la DB
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  )
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-    if (!webhookSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET non configure')
-      return NextResponse.json({ error: 'Configuration webhook manquante' }, { status: 500 })
-    }
+  // 4. IDEMPOTENCE - Insert + check de l'etat actuel
+  //    On utilise upsert avec ignoreDuplicates pour ne PAS ecraser un eventuel
+  //    enregistrement processed_ok = true qui existerait deja.
+  const { error: insertErr } = await supabase
+    .from('stripe_webhook_events')
+    .insert({ event_id: event.id, event_type: event.type })
+  // Code 23505 = unique_violation = doublon attendu en cas de rejeu
+  if (insertErr && insertErr.code !== '23505') {
+    console.error('[Stripe webhook] insert idempotence failed:', insertErr)
+    // On echoue volontairement (500) pour que Stripe retente. C'est moins
+    // grave de retenter qu'on rate la trace d'idempotence.
+    return NextResponse.json({ error: 'Erreur idempotence' }, { status: 500 })
+  }
 
-    // Verifier la signature Stripe (empeche les faux webhooks)
-    let event: Stripe.Event
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err)
-      return NextResponse.json({ error: 'Signature invalide' }, { status: 400 })
-    }
+  // Lire l'etat actuel pour savoir si on doit (re)traiter
+  const { data: existing } = await supabase
+    .from('stripe_webhook_events')
+    .select('processed_ok')
+    .eq('event_id', event.id)
+    .single()
 
-    // Client Supabase admin pour modifier la DB
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    )
+  if (existing?.processed_ok) {
+    console.log(`[Stripe webhook] event ${event.id} (${event.type}) deja traite, ignore (rejeu)`)
+    return NextResponse.json({ received: true, idempotent: true })
+  }
 
-    // Traiter les evenements
+  // 5. Traiter l'event
+  try {
     switch (event.type) {
       // === PAIEMENT REUSSI ===
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const userId = session.metadata?.nexartis_user_id
         const entrepriseId = session.metadata?.nexartis_entreprise_id
         const subscriptionId = typeof session.subscription === 'string'
           ? session.subscription
@@ -58,7 +106,7 @@ export async function POST(req: NextRequest) {
               abonnement_type: 'actif',
               stripe_subscription_id: subscriptionId || null,
               stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
-              abonnement_expire_at: null, // L'abonnement est gere par Stripe
+              abonnement_expire_at: null,
             })
             .eq('id', entrepriseId)
 
@@ -73,7 +121,6 @@ export async function POST(req: NextRequest) {
         const subscriptionId = (invoice as any).subscription as string | null
 
         if (subscriptionId) {
-          // S'assurer que l'abonnement est toujours marque comme actif
           const { data: entreprise } = await supabase
             .from('entreprises')
             .select('id')
@@ -103,8 +150,6 @@ export async function POST(req: NextRequest) {
             .single()
 
           if (entreprise) {
-            // Ne pas suspendre immediatement — Stripe reessaie automatiquement
-            // Mais ajouter une note admin
             await supabase
               .from('entreprises')
               .update({
@@ -128,7 +173,6 @@ export async function POST(req: NextRequest) {
           .single()
 
         if (entreprise) {
-          // Calculer la date de fin (fin de la periode payee)
           const periodEnd = new Date((subscription as any).current_period_end * 1000)
 
           await supabase
@@ -170,13 +214,28 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        // Evenement non gere — c'est normal, on ignore
+        // Evenement non gere - c'est normal, on ignore
         break
     }
 
+    // 6. Marquer l'event comme traite avec succes
+    await supabase
+      .from('stripe_webhook_events')
+      .update({ processed_at: new Date().toISOString(), processed_ok: true })
+      .eq('event_id', event.id)
+
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook error:', error)
+    // 7. Erreur dans le traitement : on stocke le message pour debug,
+    //    on laisse processed_ok = false, et on retourne 500 -> Stripe retentera.
+    console.error('Webhook handler error for event', event.id, event.type, error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    await supabase
+      .from('stripe_webhook_events')
+      .update({ error_message: errMsg.slice(0, 500) })
+      .eq('event_id', event.id)
+      .then(undefined, (e) => console.error('Webhook error_message update failed:', e))
+
     return NextResponse.json({ error: 'Erreur webhook' }, { status: 500 })
   }
 }
