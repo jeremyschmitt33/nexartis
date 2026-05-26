@@ -136,11 +136,25 @@ export function detectObatComptableKind(rows: Row[]): 'devis' | 'factures' | 'mi
 }
 
 function getColValue(row: Row, possibleNames: string[]): string {
+  // 1. Match exact direct
   for (const n of possibleNames) {
     if (row[n] !== undefined && row[n] !== null) return String(row[n])
-    // Recherche insensible à la casse
+  }
+  // 2. Match exact insensible à la casse
+  for (const n of possibleNames) {
     for (const k of Object.keys(row)) {
       if (k.toLowerCase().trim() === n.toLowerCase().trim()) {
+        return String(row[k])
+      }
+    }
+  }
+  // 3. Match "startsWith" insensible à la casse (gère les colonnes
+  //    avec suffixe entre parenthèses comme "Type de la pièce (Acompte, Finale, …)"
+  //    quand on cherche "Type de la pièce").
+  for (const n of possibleNames) {
+    const needle = n.toLowerCase().trim()
+    for (const k of Object.keys(row)) {
+      if (k.toLowerCase().trim().startsWith(needle)) {
         return String(row[k])
       }
     }
