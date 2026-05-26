@@ -276,6 +276,7 @@ function useEntreprise() {
 
 export interface OnboardingState {
   tour_dashboard_seen: boolean
+  tour_parametres_seen: boolean
   tour_devis_seen: boolean
   tour_completed_at: string | null
 }
@@ -299,7 +300,7 @@ function useOnboarding() {
       // Tentative de lecture
       const { data: existing } = await supabase
         .from('user_onboarding')
-        .select('tour_dashboard_seen, tour_devis_seen, tour_completed_at')
+        .select('tour_dashboard_seen, tour_parametres_seen, tour_devis_seen, tour_completed_at')
         .eq('user_id', user.id)
         .single()
 
@@ -317,15 +318,17 @@ function useOnboarding() {
         .insert({
           user_id: user.id,
           tour_dashboard_seen: false,
+          tour_parametres_seen: false,
           tour_devis_seen: false,
           tour_completed_at: null,
         })
-        .select('tour_dashboard_seen, tour_devis_seen, tour_completed_at')
+        .select('tour_dashboard_seen, tour_parametres_seen, tour_devis_seen, tour_completed_at')
         .single()
 
       if (!cancelled) {
         setState((inserted as OnboardingState) ?? {
           tour_dashboard_seen: false,
+          tour_parametres_seen: false,
           tour_devis_seen: false,
           tour_completed_at: null,
         })
@@ -338,23 +341,34 @@ function useOnboarding() {
 
   // Marque une étape comme vue. Si toutes les étapes sont vues,
   // tour_completed_at est mis à now() automatiquement.
-  const markStepSeen = useCallback(async (step: 'dashboard' | 'devis') => {
+  // 'skipAll' permet de marquer toutes les étapes restantes d'un coup
+  // (quand l'utilisateur ferme la 1ère bulle par la croix, il skippe tout).
+  const markStepSeen = useCallback(async (
+    step: 'dashboard' | 'parametres' | 'devis' | 'skipAll'
+  ) => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
     const patch: Record<string, unknown> = {}
-    if (step === 'dashboard') patch.tour_dashboard_seen = true
-    if (step === 'devis') patch.tour_devis_seen = true
+    if (step === 'skipAll' || step === 'dashboard') patch.tour_dashboard_seen = true
+    if (step === 'skipAll' || step === 'parametres') patch.tour_parametres_seen = true
+    if (step === 'skipAll' || step === 'devis') patch.tour_devis_seen = true
 
     // On calcule localement si toutes les étapes sont vues pour
     // poser tour_completed_at en un seul UPDATE.
     const nextState: OnboardingState = {
-      tour_dashboard_seen: step === 'dashboard' ? true : (state?.tour_dashboard_seen ?? false),
-      tour_devis_seen: step === 'devis' ? true : (state?.tour_devis_seen ?? false),
+      tour_dashboard_seen: (step === 'skipAll' || step === 'dashboard') ? true : (state?.tour_dashboard_seen ?? false),
+      tour_parametres_seen: (step === 'skipAll' || step === 'parametres') ? true : (state?.tour_parametres_seen ?? false),
+      tour_devis_seen: (step === 'skipAll' || step === 'devis') ? true : (state?.tour_devis_seen ?? false),
       tour_completed_at: state?.tour_completed_at ?? null,
     }
-    if (nextState.tour_dashboard_seen && nextState.tour_devis_seen && !nextState.tour_completed_at) {
+    if (
+      nextState.tour_dashboard_seen &&
+      nextState.tour_parametres_seen &&
+      nextState.tour_devis_seen &&
+      !nextState.tour_completed_at
+    ) {
       const nowIso = new Date().toISOString()
       patch.tour_completed_at = nowIso
       nextState.tour_completed_at = nowIso
@@ -375,6 +389,7 @@ function useOnboarding() {
       .from('user_onboarding')
       .update({
         tour_dashboard_seen: false,
+        tour_parametres_seen: false,
         tour_devis_seen: false,
         tour_completed_at: null,
       })
@@ -382,6 +397,7 @@ function useOnboarding() {
 
     setState({
       tour_dashboard_seen: false,
+      tour_parametres_seen: false,
       tour_devis_seen: false,
       tour_completed_at: null,
     })
@@ -389,20 +405,25 @@ function useOnboarding() {
 
   // Réinitialise une seule étape (utilisé depuis la page Aide pour
   // permettre de rejouer juste une partie du tutoriel sans tout
-  // recommencer).
+  // recommencer). 'dashboard' inclut aussi la bulle 2 (parametres)
+  // car c'est le même flux.
   const replayStep = useCallback(async (step: 'dashboard' | 'devis') => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
     const patch: Record<string, unknown> = { tour_completed_at: null }
-    if (step === 'dashboard') patch.tour_dashboard_seen = false
+    if (step === 'dashboard') {
+      patch.tour_dashboard_seen = false
+      patch.tour_parametres_seen = false
+    }
     if (step === 'devis') patch.tour_devis_seen = false
 
     await supabase.from('user_onboarding').update(patch).eq('user_id', user.id)
 
     setState((prev) => ({
       tour_dashboard_seen: step === 'dashboard' ? false : (prev?.tour_dashboard_seen ?? false),
+      tour_parametres_seen: step === 'dashboard' ? false : (prev?.tour_parametres_seen ?? false),
       tour_devis_seen: step === 'devis' ? false : (prev?.tour_devis_seen ?? false),
       tour_completed_at: null,
     }))

@@ -1716,7 +1716,9 @@ export default function ParametresPage() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-6">
+    // Ancre pour le tutoriel onboarding (bulle 2/3 — voir
+    // components/OnboardingTour.tsx, scénario Paramètres).
+    <div data-tour="parametres-content" className="flex flex-col md:flex-row gap-6">
       {/* Sidebar navigation */}
       <aside className="w-full md:w-64 flex-shrink-0">
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

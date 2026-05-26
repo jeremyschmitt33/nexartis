@@ -3,14 +3,22 @@
 /**
  * OnboardingTour — Tutoriel guidé pour les nouveaux utilisateurs.
  *
- * Deux scénarios gérés :
+ * Trois scénarios gérés :
  *
  * 1. Sur /dashboard (1er login) : grosse infobulle (style spotlight)
  *    pointant vers le lien "Paramètres" de la sidebar, pour inciter
- *    à compléter le profil entreprise (qui pré-remplit tous les
- *    devis et factures).
+ *    à compléter le profil entreprise. Au clic du bouton final
+ *    "Compris, j'y vais" : navigation vers /dashboard/parametres.
+ *    Si l'utilisateur ferme la bulle par la croix : on skippe TOUT
+ *    le flux dashboard+parametres (il a explicitement refusé).
  *
- * 2. Sur /dashboard/devis/nouveau (1er devis) : deux infobulles
+ * 2. Sur /dashboard/parametres (suite de l'étape 1) : une bulle
+ *    qui entoure la zone principale de la page pour confirmer
+ *    "C'est bien ici que tu remplis ton profil entreprise."
+ *    Ne s'affiche que si la bulle 1 a été terminée par "Compris,
+ *    j'y vais" (pas par la croix).
+ *
+ * 3. Sur /dashboard/devis/nouveau (1er devis) : deux infobulles
  *    séquentielles — l'une sur la zone Client (sauvegarde auto +
  *    autocomplete dans les prochains devis), l'autre sur la zone
  *    Prestations (bibliothèque réutilisable).
@@ -25,7 +33,7 @@
  */
 
 import { useEffect, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useOnboarding } from '@/lib/hooks'
 import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
@@ -37,6 +45,7 @@ const TOUR_DELAY_MS = 600
 
 export default function OnboardingTour() {
   const pathname = usePathname()
+  const router = useRouter()
   const { state, loading, markStepSeen } = useOnboarding()
   const driverRef = useRef<Driver | null>(null)
 
@@ -63,6 +72,10 @@ export default function OnboardingTour() {
           return
         }
 
+        // Drapeau pour distinguer "fermeture par le bouton" vs
+        // "fermeture par la croix / Échap / clic extérieur".
+        let userClickedNext = false
+
         const d = driver({
           showProgress: false,
           showButtons: ['next', 'close'],
@@ -73,10 +86,30 @@ export default function OnboardingTour() {
           popoverClass: 'nexartis-driver',
           allowClose: true,
           overlayOpacity: 0.7,
-          onDestroyed: () => {
-            // Appelé quand l'utilisateur ferme (croix, Échap, clic
-            // dehors) OU termine le tour (bouton final).
+          onNextClick: () => {
+            // L'utilisateur a cliqué "Compris, j'y vais" : on
+            // marque seulement la bulle 1 comme vue (pas la 2)
+            // puis on l'emmène sur la page Paramètres où la
+            // bulle 2 se déclenchera automatiquement.
+            userClickedNext = true
             markStepSeen('dashboard')
+            d.destroy()
+            router.push('/dashboard/parametres')
+          },
+          onCloseClick: () => {
+            // Croix : l'utilisateur refuse explicitement le tour.
+            // On skippe les deux bulles (dashboard + parametres)
+            // pour ne pas le saouler s'il va sur Paramètres
+            // de lui-même plus tard.
+            markStepSeen('skipAll')
+            d.destroy()
+          },
+          onDestroyed: () => {
+            // Fallback : si fermé par Échap ou clic extérieur
+            // sans passer par onNextClick/onCloseClick.
+            if (!userClickedNext) {
+              markStepSeen('skipAll')
+            }
           },
           steps: [
             {
@@ -102,7 +135,63 @@ export default function OnboardingTour() {
     }
 
     // ============================================
-    // SCÉNARIO 2 — Page création devis (1er devis)
+    // SCÉNARIO 2 — Page Paramètres (suite étape 1)
+    // ============================================
+    // Affichée seulement quand l'utilisateur a déjà vu la bulle 1
+    // (donc cliqué "Compris j'y vais") mais pas encore la bulle 2.
+    if (
+      pathname === '/dashboard/parametres' &&
+      state.tour_dashboard_seen &&
+      !state.tour_parametres_seen
+    ) {
+      const timer = setTimeout(() => {
+        const target = document.querySelector('[data-tour="parametres-content"]') as HTMLElement | null
+        if (!target) {
+          markStepSeen('parametres')
+          return
+        }
+
+        const d = driver({
+          showProgress: false,
+          showButtons: ['next', 'close'],
+          nextBtnText: 'C\'est parti',
+          doneBtnText: 'C\'est parti',
+          stagePadding: 8,
+          stageRadius: 12,
+          popoverClass: 'nexartis-driver',
+          allowClose: true,
+          overlayOpacity: 0.65,
+          onDestroyed: () => {
+            // Quelle que soit la façon dont l'utilisateur ferme,
+            // on marque la bulle 2 comme vue (pas de skipAll ici
+            // car le tour est déjà bien engagé).
+            markStepSeen('parametres')
+          },
+          steps: [
+            {
+              element: '[data-tour="parametres-content"]',
+              popover: {
+                title: 'Tu y es !',
+                description: `
+                  <p style="margin: 0 0 10px 0;">C'est ici que tu remplis ton profil entreprise. <strong>Coche toutes les sections</strong> (Entreprise, Documents, Facturation, Signature…).</p>
+                  <p style="margin: 0; color: #445068; font-size: 13px;">Chaque case remplie est réutilisée automatiquement dans tes devis et factures. Une fois fait, tu es prêt à créer ton premier devis pro.</p>
+                `,
+                side: 'top',
+                align: 'center',
+              },
+            },
+          ],
+        })
+
+        driverRef.current = d
+        d.drive()
+      }, TOUR_DELAY_MS)
+
+      return () => clearTimeout(timer)
+    }
+
+    // ============================================
+    // SCÉNARIO 3 — Page création devis (1er devis)
     // ============================================
     if (pathname === '/dashboard/devis/nouveau' && !state.tour_devis_seen) {
       const timer = setTimeout(() => {
@@ -166,7 +255,7 @@ export default function OnboardingTour() {
 
       return () => clearTimeout(timer)
     }
-  }, [pathname, state, loading, markStepSeen])
+  }, [pathname, state, loading, markStepSeen, router])
 
   // Nettoyage final au démontage du composant
   useEffect(() => {
