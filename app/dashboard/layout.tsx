@@ -359,11 +359,13 @@ function Sidebar({
               {group.map((item) => {
                 const active = isActive(pathname, item.href)
                 const Icon = item.icon
-                // Ancrage du spotlight onboarding sur le lien Paramètres.
-                // OnboardingTour (composant client) cible cet attribut
-                // via document.querySelector('[data-tour="parametres"]').
+                // Ancrage du spotlight onboarding sur les liens Paramètres
+                // et Aide. OnboardingTour (composant client) cible ces
+                // attributs via document.querySelector('[data-tour="..."]').
                 const tourId =
-                  item.href === '/dashboard/parametres' ? 'parametres' : undefined
+                  item.href === '/dashboard/parametres' ? 'parametres' :
+                  item.href === '/dashboard/aide' ? 'aide' :
+                  undefined
                 return (
                   <Link
                     key={item.href}

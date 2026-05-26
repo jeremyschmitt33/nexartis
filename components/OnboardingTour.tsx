@@ -152,9 +152,11 @@ export default function OnboardingTour() {
         }
 
         const d = driver({
-          showProgress: false,
-          showButtons: ['next', 'close'],
-          nextBtnText: 'C\'est parti',
+          showProgress: true,
+          progressText: 'Étape {{current}} / {{total}}',
+          showButtons: ['next', 'previous', 'close'],
+          nextBtnText: 'Suivant',
+          prevBtnText: 'Précédent',
           doneBtnText: 'C\'est parti',
           stagePadding: 8,
           stageRadius: 12,
@@ -162,9 +164,9 @@ export default function OnboardingTour() {
           allowClose: true,
           overlayOpacity: 0.65,
           onDestroyed: () => {
-            // Quelle que soit la façon dont l'utilisateur ferme,
-            // on marque la bulle 2 comme vue (pas de skipAll ici
-            // car le tour est déjà bien engagé).
+            // Quelle que soit la façon dont l'utilisateur ferme
+            // (croix, Échap, bouton final), on marque la bulle 2
+            // comme vue (le tour est déjà bien engagé).
             markStepSeen('parametres')
           },
           steps: [
@@ -177,6 +179,18 @@ export default function OnboardingTour() {
                   <p style="margin: 0; color: #445068; font-size: 13px;">Chaque case remplie est réutilisée automatiquement dans tes devis et factures. Une fois fait, tu es prêt à créer ton premier devis pro.</p>
                 `,
                 side: 'top',
+                align: 'center',
+              },
+            },
+            {
+              element: '[data-tour="aide"]',
+              popover: {
+                title: 'Besoin d\'aide à tout moment ?',
+                description: `
+                  <p style="margin: 0 0 10px 0;">Cet onglet <strong>Aide &amp; Tutoriels</strong> en bas de la barre latérale regroupe une explication détaillée de <strong>chaque onglet de Nexartis</strong>.</p>
+                  <p style="margin: 0; color: #445068; font-size: 13px;">Tu y trouveras aussi un bouton <em>Rejouer la visite guidée</em> si tu veux revoir le tutoriel ou le montrer à un confrère.</p>
+                `,
+                side: 'right',
                 align: 'center',
               },
             },
