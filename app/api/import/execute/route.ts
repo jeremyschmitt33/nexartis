@@ -182,6 +182,10 @@ async function findPrestationIdByDesignation(supabase: any, user_id: string, des
 
 const BATCH_SIZE = 500
 
+// Tables enfant liées par FK (devis_id, facture_id), pas de colonne user_id
+// directe. Doit rester aligné avec lib/hooks.tsx > TABLES_WITHOUT_USER_ID.
+const TABLES_WITHOUT_USER_ID = new Set(['devis_lignes', 'facture_lignes', 'paiements'])
+
 function resolveFK(
   table: string,
   row: ImportedRow,
@@ -193,7 +197,12 @@ function resolveFK(
   intervenantIdMap?: Map<string, string>,
   prestationIdMap?: Map<string, string>,
 ): ImportedRow {
-  const insertData: ImportedRow = { ...row, user_id }
+  // Pour les tables enfant (devis_lignes, facture_lignes, paiements),
+  // ne pas ajouter user_id : ces tables ne l'ont pas en colonne et
+  // l'insert planterait avec "Could not find the 'user_id' column".
+  const insertData: ImportedRow = TABLES_WITHOUT_USER_ID.has(table)
+    ? { ...row }
+    : { ...row, user_id }
 
   if ((table === 'devis' || table === 'factures') && row.client_name && clientIdMap) {
     const clientId = clientIdMap.get(String(row.client_name))

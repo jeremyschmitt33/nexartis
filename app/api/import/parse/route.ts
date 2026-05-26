@@ -317,13 +317,23 @@ export async function POST(req: NextRequest) {
           }
 
           // ─── FACTURES ───
+          // Mapping du type OBAT vers les valeurs internes Nexartis.
+          // La table 'factures' a une CHECK constraint qui n'accepte que :
+          // 'standard' | 'acompte' | 'situation' | 'avoir'.
+          const mapFactureType = (typeDoc: string): string => {
+            const t = (typeDoc || '').toLowerCase().trim()
+            if (t.includes('acompte')) return 'acompte'
+            if (t.includes('avoir')) return 'avoir'
+            if (t.includes('situation')) return 'situation' // couvre "Situation" + "Situation détaillée"
+            return 'standard' // Finale + tout le reste
+          }
           if (result.factures.length > 0) {
             const facturesData = result.factures.map(f => ({
               numero: f.numero,
               date_emission: f.date_emission,
               client_name: f.client_name,
               chantier_name: f.chantier_titre,
-              type: f.type_doc, // Acompte / Finale / Avoir / Situation / Situation détaillée
+              type: mapFactureType(f.type_doc),
               statut: f.statut,
               montant_ht: f.montant_ht,
               montant_tva: f.montant_tva,
