@@ -294,6 +294,8 @@ export async function POST(req: NextRequest) {
           }
 
           // ─── DEVIS_LIGNES (extraites des doc.lignes) ───
+          // NOTE : on n'envoie PAS montant_ht car cette colonne est
+          // GENERATED ALWAYS en base (calculée auto = quantite × prix_unitaire_ht).
           const allDevisLignes: ParsedRow[] = []
           for (const d of result.devis) {
             for (const l of d.lignes) {
@@ -304,7 +306,6 @@ export async function POST(req: NextRequest) {
                 quantite: l.quantite,
                 prix_unitaire_ht: l.prix_unitaire_ht,
                 taux_tva: l.taux_tva,
-                montant_ht: l.montant_ht,
               })
             }
           }
@@ -347,6 +348,7 @@ export async function POST(req: NextRequest) {
           }
 
           // ─── FACTURE_LIGNES ───
+          // Idem : pas de montant_ht (colonne GENERATED ALWAYS en base).
           const allFactureLignes: ParsedRow[] = []
           for (const f of result.factures) {
             for (const l of f.lignes) {
@@ -357,7 +359,6 @@ export async function POST(req: NextRequest) {
                 quantite: l.quantite,
                 prix_unitaire_ht: l.prix_unitaire_ht,
                 taux_tva: l.taux_tva,
-                montant_ht: l.montant_ht,
               })
             }
           }
