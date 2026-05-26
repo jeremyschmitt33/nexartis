@@ -33,7 +33,7 @@ import {
 // Types
 // -------------------------------------------------------------------
 
-type SourceType = 'obat' | 'tolteck' | 'batappli' | 'henrri' | 'excel'
+type SourceType = 'obat' | 'obat_comptable' | 'tolteck' | 'batappli' | 'henrri' | 'excel'
 
 type DataCategory =
   | 'clients'
@@ -87,8 +87,15 @@ const SOURCES: SourceOption[] = [
     id: 'obat',
     name: 'Obat',
     format: '.csv',
-    description: 'Logiciel de devis/factures BTP',
+    description: 'Logiciel de devis/factures BTP — export standard',
     exportGuide: 'Obat → Paramètres → Exporter mes données → Télécharger les CSV',
+  },
+  {
+    id: 'obat_comptable',
+    name: 'Obat (export comptable)',
+    format: '.csv',
+    description: 'Format comptable Obat — écritures regroupées automatiquement par devis/facture',
+    exportGuide: 'Obat → Exports → Liste des devis ou Liste des factures (format pour expert-comptable). Reconnait les colonnes "Référence de la pièce justificative", "Numéro de compte", "Sens d\'écriture".',
   },
   {
     id: 'tolteck',

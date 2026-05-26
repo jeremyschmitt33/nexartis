@@ -10,6 +10,7 @@ import {
   detectCategory,
   detectSource,
 } from '@/lib/import/mappers'
+import { preprocessObatComptable } from '@/lib/import/obat-comptable'
 
 // Note (P10 audit securite) : xlsx (SheetJS sur npm) bloque sur deux CVE
 // (Prototype Pollution + ReDoS) et a quitte npm officiel. Nous utilisons
@@ -228,7 +229,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
-    if (!(['obat', 'tolteck', 'batappli', 'henrri', 'excel'].includes(source))) {
+    if (!(['obat', 'obat_comptable', 'tolteck', 'batappli', 'henrri', 'excel'].includes(source))) {
       return NextResponse.json({ error: 'Source invalide' }, { status: 400 })
     }
 
@@ -261,6 +262,132 @@ export async function POST(req: NextRequest) {
 
       const config = SOURCE_CONFIGS[detectedSource]
 
+      // ═══════════════════════════════════════════════════════════
+      // BRANCHE SPECIALE : format comptable OBAT
+      // ═══════════════════════════════════════════════════════════
+      // Chaque devis ou facture y est eclate sur N lignes du CSV
+      // (une par taux de TVA + une ligne client). On groupe par
+      // "Reference de la piece justificative" et on reconstitue
+      // des pieces completes via preprocessObatComptable().
+      if (detectedSource === 'obat_comptable') {
+        for (const sheet of parsedSheets) {
+          const result = preprocessObatComptable(sheet.rows as unknown as Record<string, unknown>[])
+
+          // ─── DEVIS ───
+          if (result.devis.length > 0) {
+            const devisData = result.devis.map(d => ({
+              numero: d.numero,
+              date_emission: d.date_emission,
+              client_name: d.client_name,
+              chantier_name: d.chantier_titre,
+              objet: d.chantier_titre || undefined,
+              statut: d.statut,
+              montant_ht: d.montant_ht,
+              montant_tva: d.montant_tva,
+              montant_ttc: d.montant_ttc,
+            }))
+            if (!preview.devis.columns || preview.devis.columns.length === 0) {
+              preview.devis.columns = ['numero', 'date_emission', 'client_name', 'chantier_name', 'statut', 'montant_ht', 'montant_ttc']
+            }
+            preview.devis.count += devisData.length
+            preview.devis.data.push(...devisData)
+          }
+
+          // ─── DEVIS_LIGNES (extraites des doc.lignes) ───
+          const allDevisLignes: ParsedRow[] = []
+          for (const d of result.devis) {
+            for (const l of d.lignes) {
+              allDevisLignes.push({
+                devis_numero: d.numero,
+                ordre: l.ordre,
+                designation: l.designation,
+                quantite: l.quantite,
+                prix_unitaire_ht: l.prix_unitaire_ht,
+                taux_tva: l.taux_tva,
+                montant_ht: l.montant_ht,
+              })
+            }
+          }
+          if (allDevisLignes.length > 0) {
+            if (!preview.devis_lignes.columns || preview.devis_lignes.columns.length === 0) {
+              preview.devis_lignes.columns = ['devis_numero', 'ordre', 'designation', 'taux_tva', 'montant_ht']
+            }
+            preview.devis_lignes.count += allDevisLignes.length
+            preview.devis_lignes.data.push(...allDevisLignes)
+          }
+
+          // ─── FACTURES ───
+          if (result.factures.length > 0) {
+            const facturesData = result.factures.map(f => ({
+              numero: f.numero,
+              date_emission: f.date_emission,
+              client_name: f.client_name,
+              chantier_name: f.chantier_titre,
+              type: f.type_doc, // Acompte / Finale / Avoir / Situation / Situation détaillée
+              statut: f.statut,
+              montant_ht: f.montant_ht,
+              montant_tva: f.montant_tva,
+              montant_ttc: f.montant_ttc,
+            }))
+            if (!preview.factures.columns || preview.factures.columns.length === 0) {
+              preview.factures.columns = ['numero', 'date_emission', 'client_name', 'type', 'statut', 'montant_ht', 'montant_ttc']
+            }
+            preview.factures.count += facturesData.length
+            preview.factures.data.push(...facturesData)
+          }
+
+          // ─── FACTURE_LIGNES ───
+          const allFactureLignes: ParsedRow[] = []
+          for (const f of result.factures) {
+            for (const l of f.lignes) {
+              allFactureLignes.push({
+                facture_numero: f.numero,
+                ordre: l.ordre,
+                designation: l.designation,
+                quantite: l.quantite,
+                prix_unitaire_ht: l.prix_unitaire_ht,
+                taux_tva: l.taux_tva,
+                montant_ht: l.montant_ht,
+              })
+            }
+          }
+          if (allFactureLignes.length > 0) {
+            if (!preview.facture_lignes.columns || preview.facture_lignes.columns.length === 0) {
+              preview.facture_lignes.columns = ['facture_numero', 'ordre', 'designation', 'taux_tva', 'montant_ht']
+            }
+            preview.facture_lignes.count += allFactureLignes.length
+            preview.facture_lignes.data.push(...allFactureLignes)
+          }
+
+          // ─── CLIENTS DEDUITS ───
+          if (result.clients.length > 0) {
+            const clientsData = result.clients.map(c => ({ nom: c.nom }))
+            if (!preview.clients.columns || preview.clients.columns.length === 0) {
+              preview.clients.columns = ['nom']
+            }
+            preview.clients.count += clientsData.length
+            preview.clients.data.push(...clientsData)
+          }
+
+          // ─── CHANTIERS DEDUITS ───
+          if (result.chantiers.length > 0) {
+            const chantiersData = result.chantiers.map(c => ({
+              titre: c.titre,
+              client_name: c.client_name,
+            }))
+            if (!preview.chantiers.columns || preview.chantiers.columns.length === 0) {
+              preview.chantiers.columns = ['titre', 'client_name']
+            }
+            preview.chantiers.count += chantiersData.length
+            preview.chantiers.data.push(...chantiersData)
+          }
+        }
+        continue // saute le pipeline standard ci-dessous
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // Pipeline STANDARD (autres formats)
+      // ═══════════════════════════════════════════════════════════
       for (const sheet of parsedSheets) {
         const category = detectCategory(sheet.headers, detectedSource)
 

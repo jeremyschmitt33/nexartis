@@ -1,4 +1,4 @@
-export type SourceType = 'obat' | 'tolteck' | 'batappli' | 'henrri' | 'excel';
+export type SourceType = 'obat' | 'obat_comptable' | 'tolteck' | 'batappli' | 'henrri' | 'excel';
 
 export type DataCategory =
   | 'clients'
@@ -89,6 +89,14 @@ const mapQuoteStatus = (source: string, sourceType: SourceType): string => {
       'devis signé': 'signe',
       'devis en attente': 'envoye',
     },
+    // obat_comptable utilise son propre parser (lib/import/obat-comptable.ts)
+    // mais on garde un mapping minimal pour satisfaire TypeScript.
+    obat_comptable: {
+      'signé': 'signe',
+      'envoyé': 'envoye',
+      'refusé': 'refuse',
+      'annulé': 'refuse',
+    },
     tolteck: {
       'brouillon': 'brouillon',
       'en attente': 'envoye',
@@ -152,6 +160,13 @@ const mapInvoiceStatus = (source: string, sourceType: SourceType): string => {
       'retard': 'en_retard',
       'annulée': 'annulee',
       'annulee': 'annulee',
+    },
+    obat_comptable: {
+      'payée': 'payee',
+      'envoyée': 'envoyee',
+      'finalisée': 'envoyee',
+      'finalisé': 'envoyee',
+      'annulée': 'annulee',
     },
     tolteck: {
       'brouillon': 'brouillon',
@@ -1137,10 +1152,59 @@ export const EXCEL_CONFIG: SourceConfig = {
   },
 };
 
+// ==================== OBAT EXPORT COMPTABLE CONFIG ====================
+//
+// Config "factice" pour le format comptable OBAT : le parsing réel se
+// fait via lib/import/obat-comptable.ts (qui groupe les écritures par
+// référence). Cette config existe uniquement pour satisfaire le type
+// SOURCE_CONFIGS et permettre les pré-checks de catégorie. Les
+// columnMappings ne sont jamais appliqués pour cette source — le
+// pipeline parse/route.ts utilise preprocessObatComptable() à la place.
+export const OBAT_COMPTABLE_CONFIG: SourceConfig = {
+  name: 'obat_comptable',
+  label: 'Obat (export comptable)',
+  description: 'Export comptable Obat — regroupe les ecritures par reference pour reconstituer les devis et factures',
+  categories: {
+    clients: {
+      possibleFileNames: [],
+      columnMappings: [
+        { sourceColumn: 'Client', targetField: 'nom', transform: normalizeString },
+      ],
+      requiredColumns: ['Client'],
+    },
+    devis: {
+      possibleFileNames: ['devis.csv', 'export_devis.csv', 'export_liste_devis.csv'],
+      columnMappings: [],
+      requiredColumns: ['Référence de la pièce justificative'],
+    },
+    factures: {
+      possibleFileNames: ['factures.csv', 'export_factures.csv', 'export_liste_facture.csv'],
+      columnMappings: [],
+      requiredColumns: ['Référence de la pièce justificative'],
+    },
+    devis_lignes: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    facture_lignes: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    chantiers: {
+      possibleFileNames: [],
+      columnMappings: [
+        { sourceColumn: 'Intitulé du chantier', targetField: 'titre', transform: normalizeString },
+      ],
+      requiredColumns: ['Intitulé du chantier'],
+    },
+    prestations: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    fournisseurs: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    intervenants: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    planning: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    paiements: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+    achats: { possibleFileNames: [], columnMappings: [], requiredColumns: [] },
+  },
+};
+
 // ==================== MASTER SOURCE CONFIGS ====================
 
 export const SOURCE_CONFIGS: Record<SourceType, SourceConfig> = {
   obat: OBAT_CONFIG,
+  obat_comptable: OBAT_COMPTABLE_CONFIG,
   tolteck: TOLTECK_CONFIG,
   batappli: BATAPPLI_CONFIG,
   henrri: HENRRI_CONFIG,
@@ -1151,6 +1215,19 @@ export const SOURCE_CONFIGS: Record<SourceType, SourceConfig> = {
 
 export function detectSource(headers: string[]): SourceType {
   const headerLower = headers.map(h => h.toLowerCase().trim());
+
+  // Obat export COMPTABLE : signatures très distinctives
+  //   - "Référence de la pièce justificative"
+  //   - "Numéro de compte"
+  //   - "Sens d'écriture"
+  // Doit être testé AVANT le format Obat standard pour ne pas se faire
+  // intercepter par celui-ci (le mot "devis" apparaît dans les deux).
+  const hasRefPiece = headerLower.some(h => h.includes('référence de la pièce') || h.includes('reference de la piece'));
+  const hasCompte = headerLower.some(h => h.includes('numéro de compte') || h.includes('numero de compte'));
+  const hasSens = headerLower.some(h => h.includes("sens d'écriture") || h.includes("sens d'ecriture"));
+  if (hasRefPiece && hasCompte && hasSens) {
+    return 'obat_comptable';
+  }
 
   // Obat signatures
   if (headerLower.some(h => /^n°\s?devis|devis/.test(h)) &&
