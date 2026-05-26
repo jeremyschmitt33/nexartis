@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUser, useEntreprise } from '@/lib/hooks'
 import { applySidebarTheme } from '@/components/ThemeSelector'
+import OnboardingTour from '@/components/OnboardingTour'
 import {
   Home,
   LayoutGrid,
@@ -35,6 +36,7 @@ import {
   Wrench,
   CreditCard,
   AlertTriangle,
+  LifeBuoy,
 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
@@ -76,6 +78,11 @@ const NAV_GROUPS: NavItem[][] = [
     { label: 'Importer', href: '/dashboard/import', icon: ArrowDownToLine },
     { label: 'Corbeille', href: '/dashboard/corbeille', icon: Trash2 },
   ],
+  // Groupe séparé "Aide" — placé en tout dernier pour bien distinguer
+  // le métier (au-dessus) de la documentation utilisateur (en bas).
+  [
+    { label: 'Aide & Tutoriels', href: '/dashboard/aide', icon: LifeBuoy },
+  ],
 ]
 
 const PAGE_TITLES: Record<string, string> = {
@@ -99,6 +106,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/parametres': 'Paramètres',
   '/dashboard/corbeille': 'Corbeille',
   '/dashboard/admin': 'Administration',
+  '/dashboard/aide': 'Aide & Tutoriels',
 }
 
 const CREATE_OPTIONS = [
@@ -351,12 +359,18 @@ function Sidebar({
               {group.map((item) => {
                 const active = isActive(pathname, item.href)
                 const Icon = item.icon
+                // Ancrage du spotlight onboarding sur le lien Paramètres.
+                // OnboardingTour (composant client) cible cet attribut
+                // via document.querySelector('[data-tour="parametres"]').
+                const tourId =
+                  item.href === '/dashboard/parametres' ? 'parametres' : undefined
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={onCloseMobile}
                     title={collapsed ? item.label : undefined}
+                    data-tour={tourId}
                     className={`
                       group/nav relative flex items-center rounded-lg text-[14px] font-jakarta font-medium
                       transition-all duration-150 ease-out
@@ -779,6 +793,11 @@ export default function DashboardLayout({
         pathname={pathname}
         onMoreClick={() => setMobileOpen(true)}
       />
+
+      {/* Tutoriel onboarding (spotlight + infobulles) — invisible
+          tant que l'utilisateur n'est pas concerné. Voir
+          components/OnboardingTour.tsx pour la logique complète. */}
+      <OnboardingTour />
     </div>
   )
 }

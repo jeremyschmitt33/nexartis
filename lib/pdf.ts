@@ -37,6 +37,38 @@ const C = {
   white: [255, 255, 255] as [number, number, number],
   black: [40, 40, 40] as [number, number, number],
   grayLightBg: [249, 250, 251] as [number, number, number], // #f9fafb (fond récap totaux)
+  // Filet de sécurité — bannière "mentions légales incomplètes"
+  amberBg: [254, 243, 199] as [number, number, number],    // #fef3c7 (amber-100)
+  amberBorder: [252, 211, 77] as [number, number, number], // #fcd34d (amber-300)
+  amberText: [120, 53, 15] as [number, number, number],    // #78350f (amber-900)
+  amberAccent: [180, 83, 9] as [number, number, number],   // #b45309 (amber-700)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Détection profil entreprise incomplet (mentions légales)
+// ─────────────────────────────────────────────────────────────
+//
+// Doit rester en miroir avec lib/helpers.ts (CHAMPS_LEGAUX_DEVIS).
+// On ne fait pas l'import depuis helpers pour garder ce fichier
+// 100% server-safe et autonome.
+
+const CHAMPS_LEGAUX_PDF: { champ: string; label: string }[] = [
+  { champ: 'nom', label: 'Raison sociale' },
+  { champ: 'siret', label: 'SIRET' },
+  { champ: 'forme_juridique', label: 'Forme juridique' },
+  { champ: 'adresse', label: 'Adresse' },
+  { champ: 'code_postal', label: 'Code postal' },
+  { champ: 'ville', label: 'Ville' },
+]
+
+function getChampsLegauxManquants(ent: Record<string, unknown> | null | undefined): string[] {
+  if (!ent) return CHAMPS_LEGAUX_PDF.map(c => c.label)
+  return CHAMPS_LEGAUX_PDF
+    .filter(c => {
+      const val = ent[c.champ]
+      return !val || String(val).trim() === ''
+    })
+    .map(c => c.label)
 }
 
 // -------------------------------------------------------------------
@@ -657,6 +689,48 @@ function drawIdentityBoxes(
 // Bandeau OBJET
 // -------------------------------------------------------------------
 
+// ─────────────────────────────────────────────────────────────
+// Bannière jaune "Mentions légales incomplètes" (filet de sécurité)
+// ─────────────────────────────────────────────────────────────
+//
+// Affichée en haut du PDF du devis dès qu'au moins une mention
+// obligatoire manque dans le profil entreprise. Coûte ~16mm de
+// hauteur. Disparaît automatiquement dès que l'artisan complète
+// son profil dans les Paramètres.
+function drawIncompletProfileBanner(
+  doc: jsPDF,
+  champsManquants: string[],
+  y: number,
+): number {
+  const M = 14
+  const pageW = 210
+  const w = pageW - 2 * M
+  const h = 14
+  setFill(doc, C.amberBg)
+  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'F')
+  setDraw(doc, C.amberBorder); doc.setLineWidth(0.5)
+  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'S')
+  // Trait gauche épais
+  setFill(doc, C.amberAccent)
+  doc.rect(M, y, 1.8, h, 'F')
+
+  // Titre
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'bold')
+  setText(doc, C.amberText)
+  doc.text('MENTIONS LEGALES INCOMPLETES', M + 5, y + 5)
+
+  // Liste des champs manquants
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'normal')
+  setText(doc, C.amberAccent)
+  const champsStr = `Manquant${champsManquants.length > 1 ? 's' : ''} dans le profil entreprise : ${champsManquants.join(', ')}.`
+  const split = doc.splitTextToSize(champsStr, w - 8)
+  doc.text(split, M + 5, y + 9.8)
+
+  return y + h + 4
+}
+
 function drawObjet(doc: jsPDF, objet: string, y: number): number {
   const M = 14
   const pageW = 210
@@ -1079,6 +1153,13 @@ export function generateDevisPdf(data: DevisData): string {
     dateLine: dateParts.join(' | '),
   }, 12)
 
+  // —— FILET DE SÉCURITÉ : bannière "mentions légales incomplètes" ——
+  // Disparaît dès que le profil entreprise est complet.
+  const champsManquantsDevis = getChampsLegauxManquants(ent as unknown as Record<string, unknown>)
+  if (champsManquantsDevis.length > 0) {
+    y = drawIncompletProfileBanner(doc, champsManquantsDevis, y)
+  }
+
   // —— CADRES ARTISAN + CLIENT ——
   y = drawIdentityBoxes(doc, ent, { clientNom: data.clientNom, clientAdresse: data.clientAdresse }, y)
 
@@ -1318,6 +1399,14 @@ export function generateFacturePdf(data: FactureData): string {
     }
 
   let y = drawHeader(doc, ent, headerOpts, 12)
+
+  // —— FILET DE SÉCURITÉ : bannière "mentions légales incomplètes" ——
+  // Mêmes mentions obligatoires que pour les devis (art. 242 nonies A CGI).
+  const champsManquantsFacture = getChampsLegauxManquants(ent as unknown as Record<string, unknown>)
+  if (champsManquantsFacture.length > 0) {
+    y = drawIncompletProfileBanner(doc, champsManquantsFacture, y)
+  }
+
   y = drawIdentityBoxes(doc, ent, { clientNom: data.clientNom, clientAdresse: data.clientAdresse }, y)
   if (data.objet) y = drawObjet(doc, data.objet, y)
 

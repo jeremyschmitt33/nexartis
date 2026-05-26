@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Building2,
   FileText,
@@ -10,10 +11,12 @@ import {
   Camera,
   PenTool,
   Palette,
+  PlayCircle,
 } from 'lucide-react'
 import {
   useEntreprise,
   useUser,
+  useOnboarding,
   LoadingSkeleton,
 } from '@/lib/hooks'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -830,6 +833,21 @@ function NotificationsSection() {
 }
 
 function CompteSection({ userEmail }: { userEmail: string }) {
+  const router = useRouter()
+  const { resetOnboarding, loading: onboardingLoading } = useOnboarding()
+  const [replaying, setReplaying] = useState(false)
+
+  async function handleReplayTour() {
+    if (onboardingLoading || replaying) return
+    setReplaying(true)
+    await resetOnboarding()
+    // On envoie l'utilisateur sur le dashboard d'accueil où le
+    // premier spotlight (sur Paramètres) se déclenchera. Une fois
+    // celui-ci fermé, le 2e tour se déclenchera quand l'utilisateur
+    // ira sur la page de création de devis.
+    router.push('/dashboard')
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8">
       <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-6">
@@ -850,7 +868,26 @@ function CompteSection({ userEmail }: { userEmail: string }) {
         </div>
       </div>
 
-      <div className="mt-16 pt-6 border-t border-gray-100">
+      {/* ===== Visite guidée (réactivation) ===== */}
+      <div className="mt-10 pt-6 border-t border-gray-100">
+        <h3 className="font-syne font-bold text-[15px] text-[#1a1a2e] mb-1">
+          Visite guidée
+        </h3>
+        <p className="font-manrope text-sm text-gray-500 mb-3">
+          Tu peux rejouer le tutoriel de découverte si tu veux le revoir ou le montrer à un confrère.
+          Tu seras redirigé sur le tableau de bord et le tutoriel se relancera automatiquement.
+        </p>
+        <button
+          onClick={handleReplayTour}
+          disabled={onboardingLoading || replaying}
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-lg font-syne font-bold text-sm text-[#1a1a2e] border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <PlayCircle size={17} className="text-[#e87a2a]" />
+          {replaying ? 'Redirection…' : 'Revoir la visite guidée'}
+        </button>
+      </div>
+
+      <div className="mt-12 pt-6 border-t border-gray-100">
         <button className="font-manrope text-sm text-red-500 hover:text-red-700 hover:underline transition-colors">
           Supprimer mon compte
         </button>

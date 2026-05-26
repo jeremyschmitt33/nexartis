@@ -900,8 +900,9 @@ function NouveauDevisPage() {
 
           {/* Right: Client + Chantier */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            {/* Client */}
-            <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-sm space-y-3">
+            {/* Client — ancre pour le tutoriel onboarding (infobulle 1/2).
+                Voir components/OnboardingTour.tsx, scénario devis. */}
+            <div data-tour="devis-client" className="bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-sm space-y-3">
               <label className="block text-sm font-manrope font-semibold text-[#1a1a2e]">Client</label>
 
               {/* Ligne 1 : Civilité + Nom (pleine largeur) + autocomplete */}
@@ -1005,7 +1006,9 @@ function NouveauDevisPage() {
 
         {/* LINES TABLE */}
         <>
-          <div className="bg-white rounded-xl border border-gray-200">
+          {/* Prestations — ancre pour le tutoriel onboarding (infobulle 2/2).
+              Voir components/OnboardingTour.tsx, scénario devis. */}
+          <div data-tour="devis-prestations" className="bg-white rounded-xl border border-gray-200">
 
             {/* ── Mobile : cards + bottom sheet (V2 maquette validée) ── */}
             <div className="sm:hidden p-3 space-y-2">

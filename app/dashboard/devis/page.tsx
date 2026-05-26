@@ -17,17 +17,20 @@ import {
   SendHorizonal,
   Trash2,
   Plus,
+  AlertTriangle,
 } from "lucide-react"
 import {
   useDevis,
   useClients,
   useChantiers,
+  useEntreprise,
   softDeleteRow,
   insertRow,
   updateRow,
   LoadingSkeleton,
   ErrorBanner,
 } from "@/lib/hooks"
+import { champsLegauxManquants } from "@/lib/helpers"
 
 type DevisStatus = "brouillon" | "envoye" | "signe" | "refuse" | "expire" | "facture"
 
@@ -79,6 +82,9 @@ export default function DevisListPage() {
   const { data: devisList, loading: loadingDevis, error: errorDevis, refetch: refetchDevis } = useDevis()
   const { data: clients, loading: loadingClients } = useClients()
   const { data: chantiers } = useChantiers()
+  const { entreprise } = useEntreprise()
+  const champsManquants = champsLegauxManquants(entreprise as Record<string, unknown> | null | undefined)
+  const profilIncomplet = champsManquants.length > 0
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState("Tous")
   const [sort, setSort] = useState("Date")
@@ -224,6 +230,44 @@ export default function DevisListPage() {
 
   return (
     <div className="space-y-6">
+
+      {/* ============================================================
+          Filet de securite : tant que les mentions legales obligatoires
+          du profil entreprise manquent, on previent l'artisan que ses
+          devis ne sont pas pleinement conformes a la loi.
+          ============================================================ */}
+      {profilIncomplet && (
+        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 sm:p-5">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+              <AlertTriangle size={18} className="text-amber-700" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-syne font-bold text-[14px] sm:text-[15px] text-amber-900 mb-1">
+                Tes devis ne sont pas pleinement conformes a la loi
+              </h3>
+              <p className="font-manrope text-[13px] text-amber-800 mb-2">
+                Il manque {champsManquants.length} mention{champsManquants.length > 1 ? 's' : ''} obligatoire{champsManquants.length > 1 ? 's' : ''} dans ton profil entreprise.
+                Les PDFs generes affichent une banniere d&apos;avertissement tant que ce n&apos;est pas regle.
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {champsManquants.map(label => (
+                  <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-manrope text-[11px] font-medium">
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <Link
+                href="/dashboard/parametres"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-syne font-bold text-[13px] transition-colors"
+              >
+                Completer mon profil
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={<FileText size={20} />} label="Tous" value={String(stats.all)} accent="#5ab4e0" />
         <StatCard icon={<Send size={20} />} label="Envoyés" value={String(stats.envoyesCount)} sub={formatCurrency(stats.envoyesTTC)} accent="#5ab4e0" />

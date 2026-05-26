@@ -43,3 +43,57 @@ export function isAutoEntrepreneur(
     fj.includes('auto')
   )
 }
+
+// ─────────────────────────────────────────────────────────────
+// Champs LEGAUX obligatoires sur un devis/facture en France
+// ─────────────────────────────────────────────────────────────
+//
+// Sources :
+//   - Code de commerce art. L441-9 (mentions obligatoires devis)
+//   - CGI art. 242 nonies A (mentions obligatoires facture)
+//
+// Cette liste est volontairement plus restreinte que celle du
+// dashboard (qui inclut aussi assurance decennale). Ici on
+// retient les champs qui rendent le PDF NON CONFORME s'ils
+// manquent (pas de raison sociale = pas d'entreprise identifiable).
+
+const CHAMPS_LEGAUX_DEVIS: { champ: string; label: string }[] = [
+  { champ: 'nom', label: 'Raison sociale' },
+  { champ: 'siret', label: 'SIRET' },
+  { champ: 'forme_juridique', label: 'Forme juridique' },
+  { champ: 'adresse', label: 'Adresse' },
+  { champ: 'code_postal', label: 'Code postal' },
+  { champ: 'ville', label: 'Ville' },
+]
+
+/**
+ * Retourne la liste des champs legaux manquants sur le profil
+ * entreprise. Si la liste est vide, le profil est conforme du
+ * point de vue des mentions obligatoires d'un devis.
+ *
+ * Utilise pour :
+ *   - Badge "Devis incomplet" dans la liste des devis (dashboard)
+ *   - Banniere jaune en haut du PDF du devis (lib/pdf.ts)
+ */
+export function champsLegauxManquants(
+  entreprise: Record<string, unknown> | null | undefined
+): string[] {
+  if (!entreprise) return CHAMPS_LEGAUX_DEVIS.map(c => c.label)
+  return CHAMPS_LEGAUX_DEVIS
+    .filter(c => {
+      const val = entreprise[c.champ]
+      return !val || String(val).trim() === ''
+    })
+    .map(c => c.label)
+}
+
+/**
+ * Renvoie true si le profil entreprise est INCOMPLET au sens
+ * legal (au moins un champ obligatoire manquant). Utile pour
+ * afficher rapidement un badge ou une banniere.
+ */
+export function isProfilLegalIncomplet(
+  entreprise: Record<string, unknown> | null | undefined
+): boolean {
+  return champsLegauxManquants(entreprise).length > 0
+}

@@ -261,6 +261,156 @@ function useEntreprise() {
   return { entreprise, loading, update }
 }
 
+// ── Onboarding tutoriel ───────────────────────────────────────
+//
+// Gère l'état du tutoriel onboarding pour l'utilisateur connecté.
+// Stocké dans la table `user_onboarding` (créée par
+// `lib/supabase/migration-onboarding.sql`).
+//
+// - tour_dashboard_seen : spotlight sur Paramètres au 1er login
+// - tour_devis_seen     : 2 infobulles sur la création de devis
+// - tour_completed_at   : date de fin (toutes étapes vues)
+//
+// Les utilisateurs existants au moment de la migration sont
+// marqués comme onboardés pour ne pas leur réafficher le tutoriel.
+
+export interface OnboardingState {
+  tour_dashboard_seen: boolean
+  tour_devis_seen: boolean
+  tour_completed_at: string | null
+}
+
+function useOnboarding() {
+  const [state, setState] = useState<OnboardingState | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Charge l'état au mount, et crée la ligne si elle n'existe pas
+  // (cas d'un nouvel inscrit après la migration).
+  useEffect(() => {
+    let cancelled = false
+    async function fetch() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        if (!cancelled) setLoading(false)
+        return
+      }
+
+      // Tentative de lecture
+      const { data: existing } = await supabase
+        .from('user_onboarding')
+        .select('tour_dashboard_seen, tour_devis_seen, tour_completed_at')
+        .eq('user_id', user.id)
+        .single()
+
+      if (existing) {
+        if (!cancelled) {
+          setState(existing as OnboardingState)
+          setLoading(false)
+        }
+        return
+      }
+
+      // Pas de ligne → c'est un nouvel utilisateur, on en crée une vide
+      const { data: inserted } = await supabase
+        .from('user_onboarding')
+        .insert({
+          user_id: user.id,
+          tour_dashboard_seen: false,
+          tour_devis_seen: false,
+          tour_completed_at: null,
+        })
+        .select('tour_dashboard_seen, tour_devis_seen, tour_completed_at')
+        .single()
+
+      if (!cancelled) {
+        setState((inserted as OnboardingState) ?? {
+          tour_dashboard_seen: false,
+          tour_devis_seen: false,
+          tour_completed_at: null,
+        })
+        setLoading(false)
+      }
+    }
+    fetch()
+    return () => { cancelled = true }
+  }, [])
+
+  // Marque une étape comme vue. Si toutes les étapes sont vues,
+  // tour_completed_at est mis à now() automatiquement.
+  const markStepSeen = useCallback(async (step: 'dashboard' | 'devis') => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const patch: Record<string, unknown> = {}
+    if (step === 'dashboard') patch.tour_dashboard_seen = true
+    if (step === 'devis') patch.tour_devis_seen = true
+
+    // On calcule localement si toutes les étapes sont vues pour
+    // poser tour_completed_at en un seul UPDATE.
+    const nextState: OnboardingState = {
+      tour_dashboard_seen: step === 'dashboard' ? true : (state?.tour_dashboard_seen ?? false),
+      tour_devis_seen: step === 'devis' ? true : (state?.tour_devis_seen ?? false),
+      tour_completed_at: state?.tour_completed_at ?? null,
+    }
+    if (nextState.tour_dashboard_seen && nextState.tour_devis_seen && !nextState.tour_completed_at) {
+      const nowIso = new Date().toISOString()
+      patch.tour_completed_at = nowIso
+      nextState.tour_completed_at = nowIso
+    }
+
+    await supabase.from('user_onboarding').update(patch).eq('user_id', user.id)
+    setState(nextState)
+  }, [state])
+
+  // Réinitialise complètement le tutoriel (bouton "Revoir la
+  // visite guidée" dans Paramètres).
+  const resetOnboarding = useCallback(async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    await supabase
+      .from('user_onboarding')
+      .update({
+        tour_dashboard_seen: false,
+        tour_devis_seen: false,
+        tour_completed_at: null,
+      })
+      .eq('user_id', user.id)
+
+    setState({
+      tour_dashboard_seen: false,
+      tour_devis_seen: false,
+      tour_completed_at: null,
+    })
+  }, [])
+
+  // Réinitialise une seule étape (utilisé depuis la page Aide pour
+  // permettre de rejouer juste une partie du tutoriel sans tout
+  // recommencer).
+  const replayStep = useCallback(async (step: 'dashboard' | 'devis') => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const patch: Record<string, unknown> = { tour_completed_at: null }
+    if (step === 'dashboard') patch.tour_dashboard_seen = false
+    if (step === 'devis') patch.tour_devis_seen = false
+
+    await supabase.from('user_onboarding').update(patch).eq('user_id', user.id)
+
+    setState((prev) => ({
+      tour_dashboard_seen: step === 'dashboard' ? false : (prev?.tour_dashboard_seen ?? false),
+      tour_devis_seen: step === 'devis' ? false : (prev?.tour_devis_seen ?? false),
+      tour_completed_at: null,
+    }))
+  }, [])
+
+  return { state, loading, markStepSeen, resetOnboarding, replayStep }
+}
+
 // ── Specific table hooks ──────────────────────────────────────
 
 type Row = Record<string, unknown>
@@ -371,6 +521,7 @@ export {
   purgeCorbeille,
   useUser,
   useEntreprise,
+  useOnboarding,
   useClients,
   useFournisseurs,
   useIntervenants,

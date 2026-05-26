@@ -21,6 +21,7 @@
     "@types/node": "^20.19.39",
     "@types/react": "^18.3.28",
     "autoprefixer": "^10.4.27",
+    "driver.js": "^1.4.0",
     "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
