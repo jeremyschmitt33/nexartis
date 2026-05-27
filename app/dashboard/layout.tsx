@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser, useEntreprise } from '@/lib/hooks'
 import { applySidebarTheme } from '@/components/ThemeSelector'
 import OnboardingTour from '@/components/OnboardingTour'
+import ContactFloatingButton from '@/components/dashboard/ContactFloatingButton'
 import {
   Home,
   LayoutGrid,
@@ -800,6 +801,11 @@ export default function DashboardLayout({
           tant que l'utilisateur n'est pas concerné. Voir
           components/OnboardingTour.tsx pour la logique complète. */}
       <OnboardingTour />
+
+      {/* Bouton flottant "Nous contacter" — visible sur toutes les pages
+          du dashboard. Ouvre une modal avec 3 types : bug, suggestion,
+          question. Cf. components/dashboard/ContactFloatingButton.tsx. */}
+      <ContactFloatingButton />
     </div>
   )
 }

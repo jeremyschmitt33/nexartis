@@ -40,7 +40,9 @@ import {
   PlayCircle,
   LifeBuoy,
   CheckCircle2,
+  MessageCircle,
 } from 'lucide-react'
+import ContactModal from '@/components/dashboard/ContactModal'
 
 type Section = {
   id: string
@@ -58,6 +60,7 @@ type Section = {
 
 export default function AidePage() {
   const [openId, setOpenId] = useState<string | null>('profil-entreprise')
+  const [showContactModal, setShowContactModal] = useState(false)
   const router = useRouter()
   const { replayStep, loading } = useOnboarding()
 
@@ -897,6 +900,31 @@ export default function AidePage() {
           </div>
         </div>
 
+        {/* ============ BLOC NOUS CONTACTER ============ */}
+        <section className="mb-8 bg-cream border-2 border-orange/20 rounded-2xl p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="hidden sm:flex h-12 w-12 rounded-full bg-orange/10 items-center justify-center flex-shrink-0">
+              <MessageCircle size={22} className="text-orange" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-syne font-bold text-xl sm:text-2xl text-navy mb-1.5">
+                Vous n&apos;avez pas trouvé votre réponse&nbsp;?
+              </h2>
+              <p className="font-manrope text-sm text-navy/70 mb-4">
+                Signalez un bug, suggérez une amélioration ou posez une question. Une réponse personnelle vous sera envoyée par email.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowContactModal(true)}
+                className="bg-orange hover:bg-orange-hover text-cream font-semibold rounded-lg py-2.5 px-5 transition inline-flex items-center gap-2 text-sm"
+              >
+                <MessageCircle size={16} />
+                Envoyer un message
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* ============ ACCORDIONS GROUPÉS ============ */}
         <div className="space-y-3">
           {sections.map((section) => {
@@ -995,16 +1023,19 @@ export default function AidePage() {
             Écris-nous directement, on te répond généralement sous 24h.
           </p>
           <a
-            href="mailto:contact.nexartis@gmail.com"
+            href="mailto:contact@nexartis.fr"
             className="inline-flex items-center gap-2 font-syne font-bold text-sm text-sky-600 hover:text-sky-700 transition-colors"
           >
-            contact.nexartis@gmail.com
+            contact@nexartis.fr
           </a>
         </div>
 
         {/* Spacer bottom (mobile) */}
         <div className="h-10" />
       </div>
+
+      {/* Modal de contact (bug / suggestion / question) */}
+      <ContactModal isOpen={showContactModal} onClose={() => setShowContactModal(false)} />
     </div>
   )
 }
