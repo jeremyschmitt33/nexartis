@@ -2,15 +2,15 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: "À propos de Nexartis — L'histoire d'un logiciel artisan fait pour un ami",
+  title: "À propos de Nexartis — Un logiciel artisan performant et moins cher que les leaders",
   description:
-    "Nexartis est né du besoin d'un ami paysagiste qui voulait faire ses devis depuis son téléphone. Découvrez l'histoire et les 4 engagements écrits dans nos CGV.",
+    "Nexartis est né du besoin d'un ami paysagiste. Notre conviction : offrir aux artisans un outil aussi performant que les leaders du marché, mais à un prix juste.",
   robots: { index: true, follow: true },
   alternates: { canonical: '/a-propos' },
   openGraph: {
     title: 'À propos de Nexartis',
     description:
-      "L'histoire d'un logiciel artisan né du besoin réel d'un ami paysagiste, désormais ouvert à tous les artisans de France.",
+      "Un logiciel artisan performant et moins cher que les leaders du marché, né du besoin réel d'un ami paysagiste.",
     url: 'https://nexartis.fr/a-propos',
     type: 'website',
     siteName: 'Nexartis',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'À propos de Nexartis',
-    description: "L'histoire d'un logiciel artisan fait pour un ami.",
+    description: "Un logiciel artisan performant à un prix juste.",
   },
 }
 
@@ -76,8 +76,9 @@ export default function AProposPage() {
             L&apos;histoire de Nexartis
           </h1>
           <p className="mt-5 font-manrope text-lg text-navy/70 leading-relaxed">
-            Un outil né du besoin d&apos;un ami artisan paysagiste — désormais ouvert à tous
-            les artisans de France.
+            Un outil né du besoin d&apos;un ami artisan paysagiste. Notre conviction :
+            <strong className="text-navy"> aussi performant que les leaders, mais moins
+            cher</strong>, parce que les artisans méritent les deux.
           </p>
         </header>
 
@@ -127,10 +128,38 @@ export default function AProposPage() {
           </div>
         </section>
 
-        {/* ============ SECTION 3 — 4 ENGAGEMENTS ============ */}
+        {/* ============ SECTION 3 — NOTRE CONVICTION ============ */}
+        <section className="mb-12">
+          <h2 className="font-syne text-2xl sm:text-3xl font-bold text-navy mb-5">
+            Notre conviction
+          </h2>
+          <div className="font-manrope text-[16px] leading-[1.7] text-navy space-y-5">
+            <p>
+              Aujourd&apos;hui, un artisan qui veut un logiciel professionnel a deux choix :
+              prendre une solution premium à <strong>50 € par mois ou plus</strong>, ou se
+              contenter d&apos;un outil gratuit qui plante en plein devis. Nous n&apos;acceptons
+              pas ce compromis.
+            </p>
+            <p>
+              Nexartis est construit autour d&apos;une idée simple :{' '}
+              <strong>les artisans méritent un outil aussi performant que les leaders
+              du marché, mais à un prix juste</strong>. Pas de fonctionnalités payantes
+              cachées, pas de version premium qui sort dans 6 mois pour faire grimper la
+              facture. Tout est inclus, tout de suite.
+            </p>
+            <p>
+              Cette conviction n&apos;est pas un slogan. Elle vient de mon goût pour{' '}
+              <strong>le travail bien fait</strong> et d&apos;une vraie envie d&apos;aider les
+              artisans à gagner du temps sur leur paperasse pour en passer plus sur leur
+              chantier — là où se trouve la vraie valeur de leur métier.
+            </p>
+          </div>
+        </section>
+
+        {/* ============ SECTION 4 — 3 ENGAGEMENTS ============ */}
         <section className="mb-12 rounded-2xl border-2 border-orange/20 bg-cream/50 p-6 sm:p-8">
           <h2 className="font-syne text-2xl sm:text-3xl font-bold text-navy mb-2">
-            Nos 4 engagements écrits
+            Nos 3 engagements écrits
           </h2>
           <p className="font-manrope text-sm text-navy/60 mb-6">
             Inscrits en clair dans nos{' '}
@@ -150,19 +179,12 @@ export default function AProposPage() {
             <li className="flex gap-3">
               <span className="flex-shrink-0 font-syne text-orange font-bold">2.</span>
               <span>
-                <strong>Un bug remonté = un mois d&apos;abonnement offert.</strong> Pas de
-                petits caractères, pas de limite.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 font-syne text-orange font-bold">3.</span>
-              <span>
                 <strong>99 % d&apos;uptime garanti</strong>, ou abonnement remboursé pour
                 le mois concerné.
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 font-syne text-orange font-bold">4.</span>
+              <span className="flex-shrink-0 font-syne text-orange font-bold">3.</span>
               <span>
                 <strong>Vos données hébergées en France</strong>, jamais vendues, exportables
                 en CSV à tout moment.

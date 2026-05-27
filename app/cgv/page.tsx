@@ -182,7 +182,7 @@ export default function CgvPage() {
             Article 9 bis — Engagements qualité de l&apos;Éditeur
           </h2>
           <p>
-            En complément de l&apos;article 9 ci-dessus, l&apos;Éditeur prend les quatre engagements
+            En complément de l&apos;article 9 ci-dessus, l&apos;Éditeur prend les trois engagements
             qualité suivants à l&apos;égard du Client, qui constituent des obligations contractuelles
             pleinement opposables.
           </p>
@@ -199,19 +199,7 @@ export default function CgvPage() {
           </p>
 
           <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
-            9 bis.2 — Programme « Bug remonté = mois offert »
-          </h3>
-          <p>
-            Tout dysfonctionnement reproductible et vérifiable du Service signalé par le Client
-            à l&apos;adresse <strong>contact@nexartis.fr</strong> donne droit à{' '}
-            <strong>un (1) mois d&apos;abonnement gratuit</strong>, automatiquement déduit du
-            prochain renouvellement. Aucune limite n&apos;est appliquée au nombre de mois cumulables.
-            La qualification de « bug » est laissée à la discrétion raisonnable de l&apos;Éditeur,
-            qui s&apos;engage à motiver tout refus par écrit.
-          </p>
-
-          <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
-            9 bis.3 — Engagement de disponibilité
+            9 bis.2 — Engagement de disponibilité
           </h3>
           <p>
             L&apos;Éditeur s&apos;engage sur un taux de disponibilité minimum du Service de{' '}
@@ -223,7 +211,7 @@ export default function CgvPage() {
           </p>
 
           <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
-            9 bis.4 — Hébergement et portabilité des données
+            9 bis.3 — Hébergement et portabilité des données
           </h3>
           <p>
             Les données du Client sont hébergées sur des serveurs situés en <strong>France</strong>{' '}
