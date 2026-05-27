@@ -40,17 +40,17 @@ const TYPE_CONFIG: Record<ContactType, TypeConfig> = {
     bgClass: 'bg-orange/10',
     borderClass: 'border-orange',
     iconColor: 'text-orange',
-    subjectPlaceholder: "Ex : Le bouton \"Envoyer le devis\" ne fonctionne pas",
-    descPlaceholder: "Decrivez ce qui s'est passe, ce que vous attendiez, et si possible les etapes pour reproduire le bug.",
+    subjectPlaceholder: "Ex : Le bouton « Envoyer le devis » ne fonctionne pas",
+    descPlaceholder: "Décrivez ce qui s'est passé, ce que vous attendiez, et si possible les étapes pour reproduire le bug.",
   },
   feature: {
-    label: 'Suggerer une amelioration',
+    label: 'Suggérer une amélioration',
     Icon: Lightbulb,
     bgClass: 'bg-sky/10',
     borderClass: 'border-sky',
     iconColor: 'text-sky',
     subjectPlaceholder: "Ex : Pouvoir dupliquer un devis en un clic",
-    descPlaceholder: "Decrivez la fonctionnalite que vous aimeriez voir, et pourquoi elle serait utile pour vous.",
+    descPlaceholder: "Décrivez la fonctionnalité que vous aimeriez voir, et pourquoi elle serait utile pour vous.",
   },
   question: {
     label: 'Poser une question',
@@ -59,7 +59,7 @@ const TYPE_CONFIG: Record<ContactType, TypeConfig> = {
     borderClass: 'border-gold',
     iconColor: 'text-gold',
     subjectPlaceholder: "Ex : Comment activer la TVA 5,5 % ?",
-    descPlaceholder: "Posez votre question le plus precisement possible. Une reponse personnelle vous sera envoyee par email.",
+    descPlaceholder: "Posez votre question le plus précisément possible. Une réponse personnelle vous sera envoyée par email.",
   },
 }
 
@@ -146,10 +146,10 @@ export default function ContactModal({ isOpen, onClose }: Props) {
           <div className="text-center py-8">
             <CheckCircle2 size={64} className="mx-auto text-green-600 mb-4" />
             <h2 className="font-syne font-bold text-2xl text-navy mb-2">
-              Message envoye !
+              Message envoyé !
             </h2>
             <p className="font-manrope text-sm text-navy/70 mb-6">
-              Une reponse personnelle vous sera envoyee sous 48h sur votre adresse email.
+              Une réponse personnelle vous sera envoyée sous 48h sur votre adresse email.
             </p>
             <button
               type="button"
@@ -239,7 +239,7 @@ export default function ContactModal({ isOpen, onClose }: Props) {
 
                 {status === 'error' && (
                   <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm font-manrope">
-                    Impossible d'envoyer votre message. Verifiez votre connexion ou reessayez dans quelques minutes.
+                    Impossible d'envoyer votre message. Vérifiez votre connexion ou réessayez dans quelques minutes.
                   </div>
                 )}
 
