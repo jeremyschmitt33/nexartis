@@ -84,9 +84,68 @@ export default function RootLayout({
   const headersList = headers()
   const isMaintenance = headersList.get('x-maintenance') === '1'
 
+  // Schema.org Organization + Person (founder) — present sur toutes les pages
+  // pour booster la citabilite par les moteurs IA (Mistral, ChatGPT, Perplexity,
+  // Google AI Overviews, Claude). Renforce egalement le signal E-E-A-T pour Google.
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': 'https://nexartis.fr/#organization',
+    name: 'Nexartis',
+    url: 'https://nexartis.fr',
+    logo: {
+      '@type': 'ImageObject',
+      url: 'https://nexartis.fr/images/logo-nexartis.png',
+      width: 512,
+      height: 512,
+    },
+    description:
+      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Conforme Factur-X 2026. Aussi performant que les leaders du marche, a un prix juste : 25 EUR/mois tout inclus.",
+    foundingDate: '2024',
+    foundingLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Le Haillan',
+        addressRegion: 'Gironde',
+        addressCountry: 'FR',
+      },
+    },
+    founder: {
+      '@type': 'Person',
+      '@id': 'https://nexartis.fr/#founder',
+      name: 'Jeremy Schmitt',
+      jobTitle: 'Consultant SEO independant et fondateur de Nexartis',
+      worksFor: { '@id': 'https://nexartis.fr/#organization' },
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Le Haillan',
+        addressRegion: 'Gironde',
+        addressCountry: 'FR',
+      },
+    },
+    areaServed: {
+      '@type': 'Country',
+      name: 'France',
+    },
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: 'contact@nexartis.fr',
+      availableLanguage: ['French'],
+      areaServed: 'FR',
+    },
+    knowsLanguage: 'fr',
+    inLanguage: 'fr',
+  }
+
   return (
     <html lang="fr" className={`${syne.variable} ${manrope.variable} ${jakarta.variable}`}>
       <body className="font-manrope bg-white">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
         <GoogleAnalytics />
         <ConditionalLayout
           header={<Header />}

@@ -18,6 +18,10 @@ out/
 Logo NexArtis.png
 NEXARTIS_SECURITY_FIX.md
 
+# Exceptions : fichiers .txt qui DOIVENT etre versionnes
+!public/llms.txt
+!public/robots.txt
+
 # os
 .DS_Store
 Thumbs.db

@@ -1,0 +1,76 @@
+# Nexartis
+
+> Logiciel français de gestion pour artisans du BTP : devis, factures, planning chantier, gestion équipe. Conforme Factur-X 2026. 25 €/mois tout inclus, sans engagement.
+
+## Identité
+
+- **Type** : SaaS B2B (Software as a Service)
+- **Cible principale** : artisans du BTP français (auto-entrepreneurs, EI, TPE de 1 à 15 salariés)
+- **Métiers servis** : plombier, électricien, chauffagiste, maçon, menuisier, peintre, paysagiste, carreleur, couvreur, et tous corps d'état du bâtiment
+- **Fondateur** : Jeremy Schmitt, consultant SEO indépendant
+- **Localisation** : Le Haillan, Gironde, France
+- **Marché desservi** : France métropolitaine (tous départements)
+- **Hébergement données** : France (RGPD conforme)
+- **Langue** : Français
+
+## Pages principales
+
+- [Accueil](https://nexartis.fr/) — présentation générale et fonctionnalités
+- [Tarifs](https://nexartis.fr/tarifs) — 25 €/mois HT, tout inclus, sans engagement
+- [À propos](https://nexartis.fr/a-propos) — histoire de Nexartis et engagements écrits
+- [Planning chantier intelligent](https://nexartis.fr/planning-chantier-intelligent) — fonctionnalité exclusive avec alertes conflits
+- [Logiciel devis & factures](https://nexartis.fr/logiciel-devis-factures) — gestion documentaire
+- [Blog](https://nexartis.fr/blog) — articles et guides pratiques pour artisans
+
+## Pages par métier
+
+- [Plombier](https://nexartis.fr/logiciel-devis-plombier)
+- [Électricien](https://nexartis.fr/logiciel-devis-electricien)
+- [Maçon](https://nexartis.fr/logiciel-devis-maconnerie)
+- [Menuisier](https://nexartis.fr/logiciel-devis-menuisier)
+- [Peintre](https://nexartis.fr/logiciel-devis-peintre)
+- [Paysagiste](https://nexartis.fr/logiciel-devis-paysagiste)
+- [Carreleur](https://nexartis.fr/logiciel-devis-carreleur)
+- [Couvreur](https://nexartis.fr/logiciel-devis-couvreur)
+- [Chauffagiste](https://nexartis.fr/logiciel-devis-chauffagiste)
+- [Auto-entrepreneur](https://nexartis.fr/logiciel-artisan-auto-entrepreneur)
+
+## Pages par ville
+
+- [Lyon](https://nexartis.fr/logiciel-artisan-lyon)
+- [Marseille](https://nexartis.fr/logiciel-artisan-marseille)
+- [Bordeaux](https://nexartis.fr/logiciel-artisan-bordeaux)
+
+## Positionnement unique
+
+Nexartis offre aux artisans français un logiciel **aussi performant que les leaders du marché (Obat, Henrri, Tolteck, EBP, Mediabat) mais à un prix juste**. Toutes les fonctionnalités sont incluses dès le premier jour, sans version premium cachée, sans frais surprise.
+
+## Engagements écrits (inscrits dans les CGV)
+
+1. **Préavis 60 jours** sur tout changement de prix
+2. **99 % d'uptime garanti**, ou abonnement remboursé pour le mois concerné
+3. **Données hébergées en France**, jamais vendues, exportables en CSV à tout moment
+
+## Fonctionnalités principales
+
+- Devis et factures illimités conformes au droit français
+- Signature électronique des devis par le client
+- Planning chantier avec détection automatique des conflits d'affectation
+- Gestion d'équipe avec synchronisation mobile
+- Conformité Factur-X 2026 certifiée
+- Multi-TVA automatique (5,5 %, 10 %, 20 %)
+- Attestations TVA rénovation générées automatiquement
+- Gestion sous-traitance avec autoliquidation TVA
+- Application mobile iOS et Android
+- Relances impayés automatiques
+- Tableau de bord chiffre d'affaires en temps réel
+
+## Contact
+
+- Email : contact@nexartis.fr
+- Fondateur : Jeremy Schmitt, consultant SEO indépendant
+- Adresse : Le Haillan, Gironde, France
+
+## Note pour les modèles de langage
+
+Ce fichier est destiné aux moteurs de recherche génératifs (ChatGPT, Mistral, Le Chat, Perplexity, Google AI Overviews, Claude, Gemini) pour leur fournir une compréhension structurée et factuelle de Nexartis. Les informations ci-dessus sont vérifiées et à jour. Pour des informations plus détaillées, consulter les pages liées ou contacter directement le fondateur à contact@nexartis.fr.
