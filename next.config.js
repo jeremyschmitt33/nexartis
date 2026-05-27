@@ -9,6 +9,27 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Redirection 301 (permanente) de www.nexartis.fr vers nexartis.fr.
+  // Note : la regle dans vercel.json n'a pas fonctionne car Vercel utilise un 307
+  // par defaut au niveau du domaine. En la mettant ici, Next.js intercepte la
+  // requete AVANT le routage Vercel et applique un vrai 301 permanent.
+  // Important SEO : un 307 ne transfere pas le PageRank, contrairement au 301.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.nexartis.fr',
+          },
+        ],
+        destination: 'https://nexartis.fr/:path*',
+        permanent: true,
+      },
+    ]
+  },
+
   async headers() {
     return [
       {
