@@ -179,6 +179,63 @@ export default function CgvPage() {
 
         <section className="mb-10">
           <h2 className="font-syne text-2xl font-bold text-navy">
+            Article 9 bis — Engagements qualité de l&apos;Éditeur
+          </h2>
+          <p>
+            En complément de l&apos;article 9 ci-dessus, l&apos;Éditeur prend les quatre engagements
+            qualité suivants à l&apos;égard du Client, qui constituent des obligations contractuelles
+            pleinement opposables.
+          </p>
+
+          <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
+            9 bis.1 — Préavis tarifaire
+          </h3>
+          <p>
+            L&apos;Éditeur s&apos;engage à notifier toute modification du tarif d&apos;abonnement
+            au Client par email officiel adressé à l&apos;adresse de contact renseignée dans son
+            compte, avec un préavis minimum de <strong>soixante (60) jours calendaires</strong> avant
+            la prise d&apos;effet de ladite modification. Le Client conserve la faculté de résilier
+            son abonnement, sans frais ni pénalité, avant l&apos;entrée en vigueur du nouveau tarif.
+          </p>
+
+          <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
+            9 bis.2 — Programme « Bug remonté = mois offert »
+          </h3>
+          <p>
+            Tout dysfonctionnement reproductible et vérifiable du Service signalé par le Client
+            à l&apos;adresse <strong>contact@nexartis.fr</strong> donne droit à{' '}
+            <strong>un (1) mois d&apos;abonnement gratuit</strong>, automatiquement déduit du
+            prochain renouvellement. Aucune limite n&apos;est appliquée au nombre de mois cumulables.
+            La qualification de « bug » est laissée à la discrétion raisonnable de l&apos;Éditeur,
+            qui s&apos;engage à motiver tout refus par écrit.
+          </p>
+
+          <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
+            9 bis.3 — Engagement de disponibilité
+          </h3>
+          <p>
+            L&apos;Éditeur s&apos;engage sur un taux de disponibilité minimum du Service de{' '}
+            <strong>quatre-vingt-dix-neuf pour cent (99 %)</strong>, calculé sur le mois calendaire,
+            hors interruptions programmées pour maintenance préalablement annoncées et hors cas de
+            force majeure. En cas de non-respect de cet engagement, le Client a droit au remboursement
+            intégral de la mensualité du mois concerné, sur simple demande adressée à{' '}
+            <strong>contact@nexartis.fr</strong>.
+          </p>
+
+          <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
+            9 bis.4 — Hébergement et portabilité des données
+          </h3>
+          <p>
+            Les données du Client sont hébergées sur des serveurs situés en <strong>France</strong>{' '}
+            et ne sont en aucun cas transmises, vendues ou commercialisées à des tiers, sauf
+            obligation légale. Le Client peut à tout moment exporter l&apos;intégralité de ses
+            données aux formats CSV ou PDF depuis son espace personnel, ou sur simple demande
+            adressée à <strong>contact@nexartis.fr</strong>.
+          </p>
+        </section>
+
+        <section className="mb-10">
+          <h2 className="font-syne text-2xl font-bold text-navy">
             Article 10 — Médiation de la consommation (B2C)
           </h2>
           <p>

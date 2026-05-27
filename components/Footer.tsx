@@ -17,6 +17,7 @@ const metierLinks = [
 const navLinks = [
   { label: "Tarifs", href: "/tarifs" },
   { label: "Blog", href: "/blog" },
+  { label: "À propos", href: "/a-propos" },
   { label: "Se connecter", href: "/login" },
   { label: "Essai gratuit", href: "/register" },
 ];
