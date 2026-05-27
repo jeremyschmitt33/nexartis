@@ -4,5 +4,18 @@
       "path": "/api/keepalive",
       "schedule": "0 9 */5 * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.nexartis.fr"
+        }
+      ],
+      "destination": "https://nexartis.fr/:path*",
+      "permanent": true
+    }
   ]
 }
