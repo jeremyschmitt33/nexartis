@@ -522,6 +522,14 @@ export default function AidePage() {
             <li className="flex gap-2"><span className="text-orange-600 font-bold flex-shrink-0">→</span><span><strong>Intérimaire</strong> — mission temporaire</span></li>
             <li className="flex gap-2"><span className="text-orange-600 font-bold flex-shrink-0">→</span><span><strong>Sous-traitant</strong> — entité externe (autre entreprise), avec suivi des paiements ST séparé</span></li>
           </ul>
+          {/* V1 Fix #7 — Rappel prérequis planning en mode Société */}
+          <div className="mb-4 rounded-xl border border-sky/40 bg-sky/5 p-3 text-[13px]">
+            <p>
+              <strong>Pré-requis planning&nbsp;:</strong> pour pouvoir <strong>planifier des interventions</strong>{' '}
+              en mode Société, pense à créer toute ton équipe ici avant. Tant qu&apos;aucun intervenant
+              n&apos;est ajouté, le planning ne propose personne à assigner.
+            </p>
+          </div>
 
           <h4 className="font-syne font-bold text-[15px] text-navy mt-5 mb-2">
             Métier et couleur

@@ -34,7 +34,8 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useOnboarding } from '@/lib/hooks'
+import { useOnboarding, useEntreprise } from '@/lib/hooks'
+import { isAutoEntrepreneur } from '@/lib/helpers'
 import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
@@ -47,6 +48,10 @@ export default function OnboardingTour() {
   const pathname = usePathname()
   const router = useRouter()
   const { state, loading, markStepSeen } = useOnboarding()
+  // V1 Fix #7 (28/05/2026) : on lit la forme juridique pour ajouter
+  // une bulle "Mon équipe" supplémentaire en mode Société uniquement.
+  const { entreprise } = useEntreprise()
+  const isSociete = !isAutoEntrepreneur(entreprise)
   const driverRef = useRef<Driver | null>(null)
 
   useEffect(() => {
@@ -182,6 +187,27 @@ export default function OnboardingTour() {
                 align: 'center',
               },
             },
+            // V1 Fix #7 (28/05/2026) : bulle "Mon équipe" affichée uniquement
+            // en mode Société. En mode Auto-entrepreneur, le dirigeant est
+            // seul à intervenir, l'étape n'apporte rien et serait perturbante.
+            // L'élément cible n'existe que si la sidebar n'est pas collapsed —
+            // si absent du DOM, driver.js skippe automatiquement l'étape.
+            ...(isSociete && document.querySelector('[data-tour="equipe"]')
+              ? [
+                  {
+                    element: '[data-tour="equipe"]',
+                    popover: {
+                      title: 'Pense à créer ton équipe',
+                      description: `
+                        <p style="margin: 0 0 10px 0;">Comme tu es en <strong>société</strong>, tu peux ajouter tous tes collaborateurs dans <strong>Mon équipe</strong>.</p>
+                        <p style="margin: 0; color: #445068; font-size: 13px;">Chaque membre devient ensuite sélectionnable comme intervenant dans le planning : tu pourras leur assigner des interventions, suivre leur charge et les afficher dans la grille hebdomadaire.</p>
+                      `,
+                      side: 'right' as const,
+                      align: 'center' as const,
+                    },
+                  },
+                ]
+              : []),
             {
               element: '[data-tour="aide"]',
               popover: {
@@ -269,7 +295,9 @@ export default function OnboardingTour() {
 
       return () => clearTimeout(timer)
     }
-  }, [pathname, state, loading, markStepSeen, router])
+    // `isSociete` ajouté car la branche /parametres en dépend pour ajouter
+    // ou non la bulle "Mon équipe" (V1 Fix #7).
+  }, [pathname, state, loading, markStepSeen, router, isSociete])
 
   // Nettoyage final au démontage du composant
   useEffect(() => {

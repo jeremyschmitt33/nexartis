@@ -453,12 +453,18 @@ function PlanningPageInner() {
   // Session 9 (28/05/2026) : étendu au mode Société. Si le dirigeant n'a pas
   // encore créé d'équipe, le self est pré-sélectionné comme Référent par
   // défaut (sinon le dropdown serait vide et la planification impossible).
+  // V1 Fix #6 (28/05/2026) : on RETIRE le pre-fill en mode Société.
+  //   - Mode AE (!isSociete) : pre-fill `[self, referent]` (comportement S9 conservé).
+  //   - Mode Société : aucun pre-fill, mIntervenants reste vide et le dirigeant
+  //     ajoute manuellement les intervenants (le self "Vous" reste dispo dans
+  //     le Combobox d'ajout d'intervenant, donc rien n'est perdu).
   useEffect(() => {
     if (!showModal) return
     if (mIntervenants.length > 0) return
+    if (isSociete) return
     if (selfIntervenantId) {
       setMIntervenant(selfIntervenantId)
-    } else if (!isSociete && intervenants.length > 0) {
+    } else if (intervenants.length > 0) {
       // Fallback Solo legacy : 1er intervenant si pas de self résolu.
       setMIntervenant((intervenants[0] as R).id as string)
     }
@@ -1661,8 +1667,10 @@ function PlanningPageInner() {
   const cellPaddingClass = isCompact ? 'px-1 py-0.5' : 'px-1.5 py-1'
   const interventionPaddingClass = isCompact ? 'p-1 pr-5' : 'p-2 pr-6'
   const interventionGapClass = isCompact ? 'mb-0.5' : 'mb-1'
-  const titreLineClass = isCompact ? 'hidden' : 'hidden sm:block text-[11px] font-medium opacity-75 mt-0.5 line-clamp-2 leading-snug'
-  const clientLineFontClass = isCompact ? 'text-[10px]' : 'text-[11px]'
+  // V1 Fix #8 (28/05/2026) : texte des cases bumpé d'un cran (Confort uniquement)
+  // pour améliorer la lisibilité sans casser la densité. Compact reste petit.
+  const titreLineClass = isCompact ? 'hidden' : 'hidden sm:block text-[12px] font-medium opacity-75 mt-0.5 line-clamp-2 leading-snug'
+  const clientLineFontClass = isCompact ? 'text-[10px]' : 'text-[12px]'
 
   // S2 — Helpers pour la barre de chips et le groupement
   const toggleIntervenantVisibility = (id: string) => {
@@ -2059,16 +2067,19 @@ function PlanningPageInner() {
                     const isHidden = hiddenIntervenants.has(ivId)
                     // Session 9 : "Vous" pour le self
                     const isSelfChip = r.is_self === true
-                    const shortLabel = isSelfChip
+                    // V1 Fix #2 (28/05/2026) : prenom + nom complet (au lieu d'initiale + nom).
+                    // Wrap autorisé sur 2 lignes pour les noms longs (whitespace-normal + leading-tight).
+                    // "Vous" reste seul. Min-width pour éviter chips minuscules, max-width pour borner.
+                    const fullLabel = isSelfChip
                       ? 'Vous'
-                      : (`${String(r.prenom ?? '').charAt(0).toUpperCase()}${String(r.prenom ?? '').length > 0 ? '. ' : ''}${String(r.nom ?? '')}`.trim() || String(r.prenom ?? '') || 'Sans nom')
+                      : (`${String(r.prenom ?? '').trim()} ${String(r.nom ?? '').trim()}`.trim() || 'Sans nom')
                     return (
                       <button
                         key={ivId}
                         onClick={() => toggleIntervenantVisibility(ivId)}
                         aria-pressed={!isHidden}
                         title={isHidden ? `Afficher ${ivFullName(ivId)}` : `Masquer ${ivFullName(ivId)}`}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border ${
+                        className={`flex items-start gap-1.5 px-2.5 py-1 rounded-2xl text-[11px] font-semibold whitespace-normal leading-tight text-left transition-all border min-w-[110px] max-w-[180px] ${
                           isHidden
                             ? 'bg-white border-[#e6ecf2] text-[#94a3b8] hover:border-[#cbd5e1]'
                             : 'border-transparent text-white shadow-sm hover:shadow-md'
@@ -2076,11 +2087,11 @@ function PlanningPageInner() {
                         style={!isHidden ? { background: color.hex } : undefined}
                       >
                         <span
-                          className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-extrabold ${isHidden ? 'bg-[#f1f5f9] text-[#94a3b8]' : 'bg-white/25 text-white'}`}
+                          className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-extrabold flex-shrink-0 mt-0.5 ${isHidden ? 'bg-[#f1f5f9] text-[#94a3b8]' : 'bg-white/25 text-white'}`}
                         >
                           {initials(`${r.prenom ?? ''} ${r.nom ?? ''}`)}
                         </span>
-                        <span>{shortLabel}</span>
+                        <span className="line-clamp-2 break-words">{fullLabel}</span>
                       </button>
                     )
                   })}
@@ -2215,9 +2226,14 @@ function PlanningPageInner() {
                                     const interventions = planningMap.get(cellKey) ?? []
                                     const isDragOver = dragOverCell === cellKey
 
+                                    // V1 Fix #10 (28/05/2026) : cellules vides
+                                    // teintées en gris très léger pour effet "papier
+                                    // quadrillé". Les cellules avec intervention(s)
+                                    // gardent leur fond couleur intervenant.
+                                    const isEmpty = interventions.length === 0
                                     return (
                                       <div key={cellKey}
-                                        className={`${cellMinHeightClass} ${cellPaddingClass} border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
+                                        className={`${cellMinHeightClass} ${cellPaddingClass} border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
                                         onDragOver={e => { e.preventDefault(); setDragOverCell(cellKey) }}
                                         onDragLeave={() => setDragOverCell(null)}
                                         onDrop={e => { e.preventDefault(); handleDrop(ivId, day.dateStr) }}>
@@ -2305,13 +2321,14 @@ function PlanningPageInner() {
                                                     +{nbExtraIntervenants}
                                                   </span>
                                                 )}
-                                                {/* Ligne 1 : creneau horaire compact */}
+                                                {/* Ligne 1 : creneau horaire compact
+                                                    V1 Fix #8 : +1 cran en Confort (10→11 et 9→10). Compact inchangé. */}
                                                 {isCreneau ? (
-                                                  <div className={`${isCompact ? 'text-[9px]' : 'text-[10px]'} font-extrabold text-[#0f1a3a] leading-tight`}>
+                                                  <div className={`${isCompact ? 'text-[9px]' : 'text-[11px]'} font-extrabold text-[#0f1a3a] leading-tight`}>
                                                     {timeDisplay}
                                                   </div>
                                                 ) : (
-                                                  <div className={`${isCompact ? 'text-[8px]' : 'text-[9px]'} font-bold uppercase tracking-wide opacity-70`}>
+                                                  <div className={`${isCompact ? 'text-[8px]' : 'text-[10px]'} font-bold uppercase tracking-wide opacity-70`}>
                                                     {creneauLabel(rec.creneau as string)}
                                                   </div>
                                                 )}

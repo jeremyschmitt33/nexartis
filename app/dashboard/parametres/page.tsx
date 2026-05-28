@@ -1822,8 +1822,10 @@ export default function ParametresPage() {
     // Ancre pour le tutoriel onboarding (bulle 2/3 — voir
     // components/OnboardingTour.tsx, scénario Paramètres).
     <div data-tour="parametres-content" className="flex flex-col md:flex-row gap-6">
-      {/* Sidebar navigation */}
-      <aside className="w-full md:w-64 flex-shrink-0">
+      {/* Sidebar navigation
+          V1 Bonus (28/05/2026) : bord droit gris-300 visible en desktop
+          pour mieux séparer visuellement la nav du panneau de contenu. */}
+      <aside className="w-full md:w-64 flex-shrink-0 md:pr-6 md:border-r md:border-gray-300">
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible">
             {NAV_ITEMS.map((item) => {

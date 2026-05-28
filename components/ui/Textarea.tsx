@@ -18,6 +18,7 @@ export type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & 
  * Textarea partagé — même DA que <Input> mais hauteur multi-lignes.
  * Padding vertical confortable (py-2.5), min-h adapté pour 3 lignes par défaut,
  * `resize-none` pour éviter le grip natif moche.
+ * Contraste accentué le 28/05/2026 (Vague 1) : gris-100 + bordure gris-400 + hover gris-500.
  */
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   function Textarea(
@@ -54,7 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             'disabled:opacity-60 disabled:cursor-not-allowed',
             hasError
               ? 'border-red-400 bg-red-50/30 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-              : 'border-gray-300 bg-gray-50/60 focus:border-sky focus:ring-1 focus:ring-sky/20',
+              : 'border-gray-400 bg-gray-100 hover:border-gray-500 focus:border-sky focus:ring-1 focus:ring-sky/20',
             className,
           )}
           {...rest}

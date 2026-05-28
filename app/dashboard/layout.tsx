@@ -360,12 +360,13 @@ function Sidebar({
               {group.map((item) => {
                 const active = isActive(pathname, item.href)
                 const Icon = item.icon
-                // Ancrage du spotlight onboarding sur les liens Paramètres
-                // et Aide. OnboardingTour (composant client) cible ces
-                // attributs via document.querySelector('[data-tour="..."]').
+                // Ancrage du spotlight onboarding sur les liens Paramètres,
+                // Aide et Mon équipe (V1 Fix #7, mode Société uniquement).
+                // OnboardingTour cible ces attributs via querySelector.
                 const tourId =
                   item.href === '/dashboard/parametres' ? 'parametres' :
                   item.href === '/dashboard/aide' ? 'aide' :
+                  item.href === '/dashboard/equipe' ? 'equipe' :
                   undefined
                 return (
                   <Link

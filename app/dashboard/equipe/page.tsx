@@ -345,6 +345,24 @@ export default function EquipePage() {
     role: '',
   })
 
+  // V1 Fix #1 (28/05/2026) : auto-lock du rôle à "Apprenti" quand
+  // type_contrat === 'apprenti'. Si l'utilisateur change le type vers
+  // autre chose, on NE reset PAS le rôle (il garde sa valeur précédente).
+  // S'applique aux deux formulaires (création et édition).
+  useEffect(() => {
+    if (form.type_contrat === 'apprenti' && form.role !== 'Apprenti') {
+      setForm((f) => ({ ...f, role: 'Apprenti' }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.type_contrat])
+
+  useEffect(() => {
+    if (editForm.type_contrat === 'apprenti' && editForm.role !== 'Apprenti') {
+      setEditForm((f) => ({ ...f, role: 'Apprenti' }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editForm.type_contrat])
+
   const openEdit = (intervenant: Intervenant) => {
     setEditForm({
       prenom: intervenant.prenom || '',
@@ -679,17 +697,21 @@ export default function EquipePage() {
               <option value="interimaire">Interimaire</option>
               <option value="sous-traitant">Sous-traitant</option>
             </Select>
+            {/* V1 Fix #1 : nouvelle hiérarchie BTP + auto-lock Apprenti */}
             <Select
               label="Rôle"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
+              disabled={form.type_contrat === 'apprenti'}
+              hint={form.type_contrat === 'apprenti' ? 'Verrouillé : un contrat d’apprentissage impose le rôle Apprenti.' : undefined}
             >
               <option value="">— Non défini</option>
-              <option value="Dirigeant">Dirigeant</option>
-              <option value="Chef d'équipe">Chef d&apos;équipe</option>
-              <option value="Compagnon">Compagnon</option>
               <option value="Apprenti">Apprenti</option>
-              <option value="Assistant">Assistant</option>
+              <option value="Ouvrier">Ouvrier</option>
+              <option value="Compagnon">Compagnon</option>
+              <option value="Chef d'équipe">Chef d&apos;équipe</option>
+              <option value="Conducteur de travaux">Conducteur de travaux</option>
+              <option value="Dirigeant">Dirigeant</option>
             </Select>
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -765,17 +787,21 @@ export default function EquipePage() {
               <option value="interimaire">Interimaire</option>
               <option value="sous-traitant">Sous-traitant</option>
             </Select>
+            {/* V1 Fix #1 : nouvelle hiérarchie BTP + auto-lock Apprenti */}
             <Select
               label="Rôle"
               value={editForm.role}
               onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+              disabled={editForm.type_contrat === 'apprenti'}
+              hint={editForm.type_contrat === 'apprenti' ? 'Verrouillé : un contrat d’apprentissage impose le rôle Apprenti.' : undefined}
             >
               <option value="">— Non défini</option>
-              <option value="Dirigeant">Dirigeant</option>
-              <option value="Chef d'équipe">Chef d&apos;équipe</option>
-              <option value="Compagnon">Compagnon</option>
               <option value="Apprenti">Apprenti</option>
-              <option value="Assistant">Assistant</option>
+              <option value="Ouvrier">Ouvrier</option>
+              <option value="Compagnon">Compagnon</option>
+              <option value="Chef d'équipe">Chef d&apos;équipe</option>
+              <option value="Conducteur de travaux">Conducteur de travaux</option>
+              <option value="Dirigeant">Dirigeant</option>
             </Select>
             <div className="grid grid-cols-2 gap-4">
               <Input

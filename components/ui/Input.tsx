@@ -15,9 +15,11 @@ export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 }
 
 /**
- * Composant Input partagé — style "mix A+B" validé le 28/05/2026 :
- * - bordure gris-300 (visible en permanence vs ancien gris-200 quasi invisible)
- * - fond gris-50/60 (l'input se "détache" du blanc de la page)
+ * Composant Input partagé — style "mix A+B" validé le 28/05/2026,
+ * contraste accentué le 28/05/2026 (Vague 1) :
+ * - bordure gris-400 (au lieu de gris-300, plus visible sur tous écrans)
+ * - fond gris-100 (au lieu de gris-50/60, jugé invisible par le PO)
+ * - hover border gris-500 pour feedback explicite
  * - focus sky discret (border + ring 1px)
  *
  * forwardRef pour autoriser un futur usage avec react-hook-form ou pour
@@ -58,7 +60,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           // état (erreur vs normal)
           hasError
             ? 'border-red-400 bg-red-50/30 focus:border-red-500 focus:ring-1 focus:ring-red-500/20'
-            : 'border-gray-300 bg-gray-50/60 focus:border-sky focus:ring-1 focus:ring-sky/20',
+            : 'border-gray-400 bg-gray-100 hover:border-gray-500 focus:border-sky focus:ring-1 focus:ring-sky/20',
           // override utilisateur
           className,
         )}
