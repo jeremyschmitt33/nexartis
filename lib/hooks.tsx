@@ -466,6 +466,15 @@ function useDeletedFactures() { return useSupabaseQuery<Row>('factures', { order
 function useAchats() { return useSupabaseQuery<Row>('achats', { orderBy: 'date_achat' }) }
 function usePaiements() { return useSupabaseQuery<Row>('paiements', { orderBy: 'date_paiement' }) }
 function usePlanning() { return useSupabaseQuery<Row>('planning_interventions', { orderBy: 'date_debut', ascending: true }) }
+// Session 8 (28/05/2026) — table jonction multi-intervenants par intervention.
+// Schéma : { id, user_id, intervention_id, intervenant_id, role: 'referent' | 'equipier' }.
+// Retourne la liste complète (filtrée user_id côté RLS + côté hook).
+// Utilisée pour :
+//  - Construire la `planningMap` (rendu grille : 1 intervention liée à N
+//    intervenants apparaît dans N cellules).
+//  - Détecter les conflits horaires sur l'ensemble des liaisons.
+//  - Hydrater le multi-sélecteur du modal édition.
+function useInterventionIntervenants() { return useSupabaseQuery<Row>('intervention_intervenants', { orderBy: 'created_at', ascending: true }) }
 function useRelances() { return useSupabaseQuery<Row>('relances', { orderBy: 'created_at' }) }
 function usePointsCollecte() { return useSupabaseQuery<Row>('points_collecte', { orderBy: 'created_at' }) }
 function useMateriel() { return useSupabaseQuery<Row>('materiel', { orderBy: 'created_at' }) }
@@ -573,6 +582,7 @@ export {
   useAchats,
   usePaiements,
   usePlanning,
+  useInterventionIntervenants,
   useChantierNotes,
   useSousTraitantPaiements,
   useRelances,
