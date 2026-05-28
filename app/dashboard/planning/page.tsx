@@ -4,8 +4,11 @@ import { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'rea
 import {
   Plus, ChevronLeft, ChevronRight, CalendarDays, X, FileText,
   Search, AlertTriangle, Users, Briefcase, Clock, HardHat,
-  MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil
+  MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
+  Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
+  MoreHorizontal, Phone, MessageSquare, Mail, Navigation
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import {
   usePlanning, useIntervenants, useClients, useChantiers, useDevis,
   insertRow, updateRow, deleteRow, LoadingSkeleton, useEntreprise,
@@ -93,6 +96,86 @@ function getDaysInMonth(year: number, month: number): Date[] {
 function getFirstDayOffset(year: number, month: number): number {
   const d = new Date(year, month, 1).getDay()
   return d === 0 ? 6 : d - 1 // Monday = 0
+}
+
+// ── Helpers Session 4 (refonte fiche detail + cases planning) ──
+
+// "2026-05-28" -> "Jeu 28 mai 2026"
+function formatDateFR(iso: string): string {
+  if (!iso) return ''
+  const datePart = iso.split('T')[0]
+  const [y, m, d] = datePart.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  const date = new Date(y, m - 1, d)
+  const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+  const mois = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+  return `${jours[date.getDay()]} ${d} ${mois[m - 1]} ${y}`
+}
+
+// "08:00" + "12:00" -> "4h00" ; "08:00" + "12:30" -> "4h30"
+function formatCreneauDuree(start: string, end: string): string {
+  if (!start || !end) return ''
+  const [hs, ms] = start.split(':').map(Number)
+  const [he, me] = end.split(':').map(Number)
+  if (Number.isNaN(hs) || Number.isNaN(he)) return ''
+  let total = (he * 60 + (me || 0)) - (hs * 60 + (ms || 0))
+  if (total <= 0) return ''
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return `${h}h${String(m).padStart(2, '0')}`
+}
+
+// "08:00" -> "8h" ; "14:30" -> "14h30"
+function shortTime(t: string): string {
+  if (!t) return ''
+  const [hStr, mStr] = t.split(':')
+  const h = parseInt(hStr, 10)
+  const m = parseInt(mStr || '0', 10)
+  if (Number.isNaN(h)) return t
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`
+}
+
+// Catalogue centralisé des types d'intervention (icone + label + couleur)
+const TYPE_INTERVENTION_META: Record<string, { icon: LucideIcon; label: string; color: string }> = {
+  visite_courtoisie: { icon: Coffee,           label: 'Visite de courtoisie', color: 'bg-amber-100 text-amber-700' },
+  premier_rdv:       { icon: Handshake,        label: 'Premier RDV',          color: 'bg-sky-100 text-sky-700' },
+  metre:             { icon: Ruler,            label: 'Métré',                color: 'bg-violet-100 text-violet-700' },
+  devis_sur_site:    { icon: FileText,         label: 'Devis sur site',       color: 'bg-blue-100 text-blue-700' },
+  controle_qualite:  { icon: ShieldCheck,      label: 'Contrôle qualité',     color: 'bg-emerald-100 text-emerald-700' },
+  depannage:         { icon: Wrench,           label: 'Dépannage',            color: 'bg-orange-100 text-orange-700' },
+  entretien:         { icon: Settings,         label: 'Entretien',            color: 'bg-teal-100 text-teal-700' },
+  autre:             { icon: MoreHorizontal,   label: 'Autre',                color: 'bg-gray-100 text-gray-700' },
+}
+
+function getTypeInterventionMeta(type: string | null | undefined) {
+  if (!type) return null
+  return TYPE_INTERVENTION_META[type] ?? null
+}
+
+function getTypeInterventionLabel(type: string): string {
+  return TYPE_INTERVENTION_META[type]?.label ?? type
+}
+
+function getTypeInterventionColor(type: string): string {
+  return TYPE_INTERVENTION_META[type]?.color ?? 'bg-gray-100 text-gray-700'
+}
+
+// Pastille couleur statut (6px) - couleur pleine pour pastille discrete
+function getStatutPastilleColor(statut: string): string {
+  switch (statut) {
+    case 'termine':  return 'bg-green-500'
+    case 'en_cours': return 'bg-sky-500 animate-pulse'
+    case 'annule':   return 'bg-red-500'
+    case 'planifie': return 'bg-amber-400'
+    default:         return 'bg-gray-300'
+  }
+}
+
+// URL Google Maps directions (ouvre Maps natif sur mobile, web sinon)
+function buildGmapsLink(adresse: string, cp: string, ville: string): string {
+  const parts = [adresse, cp, ville].filter(p => p && String(p).trim().length > 0)
+  const dest = encodeURIComponent(parts.join(', '))
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}`
 }
 
 // ===================================================================
@@ -1395,8 +1478,30 @@ function PlanningPageInner() {
                                         const endMin = parseInt(heureFin.split(':')[0]) * 60 + parseInt(heureFin.split(':')[1])
                                         const durationMin = endMin - startMin
                                         heightPx = Math.max(40, Math.round((durationMin / 480) * 60))
-                                        timeDisplay = `${heureDebut}–${heureFin}`
+                                        timeDisplay = `${shortTime(heureDebut)}-${shortTime(heureFin)}`
                                       }
+
+                                      // ── Données case Maquette A "Compact informatif" ──
+                                      const typeMeta = getTypeInterventionMeta(rec.type_intervention as string)
+                                      const TypeIcon = typeMeta?.icon ?? null
+                                      const clientName = clNameFromIntervention(rec)
+                                      // Fallback titre -> ville client si pas de titre
+                                      const titreRaw = String(rec.titre ?? rec.description_travaux ?? '').trim()
+                                      let titreOuVille = titreRaw
+                                      if (!titreOuVille && rec.client_id) {
+                                        const cl = clientMap.get(rec.client_id as string) as R | undefined
+                                        if (cl?.ville) titreOuVille = String(cl.ville)
+                                      }
+                                      // Tooltip riche pour cases tronquées
+                                      const tooltipParts: string[] = []
+                                      if (isCreneau) tooltipParts.push(timeDisplay)
+                                      else tooltipParts.push(creneauLabel(rec.creneau as string))
+                                      if (clientName) tooltipParts.push(clientName)
+                                      if (titreRaw) tooltipParts.push(titreRaw)
+                                      if (typeMeta) tooltipParts.push(typeMeta.label)
+                                      const tooltip = isConflict
+                                        ? 'Conflit : cet intervenant a une autre intervention sur le meme creneau'
+                                        : tooltipParts.join(' · ')
 
                                       return (
                                         <div key={rec.id as string}
@@ -1404,33 +1509,50 @@ function PlanningPageInner() {
                                           onDragStart={() => handleDragStart(rec.id as string)}
                                           onDragEnd={handleDragEnd}
                                           onClick={() => openPanel(rec)}
-                                          className={`relative p-2 rounded-lg mb-1 cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
+                                          className={`relative p-2 pr-6 rounded-lg mb-1 cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
                                             ${isDragged ? 'opacity-30' : ''} ${isConflict ? 'ring-2 ring-[#ef4444] shadow-[0_0_0_2px_rgba(239,68,68,0.15)]' : ''} hover:shadow-md hover:scale-[1.01]`}
                                           style={isCreneau ? { minHeight: `${heightPx}px` } : {}}
-                                          title={isConflict ? 'Conflit : cet intervenant a une autre intervention sur le meme creneau' : undefined}>
+                                          title={tooltip}>
                                           {isConflict && (
                                             <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1 bg-[#ef4444] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
                                               <AlertTriangle className="w-3 h-3" />
                                               <span>Conflit</span>
                                             </div>
                                           )}
-                                          {isCreneau && (
+                                          {/* Icone type d'intervention en haut a droite */}
+                                          {TypeIcon && (
+                                            <span className="absolute top-1.5 right-1.5 opacity-60" aria-label={typeMeta?.label}>
+                                              <TypeIcon className="w-3 h-3" />
+                                            </span>
+                                          )}
+                                          {/* Ligne 1 : creneau horaire compact */}
+                                          {isCreneau ? (
                                             <div className="text-[10px] font-extrabold text-[#0f1a3a] leading-tight">
                                               {timeDisplay}
                                             </div>
-                                          )}
-                                          {statut && (
-                                            <span className={`text-[8px] font-extrabold px-1 py-0.5 rounded ${statut.color} float-right ml-1`}>
-                                              {statut.label}
-                                            </span>
-                                          )}
-                                          {!isCreneau && (
+                                          ) : (
                                             <div className="text-[9px] font-bold uppercase tracking-wide opacity-70">
                                               {creneauLabel(rec.creneau as string)}
                                             </div>
                                           )}
-                                          {clNameFromIntervention(rec) && <div className="font-extrabold text-[10px] mt-0.5">{clNameFromIntervention(rec)}</div>}
-                                          <div className="text-xs font-medium opacity-80 mt-1 pr-2 line-clamp-3 leading-snug">{String(rec.titre ?? rec.description_travaux ?? '—')}</div>
+                                          {/* Ligne 2 : nom client + pastille statut */}
+                                          {clientName && (
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                              {statut && (
+                                                <span
+                                                  className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatutPastilleColor(rec.statut as string)}`}
+                                                  aria-label={`Statut : ${statut.label}`}
+                                                />
+                                              )}
+                                              <span className="font-bold text-[11px] truncate">{clientName}</span>
+                                            </div>
+                                          )}
+                                          {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite) */}
+                                          {titreOuVille && (
+                                            <div className="hidden sm:block text-[11px] font-medium opacity-75 mt-0.5 line-clamp-2 leading-snug">
+                                              {titreOuVille}
+                                            </div>
+                                          )}
                                         </div>
                                       )
                                     })}
@@ -1562,162 +1684,333 @@ function PlanningPageInner() {
         )}
       </div>
 
-      {/* ── SIDE PANEL ── */}
-      {showPanel && panelIntervention && (
-        <>
-          <div className="fixed inset-0 bg-[#0f1a3a]/20 z-40" onClick={closePanel} />
-          <aside className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white shadow-[-8px_0_40px_rgba(15,26,58,.12)] z-50 flex flex-col animate-[slideIn_.3s_ease]">
-            <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between flex-shrink-0">
-              <h2 className="text-base font-extrabold text-[#0f1a3a]">Détail intervention</h2>
-              <button onClick={closePanel} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#f6f8fb] text-[#64748b] hover:bg-[#fee2e2] hover:text-[#ef4444] transition-all">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {/* Chantier */}
-              {Boolean(panelIntervention.chantier_id) && (() => {
-                const ch = chantierMap.get(panelIntervention.chantier_id as string) as R | undefined
-                if (!ch) return null
-                return (
-                  <div className="px-5 py-4 border-b border-[#e6ecf2]">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">Chantier</div>
-                    <div className="text-[17px] font-extrabold text-[#0f1a3a]">{String(ch.titre ?? '')}</div>
-                    {Boolean(ch.adresse_chantier) && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-[13px] text-[#64748b]">
-                        <MapPin className="w-3.5 h-3.5 text-[#7b8ba3]" />
-                        {String(ch.adresse_chantier ?? '')}, {String(ch.ville_chantier ?? '')}
-                      </div>
+      {/* ── SIDE PANEL — Maquette A "Action-first" ── */}
+      {showPanel && panelIntervention && (() => {
+        // ── Pré-calculs ──
+        const pi = panelIntervention
+        const ivColor = colorMap.get(pi.intervenant_id as string)
+        const ivRec = intervenantMap.get(pi.intervenant_id as string) as R | undefined
+        const ivMetier = ivRec ? String(ivRec.metier ?? '') : ''
+        const ivFull = ivFullName(pi.intervenant_id as string)
+        const cl = pi.client_id ? (clientMap.get(pi.client_id as string) as R | undefined) : undefined
+        const ch = pi.chantier_id ? (chantierMap.get(pi.chantier_id as string) as R | undefined) : undefined
+        const dv = pi.devis_id ? (devisMap.get(pi.devis_id as string) as R | undefined) : undefined
+        const statut = STATUTS.find(s => s.value === pi.statut)
+        const typeMeta = getTypeInterventionMeta(pi.type_intervention as string)
+        const TypeIcon = typeMeta?.icon ?? null
+        const creneauType = pi.creneau as string
+        const isCreneau = creneauType === 'creneau'
+        const heureD = isCreneau ? String(pi.heure_debut ?? '08:00')
+          : creneauType === 'apres_midi' ? '13:00' : '08:00'
+        const heureF = isCreneau ? String(pi.heure_fin ?? '17:00')
+          : creneauType === 'matin' ? '12:00' : '17:00'
+        const dureeStr = formatCreneauDuree(heureD, heureF)
+        // Compteur d'interventions liees au chantier (calcule cote client)
+        const chantierInterventionCount = ch
+          ? planningData.filter(p => (p as R).chantier_id === ch.id).length
+          : 0
+        // Adresse : prioriser chantier, sinon client
+        const addrLine = ch?.adresse_chantier || cl?.adresse || ''
+        const addrCp = ch?.code_postal_chantier || cl?.code_postal || ''
+        const addrVille = ch?.ville_chantier || cl?.ville || ''
+        const addrFull = [addrLine, [addrCp, addrVille].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+        const hasAddr = Boolean(addrLine || addrVille)
+        // Titre / objet
+        const titre = String(pi.titre ?? pi.description_travaux ?? '').trim()
+        // Client libre fallback
+        const clientLibre = !cl && pi.client_libre ? String(pi.client_libre) : ''
+        // Montant TTC du devis
+        const montantTtc = dv ? Number(dv.montant_ttc ?? 0) : 0
+
+        return (
+          <>
+            <div className="fixed inset-0 bg-[#0f1a3a]/20 z-40" onClick={closePanel} />
+            <aside className="fixed top-0 right-0 w-full sm:w-[440px] h-full bg-white shadow-[-8px_0_40px_rgba(15,26,58,.12)] z-50 flex flex-col animate-[slideIn_.3s_ease]">
+              {/* ── Header sticky avec close + modifier ── */}
+              <div className="px-5 py-3 border-b border-[#e6ecf2] flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <button onClick={closePanel} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#f6f8fb] text-[#64748b] hover:bg-[#fee2e2] hover:text-[#ef4444] transition-all" aria-label="Fermer">
+                    <X className="w-4 h-4" />
+                  </button>
+                  <h2 className="text-[13px] font-bold text-[#64748b] uppercase tracking-wider">Détail intervention</h2>
+                </div>
+                <button
+                  onClick={() => { closePanel(); openEditModal(pi) }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#5ab4e0]/10 text-[#1a6fb5] hover:bg-[#5ab4e0]/20 transition-all"
+                  aria-label="Modifier l'intervention"
+                  title="Modifier"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* ── Barre de couleur intervenant ── */}
+              {ivColor && (
+                <div className="h-1 flex-shrink-0" style={{ backgroundColor: ivColor.hex }} />
+              )}
+
+              {/* ── Corps scrollable ── */}
+              <div className="flex-1 overflow-y-auto">
+                {/* ── Bloc Date / Heure / Durée + chips ── */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="text-[13px] font-semibold text-[#0f1a3a] flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>{formatDateFR(pi.date_debut as string)}</span>
+                    <span className="text-[#7b8ba3]">·</span>
+                    <span>
+                      {isCreneau
+                        ? `${shortTime(heureD)}-${shortTime(heureF)}`
+                        : creneauLabel(creneauType)}
+                    </span>
+                    {dureeStr && (
+                      <>
+                        <span className="text-[#7b8ba3]">·</span>
+                        <span className="text-[#5ab4e0] font-bold">{dureeStr}</span>
+                      </>
                     )}
-                    <button onClick={() => { closePanel(); router.push(`/dashboard/chantiers/${ch.id}`) }}
-                      className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5ab4e0] text-white rounded-xl text-sm font-semibold hover:bg-[#2d8bc9] transition-all">
-                      <Eye className="w-4 h-4" />Voir le chantier
-                    </button>
                   </div>
-                )
-              })()}
-              {/* Client */}
-              {Boolean(panelIntervention.client_id) && (() => {
-                const cl = clientMap.get(panelIntervention.client_id as string) as R | undefined
-                if (!cl) return null
-                return (
-                  <div className="px-5 py-4 border-b border-[#e6ecf2]">
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                    {typeMeta && (
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${typeMeta.color}`}>
+                        {TypeIcon && <TypeIcon className="w-3 h-3" />}
+                        {typeMeta.label}
+                      </span>
+                    )}
+                    {statut && (
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${statut.color}`}>
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full ${getStatutPastilleColor(pi.statut as string)}`} />
+                        {statut.label}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Titre travaux ── */}
+                {titre && (
+                  <div className="px-5 pb-4">
+                    <div className="text-[17px] font-extrabold text-[#0f1a3a] font-syne leading-snug">
+                      {titre}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Bloc Client (avec actions Appeler / SMS / Email) ── */}
+                {cl && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">Client</div>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#0f1a3a] text-white flex items-center justify-center text-sm font-bold">
+                      <div className="w-10 h-10 rounded-xl bg-[#0f1a3a] text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
                         {initials(`${cl.prenom ?? ''} ${cl.nom ?? ''}`)}
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-[#0f1a3a]">{String(cl.prenom ?? '')} {String(cl.nom ?? '')}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-[#0f1a3a] truncate">{String(cl.prenom ?? '')} {String(cl.nom ?? '')}</div>
                         {Boolean(cl.telephone) && (
                           <a href={`tel:${String(cl.telephone)}`} className="text-[13px] text-[#5ab4e0] font-medium hover:underline">{String(cl.telephone)}</a>
                         )}
                       </div>
                     </div>
+                    {/* Boutons actions terrain */}
+                    {(Boolean(cl.telephone) || Boolean(cl.email)) && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {Boolean(cl.telephone) && (
+                          <>
+                            <a href={`tel:${String(cl.telephone)}`}
+                              className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0] text-white rounded-lg text-[12px] font-semibold hover:bg-[#2d8bc9] transition-all">
+                              <Phone className="w-3.5 h-3.5" /> Appeler
+                            </a>
+                            <a href={`sms:${String(cl.telephone)}`}
+                              className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[12px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
+                              <MessageSquare className="w-3.5 h-3.5" /> SMS
+                            </a>
+                          </>
+                        )}
+                        {Boolean(cl.email) && (
+                          <a href={`mailto:${String(cl.email)}`}
+                            className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[12px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
+                            <Mail className="w-3.5 h-3.5" /> Email
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )
-              })()}
-              {/* Intervention details */}
-              <div className="px-5 py-4">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">Intervention</div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-[11px] text-[#7b8ba3] mb-1">Intervenant</div>
-                    <span className="text-[13px] font-semibold">{ivFullName(panelIntervention.intervenant_id as string)}</span>
+                )}
+
+                {/* Client libre (si pas de fiche client) */}
+                {!cl && clientLibre && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Client</div>
+                    <div className="text-sm font-bold text-[#0f1a3a]">{clientLibre}</div>
                   </div>
-                  <div>
-                    <div className="text-[11px] text-[#7b8ba3] mb-1">Créneau</div>
-                    <div className="text-[13px] font-semibold">
-                      {creneauLabel(panelIntervention.creneau as string)}
-                      {(panelIntervention.creneau as string) === 'creneau' && (
-                        <span className="text-[12px] text-[#5ab4e0] ml-2">
-                          {String(panelIntervention.heure_debut ?? '—')} – {String(panelIntervention.heure_fin ?? '—')}
-                        </span>
+                )}
+
+                {/* ── Bloc Adresse + Itinéraire GPS ── */}
+                {hasAddr && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Adresse</div>
+                    <div className="flex items-start gap-1.5 text-[13px] text-[#0f1a3a]">
+                      <MapPin className="w-4 h-4 text-[#7b8ba3] flex-shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">{addrFull}</span>
+                    </div>
+                    <a
+                      href={buildGmapsLink(String(addrLine), String(addrCp), String(addrVille))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-all"
+                    >
+                      <Navigation className="w-4 h-4" /> Itinéraire GPS
+                    </a>
+                  </div>
+                )}
+
+                {/* ── Carte preview Chantier lié ── */}
+                {ch && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">Chantier lié</div>
+                    <div className="rounded-xl border border-[#e6ecf2] p-3 hover:border-[#5ab4e0]/50 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-[14px] font-bold text-[#0f1a3a] leading-snug">{String(ch.titre ?? '—')}</div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5 text-[12px] text-[#64748b]">
+                        {Boolean(ch.statut) && (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#5ab4e0]" />
+                            <span className="font-semibold">{String(ch.statut)}</span>
+                          </span>
+                        )}
+                        {chantierInterventionCount > 0 && (
+                          <>
+                            {Boolean(ch.statut) && <span className="text-[#7b8ba3]">·</span>}
+                            <span>{chantierInterventionCount} intervention{chantierInterventionCount > 1 ? 's' : ''}</span>
+                          </>
+                        )}
+                      </div>
+                      <button onClick={() => { closePanel(); router.push(`/dashboard/chantiers/${ch.id}`) }}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[13px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
+                        <Eye className="w-3.5 h-3.5" /> Voir le chantier
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Carte preview Devis lié ── */}
+                {dv && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">Devis lié</div>
+                    <div className="rounded-xl border border-[#e6ecf2] p-3 hover:border-[#5ab4e0]/50 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-[13px] font-bold text-[#0f1a3a]">{String(dv.numero ?? '—')}</div>
+                          {Boolean(dv.objet) && (
+                            <div className="text-[12px] text-[#64748b] line-clamp-1 mt-0.5">{String(dv.objet)}</div>
+                          )}
+                        </div>
+                        <div className="text-[14px] font-extrabold text-[#22c55e] flex items-center gap-0.5 flex-shrink-0">
+                          {montantTtc.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                      <button onClick={() => { closePanel(); router.push(`/dashboard/devis/${dv.id}`) }}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[13px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
+                        <FileText className="w-3.5 h-3.5" /> Voir le devis
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Bloc Intervenant ── */}
+                {ivFull !== '—' && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Intervenant</div>
+                    <div className="flex items-center gap-2">
+                      {ivColor && (
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ivColor.hex }} />
+                      )}
+                      <span className="text-[13px] font-semibold text-[#0f1a3a]">{ivFull}</span>
+                      {ivMetier && (
+                        <>
+                          <span className="text-[#7b8ba3]">·</span>
+                          <span className="text-[12px] text-[#64748b]">{ivMetier}</span>
+                        </>
                       )}
                     </div>
                   </div>
-                  <div className="col-span-2">
-                    <div className="text-[11px] text-[#7b8ba3] mb-1">Travaux</div>
-                    <div className="text-[13px] leading-relaxed">{String(panelIntervention.titre ?? panelIntervention.description_travaux ?? '—')}</div>
+                )}
+
+                {/* ── Notes initiales (du formulaire) ── */}
+                {Boolean(pi.notes) && (
+                  <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Note initiale</div>
+                    <div className="text-[13px] leading-relaxed text-[#64748b]">{String(pi.notes)}</div>
                   </div>
-                  {Boolean(panelIntervention.notes) && (
-                    <div className="col-span-2">
-                      <div className="text-[11px] text-[#7b8ba3] mb-1">Notes</div>
-                      <div className="text-[13px] leading-relaxed text-[#64748b]">{String(panelIntervention.notes)}</div>
-                    </div>
-                  )}
+                )}
+
+                {/* === Notes datées (V2) : présence client, préparation, rappels privés === */}
+                <div className="px-5 py-4 border-t border-[#e6ecf2]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[12px] font-bold uppercase tracking-wider text-[#5ab4e0]">
+                      Rappels & notes pour ce jour
+                    </h3>
+                  </div>
+                  <NotesIntervention interventionId={pi.id as string} />
                 </div>
               </div>
 
-              {/* === Notes datées (V2) : présence client, préparation, rappels privés === */}
-              <div className="px-5 py-4 border-t border-[#e6ecf2]">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[12px] font-bold uppercase tracking-wider text-[#5ab4e0]">
-                    Rappels & notes pour ce jour
-                  </h3>
-                </div>
-                <NotesIntervention interventionId={panelIntervention.id as string} />
-              </div>
-            </div>
-
-            {/* Actions en bas du panel */}
-            <div className="px-5 py-4 border-t border-[#e6ecf2] flex-shrink-0 space-y-2">
-              {/* Modifier */}
-              <button
-                onClick={() => { closePanel(); openEditModal(panelIntervention) }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#5ab4e0]/10 border border-[#5ab4e0]/30 text-[#1a6fb5] text-sm font-manrope font-semibold hover:bg-[#5ab4e0]/20 transition"
-              >
-                <Pencil className="w-4 h-4" /> Modifier
-              </button>
-              {/* Statut */}
-              <div className="flex gap-2">
-                {panelIntervention.statut !== 'termine' && (
+              {/* ── Footer sticky : 3 actions principales ── */}
+              <div className="px-5 py-3 border-t border-[#e6ecf2] flex-shrink-0 flex items-center gap-2 bg-white">
+                {pi.statut !== 'termine' ? (
                   <button
                     onClick={async () => {
-                      await updateRow('planning_interventions', panelIntervention.id as string, { statut: 'termine' })
+                      await updateRow('planning_interventions', pi.id as string, { statut: 'termine' })
                       showToast('Intervention terminée ✓')
                       closePanel()
                       refetch()
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-xl text-sm font-semibold hover:bg-green-100 transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-500 text-white rounded-xl text-[13px] font-bold hover:bg-green-600 transition-all"
                   >
                     <Check className="w-4 h-4" />Terminée
                   </button>
-                )}
-                {panelIntervention.statut === 'termine' && (
+                ) : (
                   <button
                     onClick={async () => {
-                      await updateRow('planning_interventions', panelIntervention.id as string, { statut: 'planifie' })
+                      await updateRow('planning_interventions', pi.id as string, { statut: 'planifie' })
                       showToast('Intervention replanifiée ✓')
                       closePanel()
                       refetch()
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-xl text-sm font-semibold hover:bg-amber-100 transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-amber-100 text-amber-700 rounded-xl text-[13px] font-bold hover:bg-amber-200 transition-all"
                   >
                     <Clock className="w-4 h-4" />Replanifier
                   </button>
                 )}
+                <button
+                  onClick={() => { closePanel(); openEditModal(pi) }}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#f6f8fb] text-[#0f1a3a] rounded-xl text-[13px] font-semibold hover:bg-[#e6ecf2] transition-all"
+                  aria-label="Replanifier (modifier date/heure)"
+                  title="Replanifier"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Supprimer cette intervention ?')) return
+                    try {
+                      await deleteRow('planning_interventions', pi.id as string)
+                      showToast('Intervention supprimée ✓')
+                      closePanel()
+                      refetch()
+                    } catch {
+                      showToast('Erreur lors de la suppression')
+                    }
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-600 rounded-xl text-[13px] font-semibold hover:bg-red-100 transition-all"
+                  aria-label="Supprimer l&apos;intervention"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-              {/* Supprimer */}
-              <button
-                onClick={async () => {
-                  if (!confirm('Supprimer cette intervention ?')) return
-                  try {
-                    await deleteRow('planning_interventions', panelIntervention.id as string)
-                    showToast('Intervention supprimée ✓')
-                    closePanel()
-                    refetch()
-                  } catch (err) {
-                    showToast('Erreur lors de la suppression')
-                  }
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-all"
-              >
-                <Trash2 className="w-4 h-4" />Supprimer l&apos;intervention
-              </button>
-            </div>
-          </aside>
-        </>
-      )}
+            </aside>
+          </>
+        )
+      })()}
 
       {/* ── MODAL: New Intervention ── */}
       {showModal && (
