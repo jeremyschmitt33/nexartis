@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, Wrench, Plus, X, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePrestations, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
+import { Input } from '@/components/ui/Input'
 
 // La table `prestations` utilise `designation` comme libellé principal.
 // Voir : SELECT * FROM information_schema.columns WHERE table_name='prestations'

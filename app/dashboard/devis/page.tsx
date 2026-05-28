@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Send,
   Clock,
-  ChevronDown,
   MoreHorizontal,
   Eye,
   Pencil,
@@ -31,6 +30,8 @@ import {
   ErrorBanner,
 } from "@/lib/hooks"
 import { champsLegauxManquants } from "@/lib/helpers"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
 
 type DevisStatus = "brouillon" | "envoye" | "signe" | "refuse" | "expire" | "facture"
 
@@ -277,22 +278,22 @@ export default function DevisListPage() {
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Rechercher un devis..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
+            type="text"
+            placeholder="Rechercher un devis..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
         </div>
-        <div className="relative">
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-10 rounded-lg border border-gray-200 px-3 pr-8 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none appearance-none bg-white cursor-pointer">
-            {FILTER_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-          </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-        <div className="relative">
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 rounded-lg border border-gray-200 px-3 pr-8 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none appearance-none bg-white cursor-pointer">
-            {SORT_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-          </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-        <Link href="/dashboard/devis/nouveau" className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors">
+        <Select value={filter} onChange={(e) => setFilter(e.target.value)} containerClassName="sm:w-auto">
+          {FILTER_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+        </Select>
+        <Select value={sort} onChange={(e) => setSort(e.target.value)} containerClassName="sm:w-auto">
+          {SORT_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+        </Select>
+        <Link href="/dashboard/devis/nouveau" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors shrink-0">
           <Plus size={16} /> Nouveau devis
         </Link>
       </div>

@@ -141,6 +141,20 @@ function PlanningPageInner() {
   const [mClientLibre, setMClientLibre] = useState('')
   const [mChantierLibre, setMChantierLibre] = useState('')
   const [mTypeIntervention, setMTypeIntervention] = useState('')
+
+  // ── Mini-formulaire de création prospect inline (28/05/2026) ──
+  // Avant : '+ Créer le prospect X' créait une fiche avec juste prénom/nom → inutilisable
+  // sans devoir aller dans Clients pour compléter. Maintenant : un mini-dialog s'ouvre
+  // pour saisir téléphone/email/adresse avant de valider (tout optionnel sauf nom).
+  const [showProspectForm, setShowProspectForm] = useState(false)
+  const [prospectPrenom, setProspectPrenom] = useState('')
+  const [prospectNom, setProspectNom] = useState('')
+  const [prospectTelephone, setProspectTelephone] = useState('')
+  const [prospectEmail, setProspectEmail] = useState('')
+  const [prospectAdresse, setProspectAdresse] = useState('')
+  const [prospectCodePostal, setProspectCodePostal] = useState('')
+  const [prospectVille, setProspectVille] = useState('')
+  const [prospectSaving, setProspectSaving] = useState(false)
   const [mDate, setMDate] = useState('')
   const [mDateFin, setMDateFin] = useState('')
   const [mCreneau, setMCreneau] = useState<Creneau>('journee')
@@ -627,38 +641,64 @@ function PlanningPageInner() {
   // Crée une fiche client minimale (prénom + nom seulement) puis pré-sélectionne dans le modal.
   // Heuristique simple : si premier mot = "M.", "Mme", "Mlle" → on garde tel quel en civilité dans nom,
   // sinon premier mot = prénom, reste = nom.
-  const createClientInline = useCallback(async (typedText: string) => {
+  const createClientInline = useCallback((typedText: string) => {
+    // 28/05/2026 : on n'insère plus directement. On ouvre un mini-dialog
+    // pré-rempli avec ce que l'utilisateur a tapé pour que la fiche client
+    // créée contienne aussi téléphone/email/adresse (tous optionnels).
     const t = typedText.trim()
-    if (!t) return
     const parts = t.split(/\s+/)
+    const civilitePattern = /^(m\.|mme\.?|mlle\.?|monsieur|madame|mademoiselle)$/i
     let prenom = ''
     let nom = ''
-    // Heuristique : si commence par civilité, on prend tout comme nom (artisan tape souvent "M. Dupont")
-    const civilitePattern = /^(m\.|mme\.?|mlle\.?|monsieur|madame|mademoiselle)$/i
     if (parts.length === 1) {
       nom = parts[0]
     } else if (civilitePattern.test(parts[0])) {
-      // "M. Dupont" → prenom='', nom='M. Dupont' (on stocke tel que tapé pour respecter le format artisan)
-      prenom = ''
       nom = parts.join(' ')
     } else {
-      // "Jean Dupont" → prenom='Jean', nom='Dupont'
-      // "Jean-Pierre Dupont Martin" → prenom='Jean-Pierre', nom='Dupont Martin'
       prenom = parts[0]
       nom = parts.slice(1).join(' ')
     }
+    setProspectPrenom(prenom)
+    setProspectNom(nom)
+    setProspectTelephone('')
+    setProspectEmail('')
+    setProspectAdresse('')
+    setProspectCodePostal('')
+    setProspectVille('')
+    setShowProspectForm(true)
+  }, [])
+
+  // Validation finale du mini-formulaire prospect + insertion en base.
+  const submitProspectForm = useCallback(async () => {
+    const nomTrim = prospectNom.trim()
+    if (!nomTrim) {
+      showToast('Le nom est obligatoire')
+      return
+    }
+    setProspectSaving(true)
     try {
-      const created = await insertRow('clients', { prenom, nom })
+      const payload: Record<string, unknown> = { nom: nomTrim }
+      if (prospectPrenom.trim()) payload.prenom = prospectPrenom.trim()
+      if (prospectTelephone.trim()) payload.telephone = prospectTelephone.trim()
+      if (prospectEmail.trim()) payload.email = prospectEmail.trim()
+      if (prospectAdresse.trim()) payload.adresse = prospectAdresse.trim()
+      if (prospectCodePostal.trim()) payload.code_postal = prospectCodePostal.trim()
+      if (prospectVille.trim()) payload.ville = prospectVille.trim()
+      const created = await insertRow('clients', payload)
       if (created) {
         const newId = (created as R).id as string
         setMClient(newId)
         refetch()
-        showToast(`Prospect créé : ${[prenom, nom].filter(Boolean).join(' ')}`)
+        setShowProspectForm(false)
+        showToast(`Prospect créé : ${[prospectPrenom, prospectNom].filter(Boolean).join(' ').trim()}`)
       }
-    } catch {
-      showToast('Erreur lors de la création du prospect')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la création'
+      showToast(message.length > 120 ? message.slice(0, 117) + '...' : message)
+    } finally {
+      setProspectSaving(false)
     }
-  }, [refetch, showToast])
+  }, [prospectPrenom, prospectNom, prospectTelephone, prospectEmail, prospectAdresse, prospectCodePostal, prospectVille, refetch, showToast])
 
   // ── Items pour les Combobox du modal ──
   // Liste des devis signés, formatée pour le composant Combobox.
@@ -871,8 +911,11 @@ function PlanningPageInner() {
         refetch()
         showToast('Intervention creee ✓')
       }
-    } catch {
-      showToast('Erreur lors de la creation')
+    } catch (err) {
+      // 28/05/2026 : on remonte le message Supabase au lieu du texte générique.
+      // Permet à l'utilisateur de comprendre les erreurs CHECK constraint, RLS, etc.
+      const message = err instanceof Error ? err.message : 'Erreur lors de la création'
+      showToast(message.length > 120 ? message.slice(0, 117) + '...' : message)
     } finally { setSubmitting(false) }
   }
 
@@ -2022,6 +2065,127 @@ function PlanningPageInner() {
               <button onClick={submitIntervention} disabled={submitting || !mIntervenant || !mDate}
                 className="px-5 py-2.5 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-xl text-sm font-semibold shadow-[0_4px_15px_rgba(232,122,42,.3)] hover:shadow-[0_6px_20px_rgba(232,122,42,.4)] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting ? (editMode ? 'Modification...' : 'Creation...') : (editMode ? "Enregistrer les modifications" : "Creer l'intervention")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MINI-FORMULAIRE CRÉATION PROSPECT INLINE (28/05/2026) ── */}
+      {/* S'affiche au-dessus du modal Nouvelle intervention quand on clique
+          "+ Créer le prospect X" dans le combobox client. Permet de saisir
+          téléphone/email/adresse pour que la fiche client soit utilisable.
+          Tous les champs sont optionnels sauf le nom. */}
+      {showProspectForm && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-[modalIn_.2s_ease]"
+          onClick={() => !prospectSaving && setShowProspectForm(false)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
+              <h3 className="text-[16px] font-extrabold text-[#0f1a3a]">Nouveau prospect</h3>
+              <button onClick={() => setShowProspectForm(false)} disabled={prospectSaving} className="text-[#7b8ba3] hover:text-[#0f1a3a] disabled:opacity-50">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-[#64748b] leading-snug">
+                Remplis ce qui est utile. Seul le nom est obligatoire — tu pourras compléter la fiche plus tard depuis <strong>Clients</strong>.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Prénom</label>
+                  <input
+                    type="text"
+                    value={prospectPrenom}
+                    onChange={e => setProspectPrenom(e.target.value)}
+                    placeholder="Jean"
+                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Nom *</label>
+                  <input
+                    type="text"
+                    value={prospectNom}
+                    onChange={e => setProspectNom(e.target.value)}
+                    placeholder="Dupont"
+                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Téléphone</label>
+                  <input
+                    type="tel"
+                    value={prospectTelephone}
+                    onChange={e => setProspectTelephone(e.target.value)}
+                    placeholder="06 12 34 56 78"
+                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={prospectEmail}
+                    onChange={e => setProspectEmail(e.target.value)}
+                    placeholder="client@email.com"
+                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Adresse</label>
+                <input
+                  type="text"
+                  value={prospectAdresse}
+                  onChange={e => setProspectAdresse(e.target.value)}
+                  placeholder="15 rue des Lilas"
+                  className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Code postal</label>
+                  <input
+                    type="text"
+                    value={prospectCodePostal}
+                    onChange={e => setProspectCodePostal(e.target.value)}
+                    placeholder="33000"
+                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Ville</label>
+                  <input
+                    type="text"
+                    value={prospectVille}
+                    onChange={e => setProspectVille(e.target.value)}
+                    placeholder="Bordeaux"
+                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-[#e6ecf2] flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowProspectForm(false)}
+                disabled={prospectSaving}
+                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-[#475569] bg-white border border-[#e6ecf2] hover:bg-[#f8fafc] disabled:opacity-50 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitProspectForm}
+                disabled={prospectSaving || !prospectNom.trim()}
+                className="px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-[#e87a2a] hover:bg-[#f09050] disabled:opacity-50 transition-all"
+              >
+                {prospectSaving ? 'Création…' : 'Créer le prospect'}
               </button>
             </div>
           </div>
