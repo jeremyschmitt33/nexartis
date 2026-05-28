@@ -230,6 +230,18 @@ function PlanningPageInner() {
   // sans devoir aller dans Clients pour compléter. Maintenant : un mini-dialog s'ouvre
   // pour saisir téléphone/email/adresse avant de valider (tout optionnel sauf nom).
   const [showProspectForm, setShowProspectForm] = useState(false)
+  // Client optimiste : on garde une copie du dernier prospect créé pour l'afficher
+  // immédiatement dans le combobox, sans attendre que `clients` (refetch async) soit
+  // mis à jour. Sinon le combobox affiche "Tapez un nom..." après création (le toast
+  // dit "Prospect créé" mais l'utilisateur ne voit pas la sélection).
+  const [optimisticClient, setOptimisticClient] = useState<{ id: string; prenom: string; nom: string; telephone: string; email: string } | null>(null)
+  // Cleanup auto : dès que le vrai client (post-refetch) apparaît dans `clients`,
+  // on jette l'optimiste pour éviter qu'il reste épinglé en tête de liste à vie.
+  useEffect(() => {
+    if (optimisticClient && clients.some(c => (c as R).id === optimisticClient.id)) {
+      setOptimisticClient(null)
+    }
+  }, [clients, optimisticClient])
   const [prospectPrenom, setProspectPrenom] = useState('')
   const [prospectNom, setProspectNom] = useState('')
   const [prospectTelephone, setProspectTelephone] = useState('')
@@ -486,6 +498,21 @@ function PlanningPageInner() {
         safety++
       }
     }
+    // 28/05/2026 (fix Jerem) : tri par heure de début croissante dans chaque cellule.
+    // matin/journée → 8h, après-midi → 13h, custom → heure réelle.
+    const startMin = (rec: R): number => {
+      const t = (s: string): number => {
+        const [h, m] = s.split(':').map(Number)
+        return (h || 0) * 60 + (m || 0)
+      }
+      const creneau = rec.creneau as string
+      if (creneau === 'creneau' && rec.heure_debut) return t(rec.heure_debut as string)
+      if (creneau === 'apres_midi') return t('13:00')
+      return t('08:00')
+    }
+    map.forEach((list) => {
+      list.sort((a, b) => startMin(a) - startMin(b))
+    })
     return map
   }, [planningData, isSociete, intervenants])
 
@@ -785,14 +812,22 @@ function PlanningPageInner() {
       const created = await insertRow('clients', payload)
       if (created) {
         const newId = (created as R).id as string
-        // 28/05/2026 (fix Jerem) : on attend que refetch finisse AVANT de fermer
-        // le modal et de sélectionner le nouveau client dans le combobox. Sinon
-        // le combobox ne trouve pas l'id dans `clients` (pas encore rechargé)
-        // et affiche un champ vide → l'utilisateur croit que la création a échoué.
-        await refetch()
+        // Client optimiste : on l'injecte tout de suite dans clientItems pour que
+        // le combobox affiche le chip avec le nom (sinon attente du refetch async
+        // → état "vide" visible).
+        setOptimisticClient({
+          id: newId,
+          prenom: prospectPrenom.trim(),
+          nom: prospectNom.trim(),
+          telephone: prospectTelephone.trim(),
+          email: prospectEmail.trim(),
+        })
         setMClient(newId)
         setShowProspectForm(false)
         showToast(`Prospect créé : ${[prospectPrenom, prospectNom].filter(Boolean).join(' ').trim()}`)
+        // Refetch en arrière-plan, sans bloquer l'UI. Quand `clients` sera à jour,
+        // l'item viendra naturellement de la liste réelle (optimiste reste inoffensif).
+        refetch()
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la création'
@@ -831,7 +866,7 @@ function PlanningPageInner() {
 
   // Liste des clients (combobox client en mode libre)
   const clientItems: ComboboxItem[] = useMemo(() => {
-    return clients.map(cl => {
+    const items = clients.map(cl => {
       const r = cl as R
       const prenom = String(r.prenom ?? '')
       const nom = String(r.nom ?? '')
@@ -846,7 +881,20 @@ function PlanningPageInner() {
         searchText: `${full} ${tel} ${email}`,
       }
     })
-  }, [clients])
+    // Injection du client optimiste (créé via mini-form prospect) si le refetch n'a pas
+    // encore propagé le nouveau client dans `clients`. Sinon le combobox afficherait vide.
+    if (optimisticClient && !items.some(it => it.id === optimisticClient.id)) {
+      const full = `${optimisticClient.prenom} ${optimisticClient.nom}`.trim() || '(sans nom)'
+      const sub = [optimisticClient.telephone, optimisticClient.email].filter(Boolean).join(' · ')
+      items.unshift({
+        id: optimisticClient.id,
+        label: full,
+        sublabel: sub || undefined,
+        searchText: `${full} ${optimisticClient.telephone} ${optimisticClient.email}`,
+      })
+    }
+    return items
+  }, [clients, optimisticClient])
 
   // ── Helper: convert HH:MM to minutes ──
   const timeToMinutes = (time: string) => {
