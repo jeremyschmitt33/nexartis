@@ -442,9 +442,9 @@ function PlanningPageInner() {
       if (creneau === 'apres_midi') return t('13:00')
       return t('08:00')
     }
-    for (const list of map.values()) {
+    map.forEach((list) => {
       list.sort((a, b) => startMin(a) - startMin(b))
-    }
+    })
     return map
   }, [planningData])
 
