@@ -132,6 +132,11 @@ function PlanningPageInner() {
   const [mClient, setMClient] = useState('')
   const [mIntervenant, setMIntervenant] = useState('')
   const [mChantier, setMChantier] = useState('')
+  // Saisie libre — pour visites de courtoisie, premiers RDV, contrôles sur prospect non encore en base.
+  // Si mClientLibre/mChantierLibre est rempli, on l'utilise à la place du select (qui doit rester vide).
+  const [mClientLibre, setMClientLibre] = useState('')
+  const [mChantierLibre, setMChantierLibre] = useState('')
+  const [mTypeIntervention, setMTypeIntervention] = useState('')
   const [mDate, setMDate] = useState('')
   const [mDateFin, setMDateFin] = useState('')
   const [mCreneau, setMCreneau] = useState<Creneau>('journee')
@@ -523,6 +528,7 @@ function PlanningPageInner() {
     // Société mode: default to the intervenantId passed (from grid click) or empty
     const defaultIvId = intervenantId ?? (!isSociete ? (selfIntervenantId ?? (intervenants.length > 0 ? (intervenants[0] as R).id as string : '')) : '')
     setMDevis(''); setMClient(''); setMIntervenant(defaultIvId); setMChantier('')
+    setMClientLibre(''); setMChantierLibre(''); setMTypeIntervention('')
     setMDate(dateStr ?? fmtISO(new Date())); setMDateFin(dateStr ?? fmtISO(new Date()))
     setMCreneau('journee'); setMObjet(''); setMNotes(''); setMStatut('planifie')
     setMHeureDebut('08:00'); setMHeureFin('17:00'); setMConflitWarning(null)
@@ -551,6 +557,9 @@ function PlanningPageInner() {
     setMClient((intervention.client_id as string) ?? '')
     setMIntervenant((intervention.intervenant_id as string) ?? '')
     setMChantier((intervention.chantier_id as string) ?? '')
+    setMClientLibre((intervention.client_libre as string) ?? '')
+    setMChantierLibre((intervention.chantier_libre as string) ?? '')
+    setMTypeIntervention((intervention.type_intervention as string) ?? '')
     setMDate(dateDebut)
     setMDateFin(dateFin)
     setMCreneau((intervention.creneau as Creneau) ?? 'journee')
@@ -717,6 +726,11 @@ function PlanningPageInner() {
         intervenant_id: mIntervenant,
         client_id: mClient || null,
         chantier_id: mChantier || null,
+        // Saisie libre : utilisée uniquement si pas de client/chantier en base sélectionné.
+        // On nettoie pour éviter de stocker à la fois un ID et un texte libre.
+        client_libre: mClient ? null : (mClientLibre.trim() || null),
+        chantier_libre: mChantier ? null : (mChantierLibre.trim() || null),
+        type_intervention: mTypeIntervention || null,
         devis_id: mDevis || null,
         titre: titreFinal,
         description_travaux: titreFinal,
@@ -812,7 +826,8 @@ function PlanningPageInner() {
     return cl ? `${cl.prenom ?? ''} ${cl.nom ?? ''}`.trim() : ''
   }
   // BUG C FIX : récupère le nom du client soit directement,
-  // soit via le chantier lié, soit retourne ''
+  // soit via le chantier lié, soit retourne ''.
+  // 28/05/2026 : fallback final sur client_libre (saisie libre pour visites/prospects).
   const clNameFromIntervention = (rec: R) => {
     if (rec.client_id) {
       const direct = clName(rec.client_id as string)
@@ -825,6 +840,8 @@ function PlanningPageInner() {
         if (fromChantier) return fromChantier
       }
     }
+    if (rec.client_libre) return String(rec.client_libre)
+    if (rec.chantier_libre) return String(rec.chantier_libre)
     return ''
   }
 
@@ -1559,7 +1576,7 @@ function PlanningPageInner() {
                   <FileText className="w-3.5 h-3.5" />Lier à un devis accepté
                 </label>
                 <select value={mDevis} onChange={e => handleDevisChange(e.target.value)} className="w-full px-3.5 py-2.5 border border-[#7c3aed]/30 rounded-xl text-sm bg-[#7c3aed]/[.03] focus:border-[#7c3aed] focus:ring-2 focus:ring-[#7c3aed]/10 outline-none transition-all">
-                  <option value="">— Intervention sans devis (saisie libre)</option>
+                  <option value="">— Intervention libre (visite, contrôle, RDV…)</option>
                   {acceptedDevis.map(d => {
                     const cl = clientMap.get(d.client_id as string) as R | undefined
                     const clientLabel = cl ? `${cl.prenom ?? ''} ${cl.nom ?? ''}`.trim() : ''
@@ -1686,21 +1703,50 @@ function PlanningPageInner() {
                 </div>
               </div>
 
-              {/* Client — auto-rempli si devis sélectionné, sinon saisie manuelle */}
+              {/* Type d'intervention — visible uniquement en saisie libre (pas de devis) */}
+              {!mDevis && (
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Type d&apos;intervention</label>
+                  <select value={mTypeIntervention} onChange={e => setMTypeIntervention(e.target.value)} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all">
+                    <option value="">— Non précisé</option>
+                    <option value="visite_courtoisie">Visite de courtoisie</option>
+                    <option value="premier_rdv">Premier rendez-vous (prospect)</option>
+                    <option value="metre">Métré sur site</option>
+                    <option value="devis_sur_site">Devis sur site</option>
+                    <option value="controle_qualite">Contrôle qualité / SAV</option>
+                    <option value="depannage">Dépannage</option>
+                    <option value="entretien">Entretien / maintenance</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Client — auto-rempli si devis sélectionné, sinon saisie manuelle ou libre */}
               {(!mDevis || editMode) && (
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Client</label>
                   <select value={mClient} onChange={e => {
                     setMClient(e.target.value)
+                    if (e.target.value) setMClientLibre('') // on vide la saisie libre si on choisit un client existant
                     // Reset chantier si le chantier actuel n'appartient pas au nouveau client
                     if (mChantier) {
                       const ch = chantierMap.get(mChantier) as R | undefined
                       if (ch && e.target.value && ch.client_id !== e.target.value) setMChantier('')
                     }
                   }} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all">
-                    <option value="">— Sélectionner (optionnel)</option>
+                    <option value="">— Sélectionner un client existant</option>
                     {clients.map(cl => { const r = cl as R; return <option key={r.id as string} value={r.id as string}>{String(r.prenom ?? '')} {String(r.nom ?? '')}</option> })}
                   </select>
+                  {/* Saisie libre — affichée seulement si aucun client choisi */}
+                  {!mClient && (
+                    <input
+                      type="text"
+                      value={mClientLibre}
+                      onChange={e => setMClientLibre(e.target.value)}
+                      placeholder="ou tapez un nom libre (ex : M. Dupont, prospect à rappeler)"
+                      className="mt-2 w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3] placeholder:italic"
+                    />
+                  )}
                 </div>
               )}
 
@@ -1708,17 +1754,18 @@ function PlanningPageInner() {
               {(!mDevis || editMode) && (
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <HardHat className="w-3.5 h-3.5" />Chantier
+                    <HardHat className="w-3.5 h-3.5" />Chantier / Lieu
                   </label>
                   <select value={mChantier} onChange={e => {
                     setMChantier(e.target.value)
+                    if (e.target.value) setMChantierLibre('') // on vide la saisie libre si on choisit un chantier existant
                     // Auto-remplir le client du chantier sélectionné
                     if (e.target.value) {
                       const ch = chantierMap.get(e.target.value) as R | undefined
                       if (ch?.client_id && !mClient) setMClient(ch.client_id as string)
                     }
                   }} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all">
-                    <option value="">{"— Selectionner un chantier (optionnel)"}</option>
+                    <option value="">— Sélectionner un chantier existant</option>
                     {chantiers
                       .filter(ch => !mClient || (ch as R).client_id === mClient)
                       .map(ch => {
@@ -1728,6 +1775,16 @@ function PlanningPageInner() {
                         return <option key={r.id as string} value={r.id as string}>{String(r.titre ?? 'Sans titre')}{clientLabel}</option>
                       })}
                   </select>
+                  {/* Saisie libre — affichée seulement si aucun chantier choisi */}
+                  {!mChantier && (
+                    <input
+                      type="text"
+                      value={mChantierLibre}
+                      onChange={e => setMChantierLibre(e.target.value)}
+                      placeholder="ou tapez une adresse / un lieu libre (ex : 15 rue des Lilas)"
+                      className="mt-2 w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3] placeholder:italic"
+                    />
+                  )}
                 </div>
               )}
 

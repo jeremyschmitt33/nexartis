@@ -129,14 +129,19 @@ async function sendArtisanNotification(
   signedBy: string,
   mode: string,
 ) {
-  // Récupérer l'email de l'artisan
+  // Récupérer l'email de l'artisan + sa préférence notification.
+  // 28/05/2026 : on respecte le toggle "Devis signé" des paramètres
+  // (avant cette date, l'envoi était systématique et ignorait la préférence).
   const { data: entreprise } = await supabase
     .from('entreprises')
-    .select('nom, email')
+    .select('nom, email, notify_devis_signe')
     .eq('user_id', devis.user_id)
     .single()
 
   if (!entreprise?.email) return
+  // Si l'artisan a explicitement désactivé la notif (false), on n'envoie pas.
+  // Si la colonne est null/undefined, on considère qu'elle est activée (défaut historique).
+  if (entreprise.notify_devis_signe === false) return
 
   const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
   const modeLabel = mode === 'draw' ? 'signature manuscrite' : 'approbation électronique'

@@ -149,13 +149,13 @@ function validateNaf(s: string): string | null {
   return null
 }
 
-/** RCS / RM = format libre commençant par "RCS Ville" ou "RM Ville" + SIREN 9 chiffres */
+/** RCS / RM = format libre commençant par "RCS Ville" ou "RM Ville" + numéro à 9 chiffres */
 function validateRcsRm(s: string): string | null {
   if (!s) return null
   const c = (s || '').trim()
   if (!/^(RCS|RM)\s+/i.test(c)) return 'Doit commencer par "RCS" ou "RM" suivi de la ville'
   const digits = c.replace(/\D/g, '')
-  if (digits.length < 9) return 'Doit contenir le numéro SIREN (9 chiffres)'
+  if (digits.length < 9) return 'Doit contenir au minimum 9 chiffres après "RCS" ou "RM"'
   return null
 }
 
@@ -299,7 +299,13 @@ function EntrepriseSection({
   const [assuranceNom, setAssuranceNom] = useState('')
   const [decennale, setDecennale] = useState('')
   const [assuranceZone, setAssuranceZone] = useState('')
-  const [mediateur, setMediateur] = useState('')
+  // Médiateur — 4 champs séparés depuis le 28/05/2026 (avant : 1 seul textarea libre).
+  // Fallback automatique : si les 4 champs sont vides mais que l'ancien champ "mediateur"
+  // existe en BDD, on remet sa valeur dans "mediateur_nom" pour rétrocompatibilité.
+  const [mediateurNom, setMediateurNom] = useState('')
+  const [mediateurAdresse, setMediateurAdresse] = useState('')
+  const [mediateurCodePostal, setMediateurCodePostal] = useState('')
+  const [mediateurVille, setMediateurVille] = useState('')
   const [rge, setRge] = useState(false)
   const [metier, setMetier] = useState('')
   const [franchiseTva, setFranchiseTva] = useState(false)
@@ -327,7 +333,21 @@ function EntrepriseSection({
       setAssuranceNom((entreprise.assurance_nom as string) ?? '')
       setDecennale((entreprise.decennale_numero as string) ?? '')
       setAssuranceZone((entreprise.assurance_zone as string) ?? '')
-      setMediateur((entreprise.mediateur as string) ?? '')
+      // Médiateur : on hydrate les 4 nouveaux champs en priorité.
+      // Si les 4 sont vides mais que l'ancien "mediateur" existe, on copie dans le nom.
+      const nouveauNom = (entreprise.mediateur_nom as string) ?? ''
+      const nouvelleAdresse = (entreprise.mediateur_adresse as string) ?? ''
+      const nouveauCP = (entreprise.mediateur_code_postal as string) ?? ''
+      const nouvelleVille = (entreprise.mediateur_ville as string) ?? ''
+      const ancien = (entreprise.mediateur as string) ?? ''
+      if (!nouveauNom && !nouvelleAdresse && !nouveauCP && !nouvelleVille && ancien) {
+        setMediateurNom(ancien)
+      } else {
+        setMediateurNom(nouveauNom)
+        setMediateurAdresse(nouvelleAdresse)
+        setMediateurCodePostal(nouveauCP)
+        setMediateurVille(nouvelleVille)
+      }
       setRge(!!entreprise.rge)
       setMetier((entreprise.metier as string) ?? '')
       setFranchiseTva(!!entreprise.franchise_tva)
@@ -356,17 +376,26 @@ function EntrepriseSection({
     setSuccess(null)
     setErrorMsg(null)
     try {
-      await update({
+      const updates: Record<string, unknown> = {
         nom, siret, tva_intracommunautaire: tva, code_naf: naf,
         forme_juridique: formeJuridique || null, capital_social: capitalSocial || null, rcs_rm: rcsRm || null,
         adresse, code_postal: codePostal, ville, telephone, email,
         iban, bic,
         assurance_nom: assuranceNom || null, decennale_numero: decennale, assurance_zone: assuranceZone || null,
-        mediateur: mediateur || null,
+        mediateur_nom: mediateurNom || null,
+        mediateur_adresse: mediateurAdresse || null,
+        mediateur_code_postal: mediateurCodePostal || null,
+        mediateur_ville: mediateurVille || null,
         rge, metier,
         franchise_tva: franchiseTva,
         qualification_pro: qualificationPro || null,
-      })
+      }
+      // Sync TVA : si franchise activée, on force le taux par défaut à 0 %
+      // pour éviter qu'un taux 20 % stocké en facturation reste désynchronisé.
+      if (franchiseTva) {
+        updates.tva_defaut = 0
+      }
+      await update(updates)
       setSuccess('Informations de l\'entreprise enregistrées avec succès.')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde')
@@ -450,13 +479,20 @@ function EntrepriseSection({
         </div>
       </div>
 
-      {/* Médiateur */}
+      {/* Médiateur — 4 champs séparés pour faciliter la saisie et l'affichage propre sur PDF */}
       <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Médiateur de la consommation</p>
       <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
         <p className="text-sm text-amber-700 font-manrope">Obligatoire depuis 2016 sur tous vos documents commerciaux (art. L612-1 du Code de la consommation).</p>
       </div>
       <div className="grid grid-cols-1 gap-6">
-        <InputField label="Nom et coordonnées du médiateur" value={mediateur} onChange={setMediateur} placeholder="Ex : Médiation de la consommation — CM2C — 14 rue Saint-Jean 75017 Paris — www.cm2c.net" />
+        <InputField label="Nom du médiateur" value={mediateurNom} onChange={setMediateurNom} placeholder="Ex : Médiation de la consommation — CM2C" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <InputField label="Adresse" value={mediateurAdresse} onChange={setMediateurAdresse} placeholder="14 rue Saint-Jean" />
+        <div className="grid grid-cols-2 gap-4">
+          <InputField label="Code postal" value={mediateurCodePostal} onChange={setMediateurCodePostal} placeholder="75017" />
+          <InputField label="Ville" value={mediateurVille} onChange={setMediateurVille} placeholder="Paris" />
+        </div>
       </div>
 
       {/* Bancaire */}
@@ -719,22 +755,36 @@ function FacturationSection({
       </h2>
 
       <div className="space-y-6">
-        {/* TVA par défaut */}
-        <div>
-          <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-            Taux de TVA par défaut
-          </label>
-          <select
-            value={tvaDefaut}
-            onChange={(e) => setTvaDefaut(e.target.value)}
-            className="w-full h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none bg-white"
-          >
-            <option value="0">Sans TVA (auto-entrepreneur)</option>
-            <option value="5.5">5,5 %</option>
-            <option value="10">10 %</option>
-            <option value="20">20 %</option>
-          </select>
-        </div>
+        {/* TVA par défaut — masqué si franchise TVA activée dans l'onglet Entreprise */}
+        {entreprise.franchise_tva === true ? (
+          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+            <p className="font-manrope text-sm text-blue-900">
+              <span className="font-semibold">TVA automatiquement à 0 %</span> — vous êtes en franchise de TVA (option activée dans l&apos;onglet <em>Entreprise</em>).
+              La mention <em>« TVA non applicable, art. 293 B du CGI »</em> est ajoutée automatiquement à vos devis et factures.
+            </p>
+            <p className="font-manrope text-xs text-blue-700 mt-2">
+              Pour activer un taux de TVA différent, désactivez d&apos;abord la franchise dans l&apos;onglet <em>Entreprise</em>.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
+              Taux de TVA par défaut
+            </label>
+            <select
+              value={tvaDefaut}
+              onChange={(e) => setTvaDefaut(e.target.value)}
+              className="w-full h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none bg-white"
+            >
+              <option value="5.5">5,5 %</option>
+              <option value="10">10 %</option>
+              <option value="20">20 %</option>
+            </select>
+            <p className="font-manrope text-xs text-gray-500 mt-1.5">
+              Ce taux sera pré-sélectionné sur vos nouveaux devis et factures. Vous pourrez toujours le modifier ligne par ligne.
+            </p>
+          </div>
+        )}
 
         {/* Delai de paiement */}
         <div>
@@ -800,34 +850,79 @@ function ApparenceSection() {
   )
 }
 
-function NotificationsSection() {
-  const [devisSigne, setDevisSigne] = useState(true)
-  const [facturePayee, setFacturePayee] = useState(true)
-  const [rappelImpaye, setRappelImpaye] = useState(true)
-  const [modifPlanning, setModifPlanning] = useState(true)
-  const [nouveauMessage, setNouveauMessage] = useState(true)
-  const [rapportHebdo, setRapportHebdo] = useState(false)
+// NotificationsSection — refonte 28/05/2026.
+// Avant : 6 toggles sans backend (UI fantôme, bouton sans onClick, aucune table prefs).
+// Après : on garde uniquement le toggle qui correspond à un mécanisme réellement implémenté
+// (envoi email à l'artisan quand un client signe son devis, géré dans api/public/signer).
+// Les autres notifications seront réintroduites au fil des implémentations réelles.
+function NotificationsSection({
+  entreprise,
+  update,
+}: {
+  entreprise: Record<string, unknown>
+  update: (v: Record<string, unknown>) => Promise<unknown>
+}) {
+  const [notifyDevisSigne, setNotifyDevisSigne] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (entreprise) {
+      // Par défaut activé : on ne veut pas que l'artisan rate un devis signé.
+      setNotifyDevisSigne(entreprise.notify_devis_signe !== false)
+    }
+  }, [entreprise])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setSuccess(null)
+    setErrorMsg(null)
+    try {
+      await update({ notify_devis_signe: notifyDevisSigne })
+      setSuccess('Préférences de notifications enregistrées.')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-6">
+      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-2">
         Notifications
       </h2>
+      <p className="text-sm text-[#6b7280] font-manrope mb-6">
+        Choisis les alertes que tu reçois par email. Tu peux les modifier à tout moment.
+      </p>
 
       <div className="divide-y divide-gray-100">
-        <ToggleSwitch label="Devis signé" checked={devisSigne} onChange={setDevisSigne} />
-        <ToggleSwitch label="Facture payée" checked={facturePayee} onChange={setFacturePayee} />
-        <ToggleSwitch label="Rappel impayé" checked={rappelImpaye} onChange={setRappelImpaye} />
-        <ToggleSwitch label="Modification planning" checked={modifPlanning} onChange={setModifPlanning} />
-        <ToggleSwitch label="Nouveau message équipe" checked={nouveauMessage} onChange={setNouveauMessage} />
-        <ToggleSwitch label="Rapport hebdomadaire par email" checked={rapportHebdo} onChange={setRapportHebdo} />
+        <div className="py-4">
+          <ToggleSwitch
+            label="Devis signé par un client"
+            checked={notifyDevisSigne}
+            onChange={setNotifyDevisSigne}
+          />
+          <p className="text-xs text-gray-500 font-manrope mt-1.5 ml-1">
+            Tu reçois un email dès qu&apos;un client signe ton devis en ligne. Recommandé.
+          </p>
+        </div>
       </div>
 
-      <div className="mt-8 flex justify-end">
-        <button className="h-12 px-8 rounded-lg font-syne font-bold text-white bg-[#e87a2a] hover:bg-[#f09050] transition-colors">
-          Enregistrer les modifications
-        </button>
+      <div className="mt-6 rounded-lg bg-blue-50/60 border border-blue-200 p-4">
+        <p className="text-sm font-semibold text-blue-900 font-manrope mb-2">
+          D&apos;autres notifications arrivent prochainement
+        </p>
+        <p className="text-xs text-blue-800 font-manrope leading-relaxed">
+          On travaille sur : <strong>rappels d&apos;impayés automatiques</strong>, <strong>confirmation de paiement de facture</strong>, <strong>récapitulatif hebdomadaire</strong>, et <strong>alertes de modification de planning</strong>.
+          On préfère te les livrer quand elles fonctionneront vraiment plutôt que de t&apos;afficher des cases qui ne font rien.
+        </p>
       </div>
+
+      <SaveButton onClick={handleSave} saving={saving} />
+      <SuccessMessage message={success} />
+      <ErrorMessage message={errorMsg} />
     </div>
   )
 }
@@ -1752,7 +1847,7 @@ export default function ParametresPage() {
         {activeSection === 'facturation' && entreprise && <FacturationSection entreprise={entreprise} update={update} />}
         {activeSection === 'signature' && entreprise && <SignatureSection entreprise={entreprise} update={update} />}
         {activeSection === 'apparence' && <ApparenceSection />}
-        {activeSection === 'notifications' && <NotificationsSection />}
+        {activeSection === 'notifications' && entreprise && <NotificationsSection entreprise={entreprise} update={update} />}
         {activeSection === 'compte' && <CompteSection userEmail={user?.email || ''} />}
       </div>
     </div>

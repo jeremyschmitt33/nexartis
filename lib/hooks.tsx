@@ -196,7 +196,19 @@ export interface EntrepriseRecord {
   assurance_nom?: string
   decennale_numero?: string
   assurance_zone?: string
+  // Médiateur : ancien champ (1 textarea libre) conservé pour rétrocompatibilité,
+  // remplacé depuis le 28/05/2026 par 4 sous-champs nommés.
   mediateur?: string
+  mediateur_nom?: string
+  mediateur_adresse?: string
+  mediateur_code_postal?: string
+  mediateur_ville?: string
+  // Préférence notification — true par défaut (28/05/2026).
+  notify_devis_signe?: boolean
+  // TVA — flag franchise (auto-entrepreneur / micro / EI non assujettie).
+  franchise_tva?: boolean
+  // Taux TVA par défaut sur les nouveaux devis/factures (0 si franchise activée).
+  tva_defaut?: number
   metier?: string
   logo_url?: string
   signature_base64?: string

@@ -122,7 +122,12 @@ interface Entreprise {
   logo_url?: string
   signature_base64?: string
   tampon_base64?: string
+  // Médiateur — ancien champ libre (rétro-compatibilité) + 4 nouveaux sous-champs (28/05/2026).
   mediateur?: string
+  mediateur_nom?: string
+  mediateur_adresse?: string
+  mediateur_code_postal?: string
+  mediateur_ville?: string
   iban?: string
   bic?: string
 }
@@ -1272,7 +1277,20 @@ export function generateDevisPdf(data: DevisData): string {
   }
   if (ent.rcs_rm) entMentionsDevis.push(String(ent.rcs_rm))
   if (ent.qualification_pro) entMentionsDevis.push(`Qualification : ${ent.qualification_pro}`)
-  if (ent.mediateur) entMentionsDevis.push(`Médiateur : ${ent.mediateur}`)
+  // Médiateur : on reconstitue depuis les 4 nouveaux champs ; fallback sur l'ancien champ libre.
+  {
+    const mNom = (ent.mediateur_nom as string) || ''
+    const mAdr = (ent.mediateur_adresse as string) || ''
+    const mCP = (ent.mediateur_code_postal as string) || ''
+    const mVille = (ent.mediateur_ville as string) || ''
+    const ligneAdresse = [mAdr, [mCP, mVille].filter(Boolean).join(' ')].filter(Boolean).join(' — ')
+    const mediateurFmt = [mNom, ligneAdresse].filter(Boolean).join(' — ')
+    if (mediateurFmt) {
+      entMentionsDevis.push(`Médiateur : ${mediateurFmt}`)
+    } else if (ent.mediateur) {
+      entMentionsDevis.push(`Médiateur : ${ent.mediateur}`)
+    }
+  }
   if (ent.mentions_legales_custom) entMentionsDevis.push(String(ent.mentions_legales_custom))
 
   if (entMentionsDevis.length > 0) {
@@ -1568,7 +1586,20 @@ export function generateFacturePdf(data: FactureData): string {
   }
   if (ent.rcs_rm) entMentions.push(String(ent.rcs_rm))
   if (ent.qualification_pro) entMentions.push(`Qualification : ${ent.qualification_pro}`)
-  if (ent.mediateur) entMentions.push(`Médiateur : ${ent.mediateur}`)
+  // Médiateur : on reconstitue depuis les 4 nouveaux champs ; fallback sur l'ancien champ libre.
+  {
+    const mNom = (ent.mediateur_nom as string) || ''
+    const mAdr = (ent.mediateur_adresse as string) || ''
+    const mCP = (ent.mediateur_code_postal as string) || ''
+    const mVille = (ent.mediateur_ville as string) || ''
+    const ligneAdresse = [mAdr, [mCP, mVille].filter(Boolean).join(' ')].filter(Boolean).join(' — ')
+    const mediateurFmt = [mNom, ligneAdresse].filter(Boolean).join(' — ')
+    if (mediateurFmt) {
+      entMentions.push(`Médiateur : ${mediateurFmt}`)
+    } else if (ent.mediateur) {
+      entMentions.push(`Médiateur : ${ent.mediateur}`)
+    }
+  }
   if (ent.mentions_legales_custom) entMentions.push(String(ent.mentions_legales_custom))
 
   if (entMentions.length > 0) {
