@@ -6,7 +6,7 @@ import {
   Search, AlertTriangle, Users, Briefcase, Clock, HardHat,
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
-  MoreHorizontal, Phone, Navigation
+  MoreHorizontal, Phone, Navigation, ChevronDown, Rows3, Rows4
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -365,6 +365,75 @@ function PlanningPageInner() {
       localStorage.setItem('nexartis_planning_show_weekend', showWeekend ? '1' : '0')
     }
   }, [showWeekend])
+
+  // ══════════════════════════════════════════════════════════════
+  // S2 — Scalabilité planning : filtres + groupement + densité
+  // ══════════════════════════════════════════════════════════════
+  // 3 leviers UX pour gérer un planning avec beaucoup d'intervenants :
+  //   1. Chips intervenants (masquer/afficher individuellement)
+  //   2. Groupement par métier (collapsible inline dans la grille)
+  //   3. Toggle densité Compact / Confort (taille des cellules)
+  // États persistés en localStorage pour respecter le choix utilisateur.
+
+  // Levier 1 : intervenants masqués (Set d'IDs)
+  const [hiddenIntervenants, setHiddenIntervenants] = useState<Set<string>>(new Set())
+  // Init depuis localStorage au mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem('planning_filter_intervenants')
+      if (raw) {
+        const arr = JSON.parse(raw) as unknown
+        if (Array.isArray(arr)) {
+          setHiddenIntervenants(new Set(arr.filter((x): x is string => typeof x === 'string')))
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, [])
+  // Persist
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('planning_filter_intervenants', JSON.stringify(Array.from(hiddenIntervenants)))
+  }, [hiddenIntervenants])
+
+  // Levier 2 : métiers repliés (Set de noms de métier)
+  const [collapsedMetiers, setCollapsedMetiers] = useState<Set<string>>(new Set())
+  // Init depuis localStorage au mount
+  const collapsedMetiersInitRef = useRef(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (collapsedMetiersInitRef.current) return
+    try {
+      const raw = localStorage.getItem('planning_collapsed_metiers')
+      if (raw) {
+        const arr = JSON.parse(raw) as unknown
+        if (Array.isArray(arr)) {
+          setCollapsedMetiers(new Set(arr.filter((x): x is string => typeof x === 'string')))
+          collapsedMetiersInitRef.current = true
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, [])
+  // Persist
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!collapsedMetiersInitRef.current) return
+    localStorage.setItem('planning_collapsed_metiers', JSON.stringify(Array.from(collapsedMetiers)))
+  }, [collapsedMetiers])
+
+  // Levier 3 : densité ('compact' | 'confort')
+  const [density, setDensity] = useState<'compact' | 'confort'>('confort')
+  // Init depuis localStorage au mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = localStorage.getItem('planning_density')
+    if (raw === 'compact' || raw === 'confort') setDensity(raw)
+  }, [])
+  // Persist
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('planning_density', density)
+  }, [density])
 
   // ── Auto-activate conflict filter from URL query param ──
   useEffect(() => {
@@ -1128,7 +1197,9 @@ function PlanningPageInner() {
   // ── Intervenants list ──
   // Solo mode: show self + any subcontractors (type_contrat = 'sous-traitant')
   // Société mode: show all active intervenants
-  const displayedIntervenants = useMemo(() => {
+  // S2 : "available" = liste complète (utilisée pour la barre de chips et stats)
+  //      "displayedIntervenants" = liste filtrée (utilisée pour le rendu de la grille)
+  const availableIntervenants = useMemo(() => {
     if (isSociete) {
       return intervenants.filter(iv => (iv as R).actif !== false)
     }
@@ -1138,8 +1209,90 @@ function PlanningPageInner() {
     return [...self, ...subcontractors]
   }, [intervenants, isSociete])
 
+  // S2 — filtrage par chips intervenants : on retire ceux masqués via la barre de chips
+  const displayedIntervenants = useMemo(() => {
+    if (hiddenIntervenants.size === 0) return availableIntervenants
+    return availableIntervenants.filter(iv => !hiddenIntervenants.has((iv as R).id as string))
+  }, [availableIntervenants, hiddenIntervenants])
+
   // In Solo mode, check if there are any subcontractors (i.e., more than just self)
-  const soloHasSubcontractors = !isSociete && displayedIntervenants.length > 1
+  const soloHasSubcontractors = !isSociete && availableIntervenants.length > 1
+
+  // S2 — Levier 2 : groupement par métier dans la grille détaillée
+  // Retourne un tableau ordonné de groupes { metier, intervenants[] }
+  // Les intervenants sans métier renseigné sont rassemblés sous "Autre" en dernier.
+  // Le tri est alphabétique avec "Autre" forcé en dernier.
+  const intervenantsByMetier = useMemo(() => {
+    const groups = new Map<string, R[]>()
+    for (const iv of displayedIntervenants) {
+      const r = iv as R
+      const metierRaw = String(r.metier ?? '').trim()
+      const metier = metierRaw.length > 0 ? metierRaw : 'Autre'
+      if (!groups.has(metier)) groups.set(metier, [])
+      groups.get(metier)!.push(r)
+    }
+    const entries = Array.from(groups.entries())
+    entries.sort(([a], [b]) => {
+      if (a === 'Autre') return 1
+      if (b === 'Autre') return -1
+      return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+    })
+    return entries.map(([metier, list]) => ({ metier, intervenants: list }))
+  }, [displayedIntervenants])
+
+  // S2 — Défaut intelligent du groupement : si > 6 intervenants au total,
+  // tous les groupes démarrent repliés. Sinon, tous déployés.
+  // Appliqué une seule fois quand la liste change la première fois (et qu'aucune
+  // préférence localStorage n'a été chargée).
+  const collapsedDefaultAppliedRef = useRef(false)
+  useEffect(() => {
+    if (collapsedDefaultAppliedRef.current) return
+    if (collapsedMetiersInitRef.current) return // user already had a saved preference
+    if (intervenantsByMetier.length === 0) return
+    if (availableIntervenants.length > 6) {
+      setCollapsedMetiers(new Set(intervenantsByMetier.map(g => g.metier)))
+    }
+    collapsedDefaultAppliedRef.current = true
+    collapsedMetiersInitRef.current = true
+  }, [availableIntervenants.length, intervenantsByMetier])
+
+  // S2 — Helpers densité : classes Tailwind dépendantes de density
+  // Confort = cases actuelles (90px min, fonts normales)
+  // Compact = cases plus serrées (~50px min, paddings réduits, line-3 masquée)
+  const isCompact = density === 'compact'
+  const cellMinHeightClass = isCompact ? 'min-h-[50px]' : 'min-h-[90px]'
+  const cellPaddingClass = isCompact ? 'px-1 py-0.5' : 'px-1.5 py-1'
+  const interventionPaddingClass = isCompact ? 'p-1 pr-5' : 'p-2 pr-6'
+  const interventionGapClass = isCompact ? 'mb-0.5' : 'mb-1'
+  const titreLineClass = isCompact ? 'hidden' : 'hidden sm:block text-[11px] font-medium opacity-75 mt-0.5 line-clamp-2 leading-snug'
+  const clientLineFontClass = isCompact ? 'text-[10px]' : 'text-[11px]'
+
+  // S2 — Helpers pour la barre de chips et le groupement
+  const toggleIntervenantVisibility = (id: string) => {
+    setHiddenIntervenants(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  const showAllIntervenants = () => setHiddenIntervenants(new Set())
+  const hideAllIntervenants = () => setHiddenIntervenants(new Set(availableIntervenants.map(iv => (iv as R).id as string)))
+  const toggleMetierCollapsed = (metier: string) => {
+    setCollapsedMetiers(prev => {
+      const next = new Set(prev)
+      if (next.has(metier)) next.delete(metier)
+      else next.add(metier)
+      return next
+    })
+    // Marque l'init comme faite pour que les changements user persistent
+    collapsedMetiersInitRef.current = true
+  }
+
+  // S2 — La barre de chips ne s'affiche que si pertinente :
+  // - Mode Solo + 0-1 intervenant : aucun intérêt (cf. brief)
+  // - Mode Société ou Solo avec sous-traitants : on l'affiche
+  const showChipsBar = (isSociete && availableIntervenants.length >= 2) || soloHasSubcontractors
 
   // ── Name helpers ──
   const ivName = (id: string) => {
@@ -1438,6 +1591,27 @@ function PlanningPageInner() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
+                {/* S2 — Toggle densité Compact / Confort (segment control) */}
+                <div className="flex bg-[#f6f8fb] rounded-lg p-0.5 gap-0.5" role="group" aria-label="Densité d'affichage">
+                  <button
+                    onClick={() => setDensity('confort')}
+                    aria-pressed={density === 'confort'}
+                    title="Affichage confort (cases larges)"
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${density === 'confort' ? 'bg-white text-[#0f1a3a] shadow-sm' : 'text-[#64748b] hover:text-[#0f1a3a]'}`}
+                  >
+                    <Rows3 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Confort</span>
+                  </button>
+                  <button
+                    onClick={() => setDensity('compact')}
+                    aria-pressed={density === 'compact'}
+                    title="Affichage compact (cases serrées)"
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${density === 'compact' ? 'bg-white text-[#0f1a3a] shadow-sm' : 'text-[#64748b] hover:text-[#0f1a3a]'}`}
+                  >
+                    <Rows4 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Compact</span>
+                  </button>
+                </div>
                 <button onClick={goToday} className="px-3 py-1 text-[11px] font-semibold text-[#5ab4e0] bg-[#e8f4fb] rounded-lg hover:bg-[#5ab4e0] hover:text-white transition-all">
                   Aujourd&apos;hui
                 </button>
@@ -1454,6 +1628,58 @@ function PlanningPageInner() {
                 )}
               </div>
             </div>
+
+            {/* ── S2 — Barre de chips intervenants (filtres rapides) ──
+                Permet de masquer/afficher chaque intervenant d'un clic. État persisté.
+                Masquée en mode Solo sans sous-traitants (0-1 intervenant = inutile). */}
+            {showChipsBar && (
+              <div className="px-5 py-3 border-b border-[#e6ecf2] bg-[#fafbfd]">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3]">
+                    Intervenants affichés ({availableIntervenants.length - hiddenIntervenants.size}/{availableIntervenants.length})
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] font-semibold">
+                    <button onClick={showAllIntervenants} className="text-[#5ab4e0] hover:underline disabled:opacity-40 disabled:no-underline" disabled={hiddenIntervenants.size === 0}>
+                      Tout afficher
+                    </button>
+                    <span className="text-[#cbd5e1]">·</span>
+                    <button onClick={hideAllIntervenants} className="text-[#64748b] hover:text-[#0f1a3a] hover:underline disabled:opacity-40 disabled:no-underline" disabled={hiddenIntervenants.size === availableIntervenants.length}>
+                      Tout masquer
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                  {availableIntervenants.map(iv => {
+                    const r = iv as R
+                    const ivId = r.id as string
+                    const color = colorMap.get(ivId) ?? PALETTE[0]
+                    const isHidden = hiddenIntervenants.has(ivId)
+                    const shortLabel = `${String(r.prenom ?? '').charAt(0).toUpperCase()}${String(r.prenom ?? '').length > 0 ? '. ' : ''}${String(r.nom ?? '')}`.trim() || String(r.prenom ?? '') || 'Sans nom'
+                    return (
+                      <button
+                        key={ivId}
+                        onClick={() => toggleIntervenantVisibility(ivId)}
+                        aria-pressed={!isHidden}
+                        title={isHidden ? `Afficher ${ivFullName(ivId)}` : `Masquer ${ivFullName(ivId)}`}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border ${
+                          isHidden
+                            ? 'bg-white border-[#e6ecf2] text-[#94a3b8] hover:border-[#cbd5e1]'
+                            : 'border-transparent text-white shadow-sm hover:shadow-md'
+                        }`}
+                        style={!isHidden ? { background: color.hex } : undefined}
+                      >
+                        <span
+                          className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-extrabold ${isHidden ? 'bg-[#f1f5f9] text-[#94a3b8]' : 'bg-white/25 text-white'}`}
+                        >
+                          {initials(`${r.prenom ?? ''} ${r.nom ?? ''}`)}
+                        </span>
+                        <span>{shortLabel}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* 5 weeks grid */}
             <div className="divide-y divide-[#e6ecf2] overflow-x-auto">
@@ -1508,147 +1734,185 @@ function PlanningPageInner() {
                         </div>
                       ))}
 
-                      {/* Intervenant rows */}
-                      {displayedIntervenants.map(iv => {
-                        const r = iv as R
-                        const ivId = r.id as string
-                        const color = colorMap.get(ivId) ?? PALETTE[0]
-
+                      {/* ── S2 — Intervenants groupés par métier ──
+                          Chaque groupe a un header repliable. Si replié, on n'itère pas
+                          sur ses intervenants : les lignes sont simplement omises de
+                          la grille pour cette semaine. La hauteur du tableau s'adapte
+                          naturellement (grid avec class "contents" sur les lignes).
+                          Le groupement n'est appliqué qu'en vue détaillée 5/7 jours,
+                          qui est précisément ce panneau (vue annuelle gérée séparément). */}
+                      {intervenantsByMetier.map(group => {
+                        const isCollapsed = collapsedMetiers.has(group.metier)
+                        const groupTotalCols = (isSociete || soloHasSubcontractors)
+                          ? (showWeekend ? 8 : 6)
+                          : (showWeekend ? 7 : 5)
                         return (
-                          <div key={`${wi}-${ivId}`} className="contents">
-                            {/* Label — hidden in Solo mode without subcontractors */}
-                            {(isSociete || soloHasSubcontractors) && (
-                              <div className="px-3 py-2.5 border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background: color.hex }}>
-                                  {initials(`${r.prenom ?? ''} ${r.nom ?? ''}`)}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-syne font-bold text-[#0f1a3a] truncate">
-                                    {isSociete ? `${String(r.prenom ?? '')} ${String(r.nom ?? '').charAt(0)}.` : String(r.prenom ?? '')}
-                                  </div>
-                                  <div className="text-[11px] text-[#5ab4e0] font-semibold truncate bg-[#e8f4fb] px-2 py-0.5 rounded-md inline-block mt-0.5">
-                                    {String(r.metier ?? '')}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                          <div key={`${wi}-grp-${group.metier}`} className="contents">
+                            {/* Header de groupe métier (occupe toute la largeur de la grille) */}
+                            <button
+                              type="button"
+                              onClick={() => toggleMetierCollapsed(group.metier)}
+                              aria-expanded={!isCollapsed}
+                              className="text-left flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#f0f4fa] to-[#f6f8fb] border-b border-[#e6ecf2] hover:from-[#e8f4fb] hover:to-[#f0f7fc] transition-colors"
+                              style={{ gridColumn: `span ${groupTotalCols} / span ${groupTotalCols}` }}
+                            >
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 text-[#7b8ba3] transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                              />
+                              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0f1a3a]">
+                                {group.metier}
+                              </span>
+                              <span className="text-[10px] font-bold text-[#7b8ba3] bg-white border border-[#e6ecf2] rounded-full px-1.5 py-0.5">
+                                {group.intervenants.length}
+                              </span>
+                            </button>
 
-                            {/* Day cells */}
-                            {week.days.map(day => {
-                              const cellKey = `${ivId}__${day.dateStr}`
-                              const interventions = planningMap.get(cellKey) ?? []
-                              const isDragOver = dragOverCell === cellKey
+                            {/* Lignes intervenants du groupe (omises si replié) */}
+                            {!isCollapsed && group.intervenants.map(iv => {
+                              const r = iv as R
+                              const ivId = r.id as string
+                              const color = colorMap.get(ivId) ?? PALETTE[0]
 
                               return (
-                                <div key={cellKey}
-                                  className={`min-h-[90px] px-1.5 py-1 border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
-                                  onDragOver={e => { e.preventDefault(); setDragOverCell(cellKey) }}
-                                  onDragLeave={() => setDragOverCell(null)}
-                                  onDrop={e => { e.preventDefault(); handleDrop(ivId, day.dateStr) }}>
-
-                                  <div className="flex flex-col gap-0.5">
-                                    {interventions.filter(isFiltered).map(item => {
-                                      const rec = item as R
-                                      const isConflict = conflicts.has(rec.id as string)
-                                      const isDragged = draggedId === rec.id as string
-                                      const statut = STATUTS.find(s => s.value === rec.statut)
-                                      const isCreneau = (rec.creneau as string) === 'creneau'
-                                      const heureDebut = rec.heure_debut as string || horaires.debutMatin
-                                      const heureFin = rec.heure_fin as string || horaires.finAm
-
-                                      // Hauteur proportionnelle pour créneaux (base 60px pour 480min journée)
-                                      let heightPx = 0
-                                      let timeDisplay = ''
-                                      if (isCreneau) {
-                                        const startMin = parseInt(heureDebut.split(':')[0]) * 60 + parseInt(heureDebut.split(':')[1])
-                                        const endMin = parseInt(heureFin.split(':')[0]) * 60 + parseInt(heureFin.split(':')[1])
-                                        const durationMin = endMin - startMin
-                                        heightPx = Math.max(40, Math.round((durationMin / 480) * 60))
-                                        timeDisplay = `${shortTime(heureDebut)}-${shortTime(heureFin)}`
-                                      }
-
-                                      // ── Données case Maquette A "Compact informatif" ──
-                                      const typeMeta = getTypeInterventionMeta(rec.type_intervention as string)
-                                      const TypeIcon = typeMeta?.icon ?? null
-                                      const clientName = clNameFromIntervention(rec)
-                                      // Fallback titre -> ville client si pas de titre
-                                      const titreRaw = String(rec.titre ?? rec.description_travaux ?? '').trim()
-                                      let titreOuVille = titreRaw
-                                      if (!titreOuVille && rec.client_id) {
-                                        const cl = clientMap.get(rec.client_id as string) as R | undefined
-                                        if (cl?.ville) titreOuVille = String(cl.ville)
-                                      }
-                                      // Tooltip riche pour cases tronquées
-                                      const tooltipParts: string[] = []
-                                      if (isCreneau) tooltipParts.push(timeDisplay)
-                                      else tooltipParts.push(creneauLabel(rec.creneau as string))
-                                      if (clientName) tooltipParts.push(clientName)
-                                      if (titreRaw) tooltipParts.push(titreRaw)
-                                      if (typeMeta) tooltipParts.push(typeMeta.label)
-                                      const tooltip = isConflict
-                                        ? 'Conflit : cet intervenant a une autre intervention sur le meme creneau'
-                                        : tooltipParts.join(' · ')
-
-                                      return (
-                                        <div key={rec.id as string}
-                                          draggable
-                                          onDragStart={() => handleDragStart(rec.id as string)}
-                                          onDragEnd={handleDragEnd}
-                                          onClick={() => openPanel(rec)}
-                                          className={`relative p-2 pr-6 rounded-lg mb-1 cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
-                                            ${isDragged ? 'opacity-30' : ''} ${isConflict ? 'ring-2 ring-[#ef4444] shadow-[0_0_0_2px_rgba(239,68,68,0.15)]' : ''} hover:shadow-md hover:scale-[1.01]`}
-                                          style={isCreneau ? { minHeight: `${heightPx}px` } : {}}
-                                          title={tooltip}>
-                                          {isConflict && (
-                                            <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1 bg-[#ef4444] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
-                                              <AlertTriangle className="w-3 h-3" />
-                                              <span>Conflit</span>
-                                            </div>
-                                          )}
-                                          {/* Icone type d'intervention en haut a droite */}
-                                          {TypeIcon && (
-                                            <span className="absolute top-1.5 right-1.5 opacity-60" aria-label={typeMeta?.label}>
-                                              <TypeIcon className="w-3 h-3" />
-                                            </span>
-                                          )}
-                                          {/* Ligne 1 : creneau horaire compact */}
-                                          {isCreneau ? (
-                                            <div className="text-[10px] font-extrabold text-[#0f1a3a] leading-tight">
-                                              {timeDisplay}
-                                            </div>
-                                          ) : (
-                                            <div className="text-[9px] font-bold uppercase tracking-wide opacity-70">
-                                              {creneauLabel(rec.creneau as string)}
-                                            </div>
-                                          )}
-                                          {/* Ligne 2 : nom client + pastille statut */}
-                                          {clientName && (
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                              {statut && (
-                                                <span
-                                                  className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatutPastilleColor(rec.statut as string)}`}
-                                                  aria-label={`Statut : ${statut.label}`}
-                                                />
-                                              )}
-                                              <span className="font-bold text-[11px] truncate">{clientName}</span>
-                                            </div>
-                                          )}
-                                          {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite) */}
-                                          {titreOuVille && (
-                                            <div className="hidden sm:block text-[11px] font-medium opacity-75 mt-0.5 line-clamp-2 leading-snug">
-                                              {titreOuVille}
-                                            </div>
-                                          )}
+                                <div key={`${wi}-${ivId}`} className="contents">
+                                  {/* Label — hidden in Solo mode without subcontractors */}
+                                  {(isSociete || soloHasSubcontractors) && (
+                                    <div className={`${isCompact ? 'px-2 py-1.5' : 'px-3 py-2.5'} border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center ${isCompact ? 'gap-2' : 'gap-2.5'}`}>
+                                      <div className={`${isCompact ? 'w-5 h-5 text-[9px]' : 'w-7 h-7 text-[10px]'} rounded-md flex items-center justify-center text-white font-bold flex-shrink-0`} style={{ background: color.hex }}>
+                                        {initials(`${r.prenom ?? ''} ${r.nom ?? ''}`)}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-syne font-bold text-[#0f1a3a] truncate`}>
+                                          {isSociete ? `${String(r.prenom ?? '')} ${String(r.nom ?? '').charAt(0)}.` : String(r.prenom ?? '')}
                                         </div>
-                                      )
-                                    })}
-                                  </div>
+                                        {!isCompact && (
+                                          <div className="text-[11px] text-[#5ab4e0] font-semibold truncate bg-[#e8f4fb] px-2 py-0.5 rounded-md inline-block mt-0.5">
+                                            {String(r.metier ?? '')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
 
-                                  {/* Add button */}
-                                  <button onClick={() => openModal(day.dateStr, ivId)}
-                                    className="w-full h-6 border border-dashed border-[#5ab4e0]/20 rounded text-[#5ab4e0] text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#5ab4e0]/[.06] hover:border-[#5ab4e0] transition-all pointer-events-none group-hover:pointer-events-auto">
-                                    +
-                                  </button>
+                                  {/* Day cells */}
+                                  {week.days.map(day => {
+                                    const cellKey = `${ivId}__${day.dateStr}`
+                                    const interventions = planningMap.get(cellKey) ?? []
+                                    const isDragOver = dragOverCell === cellKey
+
+                                    return (
+                                      <div key={cellKey}
+                                        className={`${cellMinHeightClass} ${cellPaddingClass} border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
+                                        onDragOver={e => { e.preventDefault(); setDragOverCell(cellKey) }}
+                                        onDragLeave={() => setDragOverCell(null)}
+                                        onDrop={e => { e.preventDefault(); handleDrop(ivId, day.dateStr) }}>
+
+                                        <div className="flex flex-col gap-0.5">
+                                          {interventions.filter(isFiltered).map(item => {
+                                            const rec = item as R
+                                            const isConflict = conflicts.has(rec.id as string)
+                                            const isDragged = draggedId === rec.id as string
+                                            const statut = STATUTS.find(s => s.value === rec.statut)
+                                            const isCreneau = (rec.creneau as string) === 'creneau'
+                                            const heureDebut = rec.heure_debut as string || horaires.debutMatin
+                                            const heureFin = rec.heure_fin as string || horaires.finAm
+
+                                            // Hauteur proportionnelle pour créneaux (base 60px pour 480min journée)
+                                            let heightPx = 0
+                                            let timeDisplay = ''
+                                            if (isCreneau) {
+                                              const startMin = parseInt(heureDebut.split(':')[0]) * 60 + parseInt(heureDebut.split(':')[1])
+                                              const endMin = parseInt(heureFin.split(':')[0]) * 60 + parseInt(heureFin.split(':')[1])
+                                              const durationMin = endMin - startMin
+                                              heightPx = Math.max(isCompact ? 28 : 40, Math.round((durationMin / 480) * (isCompact ? 40 : 60)))
+                                              timeDisplay = `${shortTime(heureDebut)}-${shortTime(heureFin)}`
+                                            }
+
+                                            // ── Données case Maquette A "Compact informatif" ──
+                                            const typeMeta = getTypeInterventionMeta(rec.type_intervention as string)
+                                            const TypeIcon = typeMeta?.icon ?? null
+                                            const clientName = clNameFromIntervention(rec)
+                                            // Fallback titre -> ville client si pas de titre
+                                            const titreRaw = String(rec.titre ?? rec.description_travaux ?? '').trim()
+                                            let titreOuVille = titreRaw
+                                            if (!titreOuVille && rec.client_id) {
+                                              const cl = clientMap.get(rec.client_id as string) as R | undefined
+                                              if (cl?.ville) titreOuVille = String(cl.ville)
+                                            }
+                                            // Tooltip riche pour cases tronquées
+                                            const tooltipParts: string[] = []
+                                            if (isCreneau) tooltipParts.push(timeDisplay)
+                                            else tooltipParts.push(creneauLabel(rec.creneau as string))
+                                            if (clientName) tooltipParts.push(clientName)
+                                            if (titreRaw) tooltipParts.push(titreRaw)
+                                            if (typeMeta) tooltipParts.push(typeMeta.label)
+                                            const tooltip = isConflict
+                                              ? 'Conflit : cet intervenant a une autre intervention sur le meme creneau'
+                                              : tooltipParts.join(' · ')
+
+                                            return (
+                                              <div key={rec.id as string}
+                                                draggable
+                                                onDragStart={() => handleDragStart(rec.id as string)}
+                                                onDragEnd={handleDragEnd}
+                                                onClick={() => openPanel(rec)}
+                                                className={`relative ${interventionPaddingClass} rounded-lg ${interventionGapClass} cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
+                                                  ${isDragged ? 'opacity-30' : ''} ${isConflict ? 'ring-2 ring-[#ef4444] shadow-[0_0_0_2px_rgba(239,68,68,0.15)]' : ''} hover:shadow-md hover:scale-[1.01]`}
+                                                style={isCreneau ? { minHeight: `${heightPx}px` } : {}}
+                                                title={tooltip}>
+                                                {isConflict && (
+                                                  <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1 bg-[#ef4444] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
+                                                    <AlertTriangle className="w-3 h-3" />
+                                                    <span>Conflit</span>
+                                                  </div>
+                                                )}
+                                                {/* Icone type d'intervention en haut a droite */}
+                                                {TypeIcon && (
+                                                  <span className="absolute top-1.5 right-1.5 opacity-60" aria-label={typeMeta?.label}>
+                                                    <TypeIcon className="w-3 h-3" />
+                                                  </span>
+                                                )}
+                                                {/* Ligne 1 : creneau horaire compact */}
+                                                {isCreneau ? (
+                                                  <div className={`${isCompact ? 'text-[9px]' : 'text-[10px]'} font-extrabold text-[#0f1a3a] leading-tight`}>
+                                                    {timeDisplay}
+                                                  </div>
+                                                ) : (
+                                                  <div className={`${isCompact ? 'text-[8px]' : 'text-[9px]'} font-bold uppercase tracking-wide opacity-70`}>
+                                                    {creneauLabel(rec.creneau as string)}
+                                                  </div>
+                                                )}
+                                                {/* Ligne 2 : nom client + pastille statut */}
+                                                {clientName && (
+                                                  <div className="flex items-center gap-1 mt-0.5">
+                                                    {statut && (
+                                                      <span
+                                                        className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatutPastilleColor(rec.statut as string)}`}
+                                                        aria-label={`Statut : ${statut.label}`}
+                                                      />
+                                                    )}
+                                                    <span className={`font-bold ${clientLineFontClass} truncate`}>{clientName}</span>
+                                                  </div>
+                                                )}
+                                                {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite, masque aussi en mode Compact) */}
+                                                {titreOuVille && (
+                                                  <div className={titreLineClass}>
+                                                    {titreOuVille}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+
+                                        {/* Add button */}
+                                        <button onClick={() => openModal(day.dateStr, ivId)}
+                                          className="w-full h-6 border border-dashed border-[#5ab4e0]/20 rounded text-[#5ab4e0] text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#5ab4e0]/[.06] hover:border-[#5ab4e0] transition-all pointer-events-none group-hover:pointer-events-auto">
+                                          +
+                                        </button>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               )
                             })}
@@ -2319,7 +2583,9 @@ function PlanningPageInner() {
                     <>
                       <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Intervenant *</label>
                       <select value={mIntervenant} onChange={e => { setMIntervenant(e.target.value); setShowConflitConfirm(false); setConflitConfirmMessage('') }} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all" required>
-                        {displayedIntervenants.map((iv) => {
+                        {/* S2 : on liste TOUS les intervenants disponibles (pas ceux filtrés par les chips),
+                            sinon impossible de planifier pour un intervenant masqué via chips. */}
+                        {availableIntervenants.map((iv) => {
                           const r = iv as R
                           const isMe = r.id === selfIntervenantId
                           const label = isMe ? 'Moi (artisan)' : `${String(r.prenom ?? '')} ${String(r.nom ?? '')}`.trim()
