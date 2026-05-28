@@ -12,6 +12,7 @@ import {
 } from '@/lib/hooks'
 import { useRouter, useSearchParams } from 'next/navigation'
 import NotesIntervention from '@/components/NotesIntervention'
+import Combobox, { ComboboxItem } from '@/components/Combobox'
 
 // ===================================================================
 // Types & Constants
@@ -128,6 +129,9 @@ function PlanningPageInner() {
   const autoDetectedRef = useRef(false)
 
   // Modal state
+  // Mode du modal : 'devis' = planifier depuis un devis signé, 'libre' = visite/RDV/SAV.
+  // Initialisé au moment de l'ouverture (cf. openModal) selon présence de devis signés.
+  const [mMode, setMMode] = useState<'devis' | 'libre'>('libre')
   const [mDevis, setMDevis] = useState('')
   const [mClient, setMClient] = useState('')
   const [mIntervenant, setMIntervenant] = useState('')
@@ -534,7 +538,14 @@ function PlanningPageInner() {
     setMHeureDebut('08:00'); setMHeureFin('17:00'); setMConflitWarning(null)
     setShowConflitConfirm(false); setConflitConfirmMessage('')
     setEditMode(false); setEditId(null)
-    // Auto-fill from devis if provided
+    // Mode initial intelligent :
+    //  - si on ouvre depuis un drag-from-devis : mode 'devis' forcé
+    //  - sinon : 'devis' si on a au moins un devis signé, 'libre' sinon
+    const initialMode: 'devis' | 'libre' = devisId
+      ? 'devis'
+      : (acceptedDevis.length > 0 ? 'devis' : 'libre')
+    setMMode(initialMode)
+    // Auto-fill from devis if provided (drag-from-devis)
     if (devisId) {
       setMDevis(devisId)
       const devis = devisMap.get(devisId) as R | undefined
@@ -553,6 +564,9 @@ function PlanningPageInner() {
     const dateFin = ((intervention.date_fin as string) ?? dateDebut).split('T')[0]
     setEditMode(true)
     setEditId(intervention.id as string)
+    // Déduire le mode depuis les données de l'intervention :
+    // si elle est liée à un devis, on est en mode 'devis', sinon 'libre'.
+    setMMode(intervention.devis_id ? 'devis' : 'libre')
     setMDevis((intervention.devis_id as string) ?? '')
     setMClient((intervention.client_id as string) ?? '')
     setMIntervenant((intervention.intervenant_id as string) ?? '')
@@ -588,6 +602,109 @@ function PlanningPageInner() {
       setMClient(''); setMChantier(''); setMObjet('')
     }
   }
+
+  // ── Switch mode (devis ↔ libre) avec reset propre ──
+  // En passant de "devis" à "libre" : on vide ce qui est lié au devis (devis, client lié, chantier lié, objet)
+  // mais on conserve date, créneau, intervenant, notes, type, etc.
+  // En passant de "libre" à "devis" : on vide ce qui est saisie libre (clientLibre, chantierLibre).
+  const switchMode = (target: 'devis' | 'libre') => {
+    if (target === mMode) return
+    if (target === 'libre') {
+      setMDevis('')
+      setMClient('')
+      setMChantier('')
+      setMObjet('')
+    } else {
+      setMClientLibre('')
+      setMChantierLibre('')
+    }
+    setMMode(target)
+    setShowConflitConfirm(false); setConflitConfirmMessage('')
+  }
+
+  // ── Création client inline depuis le combobox ──
+  // Quand l'utilisateur tape un nom inconnu et clique "+ Créer le prospect 'X'".
+  // Crée une fiche client minimale (prénom + nom seulement) puis pré-sélectionne dans le modal.
+  // Heuristique simple : si premier mot = "M.", "Mme", "Mlle" → on garde tel quel en civilité dans nom,
+  // sinon premier mot = prénom, reste = nom.
+  const createClientInline = useCallback(async (typedText: string) => {
+    const t = typedText.trim()
+    if (!t) return
+    const parts = t.split(/\s+/)
+    let prenom = ''
+    let nom = ''
+    // Heuristique : si commence par civilité, on prend tout comme nom (artisan tape souvent "M. Dupont")
+    const civilitePattern = /^(m\.|mme\.?|mlle\.?|monsieur|madame|mademoiselle)$/i
+    if (parts.length === 1) {
+      nom = parts[0]
+    } else if (civilitePattern.test(parts[0])) {
+      // "M. Dupont" → prenom='', nom='M. Dupont' (on stocke tel que tapé pour respecter le format artisan)
+      prenom = ''
+      nom = parts.join(' ')
+    } else {
+      // "Jean Dupont" → prenom='Jean', nom='Dupont'
+      // "Jean-Pierre Dupont Martin" → prenom='Jean-Pierre', nom='Dupont Martin'
+      prenom = parts[0]
+      nom = parts.slice(1).join(' ')
+    }
+    try {
+      const created = await insertRow('clients', { prenom, nom })
+      if (created) {
+        const newId = (created as R).id as string
+        setMClient(newId)
+        refetch()
+        showToast(`Prospect créé : ${[prenom, nom].filter(Boolean).join(' ')}`)
+      }
+    } catch {
+      showToast('Erreur lors de la création du prospect')
+    }
+  }, [refetch, showToast])
+
+  // ── Items pour les Combobox du modal ──
+  // Liste des devis signés, formatée pour le composant Combobox.
+  const devisItems: ComboboxItem[] = useMemo(() => {
+    return acceptedDevis.map(d => {
+      const cl = clientMap.get(d.client_id as string) as R | undefined
+      const clientLabel = cl ? `${cl.prenom ?? ''} ${cl.nom ?? ''}`.trim() : ''
+      const numero = String(d.numero ?? '')
+      const objet = String(d.objet ?? '')
+      const montant = Number(d.montant_ttc ?? 0)
+      const dateAccept = d.date_signature ? String(d.date_signature).split('T')[0] : ''
+      return {
+        id: d.id as string,
+        label: `${numero}${clientLabel ? ` — ${clientLabel}` : ''}`,
+        sublabel: objet || undefined,
+        searchText: `${numero} ${clientLabel} ${objet}`,
+        meta: (
+          <div className="text-right">
+            <div className="font-bold text-[#22c55e]">
+              {montant.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+            </div>
+            {dateAccept && <div className="text-[10px] text-[#7b8ba3]">signé {dateAccept}</div>}
+          </div>
+        ),
+      }
+    })
+  }, [acceptedDevis, clientMap])
+
+  // Liste des clients (combobox client en mode libre)
+  const clientItems: ComboboxItem[] = useMemo(() => {
+    return clients.map(cl => {
+      const r = cl as R
+      const prenom = String(r.prenom ?? '')
+      const nom = String(r.nom ?? '')
+      const full = `${prenom} ${nom}`.trim() || '(sans nom)'
+      const tel = r.telephone ? String(r.telephone) : ''
+      const email = r.email ? String(r.email) : ''
+      const sub = [tel, email].filter(Boolean).join(' · ')
+      return {
+        id: r.id as string,
+        label: full,
+        sublabel: sub || undefined,
+        searchText: `${full} ${tel} ${email}`,
+      }
+    })
+  }, [clients])
 
   // ── Helper: convert HH:MM to minutes ──
   const timeToMinutes = (time: string) => {
@@ -1570,45 +1687,197 @@ function PlanningPageInner() {
               </button>
             </div>
             <div className="px-6 py-5 space-y-4">
-              {/* Devis lié — sélection auto-remplit client, chantier, description */}
-              <div>
-                <label className="text-xs font-bold text-[#7c3aed] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" />Lier à un devis accepté
-                </label>
-                <select value={mDevis} onChange={e => handleDevisChange(e.target.value)} className="w-full px-3.5 py-2.5 border border-[#7c3aed]/30 rounded-xl text-sm bg-[#7c3aed]/[.03] focus:border-[#7c3aed] focus:ring-2 focus:ring-[#7c3aed]/10 outline-none transition-all">
-                  <option value="">— Intervention libre (visite, contrôle, RDV…)</option>
-                  {acceptedDevis.map(d => {
-                    const cl = clientMap.get(d.client_id as string) as R | undefined
-                    const clientLabel = cl ? `${cl.prenom ?? ''} ${cl.nom ?? ''}`.trim() : ''
-                    return <option key={d.id as string} value={d.id as string}>{String(d.numero ?? '')} — {clientLabel} — {String(d.objet ?? '')}</option>
-                  })}
-                </select>
-                {mDevis && (() => {
-                  const devis = devisMap.get(mDevis) as R | undefined
-                  if (!devis) return null
-                  const cl = clientMap.get(devis.client_id as string) as R | undefined
-                  const ch = chantierMap.get(devis.chantier_id as string) as R | undefined
-                  return (
-                    <div className="mt-2 bg-[#7c3aed]/[.04] border border-[#7c3aed]/15 rounded-lg px-3.5 py-2.5 space-y-1">
-                      {cl && <div className="flex items-center gap-1.5 text-[12px]">
-                        <Users className="w-3 h-3 text-[#7c3aed]" />
-                        <span className="font-bold text-[#0f1a3a]">{String(cl.prenom ?? '')} {String(cl.nom ?? '')}</span>
-                        {Boolean(cl.telephone) && <span className="text-[#64748b] ml-1">— {String(cl.telephone)}</span>}
-                      </div>}
-                      {ch && <div className="flex items-center gap-1.5 text-[12px]">
-                        <MapPin className="w-3 h-3 text-[#7c3aed]" />
-                        <span className="text-[#64748b]">{String(ch.adresse_chantier ?? '')} {String(ch.ville_chantier ?? '')}</span>
-                      </div>}
-                      <div className="flex items-center gap-1.5 text-[12px]">
-                        <Briefcase className="w-3 h-3 text-[#7c3aed]" />
-                        <span className="text-[#64748b]">{String(devis.objet ?? '')}</span>
-                      </div>
-                      <div className="text-[11px] font-bold text-[#22c55e]">
-                        {Number(devis.montant_ttc ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                      </div>
+              {/* ── SWITCH MODE — 2 cards radio (Maquette A) ── */}
+              {/* En mode édition, le mode est verrouillé sur celui déduit de l'intervention.
+                  Le switch reste visible mais désactivé (visualisable, non modifiable). */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  disabled={editMode}
+                  onClick={() => switchMode('devis')}
+                  className={`relative text-left p-3.5 rounded-xl border-2 transition-all ${
+                    mMode === 'devis'
+                      ? 'border-[#7c3aed] bg-[#7c3aed]/[.05] shadow-[0_2px_8px_rgba(124,58,237,.1)]'
+                      : 'border-[#e6ecf2] bg-white hover:border-[#7c3aed]/40'
+                  } ${editMode ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                      mMode === 'devis' ? 'border-[#7c3aed]' : 'border-[#cbd5e1]'
+                    }`}>
+                      {mMode === 'devis' && <div className="w-2 h-2 rounded-full bg-[#7c3aed]" />}
                     </div>
-                  )
-                })()}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-[#7c3aed]" />
+                        <span className="text-[13px] font-bold text-[#0f1a3a]">Depuis un devis signé</span>
+                        {acceptedDevis.length > 0 && (
+                          <span className="ml-auto text-[10px] font-bold bg-[#7c3aed]/15 text-[#7c3aed] px-1.5 py-0.5 rounded-full">
+                            {acceptedDevis.length}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#64748b] mt-1">Chantier facturable</div>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  disabled={editMode}
+                  onClick={() => switchMode('libre')}
+                  className={`relative text-left p-3.5 rounded-xl border-2 transition-all ${
+                    mMode === 'libre'
+                      ? 'border-[#5ab4e0] bg-[#5ab4e0]/[.05] shadow-[0_2px_8px_rgba(90,180,224,.1)]'
+                      : 'border-[#e6ecf2] bg-white hover:border-[#5ab4e0]/40'
+                  } ${editMode ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                      mMode === 'libre' ? 'border-[#5ab4e0]' : 'border-[#cbd5e1]'
+                    }`}>
+                      {mMode === 'libre' && <div className="w-2 h-2 rounded-full bg-[#5ab4e0]" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-[#5ab4e0]" />
+                        <span className="text-[13px] font-bold text-[#0f1a3a]">Intervention libre</span>
+                      </div>
+                      <div className="text-[11px] text-[#64748b] mt-1">Visite, RDV, SAV…</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {/* ─── Branche A : DEPUIS UN DEVIS ─── */}
+              {mMode === 'devis' && (
+                <div>
+                  <Combobox
+                    label="Devis à planifier"
+                    required
+                    placeholder="Tapez nom client, n° devis ou objet…"
+                    items={devisItems}
+                    value={mDevis || null}
+                    onChange={(id) => handleDevisChange(id ?? '')}
+                    icon={<FileText className="w-3.5 h-3.5" />}
+                    emptyState={
+                      acceptedDevis.length === 0
+                        ? <div className="space-y-1.5">
+                            <div className="font-semibold text-[#0f1a3a]">Aucun devis signé</div>
+                            <div className="text-[11px]">Créez un devis et faites-le accepter pour pouvoir le planifier.</div>
+                          </div>
+                        : 'Aucun devis ne correspond'
+                    }
+                  />
+                  {/* Preview du devis sélectionné */}
+                  {mDevis && (() => {
+                    const devis = devisMap.get(mDevis) as R | undefined
+                    if (!devis) return null
+                    const cl = clientMap.get(devis.client_id as string) as R | undefined
+                    const ch = chantierMap.get(devis.chantier_id as string) as R | undefined
+                    return (
+                      <div className="mt-2 bg-[#7c3aed]/[.04] border border-[#7c3aed]/15 rounded-lg px-3.5 py-2.5 space-y-1">
+                        {cl && <div className="flex items-center gap-1.5 text-[12px]">
+                          <Users className="w-3 h-3 text-[#7c3aed]" />
+                          <span className="font-bold text-[#0f1a3a]">{String(cl.prenom ?? '')} {String(cl.nom ?? '')}</span>
+                          {Boolean(cl.telephone) && <span className="text-[#64748b] ml-1">— {String(cl.telephone)}</span>}
+                        </div>}
+                        {ch && <div className="flex items-center gap-1.5 text-[12px]">
+                          <MapPin className="w-3 h-3 text-[#7c3aed]" />
+                          <span className="text-[#64748b]">{String(ch.adresse_chantier ?? '')} {String(ch.ville_chantier ?? '')}</span>
+                        </div>}
+                        <div className="flex items-center gap-1.5 text-[12px]">
+                          <Briefcase className="w-3 h-3 text-[#7c3aed]" />
+                          <span className="text-[#64748b]">{String(devis.objet ?? '')}</span>
+                        </div>
+                        <div className="text-[11px] font-bold text-[#22c55e]">
+                          {Number(devis.montant_ttc ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* ─── Branche B : INTERVENTION LIBRE ─── */}
+              {mMode === 'libre' && (
+                <>
+                  {/* Client (optionnel) via Combobox avec création inline */}
+                  <div>
+                    <Combobox
+                      label="Client (optionnel)"
+                      placeholder="Tapez un nom… ou laissez vide"
+                      items={clientItems}
+                      value={mClient || null}
+                      onChange={(id) => {
+                        setMClient(id ?? '')
+                        if (id) setMClientLibre('')
+                      }}
+                      icon={<Users className="w-3.5 h-3.5" />}
+                      onCreate={createClientInline}
+                      createLabel={(t) => `Créer le prospect "${t}"`}
+                      emptyState="Aucun client trouvé. Tapez le nom pour en créer un."
+                    />
+                    {/* Saisie libre — affichée seulement si aucun client choisi */}
+                    {!mClient && (
+                      <input
+                        type="text"
+                        value={mClientLibre}
+                        onChange={e => setMClientLibre(e.target.value)}
+                        placeholder="ou tapez un nom libre (ex : M. Dupont, prospect à rappeler)"
+                        className="mt-2 w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3] placeholder:italic"
+                      />
+                    )}
+                  </div>
+
+                  {/* Lieu / Chantier (saisie libre uniquement, plus pratique pour visites) */}
+                  <div>
+                    <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" />Lieu / Chantier (optionnel)
+                    </label>
+                    <input
+                      type="text"
+                      value={mChantierLibre}
+                      onChange={e => setMChantierLibre(e.target.value)}
+                      placeholder="Adresse, n° chantier ou repère (ex : 15 rue des Lilas)"
+                      className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3]"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* ─── Toujours visible (les 2 modes) : Type d'intervention en chips ─── */}
+              {/* Bug latent corrigé : Type est désormais dispo aussi en mode 'devis'
+                  (un artisan doit pouvoir taguer "métré sur site lié à D-2026-014"). */}
+              <div>
+                <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Type d&apos;intervention</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { v: 'visite_courtoisie', l: 'Visite courtoisie' },
+                    { v: 'premier_rdv', l: 'Premier RDV' },
+                    { v: 'metre', l: 'Métré' },
+                    { v: 'devis_sur_site', l: 'Devis sur site' },
+                    { v: 'controle_qualite', l: 'Contrôle / SAV' },
+                    { v: 'depannage', l: 'Dépannage' },
+                    { v: 'entretien', l: 'Entretien' },
+                    { v: 'autre', l: 'Autre' },
+                  ].map(opt => {
+                    const active = mTypeIntervention === opt.v
+                    return (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setMTypeIntervention(active ? '' : opt.v)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                          active
+                            ? 'bg-[#5ab4e0] border-[#5ab4e0] text-white shadow-[0_2px_6px_rgba(90,180,224,.3)]'
+                            : 'bg-white border-[#e6ecf2] text-[#64748b] hover:border-[#5ab4e0]/40 hover:text-[#0f1a3a]'
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Intervenant + Créneau */}
@@ -1703,94 +1972,10 @@ function PlanningPageInner() {
                 </div>
               </div>
 
-              {/* Type d'intervention — visible uniquement en saisie libre (pas de devis) */}
-              {!mDevis && (
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Type d&apos;intervention</label>
-                  <select value={mTypeIntervention} onChange={e => setMTypeIntervention(e.target.value)} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all">
-                    <option value="">— Non précisé</option>
-                    <option value="visite_courtoisie">Visite de courtoisie</option>
-                    <option value="premier_rdv">Premier rendez-vous (prospect)</option>
-                    <option value="metre">Métré sur site</option>
-                    <option value="devis_sur_site">Devis sur site</option>
-                    <option value="controle_qualite">Contrôle qualité / SAV</option>
-                    <option value="depannage">Dépannage</option>
-                    <option value="entretien">Entretien / maintenance</option>
-                    <option value="autre">Autre</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Client — auto-rempli si devis sélectionné, sinon saisie manuelle ou libre */}
-              {(!mDevis || editMode) && (
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Client</label>
-                  <select value={mClient} onChange={e => {
-                    setMClient(e.target.value)
-                    if (e.target.value) setMClientLibre('') // on vide la saisie libre si on choisit un client existant
-                    // Reset chantier si le chantier actuel n'appartient pas au nouveau client
-                    if (mChantier) {
-                      const ch = chantierMap.get(mChantier) as R | undefined
-                      if (ch && e.target.value && ch.client_id !== e.target.value) setMChantier('')
-                    }
-                  }} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all">
-                    <option value="">— Sélectionner un client existant</option>
-                    {clients.map(cl => { const r = cl as R; return <option key={r.id as string} value={r.id as string}>{String(r.prenom ?? '')} {String(r.nom ?? '')}</option> })}
-                  </select>
-                  {/* Saisie libre — affichée seulement si aucun client choisi */}
-                  {!mClient && (
-                    <input
-                      type="text"
-                      value={mClientLibre}
-                      onChange={e => setMClientLibre(e.target.value)}
-                      placeholder="ou tapez un nom libre (ex : M. Dupont, prospect à rappeler)"
-                      className="mt-2 w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3] placeholder:italic"
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Chantier — visible en saisie libre, filtré par client si sélectionné */}
-              {(!mDevis || editMode) && (
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <HardHat className="w-3.5 h-3.5" />Chantier / Lieu
-                  </label>
-                  <select value={mChantier} onChange={e => {
-                    setMChantier(e.target.value)
-                    if (e.target.value) setMChantierLibre('') // on vide la saisie libre si on choisit un chantier existant
-                    // Auto-remplir le client du chantier sélectionné
-                    if (e.target.value) {
-                      const ch = chantierMap.get(e.target.value) as R | undefined
-                      if (ch?.client_id && !mClient) setMClient(ch.client_id as string)
-                    }
-                  }} className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all">
-                    <option value="">— Sélectionner un chantier existant</option>
-                    {chantiers
-                      .filter(ch => !mClient || (ch as R).client_id === mClient)
-                      .map(ch => {
-                        const r = ch as R
-                        const cl = clientMap.get(r.client_id as string) as R | undefined
-                        const clientLabel = cl ? ` — ${String(cl.prenom ?? '')} ${String(cl.nom ?? '')}`.trim() : ''
-                        return <option key={r.id as string} value={r.id as string}>{String(r.titre ?? 'Sans titre')}{clientLabel}</option>
-                      })}
-                  </select>
-                  {/* Saisie libre — affichée seulement si aucun chantier choisi */}
-                  {!mChantier && (
-                    <input
-                      type="text"
-                      value={mChantierLibre}
-                      onChange={e => setMChantierLibre(e.target.value)}
-                      placeholder="ou tapez une adresse / un lieu libre (ex : 15 rue des Lilas)"
-                      className="mt-2 w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3] placeholder:italic"
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Description — toujours visible et editable, optionnelle */}
+              {/* Détail de l'intervention — toujours visible et editable, optionnel.
+                  Anciennement "Description des travaux" : renommé pour bien différencier du Type. */}
               <div>
-                <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Description des travaux <span className="text-[#7b8ba3] font-normal normal-case">(optionnel)</span></label>
+                <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Détail de l&apos;intervention <span className="text-[#7b8ba3] font-normal normal-case">(optionnel)</span></label>
                 <input type="text" value={mObjet} onChange={e => setMObjet(e.target.value)} placeholder="Ex: Pose tableau electrique, depannage, intervention urgente..." className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3]" />
               </div>
 

@@ -20,6 +20,9 @@ import {
   LoadingSkeleton,
 } from '@/lib/hooks'
 import ThemeSelector from '@/components/ThemeSelector'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Select } from '@/components/ui/Select'
 
 // -------------------------------------------------------------------
 // Types & constants
@@ -55,6 +58,16 @@ const NAV_ITEMS: NavItem[] = [
 // Shared components
 // -------------------------------------------------------------------
 
+/**
+ * InputField — wrapper "métier" autour du composant <Input> partagé.
+ *
+ * Garde la même signature qu'avant (label/value/onChange/type/readOnly/placeholder/error/hint)
+ * pour que toutes les sections existantes (EntrepriseSection, FacturationSection, etc.)
+ * continuent de fonctionner sans modif.
+ *
+ * Particularité conservée : l'erreur ne s'affiche qu'APRÈS le 1er blur
+ * (touched = true), pour ne pas être anxiogène pendant la saisie.
+ */
 function InputField({
   label,
   value = '',
@@ -71,44 +84,23 @@ function InputField({
   type?: string
   readOnly?: boolean
   placeholder?: string
-  /** Message d'erreur affiché en rouge sous le champ.
-   *  N'apparaît qu'APRÈS que l'utilisateur ait quitté le champ une 1ère fois. */
   error?: string | null
-  /** Indication discrète affichée en gris sous le champ */
   hint?: string | null
 }) {
-  // touched = false tant que l'utilisateur n'a pas quitté le champ une fois.
-  // Évite d'afficher une erreur dès le 1er caractère tapé (anxiogène).
   const [touched, setTouched] = useState(false)
-  const hasError = touched && Boolean(error)
+  const displayedError = touched ? error : null
   return (
-    <div>
-      <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        onBlur={() => setTouched(true)}
-        readOnly={readOnly}
-        placeholder={placeholder}
-        className={`w-full h-12 rounded-lg border px-4 font-manrope text-sm text-[#1a1a2e] outline-none transition-colors ${
-          hasError
-            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-red-50/30'
-            : 'border-gray-200 focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0]'
-        } ${readOnly ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-      />
-      {hasError && (
-        <p className="mt-1.5 text-xs text-red-600 font-manrope flex items-start gap-1">
-          <span aria-hidden>⚠</span>
-          <span>{error}</span>
-        </p>
-      )}
-      {!hasError && hint && (
-        <p className="mt-1.5 text-xs text-gray-400 font-manrope">{hint}</p>
-      )}
-    </div>
+    <Input
+      label={label}
+      type={type}
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      onBlur={() => setTouched(true)}
+      readOnly={readOnly}
+      placeholder={placeholder}
+      error={displayedError}
+      hint={hint ?? undefined}
+    />
   )
 }
 
@@ -212,6 +204,10 @@ function ToggleSwitch({
   )
 }
 
+/**
+ * TextAreaField — wrapper "métier" autour du composant <Textarea> partagé.
+ * Garde la même signature qu'avant pour ne pas casser les sections existantes.
+ */
 function TextAreaField({
   label,
   value = '',
@@ -224,17 +220,12 @@ function TextAreaField({
   rows?: number
 }) {
   return (
-    <div>
-      <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-        {label}
-      </label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        rows={rows}
-        className="w-full rounded-lg border border-gray-200 px-4 py-3 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors resize-none"
-      />
-    </div>
+    <Textarea
+      label={label}
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      rows={rows}
+    />
   )
 }
 
@@ -417,9 +408,10 @@ function EntrepriseSection({
       <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-2">Identité</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <InputField label="Nom de l'entreprise" value={nom} onChange={setNom} />
-        <div>
-          <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">Forme juridique</label>
-          <select value={formeJuridique} onChange={e => {
+        <Select
+          label="Forme juridique"
+          value={formeJuridique}
+          onChange={(e) => {
             const newForme = e.target.value
             setFormeJuridique(newForme)
             // Auto : micro-entrepreneurs sont quasi toujours en franchise de TVA
@@ -427,16 +419,16 @@ function EntrepriseSection({
             if (newForme === 'Micro-entreprise' || newForme === 'EI') {
               setFranchiseTva(true)
             }
-          }} className="w-full h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors bg-white">
-            <option value="">-- Choisir --</option>
-            <option value="EI">EI (Entreprise Individuelle)</option>
-            <option value="Micro-entreprise">Micro-entreprise (Auto-entrepreneur)</option>
-            <option value="EURL">EURL</option>
-            <option value="SARL">SARL</option>
-            <option value="SAS">SAS</option>
-            <option value="SASU">SASU</option>
-          </select>
-        </div>
+          }}
+        >
+          <option value="">-- Choisir --</option>
+          <option value="EI">EI (Entreprise Individuelle)</option>
+          <option value="Micro-entreprise">Micro-entreprise (Auto-entrepreneur)</option>
+          <option value="EURL">EURL</option>
+          <option value="SARL">SARL</option>
+          <option value="SAS">SAS</option>
+          <option value="SASU">SASU</option>
+        </Select>
         <InputField label="SIRET" value={siret} onChange={setSiret} placeholder="123 456 789 00012" error={validateSiret(siret)} hint="14 chiffres (espaces tolérés)" />
         <InputField label="N° TVA intracommunautaire" value={tva} onChange={setTva} placeholder="FR 12 345678901" error={validateTva(tva)} hint="FR + 11 chiffres" />
         <InputField label="Code NAF" value={naf} onChange={setNaf} placeholder="4322A" error={validateNaf(naf)} hint="4 chiffres + 1 lettre (ex : 4322A)" />
@@ -587,18 +579,19 @@ function DocumentsSection({
           </label>
           <div className="flex items-center gap-3">
             <span className="font-manrope text-sm text-[#6b7280]">Préfixe :</span>
-            <input
+            <Input
               type="text"
               value={prefixDevis}
               onChange={(e) => setPrefixDevis(e.target.value)}
-              className="w-20 h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] text-center focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+              containerClassName="w-20"
+              className="text-center"
             />
             <span className="font-manrope text-sm text-[#6b7280]">Format :</span>
-            <input
+            <Input
               type="text"
               defaultValue="YYYY-NNNNN"
               readOnly
-              className="w-40 h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none bg-gray-50"
+              containerClassName="w-40"
             />
           </div>
         </div>
@@ -610,18 +603,19 @@ function DocumentsSection({
           </label>
           <div className="flex items-center gap-3">
             <span className="font-manrope text-sm text-[#6b7280]">Préfixe :</span>
-            <input
+            <Input
               type="text"
               value={prefixFactures}
               onChange={(e) => setPrefixFactures(e.target.value)}
-              className="w-20 h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] text-center focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+              containerClassName="w-20"
+              className="text-center"
             />
             <span className="font-manrope text-sm text-[#6b7280]">Format :</span>
-            <input
+            <Input
               type="text"
               defaultValue="YYYY-NNNNN"
               readOnly
-              className="w-40 h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none bg-gray-50"
+              containerClassName="w-40"
             />
           </div>
         </div>
@@ -667,15 +661,12 @@ function DocumentsSection({
 
           {/* Modalités d'intervention par défaut */}
           <div className="mb-5">
-            <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-              Modalités d&apos;intervention par défaut
-            </label>
-            <textarea
+            <Textarea
+              label="Modalités d'intervention par défaut"
               value={modalitesDefault}
               onChange={(e) => setModalitesDefault(e.target.value)}
               rows={5}
               placeholder={'Horaires d\'intervention : généralement entre 8h et 18h, en semaine\nLes horaires peuvent varier selon les contraintes du chantier (livraisons, météo, etc.)\nEn cas de retard ou modification, vous serez prévenu(e) au plus tôt'}
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none resize-none"
             />
             <p className="mt-1.5 font-manrope text-xs text-[#94a3b8]">
               Indiquez vos horaires habituels, jours d&apos;intervention, pauses, règles générales. Ce que vos clients doivent savoir avant le démarrage du chantier.
@@ -684,15 +675,12 @@ function DocumentsSection({
 
           {/* Engagements qualité par défaut */}
           <div className="mb-2">
-            <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-              Mes engagements qualité
-            </label>
-            <textarea
+            <Textarea
+              label="Mes engagements qualité"
               value={engagementsDefault}
               onChange={(e) => setEngagementsDefault(e.target.value)}
               rows={5}
               placeholder={'• Site nettoyé chaque fin de journée\n• Photos d\'avancement envoyées régulièrement\n• Réponse à vos questions sous 24h ouvrées\n• Information immédiate par SMS en cas d\'imprévu\n• Respect des dates communiquées (sauf intempéries documentées)'}
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none resize-none"
             />
             <p className="mt-1.5 font-manrope text-xs text-[#94a3b8]">
               Ce sur quoi vous vous engagez systématiquement (photos, propreté, communication). Affiché en évidence dans le PDF chantier — c&apos;est ce qui vous différencie d&apos;un concurrent qui n&apos;ose pas l&apos;écrire.
@@ -768,18 +756,16 @@ function FacturationSection({
           </div>
         ) : (
           <div>
-            <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-              Taux de TVA par défaut
-            </label>
-            <select
+            <Select
+              label="Taux de TVA par défaut"
               value={tvaDefaut}
               onChange={(e) => setTvaDefaut(e.target.value)}
-              className="w-full h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none bg-white"
             >
-              <option value="5.5">5,5 %</option>
-              <option value="10">10 %</option>
-              <option value="20">20 %</option>
-            </select>
+              <option value="0">0 % (non applicable)</option>
+              <option value="5.5">5,5 % (rénovation logement de + 2 ans)</option>
+              <option value="10">10 % (travaux d&apos;amélioration)</option>
+              <option value="20">20 % (taux standard)</option>
+            </Select>
             <p className="font-manrope text-xs text-gray-500 mt-1.5">
               Ce taux sera pré-sélectionné sur vos nouveaux devis et factures. Vous pourrez toujours le modifier ligne par ligne.
             </p>
@@ -787,21 +773,16 @@ function FacturationSection({
         )}
 
         {/* Delai de paiement */}
-        <div>
-          <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-            Délai de paiement par défaut
-          </label>
-          <select
-            value={delaiPaiement}
-            onChange={(e) => setDelaiPaiement(e.target.value)}
-            className="w-full h-12 rounded-lg border border-gray-200 px-4 font-manrope text-sm text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none bg-white"
-          >
-            <option value="0">À réception</option>
-            <option value="15">15 jours</option>
-            <option value="30">30 jours</option>
-            <option value="45">45 jours</option>
-          </select>
-        </div>
+        <Select
+          label="Délai de paiement par défaut"
+          value={delaiPaiement}
+          onChange={(e) => setDelaiPaiement(e.target.value)}
+        >
+          <option value="0">À réception</option>
+          <option value="15">15 jours</option>
+          <option value="30">30 jours</option>
+          <option value="45">45 jours</option>
+        </Select>
 
         <InputField
           label="Pénalités de retard"
