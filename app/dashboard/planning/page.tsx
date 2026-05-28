@@ -6,7 +6,7 @@ import {
   Search, AlertTriangle, Users, Briefcase, Clock, HardHat,
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
-  MoreHorizontal, Phone, MessageSquare, Mail, Navigation
+  MoreHorizontal, Phone, Navigation
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -430,6 +430,21 @@ function PlanningPageInner() {
         safety++
       }
     }
+    // 28/05/2026 (fix Jerem) : tri par heure de début croissante dans chaque jour.
+    // matin/journée → 8h, après-midi → 13h, custom → heure réelle.
+    const startMin = (rec: R): number => {
+      const t = (s: string): number => {
+        const [h, m] = s.split(':').map(Number)
+        return (h || 0) * 60 + (m || 0)
+      }
+      const creneau = rec.creneau as string
+      if (creneau === 'creneau' && rec.heure_debut) return t(rec.heure_debut as string)
+      if (creneau === 'apres_midi') return t('13:00')
+      return t('08:00')
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => startMin(a) - startMin(b))
+    }
     return map
   }, [planningData])
 
@@ -770,8 +785,12 @@ function PlanningPageInner() {
       const created = await insertRow('clients', payload)
       if (created) {
         const newId = (created as R).id as string
+        // 28/05/2026 (fix Jerem) : on attend que refetch finisse AVANT de fermer
+        // le modal et de sélectionner le nouveau client dans le combobox. Sinon
+        // le combobox ne trouve pas l'id dans `clients` (pas encore rechargé)
+        // et affiche un champ vide → l'utilisateur croit que la création a échoué.
+        await refetch()
         setMClient(newId)
-        refetch()
         setShowProspectForm(false)
         showToast(`Prospect créé : ${[prospectPrenom, prospectNom].filter(Boolean).join(' ').trim()}`)
       }
@@ -1808,27 +1827,14 @@ function PlanningPageInner() {
                         )}
                       </div>
                     </div>
-                    {/* Boutons actions terrain */}
-                    {(Boolean(cl.telephone) || Boolean(cl.email)) && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {Boolean(cl.telephone) && (
-                          <>
-                            <a href={`tel:${String(cl.telephone)}`}
-                              className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0] text-white rounded-lg text-[12px] font-semibold hover:bg-[#2d8bc9] transition-all">
-                              <Phone className="w-3.5 h-3.5" /> Appeler
-                            </a>
-                            <a href={`sms:${String(cl.telephone)}`}
-                              className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[12px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
-                              <MessageSquare className="w-3.5 h-3.5" /> SMS
-                            </a>
-                          </>
-                        )}
-                        {Boolean(cl.email) && (
-                          <a href={`mailto:${String(cl.email)}`}
-                            className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[12px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
-                            <Mail className="w-3.5 h-3.5" /> Email
-                          </a>
-                        )}
+                    {/* Bouton action terrain — uniquement Appeler (SMS/Email retirés le 28/05/2026
+                        sur retour Jerem : l'artisan préfère gérer SMS/email manuellement). */}
+                    {Boolean(cl.telephone) && (
+                      <div className="flex mt-3">
+                        <a href={`tel:${String(cl.telephone)}`}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0] text-white rounded-lg text-[12px] font-semibold hover:bg-[#2d8bc9] transition-all">
+                          <Phone className="w-3.5 h-3.5" /> Appeler
+                        </a>
                       </div>
                     )}
                   </div>
