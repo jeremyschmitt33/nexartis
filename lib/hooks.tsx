@@ -209,6 +209,12 @@ export interface EntrepriseRecord {
   franchise_tva?: boolean
   // Taux TVA par défaut sur les nouveaux devis/factures (0 si franchise activée).
   tva_defaut?: number
+  // Horaires de travail par défaut (28/05/2026) — utilisés pour les créneaux
+  // Matin / Après-midi / Journée entière du planning. Format "HH:MM".
+  heure_debut_matin?: string
+  heure_fin_matin?: string
+  heure_debut_apres_midi?: string
+  heure_fin_apres_midi?: string
   metier?: string
   logo_url?: string
   signature_base64?: string

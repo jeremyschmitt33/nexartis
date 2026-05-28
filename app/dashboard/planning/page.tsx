@@ -192,6 +192,25 @@ function PlanningPageInner() {
   const { data: devisData } = useDevis()
   const { entreprise } = useEntreprise()
 
+  // ── Horaires de travail par défaut (depuis Paramètres > Entreprise) ──
+  // Si non renseigné en BDD, fallback aux valeurs historiques 08:00-12:00 / 13:00-17:00.
+  // Utilisé pour les créneaux Matin / Après-midi / Journée entière du planning.
+  const horaires = useMemo(() => ({
+    debutMatin: ((entreprise as R)?.heure_debut_matin as string) || '08:00',
+    finMatin: ((entreprise as R)?.heure_fin_matin as string) || '12:00',
+    debutAm: ((entreprise as R)?.heure_debut_apres_midi as string) || '13:00',
+    finAm: ((entreprise as R)?.heure_fin_apres_midi as string) || '17:00',
+  }), [entreprise])
+
+  // CRENEAUX dynamique (shadow du top-level) avec les vrais horaires de l'entreprise.
+  // Le top-level CRENEAUX reste utilisé par creneauLabel() défini hors composant.
+  const CRENEAUX = useMemo<{ value: Creneau; label: string; heures: string }[]>(() => [
+    { value: 'journee', label: 'Journée entière', heures: `${horaires.debutMatin}-${horaires.finAm}` },
+    { value: 'matin', label: 'Demi-journée matin', heures: `${horaires.debutMatin}-${horaires.finMatin}` },
+    { value: 'apres_midi', label: 'Demi-journée après-midi', heures: `${horaires.debutAm}-${horaires.finAm}` },
+    { value: 'creneau', label: 'Créneau personnalisé', heures: 'Custom' },
+  ], [horaires])
+
   // ── State ──
   const [viewPreset, setViewPreset] = useState<ViewPreset>('complete')
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()))
@@ -443,7 +462,7 @@ function PlanningPageInner() {
       }
     }
     // 28/05/2026 (fix Jerem) : tri par heure de début croissante dans chaque jour.
-    // matin/journée → 8h, après-midi → 13h, custom → heure réelle.
+    // matin/journée → debutMatin, après-midi → debutAm, custom → heure réelle.
     const startMin = (rec: R): number => {
       const t = (s: string): number => {
         const [h, m] = s.split(':').map(Number)
@@ -451,14 +470,14 @@ function PlanningPageInner() {
       }
       const creneau = rec.creneau as string
       if (creneau === 'creneau' && rec.heure_debut) return t(rec.heure_debut as string)
-      if (creneau === 'apres_midi') return t('13:00')
-      return t('08:00')
+      if (creneau === 'apres_midi') return t(horaires.debutAm)
+      return t(horaires.debutMatin)
     }
     map.forEach((list) => {
       list.sort((a, b) => startMin(a) - startMin(b))
     })
     return map
-  }, [planningData])
+  }, [planningData, horaires])
 
   // ── Planning map: key = intervenantId__dateStr ──
   // BUG D FIX : en mode Solo, on rapatrie aussi les interventions sans intervenant_id
@@ -499,7 +518,7 @@ function PlanningPageInner() {
       }
     }
     // 28/05/2026 (fix Jerem) : tri par heure de début croissante dans chaque cellule.
-    // matin/journée → 8h, après-midi → 13h, custom → heure réelle.
+    // matin/journée → debutMatin, après-midi → debutAm, custom → heure réelle.
     const startMin = (rec: R): number => {
       const t = (s: string): number => {
         const [h, m] = s.split(':').map(Number)
@@ -507,14 +526,14 @@ function PlanningPageInner() {
       }
       const creneau = rec.creneau as string
       if (creneau === 'creneau' && rec.heure_debut) return t(rec.heure_debut as string)
-      if (creneau === 'apres_midi') return t('13:00')
-      return t('08:00')
+      if (creneau === 'apres_midi') return t(horaires.debutAm)
+      return t(horaires.debutMatin)
     }
     map.forEach((list) => {
       list.sort((a, b) => startMin(a) - startMin(b))
     })
     return map
-  }, [planningData, isSociete, intervenants])
+  }, [planningData, isSociete, intervenants, horaires])
 
   // ── Conflicts detection (hour-based overlap: A.start < B.end && B.start < A.end) ──
   const conflicts = useMemo(() => {
@@ -524,10 +543,10 @@ function PlanningPageInner() {
     // Helper: get [startMin, endMin] for a record
     const recRange = (rec: R): [number, number] => {
       const c = rec.creneau as string
-      if (c === 'journee') return [t2m('08:00'), t2m('17:00')]
-      if (c === 'matin') return [t2m('08:00'), t2m('12:00')]
-      if (c === 'apres_midi') return [t2m('13:00'), t2m('17:00')]
-      return [t2m((rec.heure_debut as string) || '08:00'), t2m((rec.heure_fin as string) || '17:00')]
+      if (c === 'journee') return [t2m(horaires.debutMatin), t2m(horaires.finAm)]
+      if (c === 'matin') return [t2m(horaires.debutMatin), t2m(horaires.finMatin)]
+      if (c === 'apres_midi') return [t2m(horaires.debutAm), t2m(horaires.finAm)]
+      return [t2m((rec.heure_debut as string) || horaires.debutMatin), t2m((rec.heure_fin as string) || horaires.finAm)]
     }
     // Group by intervenant + date
     const byIntervenantDate = new Map<string, R[]>()
@@ -551,7 +570,7 @@ function PlanningPageInner() {
       }
     })
     return set
-  }, [planningData])
+  }, [planningData, horaires])
 
   // ── Stats ──
   const weekDaysForStats = useMemo(() => {
@@ -642,17 +661,17 @@ function PlanningPageInner() {
       let existingStart = 0, existingEnd = 0
 
       if (creneauType === 'journee') {
-        existingStart = timeToMinutes('08:00')
-        existingEnd = timeToMinutes('17:00')
+        existingStart = timeToMinutes(horaires.debutMatin)
+        existingEnd = timeToMinutes(horaires.finAm)
       } else if (creneauType === 'matin') {
-        existingStart = timeToMinutes('08:00')
-        existingEnd = timeToMinutes('12:00')
+        existingStart = timeToMinutes(horaires.debutMatin)
+        existingEnd = timeToMinutes(horaires.finMatin)
       } else if (creneauType === 'apres_midi') {
-        existingStart = timeToMinutes('13:00')
-        existingEnd = timeToMinutes('17:00')
+        existingStart = timeToMinutes(horaires.debutAm)
+        existingEnd = timeToMinutes(horaires.finAm)
       } else if (creneauType === 'creneau') {
-        existingStart = timeToMinutes((rec.heure_debut as string) || '08:00')
-        existingEnd = timeToMinutes((rec.heure_fin as string) || '17:00')
+        existingStart = timeToMinutes((rec.heure_debut as string) || horaires.debutMatin)
+        existingEnd = timeToMinutes((rec.heure_fin as string) || horaires.finAm)
       }
 
       // Overlap check: not (endMin <= existingStart OR startMin >= existingEnd)
@@ -674,7 +693,7 @@ function PlanningPageInner() {
     setMClientLibre(''); setMChantierLibre(''); setMTypeIntervention('')
     setMDate(dateStr ?? fmtISO(new Date())); setMDateFin(dateStr ?? fmtISO(new Date()))
     setMCreneau('journee'); setMObjet(''); setMNotes(''); setMStatut('planifie')
-    setMHeureDebut('08:00'); setMHeureFin('17:00'); setMConflitWarning(null)
+    setMHeureDebut(horaires.debutMatin); setMHeureFin(horaires.finAm); setMConflitWarning(null)
     setShowConflitConfirm(false); setConflitConfirmMessage('')
     setEditMode(false); setEditId(null)
     // Mode initial intelligent :
@@ -719,8 +738,8 @@ function PlanningPageInner() {
     setMObjet(String(intervention.titre ?? intervention.description_travaux ?? ''))
     setMNotes(String(intervention.notes ?? ''))
     setMStatut((intervention.statut as string) ?? 'planifie')
-    setMHeureDebut(String(intervention.heure_debut ?? '08:00'))
-    setMHeureFin(String(intervention.heure_fin ?? '17:00'))
+    setMHeureDebut(String(intervention.heure_debut ?? horaires.debutMatin))
+    setMHeureFin(String(intervention.heure_fin ?? horaires.finAm))
     setMConflitWarning(null)
     setShowConflitConfirm(false); setConflitConfirmMessage('')
     setShowModal(true)
@@ -904,11 +923,11 @@ function PlanningPageInner() {
 
   // ── Helper: get start/end minutes for a creneau type ──
   const creneauToRange = (creneauType: string, heureDebut?: string, heureFin?: string): [number, number] => {
-    if (creneauType === 'journee') return [timeToMinutes('08:00'), timeToMinutes('17:00')]
-    if (creneauType === 'matin') return [timeToMinutes('08:00'), timeToMinutes('12:00')]
-    if (creneauType === 'apres_midi') return [timeToMinutes('13:00'), timeToMinutes('17:00')]
+    if (creneauType === 'journee') return [timeToMinutes(horaires.debutMatin), timeToMinutes(horaires.finAm)]
+    if (creneauType === 'matin') return [timeToMinutes(horaires.debutMatin), timeToMinutes(horaires.finMatin)]
+    if (creneauType === 'apres_midi') return [timeToMinutes(horaires.debutAm), timeToMinutes(horaires.finAm)]
     // creneau personnalise
-    return [timeToMinutes(heureDebut || '08:00'), timeToMinutes(heureFin || '17:00')]
+    return [timeToMinutes(heureDebut || horaires.debutMatin), timeToMinutes(heureFin || horaires.finAm)]
   }
 
   // ── Detect conflicts for the new intervention before saving ──
@@ -935,8 +954,8 @@ function PlanningPageInner() {
       )
       // Overlap: A.start < B.end AND B.start < A.end
       if (newStart < exEnd && exStart < newEnd) {
-        const hd = String(rec.heure_debut || (rec.creneau === 'apres_midi' ? '13:00' : '08:00'))
-        const hf = String(rec.heure_fin || (rec.creneau === 'matin' ? '12:00' : '17:00'))
+        const hd = String(rec.heure_debut || (rec.creneau === 'apres_midi' ? horaires.debutAm : horaires.debutMatin))
+        const hf = String(rec.heure_fin || (rec.creneau === 'matin' ? horaires.finMatin : horaires.finAm))
         return {
           titre: String(rec.titre || rec.description_travaux || 'Intervention'),
           heureDebut: hd,
@@ -991,8 +1010,8 @@ function PlanningPageInner() {
       startTime = mHeureDebut
       endTime = mHeureFin
     } else {
-      startTime = mCreneau === 'apres_midi' ? '13:00' : '08:00'
-      endTime = mCreneau === 'matin' ? '12:00' : '17:00'
+      startTime = mCreneau === 'apres_midi' ? horaires.debutAm : horaires.debutMatin
+      endTime = mCreneau === 'matin' ? horaires.finMatin : horaires.finAm
     }
 
     // ── Verifier les conflits horaires AVANT d'enregistrer ──
@@ -1090,8 +1109,8 @@ function PlanningPageInner() {
       setDraggedId(null)
       return
     }
-    const startTime = (intervention.creneau as string) === 'apres_midi' ? '13:00' : '08:00'
-    const endTime = (intervention.creneau as string) === 'matin' ? '12:00' : '17:00'
+    const startTime = (intervention.creneau as string) === 'apres_midi' ? horaires.debutAm : horaires.debutMatin
+    const endTime = (intervention.creneau as string) === 'matin' ? horaires.finMatin : horaires.finAm
     try {
       await updateRow('planning_interventions', draggedId, {
         intervenant_id: intervenantId,
@@ -1534,8 +1553,8 @@ function PlanningPageInner() {
                                       const isDragged = draggedId === rec.id as string
                                       const statut = STATUTS.find(s => s.value === rec.statut)
                                       const isCreneau = (rec.creneau as string) === 'creneau'
-                                      const heureDebut = rec.heure_debut as string || '08:00'
-                                      const heureFin = rec.heure_fin as string || '17:00'
+                                      const heureDebut = rec.heure_debut as string || horaires.debutMatin
+                                      const heureFin = rec.heure_fin as string || horaires.finAm
 
                                       // Hauteur proportionnelle pour créneaux (base 60px pour 480min journée)
                                       let heightPx = 0
@@ -1767,10 +1786,10 @@ function PlanningPageInner() {
         const TypeIcon = typeMeta?.icon ?? null
         const creneauType = pi.creneau as string
         const isCreneau = creneauType === 'creneau'
-        const heureD = isCreneau ? String(pi.heure_debut ?? '08:00')
-          : creneauType === 'apres_midi' ? '13:00' : '08:00'
-        const heureF = isCreneau ? String(pi.heure_fin ?? '17:00')
-          : creneauType === 'matin' ? '12:00' : '17:00'
+        const heureD = isCreneau ? String(pi.heure_debut ?? horaires.debutMatin)
+          : creneauType === 'apres_midi' ? horaires.debutAm : horaires.debutMatin
+        const heureF = isCreneau ? String(pi.heure_fin ?? horaires.finAm)
+          : creneauType === 'matin' ? horaires.finMatin : horaires.finAm
         const dureeStr = formatCreneauDuree(heureD, heureF)
         // Compteur d'interventions liees au chantier (calcule cote client)
         const chantierInterventionCount = ch

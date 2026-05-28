@@ -35,6 +35,9 @@ interface Intervenant {
   type_contrat: 'cdi' | 'cdd' | 'apprenti' | 'interimaire' | 'sous-traitant'
   taux_horaire: number
   niveau_acces: 'proprietaire' | 'compagnon'
+  // Rôle métier (28/05/2026) : Dirigeant, Chef d'équipe, Compagnon, Apprenti, Assistant.
+  // Distinct du `niveau_acces` (droits) et du `type_contrat` (CDI/CDD/...).
+  role?: string | null
   couleur: string
   actif: boolean
   created_at?: string
@@ -287,10 +290,11 @@ export default function EquipePage() {
     metier: '',
     type_contrat: 'cdi' as IntervenantType,
     niveau_acces: 'compagnon' as Intervenant['niveau_acces'],
+    role: '',
   })
 
   const resetForm = () =>
-    setForm({ prenom: '', nom: '', email: '', telephone: '', metier: '', type_contrat: 'cdi', niveau_acces: 'compagnon' })
+    setForm({ prenom: '', nom: '', email: '', telephone: '', metier: '', type_contrat: 'cdi', niveau_acces: 'compagnon', role: '' })
 
   const handleCreate = async () => {
     setSaving(true)
@@ -303,6 +307,7 @@ export default function EquipePage() {
         metier: form.metier,
         type_contrat: form.type_contrat,
         niveau_acces: form.niveau_acces,
+        role: form.role || null,
         taux_horaire: null,
         couleur: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
         actif: true,
@@ -326,6 +331,7 @@ export default function EquipePage() {
     metier: '',
     type_contrat: 'cdi' as IntervenantType,
     niveau_acces: 'compagnon' as Intervenant['niveau_acces'],
+    role: '',
   })
 
   const openEdit = (intervenant: Intervenant) => {
@@ -337,6 +343,7 @@ export default function EquipePage() {
       metier: intervenant.metier || '',
       type_contrat: intervenant.type_contrat,
       niveau_acces: intervenant.niveau_acces,
+      role: intervenant.role || '',
     })
     setEditingIntervenant(intervenant)
   }
@@ -355,6 +362,7 @@ export default function EquipePage() {
         metier: editForm.metier,
         type_contrat: editForm.type_contrat,
         niveau_acces: editForm.niveau_acces,
+        role: editForm.role || null,
       })
       refetch()
       setEditingIntervenant(null)
@@ -465,6 +473,7 @@ export default function EquipePage() {
             <tr className="bg-gray-50">
               <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Nom</th>
               <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Rôle</th>
               <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Contrat</th>
               <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Metier</th>
               <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Email</th>
@@ -494,6 +503,9 @@ export default function EquipePage() {
                     >
                       {TYPE_LABELS[type]}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">
+                    {intervenant.role || ''}
                   </td>
                   <td className="px-4 py-3 text-sm font-manrope text-gray-600">
                     {CONTRAT_LABELS[intervenant.type_contrat] || intervenant.type_contrat}
@@ -659,6 +671,21 @@ export default function EquipePage() {
                 <option value="sous-traitant">Sous-traitant</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Rôle</label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+              >
+                <option value="">— Non défini</option>
+                <option value="Dirigeant">Dirigeant</option>
+                <option value="Chef d'équipe">Chef d&apos;équipe</option>
+                <option value="Compagnon">Compagnon</option>
+                <option value="Apprenti">Apprenti</option>
+                <option value="Assistant">Assistant</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Prenom</label>
@@ -749,6 +776,21 @@ export default function EquipePage() {
                 <option value="apprenti">Apprenti</option>
                 <option value="interimaire">Interimaire</option>
                 <option value="sous-traitant">Sous-traitant</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Rôle</label>
+              <select
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+              >
+                <option value="">— Non défini</option>
+                <option value="Dirigeant">Dirigeant</option>
+                <option value="Chef d'équipe">Chef d&apos;équipe</option>
+                <option value="Compagnon">Compagnon</option>
+                <option value="Apprenti">Apprenti</option>
+                <option value="Assistant">Assistant</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">

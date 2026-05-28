@@ -301,6 +301,12 @@ function EntrepriseSection({
   const [metier, setMetier] = useState('')
   const [franchiseTva, setFranchiseTva] = useState(false)
   const [qualificationPro, setQualificationPro] = useState('')
+  // Horaires de travail par défaut (28/05/2026) — propagés au planning
+  // pour les créneaux Matin / Après-midi / Journée entière.
+  const [heureDebutMatin, setHeureDebutMatin] = useState('08:00')
+  const [heureFinMatin, setHeureFinMatin] = useState('12:00')
+  const [heureDebutAm, setHeureDebutAm] = useState('13:00')
+  const [heureFinAm, setHeureFinAm] = useState('17:00')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -343,6 +349,11 @@ function EntrepriseSection({
       setMetier((entreprise.metier as string) ?? '')
       setFranchiseTva(!!entreprise.franchise_tva)
       setQualificationPro((entreprise.qualification_pro as string) ?? '')
+      // Horaires de travail — fallback aux valeurs par défaut si non renseigné
+      setHeureDebutMatin((entreprise.heure_debut_matin as string) || '08:00')
+      setHeureFinMatin((entreprise.heure_fin_matin as string) || '12:00')
+      setHeureDebutAm((entreprise.heure_debut_apres_midi as string) || '13:00')
+      setHeureFinAm((entreprise.heure_fin_apres_midi as string) || '17:00')
     }
   }, [entreprise])
 
@@ -380,6 +391,10 @@ function EntrepriseSection({
         rge, metier,
         franchise_tva: franchiseTva,
         qualification_pro: qualificationPro || null,
+        heure_debut_matin: heureDebutMatin || '08:00',
+        heure_fin_matin: heureFinMatin || '12:00',
+        heure_debut_apres_midi: heureDebutAm || '13:00',
+        heure_fin_apres_midi: heureFinAm || '17:00',
       }
       // Sync TVA : si franchise activée, on force le taux par défaut à 0 %
       // pour éviter qu'un taux 20 % stocké en facturation reste désynchronisé.
@@ -469,6 +484,18 @@ function EntrepriseSection({
         <div className="flex items-end">
           <ToggleSwitch label="Certification RGE" checked={rge} onChange={setRge} />
         </div>
+      </div>
+
+      {/* Horaires de travail par défaut — propagés au planning (créneaux matin/après-midi/journée) */}
+      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Horaires de travail par défaut</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4">
+        <p className="text-sm text-blue-700 font-manrope">Ces horaires sont utilisés par défaut pour les créneaux Matin / Après-midi / Journée entière du planning. Tu peux les modifier ici.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <InputField label="Début matin" type="time" value={heureDebutMatin} onChange={setHeureDebutMatin} />
+        <InputField label="Fin matin" type="time" value={heureFinMatin} onChange={setHeureFinMatin} />
+        <InputField label="Début après-midi" type="time" value={heureDebutAm} onChange={setHeureDebutAm} />
+        <InputField label="Fin après-midi" type="time" value={heureFinAm} onChange={setHeureFinAm} />
       </div>
 
       {/* Médiateur — 4 champs séparés pour faciliter la saisie et l'affichage propre sur PDF */}
