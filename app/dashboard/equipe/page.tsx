@@ -19,6 +19,8 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 
 // -------------------------------------------------------------------
 // Types
@@ -440,31 +442,31 @@ export default function EquipePage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
             type="text"
             placeholder="Rechercher un membre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+            className="pl-9"
           />
         </div>
 
-        <select
+        <Select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as FilterType)}
-          className="h-10 px-3 rounded-lg border border-gray-200 text-sm font-manrope text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+          containerClassName="sm:w-auto"
         >
           <option value="tous">Tous les types</option>
           <option value="employe">Employes</option>
           <option value="interimaire">Interimaires</option>
           <option value="sous-traitant">Sous-traitants</option>
-        </select>
+        </Select>
 
-        <select
+        <Select
           value={filterMetier}
           onChange={(e) => setFilterMetier(e.target.value)}
-          className="h-10 px-3 rounded-lg border border-gray-200 text-sm font-manrope text-[#1a1a2e] focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+          containerClassName="sm:w-auto"
         >
           <option value="tous">Tous les metiers</option>
           {uniqueMetiers.map((metier) => (
@@ -472,7 +474,7 @@ export default function EquipePage() {
               {metier}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* Desktop table */}
@@ -666,83 +668,62 @@ export default function EquipePage() {
                 <X size={18} className="text-gray-500" />
               </button>
             </div>
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Type *</label>
-              <select
-                value={form.type_contrat}
-                onChange={(e) => setForm({ ...form, type_contrat: e.target.value as IntervenantType })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="cdi">Employe (CDI)</option>
-                <option value="cdd">Employe (CDD)</option>
-                <option value="apprenti">Apprenti</option>
-                <option value="interimaire">Interimaire</option>
-                <option value="sous-traitant">Sous-traitant</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Rôle</label>
-              <select
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="">— Non défini</option>
-                <option value="Dirigeant">Dirigeant</option>
-                <option value="Chef d'équipe">Chef d&apos;équipe</option>
-                <option value="Compagnon">Compagnon</option>
-                <option value="Apprenti">Apprenti</option>
-                <option value="Assistant">Assistant</option>
-              </select>
-            </div>
+            <Select
+              label="Type *"
+              value={form.type_contrat}
+              onChange={(e) => setForm({ ...form, type_contrat: e.target.value as IntervenantType })}
+            >
+              <option value="cdi">Employe (CDI)</option>
+              <option value="cdd">Employe (CDD)</option>
+              <option value="apprenti">Apprenti</option>
+              <option value="interimaire">Interimaire</option>
+              <option value="sous-traitant">Sous-traitant</option>
+            </Select>
+            <Select
+              label="Rôle"
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+            >
+              <option value="">— Non défini</option>
+              <option value="Dirigeant">Dirigeant</option>
+              <option value="Chef d'équipe">Chef d&apos;équipe</option>
+              <option value="Compagnon">Compagnon</option>
+              <option value="Apprenti">Apprenti</option>
+              <option value="Assistant">Assistant</option>
+            </Select>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Prenom</label>
-                <input
-                  type="text"
-                  value={form.prenom}
-                  onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Nom</label>
-                <input
-                  type="text"
-                  value={form.nom}
-                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Metier</label>
-              <input
+              <Input
+                label="Prenom"
                 type="text"
-                value={form.metier}
-                onChange={(e) => setForm({ ...form, metier: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+                value={form.prenom}
+                onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+              />
+              <Input
+                label="Nom"
+                type="text"
+                value={form.nom}
+                onChange={(e) => setForm({ ...form, nom: e.target.value })}
               />
             </div>
+            <Input
+              label="Metier"
+              type="text"
+              value={form.metier}
+              onChange={(e) => setForm({ ...form, metier: e.target.value })}
+            />
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Telephone</label>
-                <input
-                  type="text"
-                  value={form.telephone}
-                  onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
+              <Input
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <Input
+                label="Telephone"
+                type="text"
+                value={form.telephone}
+                onChange={(e) => setForm({ ...form, telephone: e.target.value })}
+              />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
@@ -773,83 +754,62 @@ export default function EquipePage() {
                 <X size={18} className="text-gray-500" />
               </button>
             </div>
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Type *</label>
-              <select
-                value={editForm.type_contrat}
-                onChange={(e) => setEditForm({ ...editForm, type_contrat: e.target.value as IntervenantType })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="cdi">Employe (CDI)</option>
-                <option value="cdd">Employe (CDD)</option>
-                <option value="apprenti">Apprenti</option>
-                <option value="interimaire">Interimaire</option>
-                <option value="sous-traitant">Sous-traitant</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Rôle</label>
-              <select
-                value={editForm.role}
-                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="">— Non défini</option>
-                <option value="Dirigeant">Dirigeant</option>
-                <option value="Chef d'équipe">Chef d&apos;équipe</option>
-                <option value="Compagnon">Compagnon</option>
-                <option value="Apprenti">Apprenti</option>
-                <option value="Assistant">Assistant</option>
-              </select>
-            </div>
+            <Select
+              label="Type *"
+              value={editForm.type_contrat}
+              onChange={(e) => setEditForm({ ...editForm, type_contrat: e.target.value as IntervenantType })}
+            >
+              <option value="cdi">Employe (CDI)</option>
+              <option value="cdd">Employe (CDD)</option>
+              <option value="apprenti">Apprenti</option>
+              <option value="interimaire">Interimaire</option>
+              <option value="sous-traitant">Sous-traitant</option>
+            </Select>
+            <Select
+              label="Rôle"
+              value={editForm.role}
+              onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+            >
+              <option value="">— Non défini</option>
+              <option value="Dirigeant">Dirigeant</option>
+              <option value="Chef d'équipe">Chef d&apos;équipe</option>
+              <option value="Compagnon">Compagnon</option>
+              <option value="Apprenti">Apprenti</option>
+              <option value="Assistant">Assistant</option>
+            </Select>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Prenom</label>
-                <input
-                  type="text"
-                  value={editForm.prenom}
-                  onChange={(e) => setEditForm({ ...editForm, prenom: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Nom</label>
-                <input
-                  type="text"
-                  value={editForm.nom}
-                  onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Metier</label>
-              <input
+              <Input
+                label="Prenom"
                 type="text"
-                value={editForm.metier}
-                onChange={(e) => setEditForm({ ...editForm, metier: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+                value={editForm.prenom}
+                onChange={(e) => setEditForm({ ...editForm, prenom: e.target.value })}
+              />
+              <Input
+                label="Nom"
+                type="text"
+                value={editForm.nom}
+                onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
               />
             </div>
+            <Input
+              label="Metier"
+              type="text"
+              value={editForm.metier}
+              onChange={(e) => setEditForm({ ...editForm, metier: e.target.value })}
+            />
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Telephone</label>
-                <input
-                  type="text"
-                  value={editForm.telephone}
-                  onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
+              <Input
+                label="Email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+              <Input
+                label="Telephone"
+                type="text"
+                value={editForm.telephone}
+                onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
+              />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button

@@ -19,6 +19,9 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Select } from '@/components/ui/Select'
 
 // -------------------------------------------------------------------
 // Types
@@ -362,19 +365,19 @@ export default function MaterialPage() {
       {/* ---- Filtres ---- */}
       <div className="flex flex-col sm:flex-row gap-3 bg-white rounded-xl border border-[#e5e7eb] p-4">
         <div className="flex-1 relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280]" />
-          <input
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] z-10" />
+          <Input
             type="text"
             placeholder="Rechercher..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 rounded-lg bg-gray-50 border border-[#e5e7eb] pl-10 pr-3 text-sm text-[#1a1a2e] placeholder:text-[#6b7280] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
+            className="pl-10"
           />
         </div>
-        <select
+        <Select
           value={filterCategorie}
           onChange={(e) => setFilterCategorie(e.target.value)}
-          className="h-10 rounded-lg bg-gray-50 border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
+          containerClassName="sm:w-auto"
         >
           <option value="tous">Toutes catégories</option>
           {CATEGORIES.map((c) => (
@@ -382,11 +385,11 @@ export default function MaterialPage() {
               {c.label}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={filterEtat}
           onChange={(e) => setFilterEtat(e.target.value)}
-          className="h-10 rounded-lg bg-gray-50 border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
+          containerClassName="sm:w-auto"
         >
           <option value="tous">Tous états</option>
           {ETATS.map((e) => (
@@ -394,7 +397,7 @@ export default function MaterialPage() {
               {e.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* ---- Tableau desktop (hidden sm:block) ---- */}
@@ -579,93 +582,68 @@ export default function MaterialPage() {
                 </button>
                 {expandedSections.identification && (
                   <div className="px-4 py-4 space-y-4 bg-white">
-                    <div>
-                      <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">
-                        Désignation <span className="text-red-500">*</span>
-                      </label>
-                      <input
+                    <Input
+                      label="Désignation *"
+                      type="text"
+                      value={form.designation}
+                      onChange={(e) => setForm({ ...form, designation: e.target.value })}
+                      placeholder="Ex: Perceuse-visseuse Makita"
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Select
+                        label="Catégorie *"
+                        value={form.categorie}
+                        onChange={(e) => setForm({ ...form, categorie: e.target.value })}
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </Select>
+                      <Input
+                        label="N° série / Immatriculation"
                         type="text"
-                        value={form.designation}
-                        onChange={(e) => setForm({ ...form, designation: e.target.value })}
-                        className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                        placeholder="Ex: Perceuse-visseuse Makita"
+                        value={form.numero_serie}
+                        onChange={(e) => setForm({ ...form, numero_serie: e.target.value })}
+                        placeholder="Ex: 123456789"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">
-                          Catégorie <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={form.categorie}
-                          onChange={(e) => setForm({ ...form, categorie: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                        >
-                          {CATEGORIES.map((c) => (
-                            <option key={c.value} value={c.value}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">N° série / Immatriculation</label>
-                        <input
-                          type="text"
-                          value={form.numero_serie}
-                          onChange={(e) => setForm({ ...form, numero_serie: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="Ex: 123456789"
-                        />
-                      </div>
+                      <Select
+                        label="État"
+                        value={form.etat}
+                        onChange={(e) => setForm({ ...form, etat: e.target.value })}
+                      >
+                        {ETATS.map((e) => (
+                          <option key={e.value} value={e.value}>
+                            {e.label}
+                          </option>
+                        ))}
+                      </Select>
+                      <Input
+                        label="Localisation"
+                        type="text"
+                        value={form.localisation}
+                        onChange={(e) => setForm({ ...form, localisation: e.target.value })}
+                        placeholder="Ex: Dépôt principal"
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">État</label>
-                        <select
-                          value={form.etat}
-                          onChange={(e) => setForm({ ...form, etat: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                        >
-                          {ETATS.map((e) => (
-                            <option key={e.value} value={e.value}>
-                              {e.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Localisation</label>
-                        <input
-                          type="text"
-                          value={form.localisation}
-                          onChange={(e) => setForm({ ...form, localisation: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="Ex: Dépôt principal"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Date d'achat</label>
-                        <input
-                          type="date"
-                          value={form.date_achat}
-                          onChange={(e) => setForm({ ...form, date_achat: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Valeur d'achat (€)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={form.valeur_achat}
-                          onChange={(e) => setForm({ ...form, valeur_achat: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="0.00"
-                        />
-                      </div>
+                      <Input
+                        label="Date d'achat"
+                        type="date"
+                        value={form.date_achat}
+                        onChange={(e) => setForm({ ...form, date_achat: e.target.value })}
+                      />
+                      <Input
+                        label="Valeur d'achat (€)"
+                        type="number"
+                        step="0.01"
+                        value={form.valeur_achat}
+                        onChange={(e) => setForm({ ...form, valeur_achat: e.target.value })}
+                        placeholder="0.00"
+                      />
                     </div>
                   </div>
                 )}
@@ -707,74 +685,59 @@ export default function MaterialPage() {
                     {['credit', 'leasing', 'lld'].includes(form.mode_acquisition) && (
                       <>
                         <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Montant total (€)</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={form.credit_montant_total}
-                              onChange={(e) => setForm({ ...form, credit_montant_total: e.target.value })}
-                              className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                              placeholder="0.00"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Mensualité (€)</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={form.credit_mensualite}
-                              onChange={(e) => setForm({ ...form, credit_mensualite: e.target.value })}
-                              className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                              placeholder="0.00"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Durée (mois)</label>
-                            <input
-                              type="number"
-                              value={form.credit_duree_mois}
-                              onChange={(e) => setForm({ ...form, credit_duree_mois: e.target.value })}
-                              className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Date de fin</label>
-                            <input
-                              type="date"
-                              value={form.credit_date_fin}
-                              onChange={(e) => setForm({ ...form, credit_date_fin: e.target.value })}
-                              className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Banque / Organisme</label>
-                          <input
-                            type="text"
-                            value={form.credit_banque}
-                            onChange={(e) => setForm({ ...form, credit_banque: e.target.value })}
-                            className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                            placeholder="Ex: Société Générale"
+                          <Input
+                            label="Montant total (€)"
+                            type="number"
+                            step="0.01"
+                            value={form.credit_montant_total}
+                            onChange={(e) => setForm({ ...form, credit_montant_total: e.target.value })}
+                            placeholder="0.00"
+                          />
+                          <Input
+                            label="Mensualité (€)"
+                            type="number"
+                            step="0.01"
+                            value={form.credit_mensualite}
+                            onChange={(e) => setForm({ ...form, credit_mensualite: e.target.value })}
+                            placeholder="0.00"
                           />
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Input
+                            label="Durée (mois)"
+                            type="number"
+                            value={form.credit_duree_mois}
+                            onChange={(e) => setForm({ ...form, credit_duree_mois: e.target.value })}
+                            placeholder="0"
+                          />
+                          <Input
+                            label="Date de fin"
+                            type="date"
+                            value={form.credit_date_fin}
+                            onChange={(e) => setForm({ ...form, credit_date_fin: e.target.value })}
+                          />
+                        </div>
+                        <Input
+                          label="Banque / Organisme"
+                          type="text"
+                          value={form.credit_banque}
+                          onChange={(e) => setForm({ ...form, credit_banque: e.target.value })}
+                          placeholder="Ex: Société Générale"
+                        />
                       </>
                     )}
 
                     <div className="pt-2 border-t border-[#e5e7eb]">
-                      <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5 font-manrope">
                         Durée d'amortissement (ans)
                       </label>
                       <div className="flex items-center gap-2">
-                        <input
+                        <Input
                           type="number"
                           value={form.duree_amortissement_annees}
                           onChange={(e) => setForm({ ...form, duree_amortissement_annees: e.target.value })}
-                          className="w-24 h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
                           placeholder="0"
+                          containerClassName="w-24"
                         />
                         <span className="text-xs text-[#6b7280] font-manrope">
                           Recommandé: 5 ans (outillage), 4-5 ans (véhicule)
@@ -800,70 +763,52 @@ export default function MaterialPage() {
                 {expandedSections.assurance && (
                   <div className="px-4 py-4 space-y-4 bg-white">
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Mensualité assurance (€)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={form.assurance_mensualite}
-                          onChange={(e) => setForm({ ...form, assurance_mensualite: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Compagnie</label>
-                        <input
-                          type="text"
-                          value={form.assurance_compagnie}
-                          onChange={(e) => setForm({ ...form, assurance_compagnie: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="Ex: AXA"
-                        />
-                      </div>
+                      <Input
+                        label="Mensualité assurance (€)"
+                        type="number"
+                        step="0.01"
+                        value={form.assurance_mensualite}
+                        onChange={(e) => setForm({ ...form, assurance_mensualite: e.target.value })}
+                        placeholder="0.00"
+                      />
+                      <Input
+                        label="Compagnie"
+                        type="text"
+                        value={form.assurance_compagnie}
+                        onChange={(e) => setForm({ ...form, assurance_compagnie: e.target.value })}
+                        placeholder="Ex: AXA"
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">N° de police</label>
-                        <input
-                          type="text"
-                          value={form.assurance_numero_police}
-                          onChange={(e) => setForm({ ...form, assurance_numero_police: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="Numéro de police"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Échéance assurance</label>
-                        <input
-                          type="date"
-                          value={form.assurance_echeance}
-                          onChange={(e) => setForm({ ...form, assurance_echeance: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                        />
-                      </div>
+                      <Input
+                        label="N° de police"
+                        type="text"
+                        value={form.assurance_numero_police}
+                        onChange={(e) => setForm({ ...form, assurance_numero_police: e.target.value })}
+                        placeholder="Numéro de police"
+                      />
+                      <Input
+                        label="Échéance assurance"
+                        type="date"
+                        value={form.assurance_echeance}
+                        onChange={(e) => setForm({ ...form, assurance_echeance: e.target.value })}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#e5e7eb]">
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Prochaine révision</label>
-                        <input
-                          type="date"
-                          value={form.prochaine_revision}
-                          onChange={(e) => setForm({ ...form, prochaine_revision: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-manrope text-[#1a1a2e] mb-1">Budget entretien annuel (€)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={form.entretien_budget_annuel}
-                          onChange={(e) => setForm({ ...form, entretien_budget_annuel: e.target.value })}
-                          className="w-full h-10 rounded-lg border border-[#e5e7eb] px-3 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
-                          placeholder="0.00"
-                        />
-                      </div>
+                      <Input
+                        label="Prochaine révision"
+                        type="date"
+                        value={form.prochaine_revision}
+                        onChange={(e) => setForm({ ...form, prochaine_revision: e.target.value })}
+                      />
+                      <Input
+                        label="Budget entretien annuel (€)"
+                        type="number"
+                        step="0.01"
+                        value={form.entretien_budget_annuel}
+                        onChange={(e) => setForm({ ...form, entretien_budget_annuel: e.target.value })}
+                        placeholder="0.00"
+                      />
                     </div>
                   </div>
                 )}
@@ -883,11 +828,11 @@ export default function MaterialPage() {
                 </button>
                 {expandedSections.notes && (
                   <div className="px-4 py-4 bg-white">
-                    <textarea
+                    <Textarea
                       value={form.notes}
                       onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      className="w-full h-24 rounded-lg border border-[#e5e7eb] px-3 py-2 text-sm text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#5ab4e0]"
                       placeholder="Remarques, conditions particulières, etc."
+                      rows={3}
                     />
                   </div>
                 )}

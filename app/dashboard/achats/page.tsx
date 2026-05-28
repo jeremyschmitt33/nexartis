@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import {
   Search,
   Plus,
-  ChevronDown,
   X,
   Upload,
   Paperclip,
@@ -26,6 +25,8 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 
 // -------------------------------------------------------------------
 // Types
@@ -289,29 +290,26 @@ function AchatsPageInner() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
             type="text"
             placeholder="Rechercher un achat..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+            className="pl-9"
           />
         </div>
 
         {/* Filter */}
-        <div className="relative">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as FilterPeriod)}
-            className="h-10 rounded-lg border border-gray-200 px-3 pr-8 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none appearance-none bg-white cursor-pointer"
-          >
-            <option value="Tous">Tous</option>
-            <option value="Ce mois">Ce mois</option>
-            <option value="Ce trimestre">Ce trimestre</option>
-          </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
+        <Select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as FilterPeriod)}
+          containerClassName="sm:w-auto"
+        >
+          <option value="Tous">Tous</option>
+          <option value="Ce mois">Ce mois</option>
+          <option value="Ce trimestre">Ce trimestre</option>
+        </Select>
 
         {/* New achat button */}
         <button
@@ -519,93 +517,75 @@ function AchatsPageInner() {
             </div>
 
             {/* Fournisseur */}
-            <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Fournisseur</label>
-              <select
-                value={modalFournisseur}
-                onChange={(e) => setModalFournisseur(e.target.value)}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="">S&eacute;lectionner un fournisseur...</option>
-                {fournisseurs.map((f) => {
-                  const rec = f as Record<string, unknown>
-                  return (
-                    <option key={String(rec.id)} value={String(rec.id)}>
-                      {String(rec.nom ?? rec.name ?? '')}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
+            <Select
+              label="Fournisseur"
+              value={modalFournisseur}
+              onChange={(e) => setModalFournisseur(e.target.value)}
+            >
+              <option value="">S&eacute;lectionner un fournisseur...</option>
+              {fournisseurs.map((f) => {
+                const rec = f as Record<string, unknown>
+                return (
+                  <option key={String(rec.id)} value={String(rec.id)}>
+                    {String(rec.nom ?? rec.name ?? '')}
+                  </option>
+                )
+              })}
+            </Select>
 
             {/* Date + Montant HT */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date</label>
-                <input
-                  type="date"
-                  value={modalDate}
-                  onChange={(e) => setModalDate(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Montant HT</label>
-                <input
-                  type="number"
-                  value={modalMontant}
-                  onChange={(e) => setModalMontant(e.target.value)}
-                  placeholder="0,00 &euro;"
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-            </div>
-
-            {/* TVA */}
-            <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">TVA</label>
-              <select
-                value={modalTva}
-                onChange={(e) => setModalTva(e.target.value)}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="5.5">5,5%</option>
-                <option value="10">10%</option>
-                <option value="20">20%</option>
-              </select>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Description</label>
-              <input
-                type="text"
-                value={modalDescription}
-                onChange={(e) => setModalDescription(e.target.value)}
-                placeholder="Ex: Tubes cuivre + raccords"
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+              <Input
+                label="Date"
+                type="date"
+                value={modalDate}
+                onChange={(e) => setModalDate(e.target.value)}
+              />
+              <Input
+                label="Montant HT"
+                type="number"
+                value={modalMontant}
+                onChange={(e) => setModalMontant(e.target.value)}
+                placeholder="0,00 €"
               />
             </div>
 
+            {/* TVA */}
+            <Select
+              label="TVA"
+              value={modalTva}
+              onChange={(e) => setModalTva(e.target.value)}
+            >
+              <option value="5.5">5,5%</option>
+              <option value="10">10%</option>
+              <option value="20">20%</option>
+            </Select>
+
+            {/* Description */}
+            <Input
+              label="Description"
+              type="text"
+              value={modalDescription}
+              onChange={(e) => setModalDescription(e.target.value)}
+              placeholder="Ex: Tubes cuivre + raccords"
+            />
+
             {/* Chantier */}
-            <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Associer au chantier</label>
-              <select
-                value={modalChantier}
-                onChange={(e) => setModalChantier(e.target.value)}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-              >
-                <option value="">S&eacute;lectionner un chantier...</option>
-                {chantiers.map((c) => {
-                  const rec = c as Record<string, unknown>
-                  return (
-                    <option key={String(rec.id)} value={String(rec.id)}>
-                      {String(rec.nom ?? rec.name ?? '')}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
+            <Select
+              label="Associer au chantier"
+              value={modalChantier}
+              onChange={(e) => setModalChantier(e.target.value)}
+            >
+              <option value="">S&eacute;lectionner un chantier...</option>
+              {chantiers.map((c) => {
+                const rec = c as Record<string, unknown>
+                return (
+                  <option key={String(rec.id)} value={String(rec.id)}>
+                    {String(rec.nom ?? rec.name ?? '')}
+                  </option>
+                )
+              })}
+            </Select>
 
             {/* Upload justificatif */}
             <div>

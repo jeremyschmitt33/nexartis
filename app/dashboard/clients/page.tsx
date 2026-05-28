@@ -7,10 +7,12 @@ import {
   Search,
   Users,
   Plus,
-  ChevronDown,
   X,
 } from 'lucide-react'
 import { useClients, insertRow, updateRow, deleteRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Select } from '@/components/ui/Select'
 
 // -------------------------------------------------------------------
 // Types
@@ -226,29 +228,26 @@ export default function ClientsPage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
             type="text"
             placeholder="Rechercher un client..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+            className="pl-9"
           />
         </div>
 
         {/* Filter */}
-        <div className="relative">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="h-10 rounded-lg border border-gray-200 px-3 pr-8 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none appearance-none bg-white cursor-pointer"
-          >
-            {FILTER_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
+        <Select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          containerClassName="sm:w-auto"
+        >
+          {FILTER_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </Select>
 
         {/* New client button */}
         <button
@@ -392,131 +391,98 @@ export default function ClientsPage() {
               {formError && <ErrorBanner message={formError} />}
 
               {/* Type */}
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Type</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value as 'particulier' | 'professionnel' })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                >
-                  <option value="particulier">Particulier</option>
-                  <option value="professionnel">Professionnel</option>
-                </select>
-              </div>
+              <Select
+                label="Type"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value as 'particulier' | 'professionnel' })}
+              >
+                <option value="particulier">Particulier</option>
+                <option value="professionnel">Professionnel</option>
+              </Select>
 
               {/* Raison sociale (pro only) */}
               {form.type === 'professionnel' && (
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Raison sociale</label>
-                  <input
-                    type="text"
-                    value={form.raison_sociale}
-                    onChange={(e) => setForm({ ...form, raison_sociale: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
+                <Input
+                  label="Raison sociale"
+                  type="text"
+                  value={form.raison_sociale}
+                  onChange={(e) => setForm({ ...form, raison_sociale: e.target.value })}
+                />
               )}
 
               {/* Prénom / Nom */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Prénom</label>
-                  <input
-                    type="text"
-                    value={form.prenom}
-                    onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Nom</label>
-                  <input
-                    type="text"
-                    value={form.nom}
-                    onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
+                <Input
+                  label="Prénom"
+                  type="text"
+                  value={form.prenom}
+                  onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+                />
+                <Input
+                  label="Nom"
+                  type="text"
+                  value={form.nom}
+                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
+                />
               </div>
 
               {/* Email / Téléphone */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Téléphone</label>
-                  <input
-                    type="text"
-                    value={form.telephone}
-                    onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Adresse */}
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Adresse</label>
-                <input
+                <Input
+                  label="Email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+                <Input
+                  label="Téléphone"
                   type="text"
-                  value={form.adresse}
-                  onChange={(e) => setForm({ ...form, adresse: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+                  value={form.telephone}
+                  onChange={(e) => setForm({ ...form, telephone: e.target.value })}
                 />
               </div>
 
+              {/* Adresse */}
+              <Input
+                label="Adresse"
+                type="text"
+                value={form.adresse}
+                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+              />
+
               {/* Code postal / Ville */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Code postal</label>
-                  <input
-                    type="text"
-                    value={form.code_postal}
-                    onChange={(e) => setForm({ ...form, code_postal: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Ville</label>
-                  <input
-                    type="text"
-                    value={form.ville}
-                    onChange={(e) => setForm({ ...form, ville: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
+                <Input
+                  label="Code postal"
+                  type="text"
+                  value={form.code_postal}
+                  onChange={(e) => setForm({ ...form, code_postal: e.target.value })}
+                />
+                <Input
+                  label="Ville"
+                  type="text"
+                  value={form.ville}
+                  onChange={(e) => setForm({ ...form, ville: e.target.value })}
+                />
               </div>
 
               {/* SIRET (pro) */}
               {form.type === 'professionnel' && (
-                <div>
-                  <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">SIRET</label>
-                  <input
-                    type="text"
-                    value={form.siret}
-                    onChange={(e) => setForm({ ...form, siret: e.target.value })}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  />
-                </div>
+                <Input
+                  label="SIRET"
+                  type="text"
+                  value={form.siret}
+                  onChange={(e) => setForm({ ...form, siret: e.target.value })}
+                />
               )}
 
               {/* Notes */}
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Notes internes</label>
-                <textarea
-                  value={form.notes_internes}
-                  onChange={(e) => setForm({ ...form, notes_internes: e.target.value })}
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none resize-none"
-                />
-              </div>
+              <Textarea
+                label="Notes internes"
+                value={form.notes_internes}
+                onChange={(e) => setForm({ ...form, notes_internes: e.target.value })}
+                rows={3}
+              />
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button

@@ -18,6 +18,8 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 
 // -------------------------------------------------------------------
 // Types
@@ -165,13 +167,13 @@ export default function FournisseursPage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
             type="text"
             placeholder="Rechercher un fournisseur..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+            className="pl-9"
           />
         </div>
 
@@ -351,98 +353,71 @@ export default function FournisseursPage() {
               </button>
             </div>
 
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Nom</label>
-              <input
+            <Input
+              label="Nom"
+              type="text"
+              value={form.nom}
+              onChange={(e) => setForm({ ...form, nom: e.target.value })}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Contact"
                 type="text"
-                value={form.nom}
-                onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+                value={form.contact}
+                onChange={(e) => setForm({ ...form, contact: e.target.value })}
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Contact</label>
-                <input
-                  type="text"
-                  value={form.contact}
-                  onChange={(e) => setForm({ ...form, contact: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Téléphone</label>
-                <input
-                  type="text"
-                  value={form.telephone}
-                  onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">SIRET</label>
-                <input
-                  type="text"
-                  value={form.siret}
-                  onChange={(e) => setForm({ ...form, siret: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Adresse</label>
-              <input
+              <Input
+                label="Téléphone"
                 type="text"
-                value={form.adresse}
-                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
+                value={form.telephone}
+                onChange={(e) => setForm({ ...form, telephone: e.target.value })}
+              />
+              <Input
+                label="SIRET"
+                type="text"
+                value={form.siret}
+                onChange={(e) => setForm({ ...form, siret: e.target.value })}
               />
             </div>
+
+            <Input
+              label="Adresse"
+              type="text"
+              value={form.adresse}
+              onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Code postal</label>
-                <input
-                  type="text"
-                  value={form.code_postal}
-                  onChange={(e) => setForm({ ...form, code_postal: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Ville</label>
-                <input
-                  type="text"
-                  value={form.ville}
-                  onChange={(e) => setForm({ ...form, ville: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-manrope font-semibold text-gray-500 mb-1">Notes</label>
-              <textarea
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                rows={3}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none resize-none"
+              <Input
+                label="Code postal"
+                type="text"
+                value={form.code_postal}
+                onChange={(e) => setForm({ ...form, code_postal: e.target.value })}
+              />
+              <Input
+                label="Ville"
+                type="text"
+                value={form.ville}
+                onChange={(e) => setForm({ ...form, ville: e.target.value })}
               />
             </div>
+
+            <Textarea
+              label="Notes"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              rows={3}
+            />
 
             <div className="flex justify-end gap-3 pt-2">
               <button

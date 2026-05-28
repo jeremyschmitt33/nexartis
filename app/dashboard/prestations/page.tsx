@@ -217,13 +217,13 @@ export default function PrestationsPage() {
       {/* Barre de recherche + bouton ajouter */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
             type="text"
             placeholder="Rechercher parmi mes prestations..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+            className="pl-9"
           />
         </div>
         <button
@@ -351,18 +351,15 @@ export default function PrestationsPage() {
             </div>
             <div className="px-6 py-4 space-y-4">
               {formError && <ErrorBanner message={formError} />}
-              <div>
-                <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">Désignation</label>
-                <input
-                  type="text"
-                  value={nom}
-                  onChange={e => setNom(e.target.value)}
-                  placeholder="Ex. : Salle de bain, Pose carrelage..."
-                  className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none"
-                  autoFocus
-                  onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
-                />
-              </div>
+              <Input
+                label="Désignation"
+                type="text"
+                value={nom}
+                onChange={e => setNom(e.target.value)}
+                placeholder="Ex. : Salle de bain, Pose carrelage..."
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
+              />
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button onClick={() => setShowModal(false)} className="h-10 px-5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-syne font-bold text-[#1a1a2e] transition-colors">

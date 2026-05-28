@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import {
   Search,
   HardHat,
-  ChevronDown,
   MoreHorizontal,
   Eye,
   Pencil,
@@ -17,6 +16,8 @@ import {
   Archive,
 } from 'lucide-react'
 import { useChantiers, useClients, useFactures, useDevis, deleteRow, updateRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 
 // -------------------------------------------------------------------
 // Types & Helpers
@@ -199,30 +200,27 @@ export default function ChantiersListPage() {
         <div className="flex-1" />
 
         {/* Search */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
+        <div className="relative w-full sm:w-64">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <Input
             type="text"
             placeholder="Rechercher..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-64 h-10 rounded-lg border border-gray-200 pl-9 pr-4 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors"
+            className="pl-9"
           />
         </div>
 
         {/* Filter */}
-        <div className="relative">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="h-10 rounded-lg border border-gray-200 px-3 pr-8 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none appearance-none bg-white cursor-pointer"
-          >
-            {FILTER_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
+        <Select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          containerClassName="sm:w-auto"
+        >
+          {FILTER_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </Select>
 
         {/* New button */}
         <Link
