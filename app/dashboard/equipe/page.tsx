@@ -40,6 +40,9 @@ interface Intervenant {
   role?: string | null
   couleur: string
   actif: boolean
+  // Session 9 (28/05/2026) : marqueur de l'intervenant "self" (le dirigeant
+  // lui-même). Masqué de la page Mon équipe — non modifiable, non supprimable.
+  is_self?: boolean
   created_at?: string
 }
 
@@ -255,7 +258,13 @@ export default function EquipePage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const { data: intervenants, loading, error, refetch } = useIntervenants()
-  const allIntervenants = (intervenants as unknown as Intervenant[])
+  // Session 9 : on masque l'intervenant "self" (le dirigeant lui-même, créé
+  // automatiquement par la page Planning). Il ne doit pas pouvoir être édité
+  // ni supprimé depuis Mon équipe, et il ne doit pas être compté dans les
+  // stats "X employés".
+  const allIntervenants = (intervenants as unknown as Intervenant[]).filter(
+    (e) => e.is_self !== true,
+  )
 
   const uniqueMetiers = Array.from(
     new Set(allIntervenants.map((e) => e.metier).filter(Boolean))

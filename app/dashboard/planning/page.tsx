@@ -374,53 +374,92 @@ function PlanningPageInner() {
     }
   }, [entreprise])
 
-  // ── Solo mode: resolve or auto-create the self-intervenant ──
-  // Runs when intervenants are loaded and we are in Solo mode.
-  // Identifies the self-intervenant as the first non-subcontractor in the list.
-  // If none exists, creates one from the entreprise data (or user email).
+  // ── Solo + Société : résolution ou auto-création de l'intervenant "self" ──
+  // Session 9 (28/05/2026) : étendu au mode Société pour les nouveaux comptes
+  // sans équipe (impossible de planifier sinon).
+  //
+  // Logique :
+  //   1. On cherche en priorité l'intervenant marqué `is_self = true` (créé
+  //      par cette logique ou marqué manuellement en BDD).
+  //   2. Si aucun, on retombe (Solo uniquement) sur le 1er non-sous-traitant
+  //      pour préserver la rétrocompat avec les comptes Solo existants qui
+  //      n'ont pas encore de flag `is_self`.
+  //   3. Si toujours rien : on crée silencieusement une fiche "self" avec le
+  //      nom de l'entreprise et le rôle "Dirigeant".
+  //
+  // Anti-double-insert :
+  //   - `selfCreatingRef` bloque les inserts concurrents au sein d'un onglet
+  //     pendant l'await.
+  //   - L'index UNIQUE (user_id) WHERE is_self=true (cf. migration) bloque les
+  //     inserts concurrents entre 2 onglets ouverts simultanément (try/catch
+  //     silencieux ci-dessous absorbe l'erreur).
   useEffect(() => {
-    if (isSociete) return
     if (l2) return // wait for intervenants to load
+    if (!entreprise) return // wait for entreprise to load (besoin du nom)
     if (selfCreatingRef.current) return
 
-    const existing = intervenants.find(
-      iv => (iv as R).type_contrat !== 'sous-traitant'
-    ) as R | undefined
-
-    if (existing) {
-      setSelfIntervenantId(existing.id as string)
+    // 1. Lookup par is_self
+    const selfMarked = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
+    if (selfMarked) {
+      setSelfIntervenantId(selfMarked.id as string)
       return
     }
 
-    // No self-intervenant yet — create one from entreprise info
+    // 2. Rétrocompat Solo : fallback sur 1er non-sous-traitant (anciens
+    //    comptes Solo où le self n'a pas le flag is_self).
+    if (!isSociete) {
+      const existing = intervenants.find(
+        iv => (iv as R).type_contrat !== 'sous-traitant'
+      ) as R | undefined
+      if (existing) {
+        setSelfIntervenantId(existing.id as string)
+        return
+      }
+    }
+
+    // 3. Création silencieuse
     selfCreatingRef.current = true
-    const nomSelf = (entreprise?.nom as string) || 'Artisan'
+    const nomSelf = (entreprise?.nom as string) || 'Dirigeant'
     const metierSelf = (entreprise?.metier as string) || ''
     insertRow('intervenants', {
-      prenom: '',
+      prenom: 'Vous',
       nom: nomSelf,
       metier: metierSelf,
       type_contrat: 'cdi',
+      niveau_acces: 'proprietaire',
+      role: 'Dirigeant',
+      taux_horaire: null,
       actif: true,
+      is_self: true,
+      couleur: 'bg-[#5ab4e0]',
     }).then(created => {
       if (created) {
         setSelfIntervenantId((created as R).id as string)
       }
       selfCreatingRef.current = false
-    }).catch(() => { selfCreatingRef.current = false })
+    }).catch(() => {
+      // Silencieux : 2 causes possibles
+      //   - migration `is_self` non encore appliquée → colonne inconnue
+      //   - race condition entre 2 onglets → violation index UNIQUE
+      // Dans les 2 cas, on libère le ref et on laisse le useEffect retenter
+      // au prochain refetch (le selfMarked sera trouvé au tour suivant).
+      selfCreatingRef.current = false
+    })
   }, [isSociete, l2, intervenants, entreprise])
 
-  // ── Sync mIntervenant en mode Solo : force la pre-selection de "soi"
-  // quand le modal est ouvert, quel que soit l'ordre de chargement.
+  // ── Pre-selection de l'intervenant "self" à l'ouverture du modal ──
   // Session 8 : pre-fill du Référent uniquement quand la liste est vide
   // (sinon on garde l'état multi-intervenants du modal).
+  // Session 9 (28/05/2026) : étendu au mode Société. Si le dirigeant n'a pas
+  // encore créé d'équipe, le self est pré-sélectionné comme Référent par
+  // défaut (sinon le dropdown serait vide et la planification impossible).
   useEffect(() => {
     if (!showModal) return
-    if (isSociete) return
     if (mIntervenants.length > 0) return
     if (selfIntervenantId) {
       setMIntervenant(selfIntervenantId)
-    } else if (intervenants.length > 0) {
+    } else if (!isSociete && intervenants.length > 0) {
+      // Fallback Solo legacy : 1er intervenant si pas de self résolu.
       setMIntervenant((intervenants[0] as R).id as string)
     }
   }, [showModal, isSociete, mIntervenants.length, selfIntervenantId, intervenants, setMIntervenant])
@@ -600,7 +639,16 @@ function PlanningPageInner() {
 
   const colorMap = useMemo(() => {
     const map = new Map<string, typeof PALETTE[0]>()
-    intervenants.forEach((iv, i) => { map.set((iv as R).id as string, PALETTE[i % PALETTE.length]) })
+    // Session 9 (28/05/2026) : on garantit que l'intervenant `self` (Vous) prend
+    // toujours la couleur SKY (PALETTE[0]) en l'épinglant en tête. Les autres
+    // gardent l'ordre BDD et cyclent sur PALETTE[1..] pour ne pas reprendre sky.
+    const selfIv = intervenants.find(iv => (iv as R).is_self === true)
+    const others = intervenants.filter(iv => (iv as R).is_self !== true)
+    if (selfIv) map.set((selfIv as R).id as string, PALETTE[0])
+    others.forEach((iv, i) => {
+      const palette = selfIv ? PALETTE[1 + (i % (PALETTE.length - 1))] : PALETTE[i % PALETTE.length]
+      map.set((iv as R).id as string, palette)
+    })
     return map
   }, [intervenants])
 
@@ -1124,26 +1172,34 @@ function PlanningPageInner() {
   // On exclut ceux déjà sélectionnés dans `mIntervenants` (pas de doublon).
   // En mode Solo : on n'expose que les sous-traitants pour ajouter en équipier
   // (le "self" est déjà le Référent par défaut).
+  // Session 9 : le self (is_self = true) est affiché en première position avec
+  // le libellé "Vous" + métier (et non le nom de l'entreprise).
   const availableIntervenantsForModal: ComboboxItem[] = useMemo(() => {
     const alreadySelected = new Set(mIntervenants.map(x => x.id))
     const source = isSociete
       ? intervenants.filter(iv => (iv as R).actif !== false)
       : intervenants.filter(iv => (iv as R).actif !== false && (iv as R).type_contrat === 'sous-traitant')
-    return source
-      .filter(iv => !alreadySelected.has((iv as R).id as string))
-      .map(iv => {
-        const r = iv as R
-        const prenom = String(r.prenom ?? '')
-        const nom = String(r.nom ?? '')
-        const metier = String(r.metier ?? '')
-        const full = `${prenom} ${nom}`.trim() || '(sans nom)'
-        return {
-          id: r.id as string,
-          label: full,
-          sublabel: metier || undefined,
-          searchText: `${full} ${metier}`,
-        }
-      })
+    const filtered = source.filter(iv => !alreadySelected.has((iv as R).id as string))
+    // Tri : self en tête (forcé en mode Société).
+    filtered.sort((a, b) => {
+      const aSelf = (a as R).is_self === true ? 1 : 0
+      const bSelf = (b as R).is_self === true ? 1 : 0
+      return bSelf - aSelf
+    })
+    return filtered.map(iv => {
+      const r = iv as R
+      const isSelf = r.is_self === true
+      const prenom = String(r.prenom ?? '')
+      const nom = String(r.nom ?? '')
+      const metier = String(r.metier ?? '')
+      const full = isSelf ? 'Vous' : (`${prenom} ${nom}`.trim() || '(sans nom)')
+      return {
+        id: r.id as string,
+        label: full,
+        sublabel: metier || (isSelf ? 'Dirigeant' : undefined),
+        searchText: `${full} ${metier} ${isSelf ? 'vous dirigeant moi' : ''}`,
+      }
+    })
   }, [intervenants, mIntervenants, isSociete])
 
   // Liste des clients (combobox client en mode libre)
@@ -1531,12 +1587,23 @@ function PlanningPageInner() {
   //      "displayedIntervenants" = liste filtrée (utilisée pour le rendu de la grille)
   const availableIntervenants = useMemo(() => {
     if (isSociete) {
-      return intervenants.filter(iv => (iv as R).actif !== false)
+      // Session 9 : self en tête de liste pour la grille (cellule en haut).
+      const list = intervenants.filter(iv => (iv as R).actif !== false)
+      list.sort((a, b) => {
+        const aSelf = (a as R).is_self === true ? 1 : 0
+        const bSelf = (b as R).is_self === true ? 1 : 0
+        return bSelf - aSelf
+      })
+      return list
     }
     // Solo mode: self + subcontractors
-    const self = intervenants.slice(0, 1)
+    // Session 9 : on prend l'intervenant marqué is_self en priorité, sinon
+    // le 1er non-sous-traitant (rétrocompat avec les comptes Solo pré-S9).
+    const explicitSelf = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
+    const legacySelf = explicitSelf ?? (intervenants.find(iv => (iv as R).type_contrat !== 'sous-traitant') as R | undefined)
+    const selfArr = legacySelf ? [legacySelf] : []
     const subcontractors = intervenants.filter(iv => (iv as R).type_contrat === 'sous-traitant' && (iv as R).actif !== false)
-    return [...self, ...subcontractors]
+    return [...selfArr, ...subcontractors]
   }, [intervenants, isSociete])
 
   // S2 — filtrage par chips intervenants : on retire ceux masqués via la barre de chips
@@ -1625,13 +1692,19 @@ function PlanningPageInner() {
   const showChipsBar = (isSociete && availableIntervenants.length >= 2) || soloHasSubcontractors
 
   // ── Name helpers ──
+  // Session 9 : si l'intervenant est marqué is_self, on affiche "Vous"
+  // partout dans le planning (en mode Société) au lieu du nom de l'entreprise.
   const ivName = (id: string) => {
     const iv = intervenantMap.get(id) as R | undefined
-    return iv ? `${iv.prenom ?? ''} ${String(iv.nom ?? '').charAt(0)}.` : '—'
+    if (!iv) return '—'
+    if (iv.is_self === true) return 'Vous'
+    return `${iv.prenom ?? ''} ${String(iv.nom ?? '').charAt(0)}.`
   }
   const ivFullName = (id: string) => {
     const iv = intervenantMap.get(id) as R | undefined
-    return iv ? `${iv.prenom ?? ''} ${iv.nom ?? ''}`.trim() : '—'
+    if (!iv) return '—'
+    if (iv.is_self === true) return 'Vous'
+    return `${iv.prenom ?? ''} ${iv.nom ?? ''}`.trim()
   }
   const clName = (id: string) => {
     const cl = clientMap.get(id) as R | undefined
@@ -1984,7 +2057,11 @@ function PlanningPageInner() {
                     const ivId = r.id as string
                     const color = colorMap.get(ivId) ?? PALETTE[0]
                     const isHidden = hiddenIntervenants.has(ivId)
-                    const shortLabel = `${String(r.prenom ?? '').charAt(0).toUpperCase()}${String(r.prenom ?? '').length > 0 ? '. ' : ''}${String(r.nom ?? '')}`.trim() || String(r.prenom ?? '') || 'Sans nom'
+                    // Session 9 : "Vous" pour le self
+                    const isSelfChip = r.is_self === true
+                    const shortLabel = isSelfChip
+                      ? 'Vous'
+                      : (`${String(r.prenom ?? '').charAt(0).toUpperCase()}${String(r.prenom ?? '').length > 0 ? '. ' : ''}${String(r.nom ?? '')}`.trim() || String(r.prenom ?? '') || 'Sans nom')
                     return (
                       <button
                         key={ivId}
@@ -2106,23 +2183,31 @@ function PlanningPageInner() {
                               return (
                                 <div key={`${wi}-${ivId}`} className="contents">
                                   {/* Label — hidden in Solo mode without subcontractors */}
-                                  {(isSociete || soloHasSubcontractors) && (
-                                    <div className={`${isCompact ? 'px-2 py-1.5' : 'px-3 py-2.5'} border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center ${isCompact ? 'gap-2' : 'gap-2.5'}`}>
-                                      <div className={`${isCompact ? 'w-5 h-5 text-[9px]' : 'w-7 h-7 text-[10px]'} rounded-md flex items-center justify-center text-white font-bold flex-shrink-0`} style={{ background: color.hex }}>
-                                        {initials(`${r.prenom ?? ''} ${r.nom ?? ''}`)}
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-syne font-bold text-[#0f1a3a] truncate`}>
-                                          {isSociete ? `${String(r.prenom ?? '')} ${String(r.nom ?? '').charAt(0)}.` : String(r.prenom ?? '')}
+                                  {(isSociete || soloHasSubcontractors) && (() => {
+                                    // Session 9 : libellé "Vous" pour le self (au lieu du nom de l'entreprise).
+                                    const isSelfRow = r.is_self === true
+                                    const fullLabel = isSelfRow ? 'Vous' : `${String(r.prenom ?? '')} ${String(r.nom ?? '')}`.trim()
+                                    const compactLabel = isSelfRow
+                                      ? 'Vous'
+                                      : (isSociete ? `${String(r.prenom ?? '')} ${String(r.nom ?? '').charAt(0)}.` : String(r.prenom ?? ''))
+                                    return (
+                                      <div className={`${isCompact ? 'px-2 py-1.5' : 'px-3 py-2.5'} border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center ${isCompact ? 'gap-2' : 'gap-2.5'}`}>
+                                        <div className={`${isCompact ? 'w-5 h-5 text-[9px]' : 'w-7 h-7 text-[10px]'} rounded-md flex items-center justify-center text-white font-bold flex-shrink-0`} style={{ background: color.hex }}>
+                                          {initials(fullLabel)}
                                         </div>
-                                        {!isCompact && (
-                                          <div className="text-[11px] text-[#5ab4e0] font-semibold truncate bg-[#e8f4fb] px-2 py-0.5 rounded-md inline-block mt-0.5">
-                                            {String(r.metier ?? '')}
+                                        <div className="min-w-0 flex-1">
+                                          <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-syne font-bold text-[#0f1a3a] truncate`}>
+                                            {compactLabel}
                                           </div>
-                                        )}
+                                          {!isCompact && (
+                                            <div className="text-[11px] text-[#5ab4e0] font-semibold truncate bg-[#e8f4fb] px-2 py-0.5 rounded-md inline-block mt-0.5">
+                                              {String(r.metier ?? '')}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    )
+                                  })()}
 
                                   {/* Day cells */}
                                   {week.days.map(day => {
@@ -2620,7 +2705,10 @@ function PlanningPageInner() {
                         {members.map(m => {
                           const ivR = intervenantMap.get(m.id) as R | undefined
                           if (!ivR) return null
-                          const fullName = `${ivR.prenom ?? ''} ${ivR.nom ?? ''}`.trim() || '—'
+                          // Session 9 : libellé "Vous" pour le self.
+                          const fullName = ivR.is_self === true
+                            ? 'Vous'
+                            : (`${ivR.prenom ?? ''} ${ivR.nom ?? ''}`.trim() || '—')
                           const metier = String(ivR.metier ?? '')
                           const col = colorMap.get(m.id)
                           return (
@@ -2991,8 +3079,13 @@ function PlanningPageInner() {
                               if (!ivR) return null
                               const fullName = `${ivR.prenom ?? ''} ${ivR.nom ?? ''}`.trim() || '(sans nom)'
                               const metier = String(ivR.metier ?? '')
-                              const isMe = !isSociete && member.id === selfIntervenantId
-                              const displayLabel = isMe ? 'Moi (artisan)' : fullName
+                              // Session 9 : on détecte le self via le flag is_self (mode Société)
+                              // OU le selfIntervenantId résolu (mode Solo legacy).
+                              const isSelfMember = ivR.is_self === true
+                              const isMe = isSelfMember || (!isSociete && member.id === selfIntervenantId)
+                              const displayLabel = isSelfMember
+                                ? 'Vous'
+                                : (isMe ? 'Moi (artisan)' : fullName)
                               const col = colorMap.get(member.id) ?? PALETTE[0]
                               const isReferent = member.role === 'referent'
                               return (
