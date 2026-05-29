@@ -308,9 +308,12 @@ export default function EquipePage() {
   })
 
   // --- Form creer ---
-  // Session 13 V1 : ajout du flag `isSelf` (case "C'est moi (utilisateur connecté)").
-  // Un seul membre peut être self à la fois : avant insert/update, on
-  // dégrade tous les autres self à false (cf. demoteOtherSelves).
+  // Session 13 V2 : suppression du flag `isSelf` côté formulaire. Le badge
+  // "Vous" reste affiché sur les fiches dont `is_self === true` (rétrocompat
+  // des comptes legacy) mais l'utilisateur ne peut plus toggle. En mode
+  // Société, tous les intervenants doivent être créés ici manuellement —
+  // pas de "Vous" magique. Cf. décision validée 29/05/2026 (recherche
+  // concurrence : aucun SaaS BTP français ne fait du Vous magique).
   const [form, setForm] = useState({
     prenom: '',
     nom: '',
@@ -320,52 +323,14 @@ export default function EquipePage() {
     type_contrat: 'cdi' as IntervenantType,
     niveau_acces: 'compagnon' as Intervenant['niveau_acces'],
     role: '',
-    isSelf: false,
   })
 
   const resetForm = () =>
-    setForm({ prenom: '', nom: '', email: '', telephone: '', metier: '', type_contrat: 'cdi', niveau_acces: 'compagnon', role: '', isSelf: false })
-
-  // Helper : avant de marquer un membre is_self=true, on retire le flag de
-  // tous les autres membres du même user (un seul self à la fois). On filtre
-  // explicitement par user_id côté Supabase pour respecter la RLS (même si
-  // les policies le font déjà côté DB, on garde la ceinture + bretelles).
-  const demoteOtherSelves = useCallback(async (exceptId?: string) => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    let q = supabase
-      .from('intervenants')
-      .update({ is_self: false })
-      .eq('user_id', user.id)
-      .eq('is_self', true)
-    if (exceptId) q = q.neq('id', exceptId)
-    await q
-  }, [])
-
-  // Helper : propage user_is_intervenant=true au niveau entreprise quand on
-  // marque un membre is_self=true (sémantique : le user a déclaré qu'il EST
-  // intervenant via le choix d'un membre is_self). Idempotent : si déjà true,
-  // l'UPDATE ne change rien.
-  const setEntrepriseUserIsIntervenant = useCallback(async (value: boolean) => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase
-      .from('entreprises')
-      .update({ user_is_intervenant: value })
-      .eq('user_id', user.id)
-  }, [])
+    setForm({ prenom: '', nom: '', email: '', telephone: '', metier: '', type_contrat: 'cdi', niveau_acces: 'compagnon', role: '' })
 
   const handleCreate = async () => {
     setSaving(true)
     try {
-      // Si l'utilisateur coche "C'est moi", on dégrade d'abord les autres
-      // self pour respecter l'unicité (avant le insert pour éviter une
-      // collision si index UNIQUE WHERE is_self=true).
-      if (form.isSelf) {
-        await demoteOtherSelves()
-      }
       await insertRow('intervenants', {
         prenom: form.prenom,
         nom: form.nom,
@@ -378,13 +343,7 @@ export default function EquipePage() {
         taux_horaire: null,
         couleur: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
         actif: true,
-        is_self: form.isSelf || null,
       })
-      // Si self : on déclare aussi user_is_intervenant=true au niveau entreprise
-      // (sémantique cohérente avec le bandeau d'aide du Planning).
-      if (form.isSelf) {
-        await setEntrepriseUserIsIntervenant(true)
-      }
       refetch()
       setShowModal(false)
       resetForm()
@@ -405,7 +364,6 @@ export default function EquipePage() {
     type_contrat: 'cdi' as IntervenantType,
     niveau_acces: 'compagnon' as Intervenant['niveau_acces'],
     role: '',
-    isSelf: false,
   })
 
   // V1 Fix #1 (28/05/2026) : auto-lock du rôle à "Apprenti" quand
@@ -436,7 +394,6 @@ export default function EquipePage() {
       type_contrat: intervenant.type_contrat,
       niveau_acces: intervenant.niveau_acces,
       role: intervenant.role || '',
-      isSelf: intervenant.is_self === true,
     })
     setEditingIntervenant(intervenant)
   }
@@ -445,23 +402,9 @@ export default function EquipePage() {
     if (!editingIntervenant) return
     setEditSaving(true)
     try {
-      // Session 13 V1 : gestion du flag `isSelf` (case "C'est moi").
-      // Cas 1 : on coche la case → on dégrade tous les autres self
-      //         (sauf celui qu'on est en train de modifier, sinon on se
-      //         dégrade soi-même) PUIS on met à jour cette ligne avec
-      //         is_self=true + on remonte user_is_intervenant=true sur
-      //         l'entreprise.
-      // Cas 2 : on décoche la case → is_self=false. On NE touche PAS
-      //         user_is_intervenant sur l'entreprise (le user peut vouloir
-      //         transférer le self vers un autre membre dans la foulée ;
-      //         si à la fin il n'a plus aucun self, c'est OK, on garde
-      //         user_is_intervenant à sa valeur précédente — il pourra
-      //         rebasculer via le bandeau Planning).
-      if (editForm.isSelf) {
-        await demoteOtherSelves(editingIntervenant.id)
-      }
-      // On met a jour UNIQUEMENT les champs de l'intervenant.
-      // On ne supprime JAMAIS chantier_intervenants ou sous_traitant_paiements lors d'un changement de type.
+      // Session 13 V2 : on ne touche plus à is_self depuis ce formulaire
+      // (la case "C'est moi" a été retirée). Le badge "Vous" reste affiché
+      // en lecture seule sur les fiches legacy dont is_self === true.
       await updateRow('intervenants', editingIntervenant.id, {
         prenom: editForm.prenom,
         nom: editForm.nom,
@@ -471,11 +414,7 @@ export default function EquipePage() {
         type_contrat: editForm.type_contrat,
         niveau_acces: editForm.niveau_acces,
         role: editForm.role || null,
-        is_self: editForm.isSelf ? true : null,
       })
-      if (editForm.isSelf) {
-        await setEntrepriseUserIsIntervenant(true)
-      }
       refetch()
       setEditingIntervenant(null)
     } catch {
@@ -486,7 +425,15 @@ export default function EquipePage() {
   }
 
   // --- Supprimer ---
+  // Session 13 V2 garde-fou : interdire la suppression de sa propre fiche
+  // (is_self === true) depuis cette page — sinon le planning serait cassé
+  // pour l'utilisateur. Si besoin de retirer le badge "Vous", passer par DB.
   const handleDelete = async (id: string) => {
+    const target = allIntervenants.find((iv) => iv.id === id)
+    if (target?.is_self === true) {
+      setDeleteConfirm(null)
+      return
+    }
     try {
       await deleteRow('intervenants', id)
       refetch()
@@ -669,8 +616,9 @@ export default function EquipePage() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirm(intervenant.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                          title="Supprimer"
+                          disabled={intervenant.is_self === true}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+                          title={intervenant.is_self === true ? 'Vous ne pouvez pas supprimer votre propre fiche depuis ici' : 'Supprimer'}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -759,8 +707,9 @@ export default function EquipePage() {
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(intervenant.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    title="Supprimer"
+                    disabled={intervenant.is_self === true}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+                    title={intervenant.is_self === true ? 'Vous ne pouvez pas supprimer votre propre fiche depuis ici' : 'Supprimer'}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -851,24 +800,6 @@ export default function EquipePage() {
                 onChange={(e) => setForm({ ...form, telephone: e.target.value })}
               />
             </div>
-            {/* Session 13 V1 : case "C'est moi (utilisateur connecté)".
-                Lie le compte connecté à ce membre — ses interventions
-                s'affichent sur lui dans le planning au lieu d'un "Vous" auto. */}
-            <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
-              <input
-                type="checkbox"
-                checked={form.isSelf}
-                onChange={(e) => setForm({ ...form, isSelf: e.target.checked })}
-                className="mt-0.5 w-4 h-4 rounded border-gray-400 text-sky focus:ring-sky/30 cursor-pointer"
-              />
-              <span className="text-sm font-manrope text-gray-700 leading-snug">
-                <span className="font-semibold text-[#0f1a3a]">C&apos;est moi (utilisateur connecté)</span>
-                <br />
-                <span className="text-xs text-gray-500">
-                  Mes interventions s&apos;afficheront sur ce membre dans le planning.
-                </span>
-              </span>
-            </label>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => { setShowModal(false); resetForm() }}
@@ -965,25 +896,6 @@ export default function EquipePage() {
                 onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
               />
             </div>
-            {/* Session 13 V1 : case "C'est moi (utilisateur connecté)".
-                Pré-cochée si le membre est déjà self. Décocher = retirer le
-                flag is_self (mais on ne touche pas user_is_intervenant côté
-                entreprise — voir handleUpdate). */}
-            <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
-              <input
-                type="checkbox"
-                checked={editForm.isSelf}
-                onChange={(e) => setEditForm({ ...editForm, isSelf: e.target.checked })}
-                className="mt-0.5 w-4 h-4 rounded border-gray-400 text-sky focus:ring-sky/30 cursor-pointer"
-              />
-              <span className="text-sm font-manrope text-gray-700 leading-snug">
-                <span className="font-semibold text-[#0f1a3a]">C&apos;est moi (utilisateur connecté)</span>
-                <br />
-                <span className="text-xs text-gray-500">
-                  Mes interventions s&apos;afficheront sur ce membre dans le planning.
-                </span>
-              </span>
-            </label>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setEditingIntervenant(null)}

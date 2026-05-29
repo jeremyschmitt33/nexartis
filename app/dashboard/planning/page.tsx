@@ -17,6 +17,7 @@ import {
 } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import NotesIntervention from '@/components/NotesIntervention'
 import Combobox, { ComboboxItem } from '@/components/Combobox'
 import { Input } from '@/components/ui/Input'
@@ -242,9 +243,10 @@ function PlanningPageInner() {
   const { data: clients, loading: l3, refetch: refetchClients } = useClients()
   const { data: chantiers } = useChantiers()
   const { data: devisData } = useDevis()
-  // Session 13 V1 : on récupère `update` pour pouvoir basculer
-  // `user_is_intervenant` (true/false) depuis le bandeau d'aide en mode Société.
-  const { entreprise, update: updateEntreprise } = useEntreprise()
+  // Session 13 V2 : on n'a plus besoin de `update` (le flag
+  // `user_is_intervenant` n'est plus écrit côté UI — il reste en DB dormant
+  // mais aucun code ne le lit/écrit).
+  const { entreprise } = useEntreprise()
   // Session 8 : table jonction multi-intervenants. On reflète aussi son
   // refetch dans le refetch global du planning (cf. saveLiaisons).
   const { data: interventionIntervenantsData, refetch: refetchLiaisons } = useInterventionIntervenants()
@@ -365,39 +367,24 @@ function PlanningPageInner() {
   const selfCreatingRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────────
-  // Session 13 V1 (29/05/2026) — Bandeau d'aide "Êtes-vous intervenant ?"
-  // et mini-modal "+ Ajouter intervenant" depuis le modal Nouvelle intervention.
+  // Session 13 V2 (29/05/2026) — Mini-modal "+ Ajouter intervenant"
+  // depuis le modal Nouvelle intervention.
+  //
+  // Note Session 13 V2 : le bandeau orange "Êtes-vous intervenant ?" et le
+  // sous-modal "Lier votre compte" ont été SUPPRIMÉS. Toute la gestion
+  // "Vous" passe désormais par Mon équipe (refonte radicale validée après
+  // tests prod et benchmark concurrence — voir commentaire useEffect plus haut).
   // ─────────────────────────────────────────────────────────────────
 
-  // Bandeau d'aide : visible en mode Société quand user_is_intervenant === NULL
-  // (jamais déclaré), et tant que l'utilisateur n'a pas cliqué "Plus tard"
-  // dans les 7 derniers jours (localStorage).
-  const [roleBannerDismissedAt, setRoleBannerDismissedAt] = useState<number | null>(null)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const raw = localStorage.getItem('planning_user_role_banner_dismissed_at')
-    const ts = raw ? parseInt(raw, 10) : NaN
-    if (!Number.isNaN(ts)) setRoleBannerDismissedAt(ts)
-  }, [])
-  // Sous-modal "Liez votre compte à un membre de l'équipe"
-  // déclenché par le clic "Oui, je suis un membre de l'équipe" du bandeau.
-  const [showLinkSelfModal, setShowLinkSelfModal] = useState(false)
-  const [linkSelfChosenId, setLinkSelfChosenId] = useState<string | null>(null)
-  const [linkSelfSaving, setLinkSelfSaving] = useState(false)
-
-  // Mini-modal "Créer un intervenant" (utilisé à 2 endroits) :
-  //   1. Depuis le sous-modal "Lier votre compte" via "+ Créer un nouveau membre"
-  //   2. Depuis le combobox du modal Nouvelle intervention via "+ Ajouter un intervenant"
-  // Le booléen `linkSelfAfter` indique si on doit marquer le nouvel intervenant
-  // comme is_self après création (cas 1) — sinon non (cas 2).
-  // Le callback `onCreated` permet à chaque caller de réagir après création
+  // Mini-modal "Créer un intervenant" (utilisé depuis le combobox du modal
+  // Nouvelle intervention via "+ Ajouter un intervenant").
+  // Le callback `onCreated` permet au caller de réagir après création
   // (ex. ajouter le nouvel intervenant à la liste mIntervenants).
   type MiniCreateState = {
     open: boolean
-    linkSelfAfter: boolean
     onCreated: ((newIntervenantId: string) => void) | null
   }
-  const [miniCreate, setMiniCreate] = useState<MiniCreateState>({ open: false, linkSelfAfter: false, onCreated: null })
+  const [miniCreate, setMiniCreate] = useState<MiniCreateState>({ open: false, onCreated: null })
 
   const loading = l1 || l2 || l3
 
@@ -427,46 +414,46 @@ function PlanningPageInner() {
     setViewMode(mode)
   }, [setViewMode])
 
-  // ── Solo + Société : résolution ou auto-création de l'intervenant "self" ──
-  // Session 9 (28/05/2026) : étendu au mode Société pour les nouveaux comptes
-  // sans équipe (impossible de planifier sinon).
+  // ── Résolution de l'intervenant "self" ──
   //
-  // Session 13 V1 (29/05/2026) : ajout du flag `entreprise.user_is_intervenant`
-  //   - NULL  → comportement Session 9 (Vous auto-créé) + bandeau d'aide affiché
-  //   - TRUE  → comportement Session 9 (Vous auto-créé)
-  //   - FALSE → pas de Vous auto (le user a déclaré ne PAS être intervenant)
+  // Session 13 V2 (29/05/2026) — Refonte radicale :
+  //   Mode Société : aucun "Vous" auto-créé. Tous les intervenants doivent
+  //   être créés manuellement dans Mon équipe (cf. décision Session 13 V2).
+  //   La recherche concurrence (Obat, Tolteck, Praxedo, Vertuoza, Batappli,
+  //   Sage, Codial, Mediabat) confirme : AUCUN outil ne sépare le compte
+  //   utilisateur d'une ressource planifiable.
+  //   Les comptes existants qui ont déjà un membre `is_self = true`
+  //   conservent ce membre (rétrocompat : `selfIntervenantId` pointera
+  //   dessus pour le tri "Vous en haut" et le libellé "Vous").
   //
-  // Logique :
-  //   0. (Session 13) Si Société + user_is_intervenant === false : on ne fait RIEN.
-  //      Pas de Vous auto, pas de fallback. Le user gère uniquement.
-  //   1. On cherche en priorité l'intervenant marqué `is_self = true` (créé
-  //      par cette logique ou marqué manuellement en BDD).
-  //   2. Si aucun, on retombe (Solo uniquement) sur le 1er non-sous-traitant
-  //      pour préserver la rétrocompat avec les comptes Solo existants qui
-  //      n'ont pas encore de flag `is_self`.
-  //   3. Si toujours rien : on crée silencieusement une fiche "self" avec le
-  //      nom de l'entreprise et le rôle "Dirigeant".
+  //   Mode Solo (AE / EI / micro-entreprise) : comportement Session 9
+  //   inchangé. On résout / crée silencieusement un intervenant self pour
+  //   permettre la planification immédiate (sinon l'agenda serait vide).
   //
   // Anti-double-insert :
-  //   - `selfCreatingRef` bloque les inserts concurrents au sein d'un onglet
-  //     pendant l'await.
-  //   - L'index UNIQUE (user_id) WHERE is_self=true (cf. migration) bloque les
-  //     inserts concurrents entre 2 onglets ouverts simultanément (try/catch
-  //     silencieux ci-dessous absorbe l'erreur).
+  //   - `selfCreatingRef` bloque les inserts concurrents au sein d'un onglet.
+  //   - L'index UNIQUE (user_id) WHERE is_self=true bloque les inserts
+  //     concurrents entre 2 onglets (try/catch silencieux absorbe l'erreur).
   useEffect(() => {
     if (l2) return // wait for intervenants to load
     if (!entreprise) return // wait for entreprise to load (besoin du nom)
     if (selfCreatingRef.current) return
 
-    // 0. Session 13 V1 : si Société + user_is_intervenant === false, on ne
-    //    crée PAS de self. Et si un self existe déjà (legacy "Vous" auto-créé
-    //    avant cette feature), on remet selfIntervenantId à null pour qu'il
-    //    n'apparaisse plus dans les pré-sélections — le row reste en BDD,
-    //    le user peut le supprimer manuellement depuis Mon équipe.
-    if (isSociete && (entreprise as R)?.user_is_intervenant === false) {
-      setSelfIntervenantId(null)
+    // Mode Société : aucun "Vous" auto-créé. Tous les intervenants doivent
+    // être créés manuellement dans Mon équipe (cf. décision Session 13 V2 — 29/05/2026).
+    // Les comptes existants qui ont déjà un membre is_self=true conservent ce membre
+    // (rétrocompat : `selfIntervenantId` pointera dessus pour le tri "Vous en haut").
+    if (isSociete) {
+      const memberIsSelf = intervenants.find(iv => (iv as R).is_self === true)
+      if (memberIsSelf) {
+        setSelfIntervenantId((memberIsSelf as R).id as string)
+      } else {
+        setSelfIntervenantId(null)
+      }
       return
     }
+
+    // ─── Mode Solo (AE / EI / micro-entreprise) — comportement Session 9 ───
 
     // 1. Lookup par is_self
     const selfMarked = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
@@ -477,14 +464,12 @@ function PlanningPageInner() {
 
     // 2. Rétrocompat Solo : fallback sur 1er non-sous-traitant (anciens
     //    comptes Solo où le self n'a pas le flag is_self).
-    if (!isSociete) {
-      const existing = intervenants.find(
-        iv => (iv as R).type_contrat !== 'sous-traitant'
-      ) as R | undefined
-      if (existing) {
-        setSelfIntervenantId(existing.id as string)
-        return
-      }
+    const existing = intervenants.find(
+      iv => (iv as R).type_contrat !== 'sous-traitant'
+    ) as R | undefined
+    if (existing) {
+      setSelfIntervenantId(existing.id as string)
+      return
     }
 
     // 3. Création silencieuse
@@ -517,67 +502,6 @@ function PlanningPageInner() {
     })
   }, [isSociete, l2, intervenants, entreprise])
 
-  // ─────────────────────────────────────────────────────────────────
-  // Session 13 V1 — Bandeau d'aide : conditions d'affichage + handlers
-  // ─────────────────────────────────────────────────────────────────
-  // Visible UNIQUEMENT en mode Société + user_is_intervenant === null
-  // + pas dismissed dans les 7 derniers jours. Le bandeau invite à clarifier
-  // si le user est intervenant terrain ou gérant pur.
-  const showRoleBanner = useMemo(() => {
-    if (!isSociete) return false
-    if (!entreprise) return false
-    if ((entreprise as R).user_is_intervenant !== null && (entreprise as R).user_is_intervenant !== undefined) return false
-    if (roleBannerDismissedAt) {
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-      if (Date.now() - roleBannerDismissedAt < SEVEN_DAYS_MS) return false
-    }
-    return true
-  }, [isSociete, entreprise, roleBannerDismissedAt])
-
-  // Handlers du bandeau (3 boutons : Oui / Non / Plus tard)
-  const handleBannerYes = useCallback(() => {
-    // Ouvre le sous-modal "Liez votre compte à un membre de l'équipe".
-    // Pré-coche le membre actuellement marqué is_self si présent.
-    const currentSelf = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
-    setLinkSelfChosenId((currentSelf?.id as string) ?? null)
-    setShowLinkSelfModal(true)
-  }, [intervenants])
-
-  const handleBannerNo = useCallback(async () => {
-    // Le user déclare qu'il n'est PAS intervenant. On bascule
-    // entreprise.user_is_intervenant = false + on dégrade le self existant
-    // (s'il y en a un, créé par la logique auto avant cette feature).
-    try {
-      await updateEntreprise({ user_is_intervenant: false })
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase
-          .from('intervenants')
-          .update({ is_self: null })
-          .eq('user_id', user.id)
-          .eq('is_self', true)
-      }
-      // L'effet useEffect ci-dessus (résolution du self) sera ré-déclenché
-      // par le refetch implicite de entreprise (setEntreprise dans useEntreprise).
-      // selfIntervenantId sera ré-évalué (à null vu la nouvelle condition 0).
-      setSelfIntervenantId(null)
-      // Hotfix V4.2 audit : refresh la liste intervenants pour que le "Vous"
-      // dégradé disparaisse immédiatement du planning sans refresh manuel.
-      refetchIntervenants()
-    } catch {
-      // silencieux : si la migration n'a pas été appliquée côté DB on log juste
-    }
-  }, [updateEntreprise, refetchIntervenants])
-
-  const handleBannerLater = useCallback(() => {
-    const ts = Date.now()
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('planning_user_role_banner_dismissed_at', String(ts))
-    }
-    setRoleBannerDismissedAt(ts)
-  }, [])
-
   // ─── Mini-modal "+ Ajouter un intervenant" — state + handlers ───
   // Form local (réinitialisé à chaque ouverture). On garde un schéma simple
   // aligné sur la page Mon équipe (5 champs : prenom, nom, metier, type_contrat,
@@ -599,13 +523,13 @@ function PlanningPageInner() {
     setMcTypeContrat('cdi'); setMcRole('')
   }, [])
 
-  const openMiniCreate = useCallback((opts: { linkSelfAfter: boolean; onCreated: ((id: string) => void) | null }) => {
+  const openMiniCreate = useCallback((opts: { onCreated: ((id: string) => void) | null }) => {
     resetMiniCreateForm()
-    setMiniCreate({ open: true, linkSelfAfter: opts.linkSelfAfter, onCreated: opts.onCreated })
+    setMiniCreate({ open: true, onCreated: opts.onCreated })
   }, [resetMiniCreateForm])
 
   const closeMiniCreate = useCallback(() => {
-    setMiniCreate({ open: false, linkSelfAfter: false, onCreated: null })
+    setMiniCreate({ open: false, onCreated: null })
     resetMiniCreateForm()
   }, [resetMiniCreateForm])
 
@@ -615,18 +539,6 @@ function PlanningPageInner() {
     try {
       const PALETTE_COULEURS = ['bg-[#5ab4e0]', 'bg-emerald-500', 'bg-[#e87a2a]', 'bg-violet-500', 'bg-rose-500', 'bg-amber-500', 'bg-cyan-500', 'bg-indigo-500']
       const couleur = PALETTE_COULEURS[Math.floor(Math.random() * PALETTE_COULEURS.length)]
-      // Si linkSelfAfter : on doit d'abord dégrader les autres self.
-      if (miniCreate.linkSelfAfter) {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          await supabase
-            .from('intervenants')
-            .update({ is_self: null })
-            .eq('user_id', user.id)
-            .eq('is_self', true)
-        }
-      }
       const created = await insertRow('intervenants', {
         prenom: mcPrenom.trim(),
         nom: mcNom.trim(),
@@ -637,12 +549,8 @@ function PlanningPageInner() {
         taux_horaire: null,
         actif: true,
         couleur,
-        is_self: miniCreate.linkSelfAfter ? true : null,
+        is_self: null,
       })
-      if (miniCreate.linkSelfAfter) {
-        await updateEntreprise({ user_is_intervenant: true })
-        if (created) setSelfIntervenantId((created as R).id as string)
-      }
       // Notifier le caller : on lui passe l'ID (utile pour ajouter le membre
       // dans la liste mIntervenants du modal Nouvelle intervention).
       if (created && miniCreate.onCreated) {
@@ -654,43 +562,7 @@ function PlanningPageInner() {
     } finally {
       setMcSaving(false)
     }
-  }, [mcPrenom, mcNom, mcMetier, mcTypeContrat, mcRole, miniCreate, closeMiniCreate, updateEntreprise])
-
-  // Valider le sous-modal "Lier votre compte"
-  const handleLinkSelfConfirm = useCallback(async () => {
-    if (!linkSelfChosenId) return
-    setLinkSelfSaving(true)
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      // 1. Dégrader tous les autres self (un seul à la fois — index UNIQUE).
-      await supabase
-        .from('intervenants')
-        .update({ is_self: null })
-        .eq('user_id', user.id)
-        .eq('is_self', true)
-        .neq('id', linkSelfChosenId)
-      // 2. Marquer le membre choisi comme self.
-      await supabase
-        .from('intervenants')
-        .update({ is_self: true })
-        .eq('id', linkSelfChosenId)
-      // 3. Persister entreprise.user_is_intervenant = true (le bandeau disparaît).
-      await updateEntreprise({ user_is_intervenant: true })
-      setSelfIntervenantId(linkSelfChosenId)
-      setShowLinkSelfModal(false)
-      setLinkSelfChosenId(null)
-      // Hotfix V4.2 audit : refresh intervenants pour que le membre choisi
-      // s'affiche tout de suite avec son flag is_self à jour (badge "Vous",
-      // tri liste plate matrice, etc.).
-      refetchIntervenants()
-    } catch {
-      // silencieux
-    } finally {
-      setLinkSelfSaving(false)
-    }
-  }, [linkSelfChosenId, updateEntreprise, refetchIntervenants])
+  }, [mcPrenom, mcNom, mcMetier, mcTypeContrat, mcRole, miniCreate, closeMiniCreate])
 
   // ── Pre-selection de l'intervenant "self" à l'ouverture du modal ──
   // Session 8 : pre-fill du Référent uniquement quand la liste est vide
@@ -2120,46 +1992,11 @@ function PlanningPageInner() {
       <div className="px-3 sm:px-6 py-3 sm:py-4 space-y-4">
 
         {/* ════════════════════════════════════════════════════════════
-            Session 13 V1 — BANDEAU D'AIDE "Êtes-vous intervenant ?"
-            Visible UNIQUEMENT en mode Société quand user_is_intervenant
-            n'a jamais été défini (NULL) et pas dismissed depuis < 7j.
+            Session 13 V2 (29/05/2026) — Le bandeau orange "Êtes-vous
+            intervenant ?" a été SUPPRIMÉ. La gestion "Vous" passe
+            désormais intégralement par la page Mon équipe (cf. décision
+            Session 13 V2 et useEffect plus haut).
         ════════════════════════════════════════════════════════════ */}
-        {showRoleBanner && (
-          <div className="bg-orange/10 border border-orange/30 text-[#9a3412] rounded-lg p-4 flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2.5 flex-1 min-w-[240px]">
-              <HardHat className="w-5 h-5 text-orange shrink-0" />
-              <p className="text-sm font-manrope">
-                <span className="font-bold">Êtes-vous un intervenant sur le terrain&nbsp;?</span>
-                <span className="text-[#7c2d12] block sm:inline sm:ml-1">
-                  On adapte le planning à votre rôle.
-                </span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={handleBannerYes}
-                className="px-3 py-1.5 rounded-lg bg-orange text-white text-xs font-syne font-bold hover:bg-[#d56619] transition-colors"
-              >
-                Oui, je suis un membre de l&apos;équipe
-              </button>
-              <button
-                type="button"
-                onClick={handleBannerNo}
-                className="px-3 py-1.5 rounded-lg border border-orange/40 bg-white text-orange text-xs font-syne font-bold hover:bg-orange/5 transition-colors"
-              >
-                Non, je gère uniquement
-              </button>
-              <button
-                type="button"
-                onClick={handleBannerLater}
-                className="px-3 py-1.5 rounded-lg text-[#7c2d12]/70 text-xs font-syne font-bold hover:text-[#7c2d12] hover:underline transition-colors"
-              >
-                Plus tard
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ════════════════════════════════════════════════════════════
             BANNIERE "INTERVENTIONS CACHEES SUR WEEKEND" (mode 5 jours)
@@ -2393,8 +2230,27 @@ function PlanningPageInner() {
               </div>
             )}
 
+            {/* Session 13 V2 — État vide Société : si aucun membre d'équipe,
+                aucun intervenant n'est planifiable. On guide l'utilisateur
+                vers Mon équipe au lieu d'afficher une grille vide ambiguë. */}
+            {isSociete && availableIntervenants.length === 0 && (
+              <div className="m-4 bg-cream/50 border border-gray-200 rounded-xl p-8 text-center">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <h3 className="font-syne text-lg text-[#0f1a3a] mb-2">Aucun membre d&apos;équipe configuré</h3>
+                <p className="text-sm font-manrope text-gray-600 mb-4 max-w-md mx-auto">
+                  Pour planifier en mode Société, ajoutez vos collaborateurs (vous compris si vous intervenez sur le terrain) dans la page Mon équipe.
+                </p>
+                <Link
+                  href="/dashboard/equipe"
+                  className="inline-flex items-center gap-2 bg-orange hover:bg-orange-hover text-white font-syne font-bold px-4 py-2 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Aller à Mon équipe
+                </Link>
+              </div>
+            )}
+
             {/* Vague 3 — Vue Agenda (1 semaine, colonnes-jours) — mode AE/EI */}
-            {effectiveViewMode === 'agenda' && detailWeeks[0] && (
+            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'agenda' && detailWeeks[0] && (
               <div className="p-3">
                 <SoloAgendaView
                   days={detailWeeks[0].days}
@@ -2431,7 +2287,7 @@ function PlanningPageInner() {
 
             {/* Bandeau "Retour à l'agenda" — visible uniquement quand le tempMatrixOverride
                 est actif (l'utilisateur a cliqué "Voir par intervenant" depuis SoloAgendaView). */}
-            {effectiveViewMode === 'matrix' && tempMatrixOverride && (
+            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'matrix' && tempMatrixOverride && (
               <div className="px-4 py-2 border-b border-[#e6ecf2] flex items-center justify-between bg-[#fef5ee]">
                 <span className="text-[11px] font-semibold text-[#b85c1a]">
                   Vue matrice temporaire (basculée depuis l&apos;agenda)
@@ -2447,7 +2303,7 @@ function PlanningPageInner() {
             )}
 
             {/* 5 weeks grid (vue Matrice — comportement historique inchangé) */}
-            {effectiveViewMode === 'matrix' && (
+            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'matrix' && (
             <div className="divide-y divide-[#e6ecf2] overflow-x-auto">
               {detailWeeks.map((week, wi) => {
                 const weekNum = getWeekNumber(week.start)
@@ -3595,7 +3451,6 @@ function PlanningPageInner() {
                         <button
                           type="button"
                           onClick={() => openMiniCreate({
-                            linkSelfAfter: false,
                             onCreated: (newId) => {
                               setMIntervenants(prev => addIntervenant(prev, newId))
                             },
@@ -3800,102 +3655,24 @@ function PlanningPageInner() {
           "+ Enregistrer comme client" pour formaliser la fiche si besoin. */}
 
       {/* ════════════════════════════════════════════════════════════
-          Session 13 V1 — Sous-modal "Liez votre compte à un membre"
-          Déclenché par le bandeau d'aide ("Oui, je suis intervenant").
+          Session 13 V2 (29/05/2026) — Le sous-modal "Lier votre compte"
+          a été SUPPRIMÉ avec la refonte radicale. La gestion "Vous"
+          passe désormais par Mon équipe.
       ════════════════════════════════════════════════════════════ */}
-      {showLinkSelfModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">Lier votre compte</h2>
-              <button
-                type="button"
-                onClick={() => { setShowLinkSelfModal(false); setLinkSelfChosenId(null) }}
-                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
-            <p className="text-sm font-manrope text-gray-600">
-              Choisissez le membre de l&apos;équipe qui correspond à vous.
-              Ses interventions s&apos;afficheront sur votre planning.
-            </p>
-            <div>
-              <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">
-                Membre
-              </label>
-              <select
-                value={linkSelfChosenId ?? ''}
-                onChange={(e) => setLinkSelfChosenId(e.target.value || null)}
-                className="w-full px-3.5 py-2.5 border border-gray-400 bg-gray-100 hover:border-gray-500 rounded-xl text-sm focus:border-sky focus:ring-1 focus:ring-sky/20 outline-none transition-all"
-              >
-                <option value="">— Choisir un membre —</option>
-                {intervenants
-                  .filter(iv => (iv as R).actif !== false)
-                  .map(iv => {
-                    const r = iv as R
-                    const prenom = String(r.prenom ?? '').trim()
-                    const nom = String(r.nom ?? '').trim()
-                    const metier = String(r.metier ?? '').trim()
-                    const full = `${prenom} ${nom}`.trim() || '(sans nom)'
-                    const isSelfNow = r.is_self === true
-                    return (
-                      <option key={r.id as string} value={r.id as string}>
-                        {full}{metier ? ` — ${metier}` : ''}{isSelfNow ? ' (actuellement lié)' : ''}
-                      </option>
-                    )
-                  })}
-              </select>
-            </div>
-            <button
-              type="button"
-              onClick={() => openMiniCreate({
-                linkSelfAfter: true,
-                onCreated: (newId) => {
-                  // Après création + lien : on ferme aussi le sous-modal Lier.
-                  setLinkSelfChosenId(newId)
-                  setShowLinkSelfModal(false)
-                },
-              })}
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 text-[#64748b] text-sm font-semibold hover:border-sky hover:text-sky hover:bg-sky/5 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Créer un nouveau membre
-            </button>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { setShowLinkSelfModal(false); setLinkSelfChosenId(null) }}
-                className="h-10 px-5 rounded-lg border border-gray-200 text-sm font-syne font-bold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleLinkSelfConfirm}
-                disabled={linkSelfSaving || !linkSelfChosenId}
-                className="h-10 px-5 rounded-lg bg-sky hover:bg-[#4a9fc9] disabled:opacity-50 text-white text-sm font-syne font-bold transition-colors"
-              >
-                {linkSelfSaving ? 'Enregistrement…' : 'Confirmer'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ════════════════════════════════════════════════════════════
-          Session 13 V1 — Mini-modal "+ Ajouter / Créer un intervenant"
-          Réutilisé par :
-            - Le bouton "+ Ajouter un intervenant" du modal Nouvelle intervention
-            - Le bouton "+ Créer un nouveau membre" du sous-modal Lier votre compte
-          Comportement post-création : appel de miniCreate.onCreated(newId).
+          Session 13 V1 — Mini-modal "+ Ajouter un intervenant"
+          Déclenché depuis le bouton "+ Ajouter un intervenant" du modal
+          Nouvelle intervention. Comportement post-création : appel de
+          miniCreate.onCreated(newId) — le caller ajoute le membre à
+          mIntervenants comme Équipier.
       ════════════════════════════════════════════════════════════ */}
       {miniCreate.open && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">
-                {miniCreate.linkSelfAfter ? 'Créer & lier mon compte' : 'Ajouter un intervenant'}
+                Ajouter un intervenant
               </h2>
               <button
                 type="button"
