@@ -20,6 +20,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import NotesIntervention from '@/components/NotesIntervention'
 import Combobox, { ComboboxItem } from '@/components/Combobox'
 import { Input } from '@/components/ui/Input'
+import SoloAgendaView from '@/components/planning/SoloAgendaView'
+import { useViewModeAuto } from '@/components/planning/hooks/useViewModeAuto'
+import type { PlanningViewMode } from '@/components/planning/shared/types'
 
 // ===================================================================
 // Session 8 (28/05/2026) — Multi-intervenants par intervention
@@ -379,6 +382,20 @@ function PlanningPageInner() {
       autoDetectedRef.current = true
     }
   }, [entreprise])
+
+  // ── Vague 3 (29/05/2026) : mode de vue Agenda vs Matrice ──
+  // Détection auto via forme juridique au 1er mount (AE→agenda, sinon matrice),
+  // override manuel via toggle dans la toolbar + persistance localStorage.
+  // `tempMatrixOverride` permet de basculer TEMPORAIREMENT vers la matrice
+  // depuis SoloAgendaView (bouton "Voir par intervenant") sans persister.
+  const { viewMode, setViewMode } = useViewModeAuto(entreprise?.forme_juridique as string | undefined)
+  const [tempMatrixOverride, setTempMatrixOverride] = useState(false)
+  // Vue effective utilisée pour le rendu (override temporaire prend le pas).
+  const effectiveViewMode: PlanningViewMode = tempMatrixOverride ? 'matrix' : viewMode
+  const handleSetViewMode = useCallback((mode: PlanningViewMode) => {
+    setTempMatrixOverride(false) // tout choix manuel annule l'override temporaire
+    setViewMode(mode)
+  }, [setViewMode])
 
   // ── Solo + Société : résolution ou auto-création de l'intervenant "self" ──
   // Session 9 (28/05/2026) : étendu au mode Société pour les nouveaux comptes
@@ -878,6 +895,28 @@ function PlanningPageInner() {
       conflicts: conflicts.size,
     }
   }, [planningData, weekDaysForStats, intervenants, isSociete, conflicts, showWeekend])
+
+  // ── Vague 3 : nb d'intervenants distincts sur les interventions du mois courant ──
+  // Sert à SoloAgendaView pour décider d'afficher le bouton "Voir par intervenant".
+  // Si ≥2 intervenants distincts sur le mois → toggle pertinent.
+  const monthIntervenantsCount = useMemo(() => {
+    const today = new Date()
+    const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+    const set = new Set<string>()
+    for (const item of planningData) {
+      const rec = item as R
+      const d = (rec.date_debut as string) ?? ''
+      if (!d.startsWith(ym)) continue
+      const liaisons = interventionIntervenantsMap.get(rec.id as string)
+      if (liaisons && liaisons.length > 0) {
+        liaisons.forEach(l => set.add(l.id))
+      } else if (rec.intervenant_id) {
+        set.add(rec.intervenant_id as string)
+      }
+    }
+    return set.size
+  }, [planningData, interventionIntervenantsMap])
+  const hasMultipleIntervenantsOnMonth = monthIntervenantsCount >= 2
 
   // ── Search ──
   const searchResults = useMemo(() => {
@@ -1999,6 +2038,29 @@ function PlanningPageInner() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
+                {/* Vague 3 — Toggle Vue Agenda / Matrice (segment control)
+                    Détection auto via forme juridique au 1er mount + override
+                    manuel persisté en localStorage (cf. useViewModeAuto). */}
+                <div className="flex bg-[#f6f8fb] rounded-lg p-0.5 gap-0.5" role="group" aria-label="Type de vue planning">
+                  <button
+                    onClick={() => handleSetViewMode('agenda')}
+                    aria-pressed={effectiveViewMode === 'agenda'}
+                    title="Vue agenda (par jour, idéal mode Solo)"
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${effectiveViewMode === 'agenda' ? 'bg-white text-[#0f1a3a] shadow-sm' : 'text-[#64748b] hover:text-[#0f1a3a]'}`}
+                  >
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Agenda</span>
+                  </button>
+                  <button
+                    onClick={() => handleSetViewMode('matrix')}
+                    aria-pressed={effectiveViewMode === 'matrix'}
+                    title="Vue matrice (intervenants × jours)"
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${effectiveViewMode === 'matrix' ? 'bg-white text-[#0f1a3a] shadow-sm' : 'text-[#64748b] hover:text-[#0f1a3a]'}`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Matrice</span>
+                  </button>
+                </div>
                 {/* S2 — Toggle densité Compact / Confort (segment control) */}
                 <div className="flex bg-[#f6f8fb] rounded-lg p-0.5 gap-0.5" role="group" aria-label="Densité d'affichage">
                   <button
@@ -2108,7 +2170,61 @@ function PlanningPageInner() {
               </div>
             )}
 
-            {/* 5 weeks grid */}
+            {/* Vague 3 — Vue Agenda (1 semaine, colonnes-jours) — mode AE/EI */}
+            {effectiveViewMode === 'agenda' && detailWeeks[0] && (
+              <div className="p-3">
+                <SoloAgendaView
+                  days={detailWeeks[0].days}
+                  interventionsByDay={planningByDate}
+                  colorMap={colorMap}
+                  intervenantMap={intervenantMap}
+                  interventionIntervenantsMap={interventionIntervenantsMap}
+                  conflicts={conflicts}
+                  density={density}
+                  draggedId={draggedId}
+                  dragOverCell={dragOverCell}
+                  setDragOverCell={setDragOverCell}
+                  onOpenPanel={openPanel}
+                  onOpenModal={openModal}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDrop={handleDrop}
+                  showToast={showToast}
+                  shortTime={shortTime}
+                  creneauLabel={creneauLabel}
+                  clNameFromIntervention={clNameFromIntervention}
+                  getTypeInterventionMeta={getTypeInterventionMeta}
+                  getStatutPastilleColor={getStatutPastilleColor}
+                  statuts={STATUTS}
+                  horaires={horaires}
+                  initials={initials}
+                  selfIntervenantId={selfIntervenantId}
+                  showWeekend={showWeekend}
+                  hasMultipleIntervenants={hasMultipleIntervenantsOnMonth}
+                  onSwitchToMatrix={() => setTempMatrixOverride(true)}
+                />
+              </div>
+            )}
+
+            {/* Bandeau "Retour à l'agenda" — visible uniquement quand le tempMatrixOverride
+                est actif (l'utilisateur a cliqué "Voir par intervenant" depuis SoloAgendaView). */}
+            {effectiveViewMode === 'matrix' && tempMatrixOverride && (
+              <div className="px-4 py-2 border-b border-[#e6ecf2] flex items-center justify-between bg-[#fef5ee]">
+                <span className="text-[11px] font-semibold text-[#b85c1a]">
+                  Vue matrice temporaire (basculée depuis l&apos;agenda)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTempMatrixOverride(false)}
+                  className="text-[11px] font-semibold text-[#e87a2a] hover:underline"
+                >
+                  Retour à l&apos;agenda
+                </button>
+              </div>
+            )}
+
+            {/* 5 weeks grid (vue Matrice — comportement historique inchangé) */}
+            {effectiveViewMode === 'matrix' && (
             <div className="divide-y divide-[#e6ecf2] overflow-x-auto">
               {detailWeeks.map((week, wi) => {
                 const weekNum = getWeekNumber(week.start)
@@ -2402,6 +2518,7 @@ function PlanningPageInner() {
                 )
               })}
             </div>
+            )}
           </div>
         )}
 
