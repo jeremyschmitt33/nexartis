@@ -7,7 +7,7 @@ import {
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
   MoreHorizontal, Phone, Navigation, Rows3, Rows4,
-  Crown, UserPlus
+  Crown, UserPlus, CheckCircle2
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -239,7 +239,7 @@ function PlanningPageInner() {
   const searchParams = useSearchParams()
   const { data: planningData, loading: l1, refetch } = usePlanning()
   const { data: intervenants, loading: l2 } = useIntervenants()
-  const { data: clients, loading: l3 } = useClients()
+  const { data: clients, loading: l3, refetch: refetchClients } = useClients()
   const { data: chantiers } = useChantiers()
   const { data: devisData } = useDevis()
   const { entreprise } = useEntreprise()
@@ -338,6 +338,11 @@ function PlanningPageInner() {
   const [mClientLibreCP, setMClientLibreCP] = useState('')
   const [mClientLibreVille, setMClientLibreVille] = useState('')
   const [enregistrerClientSaving, setEnregistrerClientSaving] = useState(false)
+  // Session 12 V4.1 : feedback visuel après "+ Enregistrer comme client".
+  // Affiche un mini-message vert sous le combobox tant que le client créé
+  // reste sélectionné. Reset à l'ouverture/fermeture du modal, au switchMode
+  // ou si l'utilisateur retire le client du combobox.
+  const [lastEnregistreClientNom, setLastEnregistreClientNom] = useState('')
   const [mDate, setMDate] = useState('')
   const [mDateFin, setMDateFin] = useState('')
   const [mCreneau, setMCreneau] = useState<Creneau>('journee')
@@ -981,6 +986,8 @@ function PlanningPageInner() {
     setMClientLibre(''); setMChantierLibre(''); setMTypeIntervention('')
     // Session 12 V4 : reset des 4 champs libres client étendus
     setMClientLibreTel(''); setMClientLibreAdresse(''); setMClientLibreCP(''); setMClientLibreVille('')
+    // Session 12 V4.1 : reset feedback "Coordonnées enregistrées" à chaque ouverture
+    setLastEnregistreClientNom('')
     setMDate(dateStr ?? fmtISO(new Date())); setMDateFin(dateStr ?? fmtISO(new Date()))
     setMCreneau('journee'); setMObjet(''); setMNotes(''); setMStatut('planifie')
     setMHeureDebut(horaires.debutMatin); setMHeureFin(horaires.finAm); setMConflitWarning(null)
@@ -1048,6 +1055,8 @@ function PlanningPageInner() {
     setMHeureFin(String(intervention.heure_fin ?? horaires.finAm))
     setMConflitWarning(null)
     setShowConflitConfirm(false); setConflitConfirmMessage('')
+    // Session 12 V4.1 : reset feedback à l'ouverture en édition.
+    setLastEnregistreClientNom('')
     setShowModal(true)
   }
 
@@ -1089,6 +1098,8 @@ function PlanningPageInner() {
     }
     setMMode(target)
     setShowConflitConfirm(false); setConflitConfirmMessage('')
+    // Session 12 V4.1 : reset feedback au changement de mode.
+    setLastEnregistreClientNom('')
   }
 
   // ── Enregistrer comme client (Session 12 V4 — 29/05/2026) ──
@@ -1141,7 +1152,13 @@ function PlanningPageInner() {
         setMClientLibreCP('')
         setMClientLibreVille('')
         showToast('Client enregistré ✓')
+        // Session 12 V4.1 : mémoriser le nom pour le feedback visuel sous le combobox.
+        setLastEnregistreClientNom(nomLibreTrim)
         // Refetch pour que le combobox affiche le nouveau client.
+        // V4.1 fix critique : refetchClients() AVANT refetch() planning, sinon
+        // le nouvel id n'apparaît pas dans clientItems et le combobox affiche
+        // "Aucun client trouvé" même si la fiche existe en DB.
+        refetchClients()
         refetch()
       }
     } catch (err) {
@@ -1150,7 +1167,7 @@ function PlanningPageInner() {
     } finally {
       setEnregistrerClientSaving(false)
     }
-  }, [mClientLibre, mClientLibreTel, mClientLibreAdresse, mClientLibreCP, mClientLibreVille, refetch, showToast])
+  }, [mClientLibre, mClientLibreTel, mClientLibreAdresse, mClientLibreCP, mClientLibreVille, refetch, refetchClients, showToast])
 
   // ── Items pour les Combobox du modal ──
   // Liste des devis signés, formatée pour le composant Combobox.
@@ -3123,6 +3140,9 @@ function PlanningPageInner() {
                           setMClientLibreAdresse('')
                           setMClientLibreCP('')
                           setMClientLibreVille('')
+                        } else {
+                          // V4.1 : l'utilisateur retire le client → le feedback n'a plus de sens
+                          setLastEnregistreClientNom('')
                         }
                       }}
                       icon={<Users className="w-3.5 h-3.5" />}
@@ -3140,7 +3160,7 @@ function PlanningPageInner() {
                     )}
                     {/* Bloc coordonnées libres — affiché seulement si nom libre saisi (et aucun client choisi) */}
                     {!mClient && mClientLibre.trim().length > 0 && (
-                      <div className="mt-2 bg-gray-50/60 border border-gray-200 rounded-lg p-3 space-y-3">
+                      <div className="mt-2 bg-gray-100 border-2 border-gray-300 rounded-lg p-3 space-y-3">
                         <p className="text-[11px] italic text-gray-500 leading-snug">
                           Coordonnées (optionnelles) — stockées sur cette intervention uniquement.
                         </p>
@@ -3183,6 +3203,16 @@ function PlanningPageInner() {
                         >
                           {enregistrerClientSaving ? 'Enregistrement…' : '+ Enregistrer comme client (créer la fiche)'}
                         </button>
+                      </div>
+                    )}
+                    {/* V4.1 : feedback visuel post-enregistrement.
+                        Tant que le client créé reste sélectionné, on rassure
+                        l'utilisateur sur le fait que ses coordonnées ont bien
+                        été persistées dans la fiche client. */}
+                    {lastEnregistreClientNom && mClient && (
+                      <div className="mt-2 text-[12px] text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        <span>Coordonnées enregistrées dans la fiche client <strong>{lastEnregistreClientNom}</strong></span>
                       </div>
                     )}
                   </div>
