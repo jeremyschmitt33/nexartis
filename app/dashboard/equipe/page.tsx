@@ -425,15 +425,11 @@ export default function EquipePage() {
   }
 
   // --- Supprimer ---
-  // Session 13 V2 garde-fou : interdire la suppression de sa propre fiche
-  // (is_self === true) depuis cette page — sinon le planning serait cassé
-  // pour l'utilisateur. Si besoin de retirer le badge "Vous", passer par DB.
+  // Session 13 V2.1 : le lock anti-auto-suppression a été retiré (Jerem
+  // 29/05/2026 soir). L'utilisateur doit pouvoir tout effacer, y compris
+  // sa propre fiche. S'il efface sa fiche en mode Solo, il pourra simplement
+  // la recréer dans Mon équipe.
   const handleDelete = async (id: string) => {
-    const target = allIntervenants.find((iv) => iv.id === id)
-    if (target?.is_self === true) {
-      setDeleteConfirm(null)
-      return
-    }
     try {
       await deleteRow('intervenants', id)
       refetch()
@@ -616,9 +612,8 @@ export default function EquipePage() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirm(intervenant.id)}
-                          disabled={intervenant.is_self === true}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
-                          title={intervenant.is_self === true ? 'Vous ne pouvez pas supprimer votre propre fiche depuis ici' : 'Supprimer'}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          title="Supprimer"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -707,9 +702,8 @@ export default function EquipePage() {
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(intervenant.id)}
-                    disabled={intervenant.is_self === true}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
-                    title={intervenant.is_self === true ? 'Vous ne pouvez pas supprimer votre propre fiche depuis ici' : 'Supprimer'}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Supprimer"
                   >
                     <Trash2 size={14} />
                   </button>

@@ -362,9 +362,10 @@ function PlanningPageInner() {
   // Conflict confirmation modal state
   const [showConflitConfirm, setShowConflitConfirm] = useState(false)
   const [conflitConfirmMessage, setConflitConfirmMessage] = useState('')
-  // Solo mode: ID of the self-intervenant (artisan himself)
+  // Solo mode: ID of the self-intervenant (artisan himself) — rétrocompat.
+  // Session 13 V2.1 : plus de création auto, juste un lookup sur les comptes
+  // legacy qui ont déjà un intervenant is_self ou un membre Solo existant.
   const [selfIntervenantId, setSelfIntervenantId] = useState<string | null>(null)
-  const selfCreatingRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────────
   // Session 13 V2 (29/05/2026) — Mini-modal "+ Ajouter intervenant"
@@ -416,46 +417,22 @@ function PlanningPageInner() {
 
   // ── Résolution de l'intervenant "self" ──
   //
-  // Session 13 V2 (29/05/2026) — Refonte radicale :
-  //   Mode Société : aucun "Vous" auto-créé. Tous les intervenants doivent
-  //   être créés manuellement dans Mon équipe (cf. décision Session 13 V2).
-  //   La recherche concurrence (Obat, Tolteck, Praxedo, Vertuoza, Batappli,
-  //   Sage, Codial, Mediabat) confirme : AUCUN outil ne sépare le compte
-  //   utilisateur d'une ressource planifiable.
-  //   Les comptes existants qui ont déjà un membre `is_self = true`
-  //   conservent ce membre (rétrocompat : `selfIntervenantId` pointera
-  //   dessus pour le tri "Vous en haut" et le libellé "Vous").
+  // Session 13 V2.1 (29/05/2026 soir) — Refonte radicale TOTALE :
+  //   AUCUN "Vous" auto-créé, ni en Solo ni en Société. Tous les intervenants
+  //   doivent être créés manuellement dans Mon équipe. Cohérence : "tout
+  //   passe par Mon équipe" pour tous les statuts juridiques (AE compris).
+  //   Décision Jerem 29/05/2026 (validée par recherche concurrence Obat /
+  //   Tolteck / Praxedo / Vertuoza / Batappli / Sage / Codial / Mediabat).
   //
-  //   Mode Solo (AE / EI / micro-entreprise) : comportement Session 9
-  //   inchangé. On résout / crée silencieusement un intervenant self pour
-  //   permettre la planification immédiate (sinon l'agenda serait vide).
-  //
-  // Anti-double-insert :
-  //   - `selfCreatingRef` bloque les inserts concurrents au sein d'un onglet.
-  //   - L'index UNIQUE (user_id) WHERE is_self=true bloque les inserts
-  //     concurrents entre 2 onglets (try/catch silencieux absorbe l'erreur).
+  // Rétrocompat : les comptes qui ont déjà un membre `is_self = true` ou
+  // un intervenant non sous-traitant existant gardent ce membre comme
+  // référent pour le tri "Vous en haut" et le libellé. On ne supprime
+  // rien — l'utilisateur peut effacer manuellement s'il le souhaite.
   useEffect(() => {
     if (l2) return // wait for intervenants to load
-    if (!entreprise) return // wait for entreprise to load (besoin du nom)
-    if (selfCreatingRef.current) return
+    if (!entreprise) return // wait for entreprise to load
 
-    // Mode Société : aucun "Vous" auto-créé. Tous les intervenants doivent
-    // être créés manuellement dans Mon équipe (cf. décision Session 13 V2 — 29/05/2026).
-    // Les comptes existants qui ont déjà un membre is_self=true conservent ce membre
-    // (rétrocompat : `selfIntervenantId` pointera dessus pour le tri "Vous en haut").
-    if (isSociete) {
-      const memberIsSelf = intervenants.find(iv => (iv as R).is_self === true)
-      if (memberIsSelf) {
-        setSelfIntervenantId((memberIsSelf as R).id as string)
-      } else {
-        setSelfIntervenantId(null)
-      }
-      return
-    }
-
-    // ─── Mode Solo (AE / EI / micro-entreprise) — comportement Session 9 ───
-
-    // 1. Lookup par is_self
+    // 1. Lookup par is_self (légacy : comptes Session 9 ou plus anciens)
     const selfMarked = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
     if (selfMarked) {
       setSelfIntervenantId(selfMarked.id as string)
@@ -464,42 +441,21 @@ function PlanningPageInner() {
 
     // 2. Rétrocompat Solo : fallback sur 1er non-sous-traitant (anciens
     //    comptes Solo où le self n'a pas le flag is_self).
-    const existing = intervenants.find(
-      iv => (iv as R).type_contrat !== 'sous-traitant'
-    ) as R | undefined
-    if (existing) {
-      setSelfIntervenantId(existing.id as string)
-      return
+    if (!isSociete) {
+      const existing = intervenants.find(
+        iv => (iv as R).type_contrat !== 'sous-traitant'
+      ) as R | undefined
+      if (existing) {
+        setSelfIntervenantId(existing.id as string)
+        return
+      }
     }
 
-    // 3. Création silencieuse
-    selfCreatingRef.current = true
-    const nomSelf = (entreprise?.nom as string) || 'Dirigeant'
-    const metierSelf = (entreprise?.metier as string) || ''
-    insertRow('intervenants', {
-      prenom: 'Vous',
-      nom: nomSelf,
-      metier: metierSelf,
-      type_contrat: 'cdi',
-      niveau_acces: 'proprietaire',
-      role: 'Dirigeant',
-      taux_horaire: null,
-      actif: true,
-      is_self: true,
-      couleur: 'bg-[#5ab4e0]',
-    }).then(created => {
-      if (created) {
-        setSelfIntervenantId((created as R).id as string)
-      }
-      selfCreatingRef.current = false
-    }).catch(() => {
-      // Silencieux : 2 causes possibles
-      //   - migration `is_self` non encore appliquée → colonne inconnue
-      //   - race condition entre 2 onglets → violation index UNIQUE
-      // Dans les 2 cas, on libère le ref et on laisse le useEffect retenter
-      // au prochain refetch (le selfMarked sera trouvé au tour suivant).
-      selfCreatingRef.current = false
-    })
+    // 3. Aucun intervenant : selfIntervenantId reste à null. L'état vide
+    //    explicite s'affichera dans le planning (cf. JSX `availableIntervenants.length === 0`).
+    //    Plus de création silencieuse — l'utilisateur va créer ses fiches
+    //    lui-même dans Mon équipe.
+    setSelfIntervenantId(null)
   }, [isSociete, l2, intervenants, entreprise])
 
   // ─── Mini-modal "+ Ajouter un intervenant" — state + handlers ───
@@ -2230,15 +2186,15 @@ function PlanningPageInner() {
               </div>
             )}
 
-            {/* Session 13 V2 — État vide Société : si aucun membre d'équipe,
-                aucun intervenant n'est planifiable. On guide l'utilisateur
-                vers Mon équipe au lieu d'afficher une grille vide ambiguë. */}
-            {isSociete && availableIntervenants.length === 0 && (
+            {/* Session 13 V2.1 — État vide universel : si aucun intervenant,
+                aucune planification n'est possible. On guide l'utilisateur
+                vers Mon équipe (AE comme Société). */}
+            {availableIntervenants.length === 0 && (
               <div className="m-4 bg-cream/50 border border-gray-200 rounded-xl p-8 text-center">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <h3 className="font-syne text-lg text-[#0f1a3a] mb-2">Aucun membre d&apos;équipe configuré</h3>
                 <p className="text-sm font-manrope text-gray-600 mb-4 max-w-md mx-auto">
-                  Pour planifier en mode Société, ajoutez vos collaborateurs (vous compris si vous intervenez sur le terrain) dans la page Mon équipe.
+                  Pour planifier, ajoutez vous-même et/ou vos collaborateurs dans la page Mon équipe.
                 </p>
                 <Link
                   href="/dashboard/equipe"
@@ -2250,7 +2206,7 @@ function PlanningPageInner() {
             )}
 
             {/* Vague 3 — Vue Agenda (1 semaine, colonnes-jours) — mode AE/EI */}
-            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'agenda' && detailWeeks[0] && (
+            {availableIntervenants.length > 0 && effectiveViewMode === 'agenda' && detailWeeks[0] && (
               <div className="p-3">
                 <SoloAgendaView
                   days={detailWeeks[0].days}
@@ -2287,7 +2243,7 @@ function PlanningPageInner() {
 
             {/* Bandeau "Retour à l'agenda" — visible uniquement quand le tempMatrixOverride
                 est actif (l'utilisateur a cliqué "Voir par intervenant" depuis SoloAgendaView). */}
-            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'matrix' && tempMatrixOverride && (
+            {availableIntervenants.length > 0 && effectiveViewMode === 'matrix' && tempMatrixOverride && (
               <div className="px-4 py-2 border-b border-[#e6ecf2] flex items-center justify-between bg-[#fef5ee]">
                 <span className="text-[11px] font-semibold text-[#b85c1a]">
                   Vue matrice temporaire (basculée depuis l&apos;agenda)
@@ -2303,7 +2259,7 @@ function PlanningPageInner() {
             )}
 
             {/* 5 weeks grid (vue Matrice — comportement historique inchangé) */}
-            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'matrix' && (
+            {availableIntervenants.length > 0 && effectiveViewMode === 'matrix' && (
             <div className="divide-y divide-[#e6ecf2] overflow-x-auto">
               {detailWeeks.map((week, wi) => {
                 const weekNum = getWeekNumber(week.start)
