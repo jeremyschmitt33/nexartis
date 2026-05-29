@@ -6,7 +6,7 @@ import {
   Search, AlertTriangle, Users, Briefcase, Clock, HardHat,
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
-  MoreHorizontal, Phone, Navigation, ChevronDown, Rows3, Rows4,
+  MoreHorizontal, Phone, Navigation, Rows3, Rows4,
   Crown, UserPlus
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -325,31 +325,19 @@ function PlanningPageInner() {
   const [mChantierLibre, setMChantierLibre] = useState('')
   const [mTypeIntervention, setMTypeIntervention] = useState('')
 
-  // ── Mini-formulaire de création prospect inline (28/05/2026) ──
-  // Avant : '+ Créer le prospect X' créait une fiche avec juste prénom/nom → inutilisable
-  // sans devoir aller dans Clients pour compléter. Maintenant : un mini-dialog s'ouvre
-  // pour saisir téléphone/email/adresse avant de valider (tout optionnel sauf nom).
-  const [showProspectForm, setShowProspectForm] = useState(false)
-  // Client optimiste : on garde une copie du dernier prospect créé pour l'afficher
-  // immédiatement dans le combobox, sans attendre que `clients` (refetch async) soit
-  // mis à jour. Sinon le combobox affiche "Tapez un nom..." après création (le toast
-  // dit "Prospect créé" mais l'utilisateur ne voit pas la sélection).
-  const [optimisticClient, setOptimisticClient] = useState<{ id: string; prenom: string; nom: string; telephone: string; email: string } | null>(null)
-  // Cleanup auto : dès que le vrai client (post-refetch) apparaît dans `clients`,
-  // on jette l'optimiste pour éviter qu'il reste épinglé en tête de liste à vie.
-  useEffect(() => {
-    if (optimisticClient && clients.some(c => (c as R).id === optimisticClient.id)) {
-      setOptimisticClient(null)
-    }
-  }, [clients, optimisticClient])
-  const [prospectPrenom, setProspectPrenom] = useState('')
-  const [prospectNom, setProspectNom] = useState('')
-  const [prospectTelephone, setProspectTelephone] = useState('')
-  const [prospectEmail, setProspectEmail] = useState('')
-  const [prospectAdresse, setProspectAdresse] = useState('')
-  const [prospectCodePostal, setProspectCodePostal] = useState('')
-  const [prospectVille, setProspectVille] = useState('')
-  const [prospectSaving, setProspectSaving] = useState(false)
+  // ── Saisie libre étendue client (Session 12 V4 — 29/05/2026) ──
+  // Avant : pour stocker un téléphone client, il fallait créer une fiche complète
+  // via un mini-form prospect (7 champs lourds). Trop pénible pour un dépannage one-shot.
+  // Maintenant : le nom libre (`mClientLibre`) déclenche l'affichage de 4 champs
+  // optionnels (tél, adresse, CP, ville) stockés directement sur l'intervention
+  // dans les colonnes `client_libre_telephone`, `client_libre_adresse`,
+  // `client_libre_code_postal`, `client_libre_ville` (migration prod appliquée).
+  // Bouton discret "+ Enregistrer comme client" pour formaliser si besoin.
+  const [mClientLibreTel, setMClientLibreTel] = useState('')
+  const [mClientLibreAdresse, setMClientLibreAdresse] = useState('')
+  const [mClientLibreCP, setMClientLibreCP] = useState('')
+  const [mClientLibreVille, setMClientLibreVille] = useState('')
+  const [enregistrerClientSaving, setEnregistrerClientSaving] = useState(false)
   const [mDate, setMDate] = useState('')
   const [mDateFin, setMDateFin] = useState('')
   const [mCreneau, setMCreneau] = useState<Creneau>('journee')
@@ -537,31 +525,6 @@ function PlanningPageInner() {
     if (typeof window === 'undefined') return
     localStorage.setItem('planning_filter_intervenants', JSON.stringify(Array.from(hiddenIntervenants)))
   }, [hiddenIntervenants])
-
-  // Levier 2 : métiers repliés (Set de noms de métier)
-  const [collapsedMetiers, setCollapsedMetiers] = useState<Set<string>>(new Set())
-  // Init depuis localStorage au mount
-  const collapsedMetiersInitRef = useRef(false)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (collapsedMetiersInitRef.current) return
-    try {
-      const raw = localStorage.getItem('planning_collapsed_metiers')
-      if (raw) {
-        const arr = JSON.parse(raw) as unknown
-        if (Array.isArray(arr)) {
-          setCollapsedMetiers(new Set(arr.filter((x): x is string => typeof x === 'string')))
-          collapsedMetiersInitRef.current = true
-        }
-      }
-    } catch { /* ignore parse errors */ }
-  }, [])
-  // Persist
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!collapsedMetiersInitRef.current) return
-    localStorage.setItem('planning_collapsed_metiers', JSON.stringify(Array.from(collapsedMetiers)))
-  }, [collapsedMetiers])
 
   // Levier 3 : densité ('compact' | 'confort')
   const [density, setDensity] = useState<'compact' | 'confort'>('confort')
@@ -1016,6 +979,8 @@ function PlanningPageInner() {
     setMAddIvBuffer(null)
     setMDevis(''); setMClient(''); setMChantier('')
     setMClientLibre(''); setMChantierLibre(''); setMTypeIntervention('')
+    // Session 12 V4 : reset des 4 champs libres client étendus
+    setMClientLibreTel(''); setMClientLibreAdresse(''); setMClientLibreCP(''); setMClientLibreVille('')
     setMDate(dateStr ?? fmtISO(new Date())); setMDateFin(dateStr ?? fmtISO(new Date()))
     setMCreneau('journee'); setMObjet(''); setMNotes(''); setMStatut('planifie')
     setMHeureDebut(horaires.debutMatin); setMHeureFin(horaires.finAm); setMConflitWarning(null)
@@ -1067,6 +1032,11 @@ function PlanningPageInner() {
     setMChantier((intervention.chantier_id as string) ?? '')
     setMClientLibre((intervention.client_libre as string) ?? '')
     setMChantierLibre((intervention.chantier_libre as string) ?? '')
+    // Session 12 V4 : pré-remplir les 4 champs libres étendus (tél + adresse + CP + ville)
+    setMClientLibreTel((intervention.client_libre_telephone as string) ?? '')
+    setMClientLibreAdresse((intervention.client_libre_adresse as string) ?? '')
+    setMClientLibreCP((intervention.client_libre_code_postal as string) ?? '')
+    setMClientLibreVille((intervention.client_libre_ville as string) ?? '')
     setMTypeIntervention((intervention.type_intervention as string) ?? '')
     setMDate(dateDebut)
     setMDateFin(dateFin)
@@ -1111,86 +1081,76 @@ function PlanningPageInner() {
     } else {
       setMClientLibre('')
       setMChantierLibre('')
+      // Session 12 V4 : reset des 4 champs libres étendus
+      setMClientLibreTel('')
+      setMClientLibreAdresse('')
+      setMClientLibreCP('')
+      setMClientLibreVille('')
     }
     setMMode(target)
     setShowConflitConfirm(false); setConflitConfirmMessage('')
   }
 
-  // ── Création client inline depuis le combobox ──
-  // Quand l'utilisateur tape un nom inconnu et clique "+ Créer le prospect 'X'".
-  // Crée une fiche client minimale (prénom + nom seulement) puis pré-sélectionne dans le modal.
-  // Heuristique simple : si premier mot = "M.", "Mme", "Mlle" → on garde tel quel en civilité dans nom,
-  // sinon premier mot = prénom, reste = nom.
-  const createClientInline = useCallback((typedText: string) => {
-    // 28/05/2026 : on n'insère plus directement. On ouvre un mini-dialog
-    // pré-rempli avec ce que l'utilisateur a tapé pour que la fiche client
-    // créée contienne aussi téléphone/email/adresse (tous optionnels).
-    const t = typedText.trim()
-    const parts = t.split(/\s+/)
-    const civilitePattern = /^(m\.|mme\.?|mlle\.?|monsieur|madame|mademoiselle)$/i
-    let prenom = ''
-    let nom = ''
-    if (parts.length === 1) {
-      nom = parts[0]
-    } else if (civilitePattern.test(parts[0])) {
-      nom = parts.join(' ')
-    } else {
-      prenom = parts[0]
-      nom = parts.slice(1).join(' ')
-    }
-    setProspectPrenom(prenom)
-    setProspectNom(nom)
-    setProspectTelephone('')
-    setProspectEmail('')
-    setProspectAdresse('')
-    setProspectCodePostal('')
-    setProspectVille('')
-    setShowProspectForm(true)
-  }, [])
-
-  // Validation finale du mini-formulaire prospect + insertion en base.
-  const submitProspectForm = useCallback(async () => {
-    const nomTrim = prospectNom.trim()
-    if (!nomTrim) {
-      showToast('Le nom est obligatoire')
+  // ── Enregistrer comme client (Session 12 V4 — 29/05/2026) ──
+  // Bouton discret en bas du bloc "saisie libre client" : transforme les
+  // 5 champs libres (nom + tél + adresse + CP + ville) en une vraie fiche
+  // client (table `clients`, RLS user_id = auth.uid()), puis pré-sélectionne
+  // ce client dans le combobox et vide les champs libres.
+  //
+  // Heuristique nom/prénom : si 1 seul mot OU premier mot = civilité
+  // (M., Mme, etc.), on met tout dans `nom`. Sinon : premier mot = prénom.
+  const handleEnregistrerCommeClient = useCallback(async () => {
+    const nomLibreTrim = mClientLibre.trim()
+    if (!nomLibreTrim) {
+      showToast('Renseignez au moins le nom')
       return
     }
-    setProspectSaving(true)
+    setEnregistrerClientSaving(true)
     try {
-      const payload: Record<string, unknown> = { nom: nomTrim }
-      if (prospectPrenom.trim()) payload.prenom = prospectPrenom.trim()
-      if (prospectTelephone.trim()) payload.telephone = prospectTelephone.trim()
-      if (prospectEmail.trim()) payload.email = prospectEmail.trim()
-      if (prospectAdresse.trim()) payload.adresse = prospectAdresse.trim()
-      if (prospectCodePostal.trim()) payload.code_postal = prospectCodePostal.trim()
-      if (prospectVille.trim()) payload.ville = prospectVille.trim()
+      // Split nom/prénom (même heuristique que l'ancien createClientInline)
+      const parts = nomLibreTrim.split(/\s+/)
+      const civilitePattern = /^(m\.|mme\.?|mlle\.?|monsieur|madame|mademoiselle)$/i
+      let prenom = ''
+      let nom = ''
+      if (parts.length === 1 || civilitePattern.test(parts[0])) {
+        nom = nomLibreTrim
+      } else {
+        prenom = parts[0]
+        nom = parts.slice(1).join(' ')
+      }
+
+      const payload: Record<string, unknown> = { nom }
+      if (prenom) payload.prenom = prenom
+      const telTrim = mClientLibreTel.trim()
+      const adrTrim = mClientLibreAdresse.trim()
+      const cpTrim = mClientLibreCP.trim()
+      const villeTrim = mClientLibreVille.trim()
+      if (telTrim) payload.telephone = telTrim
+      if (adrTrim) payload.adresse = adrTrim
+      if (cpTrim) payload.code_postal = cpTrim
+      if (villeTrim) payload.ville = villeTrim
+
       const created = await insertRow('clients', payload)
       if (created) {
         const newId = (created as R).id as string
-        // Client optimiste : on l'injecte tout de suite dans clientItems pour que
-        // le combobox affiche le chip avec le nom (sinon attente du refetch async
-        // → état "vide" visible).
-        setOptimisticClient({
-          id: newId,
-          prenom: prospectPrenom.trim(),
-          nom: prospectNom.trim(),
-          telephone: prospectTelephone.trim(),
-          email: prospectEmail.trim(),
-        })
         setMClient(newId)
-        setShowProspectForm(false)
-        showToast(`Prospect créé : ${[prospectPrenom, prospectNom].filter(Boolean).join(' ').trim()}`)
-        // Refetch en arrière-plan, sans bloquer l'UI. Quand `clients` sera à jour,
-        // l'item viendra naturellement de la liste réelle (optimiste reste inoffensif).
+        // Vider tous les libres : la fiche prend le relais.
+        setMClientLibre('')
+        setMClientLibreTel('')
+        setMClientLibreAdresse('')
+        setMClientLibreCP('')
+        setMClientLibreVille('')
+        showToast('Client enregistré ✓')
+        // Refetch pour que le combobox affiche le nouveau client.
         refetch()
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création'
-      showToast(message.length > 120 ? message.slice(0, 117) + '...' : message)
+      console.error('[planning] handleEnregistrerCommeClient', err)
+      showToast('Impossible d\'enregistrer le client')
     } finally {
-      setProspectSaving(false)
+      setEnregistrerClientSaving(false)
     }
-  }, [prospectPrenom, prospectNom, prospectTelephone, prospectEmail, prospectAdresse, prospectCodePostal, prospectVille, refetch, showToast])
+  }, [mClientLibre, mClientLibreTel, mClientLibreAdresse, mClientLibreCP, mClientLibreVille, refetch, showToast])
 
   // ── Items pour les Combobox du modal ──
   // Liste des devis signés, formatée pour le composant Combobox.
@@ -1255,7 +1215,7 @@ function PlanningPageInner() {
 
   // Liste des clients (combobox client en mode libre)
   const clientItems: ComboboxItem[] = useMemo(() => {
-    const items = clients.map(cl => {
+    return clients.map(cl => {
       const r = cl as R
       const prenom = String(r.prenom ?? '')
       const nom = String(r.nom ?? '')
@@ -1270,20 +1230,7 @@ function PlanningPageInner() {
         searchText: `${full} ${tel} ${email}`,
       }
     })
-    // Injection du client optimiste (créé via mini-form prospect) si le refetch n'a pas
-    // encore propagé le nouveau client dans `clients`. Sinon le combobox afficherait vide.
-    if (optimisticClient && !items.some(it => it.id === optimisticClient.id)) {
-      const full = `${optimisticClient.prenom} ${optimisticClient.nom}`.trim() || '(sans nom)'
-      const sub = [optimisticClient.telephone, optimisticClient.email].filter(Boolean).join(' · ')
-      items.unshift({
-        id: optimisticClient.id,
-        label: full,
-        sublabel: sub || undefined,
-        searchText: `${full} ${optimisticClient.telephone} ${optimisticClient.email}`,
-      })
-    }
-    return items
-  }, [clients, optimisticClient])
+  }, [clients])
 
   // ── Helper: convert HH:MM to minutes ──
   const timeToMinutes = (time: string) => {
@@ -1486,6 +1433,12 @@ function PlanningPageInner() {
         // Saisie libre : utilisée uniquement si pas de client/chantier en base sélectionné.
         // On nettoie pour éviter de stocker à la fois un ID et un texte libre.
         client_libre: mClient ? null : (mClientLibre.trim() || null),
+        // Session 12 V4 (29/05/2026) : 4 coordonnées libres stockées directement
+        // sur l'intervention (pas de fiche client créée). Migration prod appliquée.
+        client_libre_telephone:    mClient ? null : (mClientLibreTel.trim()     || null),
+        client_libre_adresse:      mClient ? null : (mClientLibreAdresse.trim() || null),
+        client_libre_code_postal:  mClient ? null : (mClientLibreCP.trim()      || null),
+        client_libre_ville:        mClient ? null : (mClientLibreVille.trim()   || null),
         chantier_libre: mChantier ? null : (mChantierLibre.trim() || null),
         type_intervention: mTypeIntervention || null,
         devis_id: mDevis || null,
@@ -1666,34 +1619,26 @@ function PlanningPageInner() {
   // In Solo mode, check if there are any subcontractors (i.e., more than just self)
   const soloHasSubcontractors = !isSociete && availableIntervenants.length > 1
 
-  // S2 — Levier 2 : groupement par métier dans la grille détaillée
-  // Retourne un tableau ordonné de groupes { metier, intervenants[] }
-  // Les intervenants sans métier renseigné sont rassemblés sous "Autre" en dernier.
-  // Le tri est alphabétique avec "Autre" forcé en dernier.
-  const intervenantsByMetier = useMemo(() => {
-    const groups = new Map<string, R[]>()
-    for (const iv of displayedIntervenants) {
-      const r = iv as R
-      const metierRaw = String(r.metier ?? '').trim()
-      const metier = metierRaw.length > 0 ? metierRaw : 'Autre'
-      if (!groups.has(metier)) groups.set(metier, [])
-      groups.get(metier)!.push(r)
-    }
-    const entries = Array.from(groups.entries())
-    entries.sort(([a], [b]) => {
-      if (a === 'Autre') return 1
-      if (b === 'Autre') return -1
-      return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  // Session 12 V3 (29/05/2026) — Suppression du groupement par métier dans la
+  // matrice. La recherche concurrence (Obat, Praxedo, Vertuoza, Tolteck,
+  // Batappli) confirme qu'aucun outil ne groupe par métier dans la grille
+  // planning : ça ajoute du bruit visuel sans bénéfice.
+  // Liste plate triée : `Vous` (is_self) toujours en premier, puis ordre
+  // alphabétique sur `prenom nom`. Le métier reste visible en chip discret
+  // à côté du nom dans la colonne de gauche.
+  const orderedIntervenants = useMemo(() => {
+    const list = [...displayedIntervenants] as R[]
+    list.sort((a, b) => {
+      const aSelf = a.is_self === true
+      const bSelf = b.is_self === true
+      if (aSelf && !bSelf) return -1
+      if (!aSelf && bSelf) return 1
+      const aName = `${String(a.prenom ?? '')} ${String(a.nom ?? '')}`.trim()
+      const bName = `${String(b.prenom ?? '')} ${String(b.nom ?? '')}`.trim()
+      return aName.localeCompare(bName, 'fr', { sensitivity: 'base' })
     })
-    return entries.map(([metier, list]) => ({ metier, intervenants: list }))
+    return list
   }, [displayedIntervenants])
-
-  // S2 — Fix #3 (V2, 28/05/2026) : par défaut, TOUS les groupes sont DÉPLOYÉS au mount,
-  // quel que soit le nombre d'intervenants. La persistance localStorage reste : si
-  // l'utilisateur replie manuellement un groupe, son choix est conservé au prochain
-  // mount. Si l'utilisateur n'a jamais rien replié → set vide → tout déployé.
-  // (Avant : >6 intervenants forçait tout replié au 1er mount, planning apparaissait
-  // vide à l'ouverture — mauvaise UX signalée par le PO.)
 
   // S2 — Helpers densité : classes Tailwind dépendantes de density
   // Confort = cases actuelles (90px min, fonts normales)
@@ -1719,16 +1664,6 @@ function PlanningPageInner() {
   }
   const showAllIntervenants = () => setHiddenIntervenants(new Set())
   const hideAllIntervenants = () => setHiddenIntervenants(new Set(availableIntervenants.map(iv => (iv as R).id as string)))
-  const toggleMetierCollapsed = (metier: string) => {
-    setCollapsedMetiers(prev => {
-      const next = new Set(prev)
-      if (next.has(metier)) next.delete(metier)
-      else next.add(metier)
-      return next
-    })
-    // Marque l'init comme faite pour que les changements user persistent
-    collapsedMetiersInitRef.current = true
-  }
 
   // S2 — La barre de chips ne s'affiche que si pertinente :
   // - Mode Solo + 0-1 intervenant : aucun intérêt (cf. brief)
@@ -2277,236 +2212,213 @@ function PlanningPageInner() {
                         </div>
                       ))}
 
-                      {/* ── S2 — Intervenants groupés par métier ──
-                          Chaque groupe a un header repliable. Si replié, on n'itère pas
-                          sur ses intervenants : les lignes sont simplement omises de
-                          la grille pour cette semaine. La hauteur du tableau s'adapte
-                          naturellement (grid avec class "contents" sur les lignes).
-                          Le groupement n'est appliqué qu'en vue détaillée 5/7 jours,
-                          qui est précisément ce panneau (vue annuelle gérée séparément). */}
-                      {intervenantsByMetier.map(group => {
-                        const isCollapsed = collapsedMetiers.has(group.metier)
-                        const groupTotalCols = (isSociete || soloHasSubcontractors)
-                          ? (showWeekend ? 8 : 6)
-                          : (showWeekend ? 7 : 5)
+                      {/* ── Session 12 V3 (29/05/2026) — Liste plate triée ──
+                          Suppression du groupement par métier (entêtes ÉLECTRICIEN /
+                          PAYSAGISTE...). Tous les concurrents (Obat, Praxedo,
+                          Vertuoza, Tolteck, Batappli) affichent la matrice à plat.
+                          Tri : `Vous` (is_self) toujours en premier, puis
+                          alphabétique sur `prenom nom`. Le métier reste visible
+                          comme petit chip discret à droite du nom. */}
+                      {orderedIntervenants.map(iv => {
+                        const r = iv as R
+                        const ivId = r.id as string
+                        const color = colorMap.get(ivId) ?? PALETTE[0]
+
                         return (
-                          <div key={`${wi}-grp-${group.metier}`} className="contents">
-                            {/* Header de groupe métier (occupe toute la largeur de la grille) */}
-                            <button
-                              type="button"
-                              onClick={() => toggleMetierCollapsed(group.metier)}
-                              aria-expanded={!isCollapsed}
-                              className="text-left flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#f0f4fa] to-[#f6f8fb] border-b border-[#e6ecf2] hover:from-[#e8f4fb] hover:to-[#f0f7fc] transition-colors"
-                              style={{ gridColumn: `span ${groupTotalCols} / span ${groupTotalCols}` }}
-                            >
-                              <ChevronDown
-                                className={`w-3.5 h-3.5 text-[#7b8ba3] transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
-                              />
-                              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0f1a3a]">
-                                {group.metier}
-                              </span>
-                              <span className="text-[10px] font-bold text-[#7b8ba3] bg-white border border-[#e6ecf2] rounded-full px-1.5 py-0.5">
-                                {group.intervenants.length}
-                              </span>
-                            </button>
-
-                            {/* Lignes intervenants du groupe (omises si replié) */}
-                            {!isCollapsed && group.intervenants.map(iv => {
-                              const r = iv as R
-                              const ivId = r.id as string
-                              const color = colorMap.get(ivId) ?? PALETTE[0]
-
+                          <div key={`${wi}-${ivId}`} className="contents">
+                            {/* Label — hidden in Solo mode without subcontractors */}
+                            {(isSociete || soloHasSubcontractors) && (() => {
+                              // Session 9 : libellé "Vous" pour le self (au lieu du nom de l'entreprise).
+                              const isSelfRow = r.is_self === true
+                              const fullLabel = isSelfRow ? 'Vous' : `${String(r.prenom ?? '')} ${String(r.nom ?? '')}`.trim()
+                              const compactLabel = isSelfRow
+                                ? 'Vous'
+                                : (isSociete ? `${String(r.prenom ?? '')} ${String(r.nom ?? '').charAt(0)}.` : String(r.prenom ?? ''))
+                              // Session 12 V3 : chip métier discret à côté du nom.
+                              // Caché si métier vide (en mode Solo `Vous` sans métier
+                              // entreprise → rien d'affiché, on n'invente pas).
+                              const metierChip = String(r.metier ?? '').trim()
                               return (
-                                <div key={`${wi}-${ivId}`} className="contents">
-                                  {/* Label — hidden in Solo mode without subcontractors */}
-                                  {(isSociete || soloHasSubcontractors) && (() => {
-                                    // Session 9 : libellé "Vous" pour le self (au lieu du nom de l'entreprise).
-                                    const isSelfRow = r.is_self === true
-                                    const fullLabel = isSelfRow ? 'Vous' : `${String(r.prenom ?? '')} ${String(r.nom ?? '')}`.trim()
-                                    const compactLabel = isSelfRow
-                                      ? 'Vous'
-                                      : (isSociete ? `${String(r.prenom ?? '')} ${String(r.nom ?? '').charAt(0)}.` : String(r.prenom ?? ''))
-                                    return (
-                                      <div className={`${isCompact ? 'px-2 py-1.5' : 'px-3 py-2.5'} border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center ${isCompact ? 'gap-2' : 'gap-2.5'}`}>
-                                        <div className={`${isCompact ? 'w-5 h-5 text-[9px]' : 'w-7 h-7 text-[10px]'} rounded-md flex items-center justify-center text-white font-bold flex-shrink-0`} style={{ background: color.hex }}>
-                                          {initials(fullLabel)}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                          <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-syne font-bold text-[#0f1a3a] truncate`}>
-                                            {compactLabel}
-                                          </div>
-                                          {!isCompact && (
-                                            <div className="text-[11px] text-[#5ab4e0] font-semibold truncate bg-[#e8f4fb] px-2 py-0.5 rounded-md inline-block mt-0.5">
-                                              {String(r.metier ?? '')}
+                                <div className={`${isCompact ? 'px-2 py-1.5' : 'px-3 py-2.5'} border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center ${isCompact ? 'gap-2' : 'gap-2.5'}`}>
+                                  <div className={`${isCompact ? 'w-5 h-5 text-[9px]' : 'w-7 h-7 text-[10px]'} rounded-md flex items-center justify-center text-white font-bold flex-shrink-0`} style={{ background: color.hex }}>
+                                    {initials(fullLabel)}
+                                  </div>
+                                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                                    <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-syne font-bold text-[#0f1a3a] truncate`}>
+                                      {compactLabel}
+                                    </div>
+                                    {metierChip && (
+                                      <span
+                                        className="text-[10px] text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5 font-medium whitespace-nowrap flex-shrink-0"
+                                        title={metierChip}
+                                      >
+                                        {metierChip}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })()}
+
+                            {/* Day cells */}
+                            {week.days.map(day => {
+                              const cellKey = `${ivId}__${day.dateStr}`
+                              const interventions = planningMap.get(cellKey) ?? []
+                              const isDragOver = dragOverCell === cellKey
+
+                              // V1 Fix #10 (28/05/2026) : cellules vides
+                              // teintées en gris très léger pour effet "papier
+                              // quadrillé". Les cellules avec intervention(s)
+                              // gardent leur fond couleur intervenant.
+                              const isEmpty = interventions.length === 0
+                              return (
+                                <div key={cellKey}
+                                  className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
+                                  onDragOver={e => {
+                                    // Fix #4 (Vague 2) : preventDefault autorise aussi le drop chip → case.
+                                    e.preventDefault()
+                                    setDragOverCell(cellKey)
+                                  }}
+                                  onDragLeave={() => setDragOverCell(null)}
+                                  onDrop={e => {
+                                    e.preventDefault()
+                                    setDragOverCell(null)
+                                    // Fix #4 : si on drop un chip intervenant (depuis la barre du haut),
+                                    // on ouvre le modal Nouvelle intervention pré-rempli avec cet
+                                    // intervenant + la date de la case. Sinon on retombe sur le
+                                    // comportement existant (drag intervention entre cases).
+                                    const droppedIvId = e.dataTransfer.getData('text/intervenant')
+                                    if (droppedIvId) {
+                                      setDraggedChipIvId(null)
+                                      openModal(day.dateStr, droppedIvId)
+                                      return
+                                    }
+                                    handleDrop(ivId, day.dateStr)
+                                  }}>
+
+                                  <div className="flex flex-col gap-0.5">
+                                    {interventions.filter(isFiltered).map(item => {
+                                      const rec = item as R
+                                      const isConflict = conflicts.has(rec.id as string)
+                                      const isDragged = draggedId === rec.id as string
+                                      const statut = STATUTS.find(s => s.value === rec.statut)
+                                      const isCreneau = (rec.creneau as string) === 'creneau'
+                                      const heureDebut = rec.heure_debut as string || horaires.debutMatin
+                                      const heureFin = rec.heure_fin as string || horaires.finAm
+
+                                      // Hauteur proportionnelle pour créneaux (base 60px pour 480min journée)
+                                      let heightPx = 0
+                                      let timeDisplay = ''
+                                      if (isCreneau) {
+                                        const startMin = parseInt(heureDebut.split(':')[0]) * 60 + parseInt(heureDebut.split(':')[1])
+                                        const endMin = parseInt(heureFin.split(':')[0]) * 60 + parseInt(heureFin.split(':')[1])
+                                        const durationMin = endMin - startMin
+                                        heightPx = Math.max(isCompact ? 28 : 40, Math.round((durationMin / 480) * (isCompact ? 40 : 60)))
+                                        timeDisplay = `${shortTime(heureDebut)}-${shortTime(heureFin)}`
+                                      }
+
+                                      // ── Données case Maquette A "Compact informatif" ──
+                                      const typeMeta = getTypeInterventionMeta(rec.type_intervention as string)
+                                      const TypeIcon = typeMeta?.icon ?? null
+                                      const clientName = clNameFromIntervention(rec)
+                                      // Session 8 : nb total d'intervenants sur cette intervention.
+                                      // Affiche un badge "+N" quand > 1, pour signaler la présence
+                                      // d'équipiers en plus du référent.
+                                      const recLiaisons = interventionIntervenantsMap.get(rec.id as string) ?? []
+                                      const nbExtraIntervenants = Math.max(0, recLiaisons.length - 1)
+                                      // Fallback titre -> ville client si pas de titre
+                                      const titreRaw = String(rec.titre ?? rec.description_travaux ?? '').trim()
+                                      let titreOuVille = titreRaw
+                                      if (!titreOuVille && rec.client_id) {
+                                        const cl = clientMap.get(rec.client_id as string) as R | undefined
+                                        if (cl?.ville) titreOuVille = String(cl.ville)
+                                      }
+                                      // Tooltip riche pour cases tronquées
+                                      const tooltipParts: string[] = []
+                                      if (isCreneau) tooltipParts.push(timeDisplay)
+                                      else tooltipParts.push(creneauLabel(rec.creneau as string))
+                                      if (clientName) tooltipParts.push(clientName)
+                                      if (titreRaw) tooltipParts.push(titreRaw)
+                                      if (typeMeta) tooltipParts.push(typeMeta.label)
+                                      const tooltip = isConflict
+                                        ? 'Conflit : cet intervenant a une autre intervention sur le meme creneau'
+                                        : tooltipParts.join(' · ')
+
+                                      // Session 8 : on capture l'intervenant de DÉPART du drag
+                                      // (la ligne où apparaissait la case). Sert dans handleDrop
+                                      // à savoir quel intervenant retirer si on drag sur une autre ligne.
+                                      return (
+                                        <div key={rec.id as string}
+                                          draggable
+                                          onDragStart={() => handleDragStart(rec.id as string, ivId)}
+                                          onDragEnd={handleDragEnd}
+                                          onClick={() => openPanel(rec)}
+                                          className={`relative ${interventionPaddingClass} rounded-lg ${interventionGapClass} cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
+                                            ${isDragged ? 'opacity-30' : ''} ${isConflict ? 'ring-2 ring-[#ef4444] shadow-[0_0_0_2px_rgba(239,68,68,0.15)]' : ''} hover:shadow-md hover:scale-[1.01]`}
+                                          style={isCreneau ? { minHeight: `${heightPx}px` } : {}}
+                                          title={tooltip}>
+                                          {isConflict && (
+                                            <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1 bg-[#ef4444] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
+                                              <AlertTriangle className="w-3 h-3" />
+                                              <span>Conflit</span>
+                                            </div>
+                                          )}
+                                          {/* Icone type d'intervention en haut a droite */}
+                                          {TypeIcon && (
+                                            <span className="absolute top-1.5 right-1.5 opacity-60" aria-label={typeMeta?.label}>
+                                              <TypeIcon className="w-3 h-3" />
+                                            </span>
+                                          )}
+                                          {/* Session 8 : badge "+N équipiers" si multi-intervenants */}
+                                          {nbExtraIntervenants > 0 && (
+                                            <span
+                                              className={`absolute ${TypeIcon ? 'top-1.5 right-6' : 'top-1.5 right-1.5'} inline-flex items-center gap-0.5 bg-white/70 backdrop-blur-sm text-[#0f1a3a] text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow-sm`}
+                                              title={`${recLiaisons.length} intervenants sur cette intervention`}
+                                              aria-label={`${nbExtraIntervenants} équipier${nbExtraIntervenants > 1 ? 's' : ''} en plus du référent`}
+                                            >
+                                              +{nbExtraIntervenants}
+                                            </span>
+                                          )}
+                                          {/* Ligne 1 : creneau horaire compact
+                                              V1 Fix #8 : +1 cran en Confort (10→11 et 9→10). Compact inchangé. */}
+                                          {isCreneau ? (
+                                            <div className={`${isCompact ? 'text-[9px]' : 'text-[11px]'} font-extrabold text-[#0f1a3a] leading-tight`}>
+                                              {timeDisplay}
+                                            </div>
+                                          ) : (
+                                            <div className={`${isCompact ? 'text-[8px]' : 'text-[10px]'} font-bold uppercase tracking-wide opacity-70`}>
+                                              {creneauLabel(rec.creneau as string)}
+                                            </div>
+                                          )}
+                                          {/* Ligne 2 : nom client + pastille statut */}
+                                          {clientName && (
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                              {statut && (
+                                                <span
+                                                  className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatutPastilleColor(rec.statut as string)}`}
+                                                  aria-label={`Statut : ${statut.label}`}
+                                                />
+                                              )}
+                                              <span className={`font-bold ${clientLineFontClass} truncate`}>{clientName}</span>
+                                            </div>
+                                          )}
+                                          {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite, masque aussi en mode Compact)
+                                              Fix #9 : title natif pour tooltip au hover si le titre est tronqué (line-clamp-2 déjà appliqué). */}
+                                          {titreOuVille && (
+                                            <div className={titreLineClass} title={titreOuVille}>
+                                              {titreOuVille}
                                             </div>
                                           )}
                                         </div>
-                                      </div>
-                                    )
-                                  })()}
+                                      )
+                                    })}
+                                  </div>
 
-                                  {/* Day cells */}
-                                  {week.days.map(day => {
-                                    const cellKey = `${ivId}__${day.dateStr}`
-                                    const interventions = planningMap.get(cellKey) ?? []
-                                    const isDragOver = dragOverCell === cellKey
-
-                                    // V1 Fix #10 (28/05/2026) : cellules vides
-                                    // teintées en gris très léger pour effet "papier
-                                    // quadrillé". Les cellules avec intervention(s)
-                                    // gardent leur fond couleur intervenant.
-                                    const isEmpty = interventions.length === 0
-                                    return (
-                                      <div key={cellKey}
-                                        className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
-                                        onDragOver={e => {
-                                          // Fix #4 (Vague 2) : preventDefault autorise aussi le drop chip → case.
-                                          e.preventDefault()
-                                          setDragOverCell(cellKey)
-                                        }}
-                                        onDragLeave={() => setDragOverCell(null)}
-                                        onDrop={e => {
-                                          e.preventDefault()
-                                          setDragOverCell(null)
-                                          // Fix #4 : si on drop un chip intervenant (depuis la barre du haut),
-                                          // on ouvre le modal Nouvelle intervention pré-rempli avec cet
-                                          // intervenant + la date de la case. Sinon on retombe sur le
-                                          // comportement existant (drag intervention entre cases).
-                                          const droppedIvId = e.dataTransfer.getData('text/intervenant')
-                                          if (droppedIvId) {
-                                            setDraggedChipIvId(null)
-                                            openModal(day.dateStr, droppedIvId)
-                                            return
-                                          }
-                                          handleDrop(ivId, day.dateStr)
-                                        }}>
-
-                                        <div className="flex flex-col gap-0.5">
-                                          {interventions.filter(isFiltered).map(item => {
-                                            const rec = item as R
-                                            const isConflict = conflicts.has(rec.id as string)
-                                            const isDragged = draggedId === rec.id as string
-                                            const statut = STATUTS.find(s => s.value === rec.statut)
-                                            const isCreneau = (rec.creneau as string) === 'creneau'
-                                            const heureDebut = rec.heure_debut as string || horaires.debutMatin
-                                            const heureFin = rec.heure_fin as string || horaires.finAm
-
-                                            // Hauteur proportionnelle pour créneaux (base 60px pour 480min journée)
-                                            let heightPx = 0
-                                            let timeDisplay = ''
-                                            if (isCreneau) {
-                                              const startMin = parseInt(heureDebut.split(':')[0]) * 60 + parseInt(heureDebut.split(':')[1])
-                                              const endMin = parseInt(heureFin.split(':')[0]) * 60 + parseInt(heureFin.split(':')[1])
-                                              const durationMin = endMin - startMin
-                                              heightPx = Math.max(isCompact ? 28 : 40, Math.round((durationMin / 480) * (isCompact ? 40 : 60)))
-                                              timeDisplay = `${shortTime(heureDebut)}-${shortTime(heureFin)}`
-                                            }
-
-                                            // ── Données case Maquette A "Compact informatif" ──
-                                            const typeMeta = getTypeInterventionMeta(rec.type_intervention as string)
-                                            const TypeIcon = typeMeta?.icon ?? null
-                                            const clientName = clNameFromIntervention(rec)
-                                            // Session 8 : nb total d'intervenants sur cette intervention.
-                                            // Affiche un badge "+N" quand > 1, pour signaler la présence
-                                            // d'équipiers en plus du référent.
-                                            const recLiaisons = interventionIntervenantsMap.get(rec.id as string) ?? []
-                                            const nbExtraIntervenants = Math.max(0, recLiaisons.length - 1)
-                                            // Fallback titre -> ville client si pas de titre
-                                            const titreRaw = String(rec.titre ?? rec.description_travaux ?? '').trim()
-                                            let titreOuVille = titreRaw
-                                            if (!titreOuVille && rec.client_id) {
-                                              const cl = clientMap.get(rec.client_id as string) as R | undefined
-                                              if (cl?.ville) titreOuVille = String(cl.ville)
-                                            }
-                                            // Tooltip riche pour cases tronquées
-                                            const tooltipParts: string[] = []
-                                            if (isCreneau) tooltipParts.push(timeDisplay)
-                                            else tooltipParts.push(creneauLabel(rec.creneau as string))
-                                            if (clientName) tooltipParts.push(clientName)
-                                            if (titreRaw) tooltipParts.push(titreRaw)
-                                            if (typeMeta) tooltipParts.push(typeMeta.label)
-                                            const tooltip = isConflict
-                                              ? 'Conflit : cet intervenant a une autre intervention sur le meme creneau'
-                                              : tooltipParts.join(' · ')
-
-                                            // Session 8 : on capture l'intervenant de DÉPART du drag
-                                            // (la ligne où apparaissait la case). Sert dans handleDrop
-                                            // à savoir quel intervenant retirer si on drag sur une autre ligne.
-                                            return (
-                                              <div key={rec.id as string}
-                                                draggable
-                                                onDragStart={() => handleDragStart(rec.id as string, ivId)}
-                                                onDragEnd={handleDragEnd}
-                                                onClick={() => openPanel(rec)}
-                                                className={`relative ${interventionPaddingClass} rounded-lg ${interventionGapClass} cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
-                                                  ${isDragged ? 'opacity-30' : ''} ${isConflict ? 'ring-2 ring-[#ef4444] shadow-[0_0_0_2px_rgba(239,68,68,0.15)]' : ''} hover:shadow-md hover:scale-[1.01]`}
-                                                style={isCreneau ? { minHeight: `${heightPx}px` } : {}}
-                                                title={tooltip}>
-                                                {isConflict && (
-                                                  <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1 bg-[#ef4444] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
-                                                    <AlertTriangle className="w-3 h-3" />
-                                                    <span>Conflit</span>
-                                                  </div>
-                                                )}
-                                                {/* Icone type d'intervention en haut a droite */}
-                                                {TypeIcon && (
-                                                  <span className="absolute top-1.5 right-1.5 opacity-60" aria-label={typeMeta?.label}>
-                                                    <TypeIcon className="w-3 h-3" />
-                                                  </span>
-                                                )}
-                                                {/* Session 8 : badge "+N équipiers" si multi-intervenants */}
-                                                {nbExtraIntervenants > 0 && (
-                                                  <span
-                                                    className={`absolute ${TypeIcon ? 'top-1.5 right-6' : 'top-1.5 right-1.5'} inline-flex items-center gap-0.5 bg-white/70 backdrop-blur-sm text-[#0f1a3a] text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow-sm`}
-                                                    title={`${recLiaisons.length} intervenants sur cette intervention`}
-                                                    aria-label={`${nbExtraIntervenants} équipier${nbExtraIntervenants > 1 ? 's' : ''} en plus du référent`}
-                                                  >
-                                                    +{nbExtraIntervenants}
-                                                  </span>
-                                                )}
-                                                {/* Ligne 1 : creneau horaire compact
-                                                    V1 Fix #8 : +1 cran en Confort (10→11 et 9→10). Compact inchangé. */}
-                                                {isCreneau ? (
-                                                  <div className={`${isCompact ? 'text-[9px]' : 'text-[11px]'} font-extrabold text-[#0f1a3a] leading-tight`}>
-                                                    {timeDisplay}
-                                                  </div>
-                                                ) : (
-                                                  <div className={`${isCompact ? 'text-[8px]' : 'text-[10px]'} font-bold uppercase tracking-wide opacity-70`}>
-                                                    {creneauLabel(rec.creneau as string)}
-                                                  </div>
-                                                )}
-                                                {/* Ligne 2 : nom client + pastille statut */}
-                                                {clientName && (
-                                                  <div className="flex items-center gap-1 mt-0.5">
-                                                    {statut && (
-                                                      <span
-                                                        className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${getStatutPastilleColor(rec.statut as string)}`}
-                                                        aria-label={`Statut : ${statut.label}`}
-                                                      />
-                                                    )}
-                                                    <span className={`font-bold ${clientLineFontClass} truncate`}>{clientName}</span>
-                                                  </div>
-                                                )}
-                                                {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite, masque aussi en mode Compact)
-                                                    Fix #9 : title natif pour tooltip au hover si le titre est tronqué (line-clamp-2 déjà appliqué). */}
-                                                {titreOuVille && (
-                                                  <div className={titreLineClass} title={titreOuVille}>
-                                                    {titreOuVille}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )
-                                          })}
-                                        </div>
-
-                                        {/* Add button */}
-                                        <button onClick={() => openModal(day.dateStr, ivId)}
-                                          className="w-full h-6 border border-dashed border-[#5ab4e0]/20 rounded text-[#5ab4e0] text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#5ab4e0]/[.06] hover:border-[#5ab4e0] transition-all pointer-events-none group-hover:pointer-events-auto">
-                                          +
-                                        </button>
-                                      </div>
-                                    )
-                                  })}
+                                  {/* Add button */}
+                                  <button onClick={() => openModal(day.dateStr, ivId)}
+                                    className="w-full h-6 border border-dashed border-[#5ab4e0]/20 rounded text-[#5ab4e0] text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#5ab4e0]/[.06] hover:border-[#5ab4e0] transition-all pointer-events-none group-hover:pointer-events-auto">
+                                    +
+                                  </button>
                                 </div>
                               )
                             })}
@@ -2654,16 +2566,20 @@ function PlanningPageInner() {
         const chantierInterventionCount = ch
           ? planningData.filter(p => (p as R).chantier_id === ch.id).length
           : 0
-        // Adresse : prioriser chantier, sinon client
-        const addrLine = ch?.adresse_chantier || cl?.adresse || ''
-        const addrCp = ch?.code_postal_chantier || cl?.code_postal || ''
-        const addrVille = ch?.ville_chantier || cl?.ville || ''
+        // Adresse : prioriser chantier, sinon client en base, sinon saisie libre intervention
+        // (Session 12 V4 — 29/05/2026 : fallback sur les 4 colonnes libres
+        //  `client_libre_adresse`, `client_libre_code_postal`, `client_libre_ville`,
+        //  `client_libre_telephone` pour les interventions sans fiche client.)
+        const addrLine = ch?.adresse_chantier || cl?.adresse || (pi.client_libre_adresse as string) || ''
+        const addrCp = ch?.code_postal_chantier || cl?.code_postal || (pi.client_libre_code_postal as string) || ''
+        const addrVille = ch?.ville_chantier || cl?.ville || (pi.client_libre_ville as string) || ''
         const addrFull = [addrLine, [addrCp, addrVille].filter(Boolean).join(' ')].filter(Boolean).join(', ')
         const hasAddr = Boolean(addrLine || addrVille)
         // Titre / objet
         const titre = String(pi.titre ?? pi.description_travaux ?? '').trim()
-        // Client libre fallback
+        // Client libre fallback (Session 12 V4 : nom + téléphone éventuel)
         const clientLibre = !cl && pi.client_libre ? String(pi.client_libre) : ''
+        const clientLibreTel = !cl ? String(pi.client_libre_telephone ?? '') : ''
         // Montant TTC du devis
         const montantTtc = dv ? Number(dv.montant_ttc ?? 0) : 0
 
@@ -2766,11 +2682,31 @@ function PlanningPageInner() {
                   </div>
                 )}
 
-                {/* Client libre (si pas de fiche client) */}
+                {/* Client libre (si pas de fiche client en base)
+                    Session 12 V4 : on affiche aussi téléphone + bouton Appeler
+                    si le `client_libre_telephone` est renseigné sur l'intervention. */}
                 {!cl && clientLibre && (
                   <div className="px-5 py-4 border-t border-[#e6ecf2]">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Client</div>
-                    <div className="text-sm font-bold text-[#0f1a3a]">{clientLibre}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">Client</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#0f1a3a] text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {initials(clientLibre)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-[#0f1a3a] truncate">{clientLibre}</div>
+                        {clientLibreTel && (
+                          <a href={`tel:${clientLibreTel}`} className="text-[13px] text-[#5ab4e0] font-medium hover:underline">{clientLibreTel}</a>
+                        )}
+                      </div>
+                    </div>
+                    {clientLibreTel && (
+                      <div className="flex mt-3">
+                        <a href={`tel:${clientLibreTel}`}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5ab4e0] text-white rounded-lg text-[12px] font-semibold hover:bg-[#2d8bc9] transition-all">
+                          <Phone className="w-3.5 h-3.5" /> Appeler
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -3000,13 +2936,15 @@ function PlanningPageInner() {
                 const editChantierId = mChantier || null
                 const editCl = editClientId ? (clientMap.get(editClientId) as R | undefined) : undefined
                 const editCh = editChantierId ? (chantierMap.get(editChantierId) as R | undefined) : undefined
-                // Priorité adresse chantier puis client (cohérent avec le side panel).
-                const addrLine = String(editCh?.adresse_chantier ?? editCl?.adresse ?? '').trim()
-                const addrCp = String(editCh?.code_postal_chantier ?? editCl?.code_postal ?? '').trim()
-                const addrVille = String(editCh?.ville_chantier ?? editCl?.ville ?? '').trim()
+                // Priorité adresse chantier puis client puis saisie libre étendue (V4).
+                // (cohérent avec le side panel ; permet de garder les infos visibles
+                //  même quand l'intervention n'est pas liée à un client en base.)
+                const addrLine = String(editCh?.adresse_chantier ?? editCl?.adresse ?? mClientLibreAdresse ?? '').trim()
+                const addrCp = String(editCh?.code_postal_chantier ?? editCl?.code_postal ?? mClientLibreCP ?? '').trim()
+                const addrVille = String(editCh?.ville_chantier ?? editCl?.ville ?? mClientLibreVille ?? '').trim()
                 const addrFull = [addrLine, [addrCp, addrVille].filter(Boolean).join(' ')].filter(Boolean).join(', ')
                 const hasAddr = Boolean(addrLine || addrVille)
-                const telephone = editCl?.telephone ? String(editCl.telephone) : ''
+                const telephone = editCl?.telephone ? String(editCl.telephone) : (mClientLibreTel.trim() || '')
                 // Si rien à afficher (cas intervention libre sans client/chantier), on masque.
                 if (!hasAddr && !telephone) return null
                 return (
@@ -3164,7 +3102,12 @@ function PlanningPageInner() {
               {/* ─── Branche B : INTERVENTION LIBRE ─── */}
               {mMode === 'libre' && (
                 <>
-                  {/* Client (optionnel) via Combobox avec création inline */}
+                  {/* Client (optionnel) :
+                      - Combobox pour choisir un client existant
+                      - OU saisie libre (nom) → déclenche un bloc de 4 champs
+                        optionnels (tél, adresse, CP, ville) stockés DIRECTEMENT
+                        sur l'intervention (pas de fiche client créée).
+                      - Bouton discret "+ Enregistrer comme client" pour formaliser. */}
                   <div>
                     <Combobox
                       label="Client (optionnel)"
@@ -3173,14 +3116,19 @@ function PlanningPageInner() {
                       value={mClient || null}
                       onChange={(id) => {
                         setMClient(id ?? '')
-                        if (id) setMClientLibre('')
+                        if (id) {
+                          // Sélection d'un client en base : on vide tous les libres
+                          setMClientLibre('')
+                          setMClientLibreTel('')
+                          setMClientLibreAdresse('')
+                          setMClientLibreCP('')
+                          setMClientLibreVille('')
+                        }
                       }}
                       icon={<Users className="w-3.5 h-3.5" />}
-                      onCreate={createClientInline}
-                      createLabel={(t) => `Créer le prospect "${t}"`}
-                      emptyState="Aucun client trouvé. Tapez le nom pour en créer un."
+                      emptyState="Aucun client trouvé. Tapez un nom dans le champ ci-dessous pour le stocker sur l'intervention."
                     />
-                    {/* Saisie libre — affichée seulement si aucun client choisi */}
+                    {/* Saisie libre nom — affichée seulement si aucun client choisi */}
                     {!mClient && (
                       <input
                         type="text"
@@ -3189,6 +3137,53 @@ function PlanningPageInner() {
                         placeholder="ou tapez un nom libre (ex : M. Dupont, prospect à rappeler)"
                         className="mt-2 w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm bg-white focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3] placeholder:italic"
                       />
+                    )}
+                    {/* Bloc coordonnées libres — affiché seulement si nom libre saisi (et aucun client choisi) */}
+                    {!mClient && mClientLibre.trim().length > 0 && (
+                      <div className="mt-2 bg-gray-50/60 border border-gray-200 rounded-lg p-3 space-y-3">
+                        <p className="text-[11px] italic text-gray-500 leading-snug">
+                          Coordonnées (optionnelles) — stockées sur cette intervention uniquement.
+                        </p>
+                        <Input
+                          label="Téléphone"
+                          type="tel"
+                          value={mClientLibreTel}
+                          onChange={e => setMClientLibreTel(e.target.value)}
+                          placeholder="06 12 34 56 78"
+                        />
+                        <Input
+                          label="Adresse"
+                          type="text"
+                          value={mClientLibreAdresse}
+                          onChange={e => setMClientLibreAdresse(e.target.value)}
+                          placeholder="15 rue des Lilas"
+                        />
+                        <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
+                          <Input
+                            label="Code postal"
+                            type="text"
+                            value={mClientLibreCP}
+                            onChange={e => setMClientLibreCP(e.target.value)}
+                            maxLength={5}
+                            placeholder="33000"
+                          />
+                          <Input
+                            label="Ville"
+                            type="text"
+                            value={mClientLibreVille}
+                            onChange={e => setMClientLibreVille(e.target.value)}
+                            placeholder="Bordeaux"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleEnregistrerCommeClient}
+                          disabled={enregistrerClientSaving}
+                          className="text-xs text-sky hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {enregistrerClientSaving ? 'Enregistrement…' : '+ Enregistrer comme client (créer la fiche)'}
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -3481,119 +3476,10 @@ function PlanningPageInner() {
         </div>
       )}
 
-      {/* ── MINI-FORMULAIRE CRÉATION PROSPECT INLINE (28/05/2026) ── */}
-      {/* S'affiche au-dessus du modal Nouvelle intervention quand on clique
-          "+ Créer le prospect X" dans le combobox client. Permet de saisir
-          téléphone/email/adresse pour que la fiche client soit utilisable.
-          Tous les champs sont optionnels sauf le nom. */}
-      {showProspectForm && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-[modalIn_.2s_ease]"
-          onClick={() => !prospectSaving && setShowProspectForm(false)}
-        >
-          <div
-            className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
-              <h3 className="text-[16px] font-extrabold text-[#0f1a3a]">Nouveau prospect</h3>
-              <button onClick={() => setShowProspectForm(false)} disabled={prospectSaving} className="text-[#7b8ba3] hover:text-[#0f1a3a] disabled:opacity-50">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-xs text-[#64748b] leading-snug">
-                Remplis ce qui est utile. Seul le nom est obligatoire — tu pourras compléter la fiche plus tard depuis <strong>Clients</strong>.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Prénom</label>
-                  <Input
-                    type="text"
-                    value={prospectPrenom}
-                    onChange={e => setProspectPrenom(e.target.value)}
-                    placeholder="Jean"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Nom *</label>
-                  <Input
-                    type="text"
-                    value={prospectNom}
-                    onChange={e => setProspectNom(e.target.value)}
-                    placeholder="Dupont"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Téléphone</label>
-                  <Input
-                    type="tel"
-                    value={prospectTelephone}
-                    onChange={e => setProspectTelephone(e.target.value)}
-                    placeholder="06 12 34 56 78"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Email</label>
-                  <Input
-                    type="email"
-                    value={prospectEmail}
-                    onChange={e => setProspectEmail(e.target.value)}
-                    placeholder="client@email.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Adresse</label>
-                <Input
-                  type="text"
-                  value={prospectAdresse}
-                  onChange={e => setProspectAdresse(e.target.value)}
-                  placeholder="15 rue des Lilas"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Code postal</label>
-                  <Input
-                    type="text"
-                    value={prospectCodePostal}
-                    onChange={e => setProspectCodePostal(e.target.value)}
-                    placeholder="33000"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Ville</label>
-                  <Input
-                    type="text"
-                    value={prospectVille}
-                    onChange={e => setProspectVille(e.target.value)}
-                    placeholder="Bordeaux"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-[#e6ecf2] flex items-center justify-end gap-2">
-              <button
-                onClick={() => setShowProspectForm(false)}
-                disabled={prospectSaving}
-                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-[#475569] bg-white border border-[#e6ecf2] hover:bg-[#f8fafc] disabled:opacity-50 transition-all"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={submitProspectForm}
-                disabled={prospectSaving || !prospectNom.trim()}
-                className="px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-[#e87a2a] hover:bg-[#f09050] disabled:opacity-50 transition-all"
-              >
-                {prospectSaving ? 'Création…' : 'Créer le prospect'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Session 12 V4 (29/05/2026) : le mini-formulaire prospect a été supprimé.
+          Remplacé par la saisie libre étendue (4 champs optionnels tél/adresse/CP/ville)
+          dans le modal Nouvelle intervention, avec un bouton discret
+          "+ Enregistrer comme client" pour formaliser la fiche si besoin. */}
 
       {/* ── TOAST ── */}
       {toast && (
