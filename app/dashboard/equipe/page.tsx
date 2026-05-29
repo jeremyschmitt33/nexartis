@@ -37,13 +37,20 @@ interface Intervenant {
   type_contrat: 'cdi' | 'cdd' | 'apprenti' | 'interimaire' | 'sous-traitant'
   taux_horaire: number
   niveau_acces: 'proprietaire' | 'compagnon'
-  // Rôle métier : Apprenti, Ouvrier, Compagnon, Chef d'équipe, Conducteur de travaux, Dirigeant.
+  // Rôle métier — Session 13 V1 (29/05/2026) : liste fermée à 5 rôles
+  // hiérarchiques : Apprenti, Ouvrier, Compagnon, Chef d'équipe, Dirigeant.
+  // (Avant : 6 rôles avec "Conducteur de travaux" et "Assistant" supprimés
+  // car redondants/obsolètes pour les TPE.)
+  // Les anciennes valeurs en BDD restent rétrocompatibles : affichées en
+  // lecture seule dans la table, mais non proposées dans les selects.
   // Distinct du `niveau_acces` (droits) et du `type_contrat` (CDI/CDD/...).
   role?: string | null
   couleur: string
   actif: boolean
   // Session 9 (28/05/2026) : marqueur de l'intervenant "self" (le dirigeant
-  // lui-même). Masqué de la page Mon équipe — non modifiable, non supprimable.
+  // lui-même). Session 13 V1 : on AFFICHE désormais le membre is_self dans
+  // la page Mon équipe (avec un badge "Vous"), pour permettre de l'éditer
+  // facilement (changer de membre "C'est moi", débrancher, etc.).
   is_self?: boolean
   created_at?: string
 }
@@ -260,22 +267,30 @@ export default function EquipePage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const { data: intervenants, loading, error, refetch } = useIntervenants()
-  // Session 9 : on masque l'intervenant "self" (le dirigeant lui-même, créé
-  // automatiquement par la page Planning). Il ne doit pas pouvoir être édité
-  // ni supprimé depuis Mon équipe, et il ne doit pas être compté dans les
-  // stats "X employés".
-  const allIntervenants = (intervenants as unknown as Intervenant[]).filter(
-    (e) => e.is_self !== true,
-  )
+  // Session 9 → Session 13 V1 (29/05/2026) :
+  // Avant : on masquait l'intervenant "self" (créé auto par Planning).
+  // Maintenant : on l'AFFICHE pour permettre à l'utilisateur de gérer la
+  // case "C'est moi (utilisateur connecté)" — utile pour transférer le self
+  // sur un membre réel de l'équipe ou le débrancher en mode "gérant pur".
+  // Le self est juste signalé par un badge "Vous" dans la table/cartes mais
+  // reste éditable et supprimable comme n'importe quel autre membre.
+  // Anti-régression : il est toujours exclu des stats "employés/etc." pour
+  // ne pas gonfler artificiellement les compteurs en mode Solo.
+  const allIntervenants = intervenants as unknown as Intervenant[]
+  const visibleIntervenants = allIntervenants.filter((e) => e.is_self !== true)
 
   const uniqueMetiers = Array.from(
     new Set(allIntervenants.map((e) => e.metier).filter(Boolean))
   ).sort()
 
-  const employes = allIntervenants.filter((e) => ['cdi', 'cdd', 'apprenti'].includes(e.type_contrat))
-  const interimaires = allIntervenants.filter((e) => e.type_contrat === 'interimaire')
-  const sousTraitants = allIntervenants.filter((e) => e.type_contrat === 'sous-traitant')
+  // Stats : on exclut le self pour ne pas gonfler les compteurs
+  // (le dirigeant n'est pas un "employé" au sens RH).
+  const employes = visibleIntervenants.filter((e) => ['cdi', 'cdd', 'apprenti'].includes(e.type_contrat))
+  const interimaires = visibleIntervenants.filter((e) => e.type_contrat === 'interimaire')
+  const sousTraitants = visibleIntervenants.filter((e) => e.type_contrat === 'sous-traitant')
 
+  // Liste affichée : on inclut désormais le self pour permettre l'édition
+  // de la case "C'est moi" (cf. Session 13 V1).
   const filtered = allIntervenants.filter((e) => {
     const eType = getTypeFromContrat(e.type_contrat)
     if (filterType !== 'tous' && eType !== filterType) return false
@@ -293,6 +308,9 @@ export default function EquipePage() {
   })
 
   // --- Form creer ---
+  // Session 13 V1 : ajout du flag `isSelf` (case "C'est moi (utilisateur connecté)").
+  // Un seul membre peut être self à la fois : avant insert/update, on
+  // dégrade tous les autres self à false (cf. demoteOtherSelves).
   const [form, setForm] = useState({
     prenom: '',
     nom: '',
@@ -302,14 +320,52 @@ export default function EquipePage() {
     type_contrat: 'cdi' as IntervenantType,
     niveau_acces: 'compagnon' as Intervenant['niveau_acces'],
     role: '',
+    isSelf: false,
   })
 
   const resetForm = () =>
-    setForm({ prenom: '', nom: '', email: '', telephone: '', metier: '', type_contrat: 'cdi', niveau_acces: 'compagnon', role: '' })
+    setForm({ prenom: '', nom: '', email: '', telephone: '', metier: '', type_contrat: 'cdi', niveau_acces: 'compagnon', role: '', isSelf: false })
+
+  // Helper : avant de marquer un membre is_self=true, on retire le flag de
+  // tous les autres membres du même user (un seul self à la fois). On filtre
+  // explicitement par user_id côté Supabase pour respecter la RLS (même si
+  // les policies le font déjà côté DB, on garde la ceinture + bretelles).
+  const demoteOtherSelves = useCallback(async (exceptId?: string) => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    let q = supabase
+      .from('intervenants')
+      .update({ is_self: false })
+      .eq('user_id', user.id)
+      .eq('is_self', true)
+    if (exceptId) q = q.neq('id', exceptId)
+    await q
+  }, [])
+
+  // Helper : propage user_is_intervenant=true au niveau entreprise quand on
+  // marque un membre is_self=true (sémantique : le user a déclaré qu'il EST
+  // intervenant via le choix d'un membre is_self). Idempotent : si déjà true,
+  // l'UPDATE ne change rien.
+  const setEntrepriseUserIsIntervenant = useCallback(async (value: boolean) => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase
+      .from('entreprises')
+      .update({ user_is_intervenant: value })
+      .eq('user_id', user.id)
+  }, [])
 
   const handleCreate = async () => {
     setSaving(true)
     try {
+      // Si l'utilisateur coche "C'est moi", on dégrade d'abord les autres
+      // self pour respecter l'unicité (avant le insert pour éviter une
+      // collision si index UNIQUE WHERE is_self=true).
+      if (form.isSelf) {
+        await demoteOtherSelves()
+      }
       await insertRow('intervenants', {
         prenom: form.prenom,
         nom: form.nom,
@@ -322,7 +378,13 @@ export default function EquipePage() {
         taux_horaire: null,
         couleur: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
         actif: true,
+        is_self: form.isSelf || null,
       })
+      // Si self : on déclare aussi user_is_intervenant=true au niveau entreprise
+      // (sémantique cohérente avec le bandeau d'aide du Planning).
+      if (form.isSelf) {
+        await setEntrepriseUserIsIntervenant(true)
+      }
       refetch()
       setShowModal(false)
       resetForm()
@@ -343,6 +405,7 @@ export default function EquipePage() {
     type_contrat: 'cdi' as IntervenantType,
     niveau_acces: 'compagnon' as Intervenant['niveau_acces'],
     role: '',
+    isSelf: false,
   })
 
   // V1 Fix #1 (28/05/2026) : auto-lock du rôle à "Apprenti" quand
@@ -373,6 +436,7 @@ export default function EquipePage() {
       type_contrat: intervenant.type_contrat,
       niveau_acces: intervenant.niveau_acces,
       role: intervenant.role || '',
+      isSelf: intervenant.is_self === true,
     })
     setEditingIntervenant(intervenant)
   }
@@ -381,6 +445,21 @@ export default function EquipePage() {
     if (!editingIntervenant) return
     setEditSaving(true)
     try {
+      // Session 13 V1 : gestion du flag `isSelf` (case "C'est moi").
+      // Cas 1 : on coche la case → on dégrade tous les autres self
+      //         (sauf celui qu'on est en train de modifier, sinon on se
+      //         dégrade soi-même) PUIS on met à jour cette ligne avec
+      //         is_self=true + on remonte user_is_intervenant=true sur
+      //         l'entreprise.
+      // Cas 2 : on décoche la case → is_self=false. On NE touche PAS
+      //         user_is_intervenant sur l'entreprise (le user peut vouloir
+      //         transférer le self vers un autre membre dans la foulée ;
+      //         si à la fin il n'a plus aucun self, c'est OK, on garde
+      //         user_is_intervenant à sa valeur précédente — il pourra
+      //         rebasculer via le bandeau Planning).
+      if (editForm.isSelf) {
+        await demoteOtherSelves(editingIntervenant.id)
+      }
       // On met a jour UNIQUEMENT les champs de l'intervenant.
       // On ne supprime JAMAIS chantier_intervenants ou sous_traitant_paiements lors d'un changement de type.
       await updateRow('intervenants', editingIntervenant.id, {
@@ -392,7 +471,11 @@ export default function EquipePage() {
         type_contrat: editForm.type_contrat,
         niveau_acces: editForm.niveau_acces,
         role: editForm.role || null,
+        is_self: editForm.isSelf ? true : null,
       })
+      if (editForm.isSelf) {
+        await setEntrepriseUserIsIntervenant(true)
+      }
       refetch()
       setEditingIntervenant(null)
     } catch {
@@ -520,9 +603,19 @@ export default function EquipePage() {
                   className={'border-b border-gray-100 hover:bg-gray-50 transition-colors ' + (idx % 2 === 1 ? 'bg-[#f8f9fa]' : '')}
                 >
                   <td className="px-4 py-3">
-                    <div>
-                      <p className="text-sm font-manrope font-semibold text-[#1a1a2e]">{intervenant.nom}</p>
-                      <p className="text-xs font-manrope text-gray-500">{intervenant.prenom}</p>
+                    <div className="flex items-start gap-2">
+                      <div>
+                        <p className="text-sm font-manrope font-semibold text-[#1a1a2e]">{intervenant.nom}</p>
+                        <p className="text-xs font-manrope text-gray-500">{intervenant.prenom}</p>
+                      </div>
+                      {intervenant.is_self === true && (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky/10 text-sky text-[10px] font-syne font-bold border border-sky/30"
+                          title="C'est vous (utilisateur connecté)"
+                        >
+                          Vous
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -608,10 +701,18 @@ export default function EquipePage() {
               className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
             >
               <div className="flex items-start gap-3 justify-between">
-                <div className="flex-1">
+                <div className="flex-1 flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-manrope font-semibold text-[#1a1a2e]">
                     {intervenant.nom} {intervenant.prenom}
                   </p>
+                  {intervenant.is_self === true && (
+                    <span
+                      className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky/10 text-sky text-[10px] font-syne font-bold border border-sky/30"
+                      title="C'est vous (utilisateur connecté)"
+                    >
+                      Vous
+                    </span>
+                  )}
                 </div>
                 <span
                   className="px-2 py-1 rounded-full text-xs font-syne font-bold text-white whitespace-nowrap"
@@ -697,7 +798,11 @@ export default function EquipePage() {
               <option value="interimaire">Interimaire</option>
               <option value="sous-traitant">Sous-traitant</option>
             </Select>
-            {/* V1 Fix #1 : nouvelle hiérarchie BTP + auto-lock Apprenti */}
+            {/* Session 13 V1 (29/05/2026) : liste fermée à 5 rôles hiérarchiques.
+                "Conducteur de travaux" et "Assistant" retirés (redondants/obsolètes
+                pour les TPE). Les anciennes valeurs en BDD restent affichées en
+                lecture seule dans la table (rétrocompat).
+                Auto-lock Apprenti maintenu si Type=Apprentissage. */}
             <Select
               label="Rôle"
               value={form.role}
@@ -710,7 +815,6 @@ export default function EquipePage() {
               <option value="Ouvrier">Ouvrier</option>
               <option value="Compagnon">Compagnon</option>
               <option value="Chef d'équipe">Chef d&apos;équipe</option>
-              <option value="Conducteur de travaux">Conducteur de travaux</option>
               <option value="Dirigeant">Dirigeant</option>
             </Select>
             <div className="grid grid-cols-2 gap-4">
@@ -747,6 +851,24 @@ export default function EquipePage() {
                 onChange={(e) => setForm({ ...form, telephone: e.target.value })}
               />
             </div>
+            {/* Session 13 V1 : case "C'est moi (utilisateur connecté)".
+                Lie le compte connecté à ce membre — ses interventions
+                s'affichent sur lui dans le planning au lieu d'un "Vous" auto. */}
+            <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={form.isSelf}
+                onChange={(e) => setForm({ ...form, isSelf: e.target.checked })}
+                className="mt-0.5 w-4 h-4 rounded border-gray-400 text-sky focus:ring-sky/30 cursor-pointer"
+              />
+              <span className="text-sm font-manrope text-gray-700 leading-snug">
+                <span className="font-semibold text-[#0f1a3a]">C&apos;est moi (utilisateur connecté)</span>
+                <br />
+                <span className="text-xs text-gray-500">
+                  Mes interventions s&apos;afficheront sur ce membre dans le planning.
+                </span>
+              </span>
+            </label>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => { setShowModal(false); resetForm() }}
@@ -787,7 +909,11 @@ export default function EquipePage() {
               <option value="interimaire">Interimaire</option>
               <option value="sous-traitant">Sous-traitant</option>
             </Select>
-            {/* V1 Fix #1 : nouvelle hiérarchie BTP + auto-lock Apprenti */}
+            {/* Session 13 V1 : liste fermée à 5 rôles + auto-lock Apprenti.
+                Rétrocompat : si la valeur enregistrée est "Conducteur de travaux"
+                ou "Assistant" (ancienne liste), on l'expose comme option
+                additionnelle pour ne pas perdre la donnée. L'utilisateur peut
+                la conserver ou basculer sur la nouvelle liste. */}
             <Select
               label="Rôle"
               value={editForm.role}
@@ -800,8 +926,10 @@ export default function EquipePage() {
               <option value="Ouvrier">Ouvrier</option>
               <option value="Compagnon">Compagnon</option>
               <option value="Chef d'équipe">Chef d&apos;équipe</option>
-              <option value="Conducteur de travaux">Conducteur de travaux</option>
               <option value="Dirigeant">Dirigeant</option>
+              {(editForm.role === 'Conducteur de travaux' || editForm.role === 'Assistant') && (
+                <option value={editForm.role}>{editForm.role} (ancien rôle)</option>
+              )}
             </Select>
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -837,6 +965,25 @@ export default function EquipePage() {
                 onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
               />
             </div>
+            {/* Session 13 V1 : case "C'est moi (utilisateur connecté)".
+                Pré-cochée si le membre est déjà self. Décocher = retirer le
+                flag is_self (mais on ne touche pas user_is_intervenant côté
+                entreprise — voir handleUpdate). */}
+            <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={editForm.isSelf}
+                onChange={(e) => setEditForm({ ...editForm, isSelf: e.target.checked })}
+                className="mt-0.5 w-4 h-4 rounded border-gray-400 text-sky focus:ring-sky/30 cursor-pointer"
+              />
+              <span className="text-sm font-manrope text-gray-700 leading-snug">
+                <span className="font-semibold text-[#0f1a3a]">C&apos;est moi (utilisateur connecté)</span>
+                <br />
+                <span className="text-xs text-gray-500">
+                  Mes interventions s&apos;afficheront sur ce membre dans le planning.
+                </span>
+              </span>
+            </label>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setEditingIntervenant(null)}
