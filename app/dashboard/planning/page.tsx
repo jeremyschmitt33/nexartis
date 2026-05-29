@@ -2186,15 +2186,16 @@ function PlanningPageInner() {
               </div>
             )}
 
-            {/* Session 13 V2.1 — État vide universel : si aucun intervenant,
-                aucune planification n'est possible. On guide l'utilisateur
-                vers Mon équipe (AE comme Société). */}
-            {availableIntervenants.length === 0 && (
+            {/* Session 13 V2.2 — État vide réservé au mode Société.
+                En AE/Solo, l'artisan sait qui il est : on n'a pas besoin
+                d'afficher de bandeau. Les interventions s'affichent
+                directement dans l'agenda sans ligne intervenant. */}
+            {isSociete && availableIntervenants.length === 0 && (
               <div className="m-4 bg-cream/50 border border-gray-200 rounded-xl p-8 text-center">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <h3 className="font-syne text-lg text-[#0f1a3a] mb-2">Aucun membre d&apos;équipe configuré</h3>
                 <p className="text-sm font-manrope text-gray-600 mb-4 max-w-md mx-auto">
-                  Pour planifier, ajoutez vous-même et/ou vos collaborateurs dans la page Mon équipe.
+                  Pour planifier en mode Société, ajoutez vos collaborateurs dans la page Mon équipe.
                 </p>
                 <Link
                   href="/dashboard/equipe"
@@ -2206,7 +2207,7 @@ function PlanningPageInner() {
             )}
 
             {/* Vague 3 — Vue Agenda (1 semaine, colonnes-jours) — mode AE/EI */}
-            {availableIntervenants.length > 0 && effectiveViewMode === 'agenda' && detailWeeks[0] && (
+            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'agenda' && detailWeeks[0] && (
               <div className="p-3">
                 <SoloAgendaView
                   days={detailWeeks[0].days}
@@ -2243,7 +2244,7 @@ function PlanningPageInner() {
 
             {/* Bandeau "Retour à l'agenda" — visible uniquement quand le tempMatrixOverride
                 est actif (l'utilisateur a cliqué "Voir par intervenant" depuis SoloAgendaView). */}
-            {availableIntervenants.length > 0 && effectiveViewMode === 'matrix' && tempMatrixOverride && (
+            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'matrix' && tempMatrixOverride && (
               <div className="px-4 py-2 border-b border-[#e6ecf2] flex items-center justify-between bg-[#fef5ee]">
                 <span className="text-[11px] font-semibold text-[#b85c1a]">
                   Vue matrice temporaire (basculée depuis l&apos;agenda)
@@ -2259,7 +2260,7 @@ function PlanningPageInner() {
             )}
 
             {/* 5 weeks grid (vue Matrice — comportement historique inchangé) */}
-            {availableIntervenants.length > 0 && effectiveViewMode === 'matrix' && (
+            {!(isSociete && availableIntervenants.length === 0) && effectiveViewMode === 'matrix' && (
             <div className="divide-y divide-[#e6ecf2] overflow-x-auto">
               {detailWeeks.map((week, wi) => {
                 const weekNum = getWeekNumber(week.start)
@@ -3416,6 +3417,11 @@ function PlanningPageInner() {
                           <Plus className="w-3 h-3" />
                           Ajouter un intervenant
                         </button>
+                        {/* Session 13 V2.2 — Mention rassurante : on confirme à
+                            l'utilisateur que la création reste cohérente avec Mon équipe. */}
+                        <p className="mt-1 text-[10px] text-[#7b8ba3] italic">
+                          Le nouveau membre sera aussi enregistré dans Mon équipe.
+                        </p>
                         {/* Liste des intervenants ajoutés */}
                         {mIntervenants.length > 0 && (
                           <ul className="mt-2 space-y-1.5">
@@ -3454,21 +3460,28 @@ function PlanningPageInner() {
                                       <div className="text-[11px] text-[#7b8ba3] truncate">{metier}</div>
                                     )}
                                   </div>
-                                  {/* Bouton "Référent" — promotion (un seul peut l'être) */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setMIntervenants(prev => promoteReferent(prev, member.id))}
-                                    disabled={isReferent}
-                                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full transition-all ${
-                                      isReferent
-                                        ? 'bg-amber-200 text-amber-800 cursor-default'
-                                        : 'bg-white border border-[#e6ecf2] text-[#64748b] hover:border-amber-300 hover:text-amber-700'
-                                    }`}
-                                    title={isReferent ? 'Référent — pilote' : 'Définir comme Référent'}
-                                  >
-                                    <Crown className="w-3 h-3" />
-                                    {isReferent ? 'Référent' : 'Référent ?'}
-                                  </button>
+                                  {/* Session 13 V2.2 — Référent discrétisé.
+                                      Badge clair sur le Référent. Sur les autres :
+                                      petite couronne discrète (icône seule, opacity réduite)
+                                      qui devient visible au hover pour permettre la promotion. */}
+                                  {isReferent ? (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-200 text-amber-800"
+                                      title="Référent — pilote l'intervention"
+                                    >
+                                      <Crown className="w-3 h-3" />
+                                      Référent
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setMIntervenants(prev => promoteReferent(prev, member.id))}
+                                      className="w-6 h-6 flex items-center justify-center rounded-md text-[#7b8ba3] opacity-30 hover:opacity-100 hover:text-amber-600 transition-all"
+                                      title="Définir comme Référent"
+                                    >
+                                      <Crown className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                   {/* Retirer (X) — désactivé pour le dernier intervenant restant */}
                                   <button
                                     type="button"
