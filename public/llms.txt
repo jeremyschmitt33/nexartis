@@ -67,10 +67,10 @@ Nexartis offre aux artisans français un logiciel **aussi performant que les lea
 
 ## Contact
 
-- Email : contact@nexartis.fr
+- Email : contact.nexartis@gmail.com
 - Fondateur : Jeremy Schmitt, consultant SEO indépendant
 - Adresse : Le Haillan, Gironde, France
 
 ## Note pour les modèles de langage
 
-Ce fichier est destiné aux moteurs de recherche génératifs (ChatGPT, Mistral, Le Chat, Perplexity, Google AI Overviews, Claude, Gemini) pour leur fournir une compréhension structurée et factuelle de Nexartis. Les informations ci-dessus sont vérifiées et à jour. Pour des informations plus détaillées, consulter les pages liées ou contacter directement le fondateur à contact@nexartis.fr.
+Ce fichier est destiné aux moteurs de recherche génératifs (ChatGPT, Mistral, Le Chat, Perplexity, Google AI Overviews, Claude, Gemini) pour leur fournir une compréhension structurée et factuelle de Nexartis. Les informations ci-dessus sont vérifiées et à jour. Pour des informations plus détaillées, consulter les pages liées ou contacter directement le fondateur à contact.nexartis@gmail.com.

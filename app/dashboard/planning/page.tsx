@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import NotesIntervention from '@/components/NotesIntervention'
 import Combobox, { ComboboxItem } from '@/components/Combobox'
+import { Input } from '@/components/ui/Input'
 
 // ===================================================================
 // Session 8 (28/05/2026) — Multi-intervenants par intervention
@@ -277,6 +278,11 @@ function PlanningPageInner() {
   const [showWeekend, setShowWeekend] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverCell, setDragOverCell] = useState<string | null>(null)
+  // Fix #4 (Vague 2) : ID de l'intervenant en cours de drag depuis la barre de chips.
+  // Utilisé uniquement pour le visuel (highlight pendant le drag) — le payload
+  // est porté par dataTransfer ('text/intervenant') pour ne pas casser le drag
+  // existant des interventions entre cases.
+  const [draggedChipIvId, setDraggedChipIvId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const autoDetectedRef = useRef(false)
@@ -1643,21 +1649,12 @@ function PlanningPageInner() {
     return entries.map(([metier, list]) => ({ metier, intervenants: list }))
   }, [displayedIntervenants])
 
-  // S2 — Défaut intelligent du groupement : si > 6 intervenants au total,
-  // tous les groupes démarrent repliés. Sinon, tous déployés.
-  // Appliqué une seule fois quand la liste change la première fois (et qu'aucune
-  // préférence localStorage n'a été chargée).
-  const collapsedDefaultAppliedRef = useRef(false)
-  useEffect(() => {
-    if (collapsedDefaultAppliedRef.current) return
-    if (collapsedMetiersInitRef.current) return // user already had a saved preference
-    if (intervenantsByMetier.length === 0) return
-    if (availableIntervenants.length > 6) {
-      setCollapsedMetiers(new Set(intervenantsByMetier.map(g => g.metier)))
-    }
-    collapsedDefaultAppliedRef.current = true
-    collapsedMetiersInitRef.current = true
-  }, [availableIntervenants.length, intervenantsByMetier])
+  // S2 — Fix #3 (V2, 28/05/2026) : par défaut, TOUS les groupes sont DÉPLOYÉS au mount,
+  // quel que soit le nombre d'intervenants. La persistance localStorage reste : si
+  // l'utilisateur replie manuellement un groupe, son choix est conservé au prochain
+  // mount. Si l'utilisateur n'a jamais rien replié → set vide → tout déployé.
+  // (Avant : >6 intervenants forçait tout replié au 1er mount, planning apparaissait
+  // vide à l'ouverture — mauvaise UX signalée par le PO.)
 
   // S2 — Helpers densité : classes Tailwind dépendantes de density
   // Confort = cases actuelles (90px min, fonts normales)
@@ -2073,17 +2070,29 @@ function PlanningPageInner() {
                     const fullLabel = isSelfChip
                       ? 'Vous'
                       : (`${String(r.prenom ?? '').trim()} ${String(r.nom ?? '').trim()}`.trim() || 'Sans nom')
+                    const isChipDragged = draggedChipIvId === ivId
                     return (
                       <button
                         key={ivId}
                         onClick={() => toggleIntervenantVisibility(ivId)}
+                        // Fix #4 (Vague 2) : drag chip → case planning. Payload via
+                        // dataTransfer 'text/intervenant' pour différencier du drag
+                        // intervention entre cases (qui n'utilise pas dataTransfer).
+                        draggable={!isHidden}
+                        onDragStart={e => {
+                          if (isHidden) { e.preventDefault(); return }
+                          e.dataTransfer.setData('text/intervenant', ivId)
+                          e.dataTransfer.effectAllowed = 'copy'
+                          setDraggedChipIvId(ivId)
+                        }}
+                        onDragEnd={() => setDraggedChipIvId(null)}
                         aria-pressed={!isHidden}
-                        title={isHidden ? `Afficher ${ivFullName(ivId)}` : `Masquer ${ivFullName(ivId)}`}
+                        title={isHidden ? `Afficher ${ivFullName(ivId)}` : `Glisser sur une case pour planifier ${ivFullName(ivId)} (clic = masquer/afficher)`}
                         className={`flex items-start gap-1.5 px-2.5 py-1 rounded-2xl text-[11px] font-semibold whitespace-normal leading-tight text-left transition-all border min-w-[110px] max-w-[180px] ${
                           isHidden
                             ? 'bg-white border-[#e6ecf2] text-[#94a3b8] hover:border-[#cbd5e1]'
-                            : 'border-transparent text-white shadow-sm hover:shadow-md'
-                        }`}
+                            : 'border-transparent text-white shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing'
+                        } ${isChipDragged ? 'opacity-50 ring-2 ring-sky' : ''}`}
                         style={!isHidden ? { background: color.hex } : undefined}
                       >
                         <span
@@ -2233,10 +2242,28 @@ function PlanningPageInner() {
                                     const isEmpty = interventions.length === 0
                                     return (
                                       <div key={cellKey}
-                                        className={`${cellMinHeightClass} ${cellPaddingClass} border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
-                                        onDragOver={e => { e.preventDefault(); setDragOverCell(cellKey) }}
+                                        className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#5ab4e0]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#5ab4e0]/10 outline-2 outline-dashed outline-[#5ab4e0] outline-offset-[-2px]' : ''}`}
+                                        onDragOver={e => {
+                                          // Fix #4 (Vague 2) : preventDefault autorise aussi le drop chip → case.
+                                          e.preventDefault()
+                                          setDragOverCell(cellKey)
+                                        }}
                                         onDragLeave={() => setDragOverCell(null)}
-                                        onDrop={e => { e.preventDefault(); handleDrop(ivId, day.dateStr) }}>
+                                        onDrop={e => {
+                                          e.preventDefault()
+                                          setDragOverCell(null)
+                                          // Fix #4 : si on drop un chip intervenant (depuis la barre du haut),
+                                          // on ouvre le modal Nouvelle intervention pré-rempli avec cet
+                                          // intervenant + la date de la case. Sinon on retombe sur le
+                                          // comportement existant (drag intervention entre cases).
+                                          const droppedIvId = e.dataTransfer.getData('text/intervenant')
+                                          if (droppedIvId) {
+                                            setDraggedChipIvId(null)
+                                            openModal(day.dateStr, droppedIvId)
+                                            return
+                                          }
+                                          handleDrop(ivId, day.dateStr)
+                                        }}>
 
                                         <div className="flex flex-col gap-0.5">
                                           {interventions.filter(isFiltered).map(item => {
@@ -2344,9 +2371,10 @@ function PlanningPageInner() {
                                                     <span className={`font-bold ${clientLineFontClass} truncate`}>{clientName}</span>
                                                   </div>
                                                 )}
-                                                {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite, masque aussi en mode Compact) */}
+                                                {/* Ligne 3 : titre ou ville (masque sur mobile pour compacite, masque aussi en mode Compact)
+                                                    Fix #9 : title natif pour tooltip au hover si le titre est tronqué (line-clamp-2 déjà appliqué). */}
                                                 {titreOuVille && (
-                                                  <div className={titreLineClass}>
+                                                  <div className={titreLineClass} title={titreOuVille}>
                                                     {titreOuVille}
                                                   </div>
                                                 )}
@@ -2537,8 +2565,8 @@ function PlanningPageInner() {
                 <button
                   onClick={() => { closePanel(); openEditModal(pi) }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#5ab4e0]/10 text-[#1a6fb5] hover:bg-[#5ab4e0]/20 transition-all"
-                  aria-label="Modifier l'intervention"
-                  title="Modifier"
+                  aria-label="Modifier les champs"
+                  title="Modifier les champs"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -2846,6 +2874,65 @@ function PlanningPageInner() {
               </button>
             </div>
             <div className="px-6 py-5 space-y-4">
+              {/* ── Fix #11 (Vague 2) : Infos client en lecture seule (mode édition uniquement) ──
+                  Affiche adresse + boutons Itinéraire/Appeler en haut du modal pour que
+                  l'utilisateur n'ait pas besoin de fermer Modifier pour aller consulter
+                  ces infos dans le panneau Détail. */}
+              {editMode && (() => {
+                const editClientId = mClient || null
+                const editChantierId = mChantier || null
+                const editCl = editClientId ? (clientMap.get(editClientId) as R | undefined) : undefined
+                const editCh = editChantierId ? (chantierMap.get(editChantierId) as R | undefined) : undefined
+                // Priorité adresse chantier puis client (cohérent avec le side panel).
+                const addrLine = String(editCh?.adresse_chantier ?? editCl?.adresse ?? '').trim()
+                const addrCp = String(editCh?.code_postal_chantier ?? editCl?.code_postal ?? '').trim()
+                const addrVille = String(editCh?.ville_chantier ?? editCl?.ville ?? '').trim()
+                const addrFull = [addrLine, [addrCp, addrVille].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                const hasAddr = Boolean(addrLine || addrVille)
+                const telephone = editCl?.telephone ? String(editCl.telephone) : ''
+                // Si rien à afficher (cas intervention libre sans client/chantier), on masque.
+                if (!hasAddr && !telephone) return null
+                return (
+                  <div className="bg-sky/5 border border-sky/20 rounded-xl px-4 py-3 space-y-2.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#1a6fb5]">Infos client</div>
+                    {hasAddr && (
+                      <div className="flex items-start gap-1.5 text-[12px] text-[#0f1a3a]">
+                        <MapPin className="w-3.5 h-3.5 text-[#5ab4e0] flex-shrink-0 mt-0.5" />
+                        <span className="leading-relaxed">{addrFull}</span>
+                      </div>
+                    )}
+                    {telephone && (
+                      <div className="flex items-center gap-1.5 text-[12px] text-[#0f1a3a]">
+                        <Phone className="w-3.5 h-3.5 text-[#5ab4e0] flex-shrink-0" />
+                        <span>{telephone}</span>
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      {hasAddr && (
+                        <a
+                          href={buildGmapsLink(addrLine, addrCp, addrVille)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-orange text-white rounded-lg text-[12px] font-semibold hover:bg-orange-hover transition-all"
+                          aria-label="Ouvrir l'itinéraire dans Google Maps"
+                        >
+                          <Navigation className="w-3.5 h-3.5" /> Itinéraire
+                        </a>
+                      )}
+                      {telephone && (
+                        <a
+                          href={`tel:${telephone}`}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-sky text-white rounded-lg text-[12px] font-semibold hover:bg-sky-light transition-all"
+                          aria-label={`Appeler ${telephone}`}
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Appeler
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* ── SWITCH MODE — 2 cards radio (Maquette A) ── */}
               {/* En mode édition, le mode est verrouillé sur celui déduit de l'intervention.
                   Le switch reste visible mais désactivé (visualisable, non modifiable). */}
@@ -3304,76 +3391,69 @@ function PlanningPageInner() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Prénom</label>
-                  <input
+                  <Input
                     type="text"
                     value={prospectPrenom}
                     onChange={e => setProspectPrenom(e.target.value)}
                     placeholder="Jean"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Nom *</label>
-                  <input
+                  <Input
                     type="text"
                     value={prospectNom}
                     onChange={e => setProspectNom(e.target.value)}
                     placeholder="Dupont"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Téléphone</label>
-                  <input
+                  <Input
                     type="tel"
                     value={prospectTelephone}
                     onChange={e => setProspectTelephone(e.target.value)}
                     placeholder="06 12 34 56 78"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Email</label>
-                  <input
+                  <Input
                     type="email"
                     value={prospectEmail}
                     onChange={e => setProspectEmail(e.target.value)}
                     placeholder="client@email.com"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Adresse</label>
-                <input
+                <Input
                   type="text"
                   value={prospectAdresse}
                   onChange={e => setProspectAdresse(e.target.value)}
                   placeholder="15 rue des Lilas"
-                  className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Code postal</label>
-                  <input
+                  <Input
                     type="text"
                     value={prospectCodePostal}
                     onChange={e => setProspectCodePostal(e.target.value)}
                     placeholder="33000"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                   />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-[#64748b] uppercase tracking-wider mb-1.5">Ville</label>
-                  <input
+                  <Input
                     type="text"
                     value={prospectVille}
                     onChange={e => setProspectVille(e.target.value)}
                     placeholder="Bordeaux"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 bg-gray-50/60 rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -3417,7 +3497,7 @@ function PlanningPageInner() {
 
 // ===================================================================
 // Sub-components
-// ========================================================
+// ===================================================================
 function MiniStat({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color: string }) {
   return (
     <div className="flex items-center gap-2 bg-white border border-[#e6ecf2] rounded-lg px-3 py-1.5">

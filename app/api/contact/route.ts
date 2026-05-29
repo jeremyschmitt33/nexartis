@@ -1,6 +1,6 @@
 /**
  * Route API : envoi d'un message de contact utilisateur vers
- * contact@nexartis.fr via Brevo (cf. lib/email.ts).
+ * contact.nexartis@gmail.com via Brevo (cf. lib/email.ts).
  *
  * Types acceptes : 'bug' | 'feature' | 'question'.
  *
@@ -24,7 +24,7 @@ import {
 } from '@/lib/api-security'
 import { sendEmail } from '@/lib/email'
 
-const CONTACT_RECIPIENT = 'contact@nexartis.fr'
+const CONTACT_RECIPIENT = 'contact.nexartis@gmail.com'
 
 const TYPE_LABELS: Record<string, string> = {
   bug: 'Bug',

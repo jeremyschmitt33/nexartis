@@ -207,7 +207,7 @@ export default function CgvPage() {
             hors interruptions programmées pour maintenance préalablement annoncées et hors cas de
             force majeure. En cas de non-respect de cet engagement, le Client a droit au remboursement
             intégral de la mensualité du mois concerné, sur simple demande adressée à{' '}
-            <strong>contact@nexartis.fr</strong>.
+            <strong>contact.nexartis@gmail.com</strong>.
           </p>
 
           <h3 className="font-syne text-lg font-bold text-navy mt-6 mb-2">
@@ -218,7 +218,7 @@ export default function CgvPage() {
             et ne sont en aucun cas transmises, vendues ou commercialisées à des tiers, sauf
             obligation légale. Le Client peut à tout moment exporter l&apos;intégralité de ses
             données aux formats CSV ou PDF depuis son espace personnel, ou sur simple demande
-            adressée à <strong>contact@nexartis.fr</strong>.
+            adressée à <strong>contact.nexartis@gmail.com</strong>.
           </p>
         </section>
 

@@ -37,7 +37,7 @@ interface Intervenant {
   type_contrat: 'cdi' | 'cdd' | 'apprenti' | 'interimaire' | 'sous-traitant'
   taux_horaire: number
   niveau_acces: 'proprietaire' | 'compagnon'
-  // Rôle métier (28/05/2026) : Dirigeant, Chef d'équipe, Compagnon, Apprenti, Assistant.
+  // Rôle métier : Apprenti, Ouvrier, Compagnon, Chef d'équipe, Conducteur de travaux, Dirigeant.
   // Distinct du `niveau_acces` (droits) et du `type_contrat` (CDI/CDD/...).
   role?: string | null
   couleur: string

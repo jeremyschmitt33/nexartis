@@ -7,7 +7,7 @@
  *   - question : poser une question (besoin d'aide)
  *
  * Le formulaire envoie a /api/contact qui relaie l'email vers
- * contact@nexartis.fr via Brevo (cf. lib/email.ts).
+ * contact.nexartis@gmail.com via Brevo (cf. lib/email.ts).
  *
  * Aucune mention du programme "1 bug = 1 mois offert" dans cette UI :
  * decision business (Jeremy) pour eviter les abus.

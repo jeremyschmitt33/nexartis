@@ -23,7 +23,7 @@ export default function MaintenancePage() {
   const retourEstime =
     process.env.NEXT_PUBLIC_MAINTENANCE_RETURN ?? 'très prochainement'
   const contactEmail =
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? 'contact@nexartis.fr'
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? 'contact.nexartis@gmail.com'
 
   const mailtoNotify = `mailto:${contactEmail}?subject=${encodeURIComponent(
     'Prévenez-moi du retour de Nexartis',

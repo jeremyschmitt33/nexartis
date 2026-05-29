@@ -131,7 +131,7 @@ export default function RootLayout({
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'contact@nexartis.fr',
+      email: 'contact.nexartis@gmail.com',
       availableLanguage: ['French'],
       areaServed: 'FR',
     },

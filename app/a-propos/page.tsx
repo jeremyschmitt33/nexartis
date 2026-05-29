@@ -213,10 +213,10 @@ export default function AProposPage() {
             <p>
               📧{' '}
               <a
-                href="mailto:contact@nexartis.fr"
+                href="mailto:contact.nexartis@gmail.com"
                 className="font-semibold text-sky hover:text-orange underline"
               >
-                contact@nexartis.fr
+                contact.nexartis@gmail.com
               </a>
             </p>
           </div>

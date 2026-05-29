@@ -1031,10 +1031,10 @@ export default function AidePage() {
             Écris-nous directement, on te répond généralement sous 24h.
           </p>
           <a
-            href="mailto:contact@nexartis.fr"
+            href="mailto:contact.nexartis@gmail.com"
             className="inline-flex items-center gap-2 font-syne font-bold text-sm text-sky-600 hover:text-sky-700 transition-colors"
           >
-            contact@nexartis.fr
+            contact.nexartis@gmail.com
           </a>
         </div>
 
