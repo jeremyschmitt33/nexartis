@@ -1,13 +1,12 @@
 'use client'
 
-import { AlertTriangle, Crown } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type {
   R,
   PaletteEntry,
   PlanningDensity,
   InterventionIntervenant,
-  InterventionRole,
   WeekDay,
 } from '@/components/planning/shared/types'
 
@@ -266,24 +265,25 @@ export default function SoloAgendaView(props: SoloAgendaProps) {
                   const clientName = clNameFromIntervention(rec)
                   const titreRaw = String(rec.titre ?? rec.description_travaux ?? '').trim()
 
-                  // Référent à afficher dans l'avatar coin bas droit
+                  // V2.3 : 1er intervenant à afficher dans l'avatar coin bas droit
+                  // (tous les intervenants sont au même niveau).
                   const liaisons = interventionIntervenantsMap.get(recId) ?? []
-                  const referentId =
-                    liaisons.find(l => l.role === 'referent')?.id ??
+                  const primaryIvId =
+                    liaisons[0]?.id ??
                     (rec.intervenant_id as string | undefined) ??
                     null
-                  const referentRec = referentId
-                    ? (intervenantMap.get(referentId) as R | undefined)
+                  const primaryIvRec = primaryIvId
+                    ? (intervenantMap.get(primaryIvId) as R | undefined)
                     : undefined
-                  const referentColor = referentId ? colorMap.get(referentId) : undefined
-                  const referentName = referentRec
-                    ? referentRec.is_self === true
+                  const primaryIvColor = primaryIvId ? colorMap.get(primaryIvId) : undefined
+                  const primaryIvName = primaryIvRec
+                    ? primaryIvRec.is_self === true
                       ? 'Vous'
-                      : `${referentRec.prenom ?? ''} ${referentRec.nom ?? ''}`.trim()
+                      : `${primaryIvRec.prenom ?? ''} ${primaryIvRec.nom ?? ''}`.trim()
                     : ''
                   const nbExtra = Math.max(0, liaisons.length - 1)
 
-                  const color = referentColor ?? colorMap.get(rec.intervenant_id as string)
+                  const color = primaryIvColor ?? colorMap.get(rec.intervenant_id as string)
 
                   // Tooltip riche
                   const tooltipParts: string[] = []
@@ -300,7 +300,7 @@ export default function SoloAgendaView(props: SoloAgendaProps) {
                     <div
                       key={recId}
                       draggable
-                      onDragStart={() => onDragStart(recId, referentId ?? undefined)}
+                      onDragStart={() => onDragStart(recId, primaryIvId ?? undefined)}
                       onDragEnd={onDragEnd}
                       onClick={() => onOpenPanel(rec)}
                       className={`relative ${cardPaddingClass} rounded-lg cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${
@@ -332,14 +332,14 @@ export default function SoloAgendaView(props: SoloAgendaProps) {
                         </span>
                       )}
 
-                      {/* Badge +N équipiers */}
+                      {/* Badge +N intervenants supplémentaires */}
                       {nbExtra > 0 && (
                         <span
                           className={`absolute ${
                             TypeIcon ? 'top-1.5 right-6' : 'top-1.5 right-1.5'
                           } inline-flex items-center gap-0.5 bg-white/70 backdrop-blur-sm text-[#0f1a3a] text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow-sm`}
                           title={`${liaisons.length} intervenants sur cette intervention`}
-                          aria-label={`${nbExtra} équipier${nbExtra > 1 ? 's' : ''} en plus du référent`}
+                          aria-label={`${nbExtra} intervenant${nbExtra > 1 ? 's' : ''} supplémentaire${nbExtra > 1 ? 's' : ''}`}
                         >
                           +{nbExtra}
                         </span>
@@ -388,21 +388,18 @@ export default function SoloAgendaView(props: SoloAgendaProps) {
                         </div>
                       )}
 
-                      {/* Avatar mini intervenant en bas à droite (24×24) — Vague 3 */}
-                      {referentName && (
+                      {/* Avatar mini intervenant en bas à droite (24×24) — Vague 3 / V2.3 */}
+                      {primaryIvName && (
                         <div
                           className="absolute bottom-1 right-1 flex items-center gap-0.5"
-                          title={`${referentName}${liaisons.find(l => l.role === 'referent') ? ' (Référent)' : ''}`}
+                          title={primaryIvName}
                         >
-                          {liaisons.find(l => l.role === 'referent') && (
-                            <Crown className="w-2.5 h-2.5 text-amber-500" />
-                          )}
                           <span
                             className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-extrabold text-white shadow-sm ring-1 ring-white"
-                            style={{ background: referentColor?.hex ?? '#5ab4e0' }}
-                            aria-label={`Intervenant : ${referentName}`}
+                            style={{ background: primaryIvColor?.hex ?? '#5ab4e0' }}
+                            aria-label={`Intervenant : ${primaryIvName}`}
                           >
-                            {initials(referentName)}
+                            {initials(primaryIvName)}
                           </span>
                         </div>
                       )}

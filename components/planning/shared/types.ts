@@ -21,13 +21,9 @@ export type Creneau = 'matin' | 'apres_midi' | 'journee' | 'creneau'
 /** Filtre actif (toolbar). */
 export type FilterType = 'all' | 'client' | 'chantier' | 'conflict'
 
-/** Rôle d'un intervenant lié à une intervention. */
-export type InterventionRole = 'referent' | 'equipier'
-
 /** Liaison intervenant ↔ intervention (table jonction). */
 export type InterventionIntervenant = {
   id: string
-  role: InterventionRole
 }
 
 /** Élément de la palette de couleurs pour un intervenant. */

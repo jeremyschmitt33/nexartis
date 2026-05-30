@@ -7,7 +7,7 @@ import {
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
   MoreHorizontal, Phone, Navigation, Rows3, Rows4,
-  Crown, UserPlus, CheckCircle2
+  CheckCircle2
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -30,44 +30,21 @@ import type { PlanningViewMode } from '@/components/planning/shared/types'
 // ===================================================================
 // Une intervention peut être liée à N intervenants via la table jonction
 // `intervention_intervenants` (cf. migration-2026-05-28-session-8-...sql).
-// Rôles : 'referent' (pilote, 1 et 1 seul) ou 'equipier' (0..N).
+// Tous les intervenants sont au même niveau (pas de hiérarchie).
 // La colonne legacy `planning_interventions.intervenant_id` reste remplie
-// avec l'ID du Référent pour la rétrocompat.
-
-type InterventionRole = 'referent' | 'equipier'
+// avec l'ID du 1er intervenant pour la rétrocompat (sans signification).
 
 type InterventionIntervenant = {
   id: string
-  role: InterventionRole
 }
 
 // Helpers pour manipuler les listes du multi-sélecteur (state modal)
-function findReferent(list: InterventionIntervenant[]): InterventionIntervenant | undefined {
-  return list.find(x => x.role === 'referent')
-}
-function promoteReferent(list: InterventionIntervenant[], targetId: string): InterventionIntervenant[] {
-  return list.map(x => ({ id: x.id, role: (x.id === targetId ? 'referent' : 'equipier') as InterventionRole }))
-}
 function addIntervenant(list: InterventionIntervenant[], id: string): InterventionIntervenant[] {
   if (list.some(x => x.id === id)) return list
-  // Le 1er ajouté devient Référent automatiquement, les suivants sont Équipier.
-  const role: InterventionRole = list.length === 0 ? 'referent' : 'equipier'
-  return [...list, { id, role }]
+  return [...list, { id }]
 }
 function removeIntervenant(list: InterventionIntervenant[], id: string): InterventionIntervenant[] {
-  const target = list.find(x => x.id === id)
-  if (!target) return list
-  // On refuse le retrait du Référent : l'utilisateur doit d'abord en
-  // désigner un autre. Garde-fou côté caller, ici on retire quand même
-  // mais on retourne la liste telle quelle si plus aucun Référent reste.
-  const next = list.filter(x => x.id !== id)
-  // Si on a retiré le Référent et qu'il reste au moins un Équipier,
-  // on promeut le 1er restant Référent (sécurité, ne devrait pas arriver
-  // car le bouton "retirer" est désactivé pour le Référent dans l'UI).
-  if (target.role === 'referent' && next.length > 0 && !next.some(x => x.role === 'referent')) {
-    return next.map((x, i) => ({ id: x.id, role: (i === 0 ? 'referent' : 'equipier') as InterventionRole }))
-  }
-  return next
+  return list.filter(x => x.id !== id)
 }
 
 // ===================================================================
@@ -300,26 +277,27 @@ function PlanningPageInner() {
   const [mMode, setMMode] = useState<'devis' | 'libre'>('libre')
   const [mDevis, setMDevis] = useState('')
   const [mClient, setMClient] = useState('')
-  // Session 8 : multi-intervenants. La liste contient le Référent (rôle
-  // 'referent', un et un seul) + 0..N Équipiers. L'ancien champ
-  // `mIntervenant` (string) reste utilisé en interne pour les vérifs
-  // (alimenté depuis findReferent(mIntervenants)) et pour le payload
+  // Session 8 : multi-intervenants. Tous au même niveau (pas de Référent).
+  // L'ancien champ `mIntervenant` (string) reste utilisé en interne pour
+  // les vérifs (alimenté depuis mIntervenants[0]) et pour le payload
   // legacy `intervenant_id` envoyé à `planning_interventions`.
   const [mIntervenants, setMIntervenants] = useState<InterventionIntervenant[]>([])
   // Buffer du Combobox d'ajout (controlled : null = combobox vide)
   const [mAddIvBuffer, setMAddIvBuffer] = useState<string | null>(null)
-  // Dérivé : ID du Référent courant (ou '' si aucun).
-  const mIntervenant = findReferent(mIntervenants)?.id ?? ''
+  // Dérivé : ID du 1er intervenant courant (ou '' si aucun).
+  const mIntervenant = mIntervenants[0]?.id ?? ''
   const setMIntervenant = useCallback((id: string) => {
     // Setter rétrocompat : pré-sélection mono. Si la liste est vide, on
-    // ajoute le Référent. Sinon on promeut un autre Référent.
+    // ajoute l'intervenant. Sinon on s'assure qu'il est présent en 1er.
     setMIntervenants(prev => {
       if (!id) return prev
-      if (prev.some(x => x.id === id)) return promoteReferent(prev, id)
-      // Pas dans la liste : on remplace tout (cas mode Solo où il n'y a
-      // qu'un intervenant possible).
-      if (prev.length === 0) return [{ id, role: 'referent' }]
-      return promoteReferent([...prev.filter(x => x.id !== id), { id, role: 'equipier' }], id)
+      if (prev.some(x => x.id === id)) {
+        // Met l'intervenant ciblé en première position
+        return [{ id }, ...prev.filter(x => x.id !== id)]
+      }
+      if (prev.length === 0) return [{ id }]
+      // Mode Solo : remplace tout par cet intervenant unique
+      return [{ id }]
     })
   }, [])
   const [mChantier, setMChantier] = useState('')
@@ -366,6 +344,11 @@ function PlanningPageInner() {
   // Session 13 V2.1 : plus de création auto, juste un lookup sur les comptes
   // legacy qui ont déjà un intervenant is_self ou un membre Solo existant.
   const [selfIntervenantId, setSelfIntervenantId] = useState<string | null>(null)
+  // V2.3 FIX 1 (30/05/2026) : garde-fou contre les doubles INSERT concurrents
+  // quand `ensureSelfIntervenant` est appelé deux fois rapidement (double-click).
+  // L'index unique partiel `idx_intervenants_one_self_per_user` agit comme
+  // deuxième ceinture côté DB.
+  const creatingSelfRef = useRef(false)
 
   // ─────────────────────────────────────────────────────────────────
   // Session 13 V2 (29/05/2026) — Mini-modal "+ Ajouter intervenant"
@@ -426,7 +409,7 @@ function PlanningPageInner() {
   //
   // Rétrocompat : les comptes qui ont déjà un membre `is_self = true` ou
   // un intervenant non sous-traitant existant gardent ce membre comme
-  // référent pour le tri "Vous en haut" et le libellé. On ne supprime
+  // référence pour le tri "Vous en haut" et le libellé. On ne supprime
   // rien — l'utilisateur peut effacer manuellement s'il le souhaite.
   useEffect(() => {
     if (l2) return // wait for intervenants to load
@@ -521,13 +504,11 @@ function PlanningPageInner() {
   }, [mcPrenom, mcNom, mcMetier, mcTypeContrat, mcRole, miniCreate, closeMiniCreate])
 
   // ── Pre-selection de l'intervenant "self" à l'ouverture du modal ──
-  // Session 8 : pre-fill du Référent uniquement quand la liste est vide
-  // (sinon on garde l'état multi-intervenants du modal).
-  // Session 9 (28/05/2026) : étendu au mode Société. Si le dirigeant n'a pas
-  // encore créé d'équipe, le self est pré-sélectionné comme Référent par
-  // défaut (sinon le dropdown serait vide et la planification impossible).
-  // V1 Fix #6 (28/05/2026) : on RETIRE le pre-fill en mode Société.
-  //   - Mode AE (!isSociete) : pre-fill `[self, referent]` (comportement S9 conservé).
+  // Session 8 : pre-fill quand la liste est vide (sinon on garde l'état
+  // multi-intervenants du modal).
+  // V2.3 (30/05/2026) : suppression de la notion de Référent. Tous les
+  // intervenants sont au même niveau.
+  //   - Mode AE (!isSociete) : pre-fill avec le self comme 1er intervenant.
   //   - Mode Société : aucun pre-fill, mIntervenants reste vide et le dirigeant
   //     ajoute manuellement les intervenants (le self "Vous" reste dispo dans
   //     le Combobox d'ajout d'intervenant, donc rien n'est perdu).
@@ -655,27 +636,34 @@ function PlanningPageInner() {
 
   // ── Session 8 — Liaisons multi-intervenants par intervention ──
   // Indexe la table jonction `intervention_intervenants` par intervention_id.
-  // Pour chaque intervention, on récupère la liste { intervenant_id, role }.
+  // Pour chaque intervention, on récupère la liste { intervenant_id }.
   // Utilisé par :
   //   - `planningMap` (rendu grille — 1 intervention apparait dans N cellules)
   //   - `openEditModal` (hydrater le multi-sélecteur)
   //   - `conflicts` (détection sur chaque intervenant lié)
-  //   - panneau détail (afficher Référent + Équipiers)
+  //   - panneau détail (afficher la liste des intervenants)
+  // V2.3 : tous les intervenants au même niveau. Tri stable par created_at
+  // (ou id en fallback) pour la stabilité du rendu.
   const interventionIntervenantsMap = useMemo(() => {
-    const map = new Map<string, InterventionIntervenant[]>()
+    type LiaisonRow = InterventionIntervenant & { _sort: string }
+    const map = new Map<string, LiaisonRow[]>()
     for (const row of interventionIntervenantsData) {
       const r = row as R
       const ivId = r.intervention_id as string
       const intervenantId = r.intervenant_id as string
-      const role = (r.role as InterventionRole) ?? 'equipier'
       if (!ivId || !intervenantId) continue
+      const sortKey = (r.created_at as string) ?? (r.id as string) ?? intervenantId
       if (!map.has(ivId)) map.set(ivId, [])
-      map.get(ivId)!.push({ id: intervenantId, role })
+      map.get(ivId)!.push({ id: intervenantId, _sort: sortKey })
     }
-    // Tri systématique : Référent en tête, puis Équipiers (stabilité du
-    // rendu détail et de l'ordre dans le modal édition).
-    map.forEach(list => list.sort((a, b) => (a.role === 'referent' ? -1 : 1) - (b.role === 'referent' ? -1 : 1)))
-    return map
+    // Tri stable par created_at (ou id) pour la stabilité du rendu.
+    map.forEach(list => list.sort((a, b) => a._sort.localeCompare(b._sort)))
+    // On retourne une Map<string, InterventionIntervenant[]> (sans _sort)
+    const result = new Map<string, InterventionIntervenant[]>()
+    map.forEach((list, key) => {
+      result.set(key, list.map(({ id }) => ({ id })))
+    })
+    return result
   }, [interventionIntervenantsData])
 
   // ── Devis acceptés (signés) ──
@@ -1026,16 +1014,132 @@ function PlanningPageInner() {
     return null
   }
 
+  // ── V2.3 FIX 1 (30/05/2026) — Auto-création de l'intervenant `self` en AE ──
+  //
+  // Objectif : permettre à un auto-entrepreneur de cliquer "Nouvelle
+  // intervention" et que ça marche immédiatement, SANS avoir à passer par
+  // Mon équipe pour créer une fiche intervenant manuellement.
+  //
+  // Mécanique :
+  //   1. Si un intervenant `is_self = true` existe déjà (côté state ou DB),
+  //      on le retourne (lookup cache + lookup direct DB pour rattraper les
+  //      cas où le hook n'a pas encore propagé).
+  //   2. Sinon, on INSERT une nouvelle fiche avec `is_self = true` et les
+  //      valeurs dérivées du profil (prenom/nom du user_metadata, metier de
+  //      l'entreprise). Les colonnes NOT NULL (prenom, nom) ont des fallback
+  //      "Moi" / "" pour garantir l'INSERT.
+  //   3. On refetch la liste des intervenants pour que le state local soit
+  //      synchronisé avant que le modal s'ouvre.
+  //
+  // Garde-fous :
+  //   - `creatingSelfRef` évite les doubles INSERT en cas de double-click.
+  //   - L'index unique partiel `idx_intervenants_one_self_per_user` (cf.
+  //     migration session 9) empêche les doublons côté DB.
+  //   - En cas d'erreur (RLS, conflit, etc.), on retourne null et on laisse
+  //     le modal s'ouvrir quand même : l'utilisateur pourra retenter ou
+  //     créer manuellement via le mini-form "+ Ajouter un intervenant".
+  const ensureSelfIntervenant = useCallback(async (): Promise<string | null> => {
+    // 1. Lookup côté state local
+    const existingSelf = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
+    if (existingSelf) return existingSelf.id as string
+
+    // 2. Garde-fou anti double appel concurrent
+    if (creatingSelfRef.current) return null
+    creatingSelfRef.current = true
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return null
+
+      // Lookup DB direct (cas où le hook n'a pas encore propagé après refetch)
+      const { data: existingRows } = await supabase
+        .from('intervenants')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_self', true)
+        .limit(1)
+      if (existingRows && existingRows.length > 0) {
+        await refetchIntervenants()
+        return (existingRows[0] as R).id as string
+      }
+
+      // 3. INSERT — valeurs dérivées + fallback safe
+      const meta = (user.user_metadata ?? {}) as Record<string, string>
+      const prenomFromMeta = (meta.prenom ?? '').trim()
+      const nomFromMeta = (meta.nom ?? '').trim()
+      const metierFromEntreprise = ((entreprise as R)?.metier as string | undefined)?.trim() ?? null
+
+      // Si aucun prenom/nom dans user_metadata, on retombe sur "Moi" pour le
+      // prenom (UX cohérente avec l'affichage "Vous" dans le planning) et
+      // "Artisan" pour le nom (NOT NULL en BDD, doit avoir une valeur non vide).
+      const prenom = prenomFromMeta || 'Moi'
+      const nom = nomFromMeta || 'Artisan'
+
+      try {
+        const created = await insertRow('intervenants', {
+          prenom,
+          nom,
+          metier: metierFromEntreprise,
+          // type_contrat : on prend la valeur par défaut du schéma ('cdi').
+          // L'enum n'accepte pas 'auto-entrepreneur' (cdi/cdd/apprenti/
+          // interimaire/sous-traitant uniquement) — sémantiquement neutre
+          // ici puisque la fiche est "self" et n'apparait pas dans Mon équipe.
+          type_contrat: 'cdi',
+          niveau_acces: 'proprietaire',
+          role: null,
+          taux_horaire: null,
+          actif: true,
+          couleur: 'bg-[#5ab4e0]',
+          is_self: true,
+        })
+        const newId = (created as R | null)?.id as string | undefined
+        if (!newId) return null
+        // Refetch pour rendre l'intervenant immédiatement disponible dans le state
+        await refetchIntervenants()
+        return newId
+      } catch (err) {
+        // Cas le plus courant : conflit unique sur l'index partiel (ex.
+        // 2 onglets ouverts en parallèle). On re-lookup pour récupérer
+        // l'ID créé par l'autre process.
+        const { data: retry } = await supabase
+          .from('intervenants')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_self', true)
+          .limit(1)
+        if (retry && retry.length > 0) {
+          await refetchIntervenants()
+          return (retry[0] as R).id as string
+        }
+        // Vrai échec (RLS, schéma) : on log via toast informatif et on
+        // laisse l'app continuer sans planter.
+        const msg = err instanceof Error ? err.message : 'inconnu'
+        showToast(`Impossible de créer votre fiche intervenant (${msg}). Vous pouvez la créer manuellement.`)
+        return null
+      }
+    } finally {
+      creatingSelfRef.current = false
+    }
+  }, [intervenants, entreprise, refetchIntervenants, showToast])
+
   // ── Modal ──
-  const openModal = (dateStr?: string, intervenantId?: string, devisId?: string) => {
+  const openModal = async (dateStr?: string, intervenantId?: string, devisId?: string) => {
+    // V2.3 FIX 1 : en mode AE (Solo) sans self existant, on auto-crée la fiche
+    // AVANT d'ouvrir le modal. Le mode Société reste inchangé (l'utilisateur
+    // doit avoir créé ses collaborateurs dans Mon équipe).
+    let resolvedSelfId: string | null = selfIntervenantId
+    if (!isSociete && !intervenantId && !resolvedSelfId) {
+      resolvedSelfId = await ensureSelfIntervenant()
+    }
     // Solo mode: default to self-intervenant (pre-select silently, sélecteur caché)
     // Société mode: default to the intervenantId passed (from grid click) or empty
-    const defaultIvId = intervenantId ?? (!isSociete ? (selfIntervenantId ?? (intervenants.length > 0 ? (intervenants[0] as R).id as string : '')) : '')
-    // Session 8 : initialiser la liste multi-intervenants. Le défaut devient
-    // le Référent. En mode Société sans intervenant passé, on démarre vide
-    // (l'utilisateur doit en choisir un via le Combobox).
+    const defaultIvId = intervenantId ?? (!isSociete ? (resolvedSelfId ?? (intervenants.length > 0 ? (intervenants[0] as R).id as string : '')) : '')
+    // Session 8 : initialiser la liste multi-intervenants. En mode Société
+    // sans intervenant passé, on démarre vide (l'utilisateur doit en
+    // choisir un via le Combobox).
     const initialList: InterventionIntervenant[] = defaultIvId
-      ? [{ id: defaultIvId, role: 'referent' }]
+      ? [{ id: defaultIvId }]
       : []
     setMIntervenants(initialList)
     setMAddIvBuffer(null)
@@ -1083,12 +1187,12 @@ function PlanningPageInner() {
     setMClient((intervention.client_id as string) ?? '')
     // Session 8 : hydrater le multi-sélecteur depuis la table jonction.
     // Fallback si aucune liaison (intervention orpheline) : on reconstruit
-    // une liste à partir de `intervention_id` legacy avec rôle 'referent'.
+    // une liste à partir de `intervention_id` legacy.
     const liaisonsExistantes = interventionIntervenantsMap.get(intervention.id as string)
     if (liaisonsExistantes && liaisonsExistantes.length > 0) {
-      setMIntervenants(liaisonsExistantes.map(l => ({ id: l.id, role: l.role })))
+      setMIntervenants(liaisonsExistantes.map(l => ({ id: l.id })))
     } else if (intervention.intervenant_id) {
-      setMIntervenants([{ id: intervention.intervenant_id as string, role: 'referent' }])
+      setMIntervenants([{ id: intervention.intervenant_id as string }])
     } else {
       setMIntervenants([])
     }
@@ -1255,8 +1359,8 @@ function PlanningPageInner() {
 
   // Session 8 — Liste des intervenants pour le Combobox d'ajout du modal.
   // On exclut ceux déjà sélectionnés dans `mIntervenants` (pas de doublon).
-  // En mode Solo : on n'expose que les sous-traitants pour ajouter en équipier
-  // (le "self" est déjà le Référent par défaut).
+  // En mode Solo : on n'expose que les sous-traitants pour ajouter d'autres
+  // intervenants (le "self" est déjà ajouté par défaut).
   // Session 9 : le self (is_self = true) est affiché en première position avec
   // le libellé "Vous" + métier (et non le nom de l'entreprise).
   const availableIntervenantsForModal: ComboboxItem[] = useMemo(() => {
@@ -1323,9 +1427,9 @@ function PlanningPageInner() {
 
   // ── Detect conflicts for the new intervention before saving ──
   // Session 8 : prend en compte les liaisons multi-intervenants. Une
-  // intervention existante "occupe" tous ses intervenants liés (Référent +
-  // Équipiers). Si une seule liaison n'est pas trouvée, on retombe sur
-  // `intervenant_id` legacy de la ligne planning_interventions.
+  // intervention existante "occupe" tous ses intervenants liés. Si aucune
+  // liaison n'est trouvée, on retombe sur `intervenant_id` legacy de la
+  // ligne planning_interventions.
   const detectConflitAvantSave = (
     ivId: string,
     dateStr: string,
@@ -1383,12 +1487,16 @@ function PlanningPageInner() {
       .eq('intervention_id', interventionId)
     if (delErr) throw new Error(delErr.message)
     if (liaisons.length === 0) return
-    // 2. Insertion en bulk des nouvelles liaisons
-    const rows = liaisons.map(l => ({
+    // 2. Insertion en bulk des nouvelles liaisons.
+    // V2.3 : la notion de Référent est supprimée côté UI mais la colonne `role`
+    // (NOT NULL + CHECK) reste en DB pour rétrocompat. On écrit 'referent' sur
+    // le 1er pour respecter la contrainte historique (1 référent obligatoire)
+    // et 'equipier' pour les autres. Aucune sémantique côté UI.
+    const rows = liaisons.map((l, i) => ({
       user_id: user.id,
       intervention_id: interventionId,
       intervenant_id: l.id,
-      role: l.role,
+      role: i === 0 ? 'referent' : 'equipier',
     }))
     const { error: insErr } = await supabase
       .from('intervention_intervenants')
@@ -1400,10 +1508,6 @@ function PlanningPageInner() {
     if (!mIntervenant || !mDate) return
     if (mIntervenants.length === 0) {
       showToast('Sélectionnez au moins un intervenant')
-      return
-    }
-    if (!findReferent(mIntervenants)) {
-      showToast('Un Référent est obligatoire')
       return
     }
 
@@ -1453,10 +1557,10 @@ function PlanningPageInner() {
     }
 
     // ── Verifier les conflits horaires AVANT d'enregistrer ──
-    // Session 8 : on boucle sur TOUS les intervenants ajoutés (Référent +
-    // Équipiers). Le premier conflit trouvé est remonté à l'utilisateur.
-    // S'il confirme "Quand même", la création/mise à jour se poursuit même
-    // si d'autres conflits existent sur les autres intervenants.
+    // Session 8 : on boucle sur TOUS les intervenants ajoutés.
+    // Le premier conflit trouvé est remonté à l'utilisateur. S'il confirme
+    // "Quand même", la création/mise à jour se poursuit même si d'autres
+    // conflits existent sur les autres intervenants.
     const newStart = timeToMinutes(startTime)
     const newEnd = timeToMinutes(endTime)
     let conflitTrouve: { titre: string; heureDebut: string; heureFin: string } | null = null
@@ -1497,11 +1601,12 @@ function PlanningPageInner() {
       // Effacer l'avertissement de conflit visuel si on force quand meme
       setMConflitWarning(null)
 
-      // Session 8 : `intervenant_id` legacy = ID du Référent. Garanti par la
-      // validation en tête de fonction (un Référent existe forcément).
-      const referentId = findReferent(mIntervenants)?.id ?? mIntervenant
+      // Session 8 : `intervenant_id` legacy = ID du 1er intervenant (sans
+      // signification hiérarchique en V2.3). Garanti par la validation en
+      // tête de fonction (mIntervenants.length > 0).
+      const legacyIntervenantId = mIntervenants[0]?.id ?? mIntervenant
       const payload = {
-        intervenant_id: referentId,
+        intervenant_id: legacyIntervenantId,
         client_id: mClient || null,
         chantier_id: mChantier || null,
         // Saisie libre : utilisée uniquement si pas de client/chantier en base sélectionné.
@@ -1539,8 +1644,8 @@ function PlanningPageInner() {
         const created = await insertRow('planning_interventions', payload)
         // Session 8 : on insère les liaisons sur la nouvelle intervention.
         // Si saveLiaisons échoue, l'intervention reste créée mais sans
-        // liaisons : `planningMap` retombera sur `intervenant_id` legacy
-        // (Référent) — l'utilisateur ne verra qu'1 ligne au lieu de N.
+        // liaisons : `planningMap` retombera sur `intervenant_id` legacy —
+        // l'utilisateur ne verra qu'1 ligne au lieu de N.
         // L'erreur est remontée au catch global pour toast.
         const newId = (created as R | null)?.id as string | undefined
         if (newId) await saveLiaisons(newId, mIntervenants)
@@ -1558,15 +1663,14 @@ function PlanningPageInner() {
   }
 
   // ── Drag & Drop ──
-  // Session 8 (28/05/2026) — Multi-intervenants :
+  // Session 8 / V2.3 — Multi-intervenants (tous au même niveau) :
   //   Une intervention peut apparaître dans la ligne de plusieurs intervenants.
   //   Quand on drag depuis la ligne de X vers la ligne de Y :
   //     - Si X === Y : on déplace simplement la date (cas drag entre jours).
-  //     - Si X !== Y : on retire X des liaisons et on ajoute Y. Si X était
-  //       Référent, Y devient Référent. Le `intervenant_id` legacy de la
-  //       ligne planning_interventions est mis à jour si nécessaire.
-  //     - Cas Y déjà lié : on ne crée pas de doublon. Si X était Référent
-  //       et Y équipier, Y devient le Référent (on retire X).
+  //     - Si X !== Y : on retire X des liaisons et on ajoute Y à sa place.
+  //       Le `intervenant_id` legacy de la ligne planning_interventions est
+  //       mis à jour si nécessaire (utilisé comme premier intervenant).
+  //     - Cas Y déjà lié : on ne crée pas de doublon, on retire juste X.
   const draggedFromIvIdRef = useRef<string | null>(null)
   const handleDragStart = (id: string, fromIvId?: string) => {
     setDraggedId(id)
@@ -1606,34 +1710,25 @@ function PlanningPageInner() {
         date_fin: `${dateStr}T${endTime}:00`,
       }
 
-      // 2. Si on change d'intervenant : adapter la liste des liaisons
+      // 2. Si on change d'intervenant : adapter la liste des liaisons.
+      // V2.3 : tous les intervenants au même niveau, pas de promotion.
       if (!sameIvLine && fromIvId) {
-        const wasReferent = currentLiaisons.find(l => l.id === fromIvId)?.role === 'referent'
         const targetAlreadyLinked = currentLiaisons.some(l => l.id === intervenantId)
         // Construire la nouvelle liste
         let nextList: InterventionIntervenant[]
         if (targetAlreadyLinked) {
-          // Y est déjà dans la liste : on retire X. Si X était Référent, Y
-          // devient Référent.
+          // Y est déjà dans la liste : on retire X (Y reste à sa place).
           nextList = currentLiaisons
             .filter(l => l.id !== fromIvId)
-            .map(l => ({ id: l.id, role: (wasReferent && l.id === intervenantId ? 'referent' : l.role) as InterventionRole }))
-          // S'il ne reste plus de Référent (cas X seul Référent et Y était
-          // équipier), on en promeut le premier de la liste.
-          if (!nextList.some(l => l.role === 'referent') && nextList.length > 0) {
-            nextList = nextList.map((l, i) => ({ id: l.id, role: (i === 0 ? 'referent' : 'equipier') as InterventionRole }))
-          }
+            .map(l => ({ id: l.id }))
         } else {
-          // Y pas dans la liste : on remplace X par Y, en gardant le rôle de X.
+          // Y pas dans la liste : on remplace X par Y à la même position.
           nextList = currentLiaisons.map(l =>
-            l.id === fromIvId
-              ? { id: intervenantId, role: l.role }
-              : { id: l.id, role: l.role }
+            l.id === fromIvId ? { id: intervenantId } : { id: l.id }
           )
         }
-        // intervenant_id legacy : = ID du Référent dans la nouvelle liste.
-        const newReferent = nextList.find(l => l.role === 'referent')
-        if (newReferent) updatePayload.intervenant_id = newReferent.id
+        // intervenant_id legacy : = ID du 1er intervenant de la nouvelle liste.
+        if (nextList.length > 0) updatePayload.intervenant_id = nextList[0].id
         // Persister la liste mise à jour
         await updateRow('planning_interventions', draggedId, updatePayload)
         await saveLiaisons(draggedId, nextList)
@@ -1643,7 +1738,7 @@ function PlanningPageInner() {
         // ET on crée la liaison correspondante.
         updatePayload.intervenant_id = intervenantId
         await updateRow('planning_interventions', draggedId, updatePayload)
-        await saveLiaisons(draggedId, [{ id: intervenantId, role: 'referent' }])
+        await saveLiaisons(draggedId, [{ id: intervenantId }])
       } else {
         // Drag entre jours sur la même ligne intervenant : juste la date.
         await updateRow('planning_interventions', draggedId, updatePayload)
@@ -2424,7 +2519,7 @@ function PlanningPageInner() {
                                       const clientName = clNameFromIntervention(rec)
                                       // Session 8 : nb total d'intervenants sur cette intervention.
                                       // Affiche un badge "+N" quand > 1, pour signaler la présence
-                                      // d'équipiers en plus du référent.
+                                      // d'intervenants supplémentaires sur la même intervention.
                                       const recLiaisons = interventionIntervenantsMap.get(rec.id as string) ?? []
                                       const nbExtraIntervenants = Math.max(0, recLiaisons.length - 1)
                                       // Fallback titre -> ville client si pas de titre
@@ -2470,12 +2565,12 @@ function PlanningPageInner() {
                                               <TypeIcon className="w-3 h-3" />
                                             </span>
                                           )}
-                                          {/* Session 8 : badge "+N équipiers" si multi-intervenants */}
+                                          {/* Session 8 : badge "+N intervenants" si multi-intervenants */}
                                           {nbExtraIntervenants > 0 && (
                                             <span
                                               className={`absolute ${TypeIcon ? 'top-1.5 right-6' : 'top-1.5 right-1.5'} inline-flex items-center gap-0.5 bg-white/70 backdrop-blur-sm text-[#0f1a3a] text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow-sm`}
                                               title={`${recLiaisons.length} intervenants sur cette intervention`}
-                                              aria-label={`${nbExtraIntervenants} équipier${nbExtraIntervenants > 1 ? 's' : ''} en plus du référent`}
+                                              aria-label={`${nbExtraIntervenants} intervenant${nbExtraIntervenants > 1 ? 's' : ''} supplémentaire${nbExtraIntervenants > 1 ? 's' : ''}`}
                                             >
                                               +{nbExtraIntervenants}
                                             </span>
@@ -2884,21 +2979,20 @@ function PlanningPageInner() {
                   </div>
                 )}
 
-                {/* ── Bloc Intervenants — Référent + Équipiers (Session 8) ── */}
-                {/* Si liaisons existent → on affiche tous les membres avec leurs rôles.
+                {/* ── Bloc Intervenants (Session 8 / V2.3) ── */}
+                {/* Si liaisons existent → on affiche tous les membres au même niveau.
                     Sinon (intervention orpheline / pas backfillée) → fallback sur le seul
-                    intervenant_id legacy.
-                    Le Référent est marqué d'une couronne. */}
+                    intervenant_id legacy. */}
                 {(() => {
                   const liaisons = interventionIntervenantsMap.get(pi.id as string) ?? []
-                  const members: { id: string; role: InterventionRole }[] = liaisons.length > 0
+                  const members: { id: string }[] = liaisons.length > 0
                     ? liaisons
-                    : (pi.intervenant_id ? [{ id: pi.intervenant_id as string, role: 'referent' as InterventionRole }] : [])
+                    : (pi.intervenant_id ? [{ id: pi.intervenant_id as string }] : [])
                   if (members.length === 0) return null
                   return (
                     <div className="px-5 py-4 border-t border-[#e6ecf2]">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-3">
-                        {members.length > 1 ? 'Équipe sur l\'intervention' : 'Intervenant'}
+                        {members.length > 1 ? 'Intervenants' : 'Intervenant'}
                       </div>
                       <div className="space-y-2">
                         {members.map(m => {
@@ -2921,15 +3015,6 @@ function PlanningPageInner() {
                                   <span className="text-[#7b8ba3]">·</span>
                                   <span className="text-[12px] text-[#64748b]">{metier}</span>
                                 </>
-                              )}
-                              {m.role === 'referent' && (
-                                <span
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 ml-auto"
-                                  title="Référent — pilote de l'intervention"
-                                >
-                                  <Crown className="w-3 h-3" />
-                                  Référent
-                                </span>
                               )}
                             </div>
                           )
@@ -3352,15 +3437,14 @@ function PlanningPageInner() {
                 </div>
               </div>
 
-              {/* ─── Session 8 : Intervenants (multi-sélection avec rôles) ─── */}
+              {/* ─── Session 8 / V2.3 : Intervenants (multi-sélection) ─── */}
               {/*
                 Modes :
-                  - Société : Combobox d'ajout + liste éditable (1er = Référent, autres = Équipiers)
+                  - Société : Combobox d'ajout + liste éditable (tous au même niveau)
                   - Solo sans sous-traitants : badge "Vous (artisan)" en read-only, comme avant
                   - Solo avec sous-traitants : Combobox d'ajout limité aux sous-traitants
-                    (le Référent est déjà "Moi" par défaut)
-                Le 1er ajouté devient Référent. Le bouton "Référent" sur chaque ligne permet
-                de promouvoir un autre intervenant. La croix X retire (sauf si dernier).
+                Tous les intervenants sont au même niveau (pas de Référent en V2.3).
+                La croix X retire un intervenant (sauf si dernier).
               */}
               {(() => {
                 const isSoloSelf = !isSociete && !soloHasSubcontractors
@@ -3391,9 +3475,7 @@ function PlanningPageInner() {
                             // affichée (l'item vient de quitter la liste filtrée de toute façon).
                             setMAddIvBuffer(null)
                           }}
-                          placeholder={mIntervenants.length === 0
-                            ? 'Choisir le Référent…'
-                            : 'Ajouter un équipier…'}
+                          placeholder={'Ajouter un intervenant…'}
                           icon={<Users className="w-3.5 h-3.5" />}
                           emptyState={
                             availableIntervenantsForModal.length === 0
@@ -3438,15 +3520,10 @@ function PlanningPageInner() {
                                 ? 'Vous'
                                 : (isMe ? 'Moi (artisan)' : fullName)
                               const col = colorMap.get(member.id) ?? PALETTE[0]
-                              const isReferent = member.role === 'referent'
                               return (
                                 <li
                                   key={member.id}
-                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                                    isReferent
-                                      ? 'border-amber-300 bg-amber-50/60'
-                                      : 'border-[#e6ecf2] bg-white'
-                                  }`}
+                                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#e6ecf2] bg-white transition-all"
                                 >
                                   <span
                                     className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
@@ -3460,28 +3537,6 @@ function PlanningPageInner() {
                                       <div className="text-[11px] text-[#7b8ba3] truncate">{metier}</div>
                                     )}
                                   </div>
-                                  {/* Session 13 V2.2 — Référent discrétisé.
-                                      Badge clair sur le Référent. Sur les autres :
-                                      petite couronne discrète (icône seule, opacity réduite)
-                                      qui devient visible au hover pour permettre la promotion. */}
-                                  {isReferent ? (
-                                    <span
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-200 text-amber-800"
-                                      title="Référent — pilote l'intervention"
-                                    >
-                                      <Crown className="w-3 h-3" />
-                                      Référent
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => setMIntervenants(prev => promoteReferent(prev, member.id))}
-                                      className="w-6 h-6 flex items-center justify-center rounded-md text-[#7b8ba3] opacity-30 hover:opacity-100 hover:text-amber-600 transition-all"
-                                      title="Définir comme Référent"
-                                    >
-                                      <Crown className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
                                   {/* Retirer (X) — désactivé pour le dernier intervenant restant */}
                                   <button
                                     type="button"
@@ -3496,13 +3551,6 @@ function PlanningPageInner() {
                               )
                             })}
                           </ul>
-                        )}
-                        {/* Info bulle "Référent" si plusieurs */}
-                        {mIntervenants.length > 1 && (
-                          <p className="mt-1.5 text-[11px] text-[#7b8ba3] flex items-center gap-1">
-                            <UserPlus className="w-3 h-3" />
-                            Le Référent pilote l&apos;intervention. L&apos;intervention apparaît dans le planning de chacun.
-                          </p>
                         )}
                       </>
                     )}
@@ -3780,6 +3828,12 @@ export default function PlanningPage() {
   return (
     <Suspense fallback={null}>
       <PlanningPageInner />
+    </Suspense>
+  )
+}
+    </Suspense>
+  )
+}
     </Suspense>
   )
 }
