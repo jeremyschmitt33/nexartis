@@ -1505,10 +1505,26 @@ function PlanningPageInner() {
   }, [])
 
   const submitIntervention = async () => {
-    if (!mIntervenant || !mDate) return
-    if (mIntervenants.length === 0) {
-      showToast('Sélectionnez au moins un intervenant')
-      return
+    if (!mDate) return
+
+    // V2.3a BIS : en mode Solo, si la liste d'intervenants est vide
+    // (ensureSelfIntervenant a échoué ou n'a pas tourné dans openModal),
+    // on rattrape ici au moment du clic — c'est plus fiable car synchrone
+    // avec l'action utilisateur. En Société, on continue d'exiger une sélection.
+    let effectiveIntervenants = mIntervenants
+    if (effectiveIntervenants.length === 0) {
+      if (!isSociete) {
+        const resolvedId = await ensureSelfIntervenant()
+        if (!resolvedId) {
+          showToast('Impossible de récupérer votre fiche artisan. Réessayez.')
+          return
+        }
+        effectiveIntervenants = [{ id: resolvedId }]
+        setMIntervenants(effectiveIntervenants)
+      } else {
+        showToast('Sélectionnez au moins un intervenant')
+        return
+      }
     }
 
     // Garde-fou : verifier que l'annee n'est pas absurde (faute de frappe).
@@ -1565,7 +1581,7 @@ function PlanningPageInner() {
     const newEnd = timeToMinutes(endTime)
     let conflitTrouve: { titre: string; heureDebut: string; heureFin: string } | null = null
     let ivNomEnConflit = 'L\'intervenant'
-    for (const member of mIntervenants) {
+    for (const member of effectiveIntervenants) {
       const found = detectConflitAvantSave(
         member.id,
         mDate,
@@ -1603,8 +1619,8 @@ function PlanningPageInner() {
 
       // Session 8 : `intervenant_id` legacy = ID du 1er intervenant (sans
       // signification hiérarchique en V2.3). Garanti par la validation en
-      // tête de fonction (mIntervenants.length > 0).
-      const legacyIntervenantId = mIntervenants[0]?.id ?? mIntervenant
+      // tête de fonction (effectiveIntervenants.length > 0).
+      const legacyIntervenantId = effectiveIntervenants[0]?.id ?? mIntervenant
       const payload = {
         intervenant_id: legacyIntervenantId,
         client_id: mClient || null,
@@ -1634,7 +1650,7 @@ function PlanningPageInner() {
       if (editMode && editId) {
         await updateRow('planning_interventions', editId, payload)
         // Session 8 : on synchronise les liaisons (purge + insert)
-        await saveLiaisons(editId, mIntervenants)
+        await saveLiaisons(editId, effectiveIntervenants)
         setShowModal(false)
         setEditMode(false); setEditId(null)
         refetch()
@@ -1648,7 +1664,7 @@ function PlanningPageInner() {
         // l'utilisateur ne verra qu'1 ligne au lieu de N.
         // L'erreur est remontée au catch global pour toast.
         const newId = (created as R | null)?.id as string | undefined
-        if (newId) await saveLiaisons(newId, mIntervenants)
+        if (newId) await saveLiaisons(newId, effectiveIntervenants)
         setShowModal(false)
         refetch()
         refetchLiaisons()
@@ -3657,7 +3673,7 @@ function PlanningPageInner() {
             )}
             <div className="px-6 py-4 border-t border-[#e6ecf2] flex justify-end gap-3">
               <button onClick={() => { setShowModal(false); setEditMode(false); setEditId(null) }} className="px-5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#1e293b] hover:border-[#5ab4e0] hover:text-[#5ab4e0] transition-all">Annuler</button>
-              <button onClick={submitIntervention} disabled={submitting || !mIntervenant || !mDate}
+              <button onClick={submitIntervention} disabled={submitting || !mDate || (isSociete && !mIntervenant)}
                 className="px-5 py-2.5 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-xl text-sm font-semibold shadow-[0_4px_15px_rgba(232,122,42,.3)] hover:shadow-[0_6px_20px_rgba(232,122,42,.4)] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting ? (editMode ? 'Modification...' : 'Creation...') : (editMode ? "Enregistrer les modifications" : "Creer l'intervention")}
               </button>
@@ -3834,6 +3850,26 @@ export default function PlanningPage() {
     </Suspense>
   )
 }
+    </Suspense>
+  )
+}
+===============================================================
+// Sub-components
+// ===================================================================
+function MiniStat({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color: string }) {
+  return (
+    <div className="flex items-center gap-2 bg-white border border-[#e6ecf2] rounded-lg px-3 py-1.5">
+      <span className={color}>{icon}</span>
+      <span className="text-[11px] text-[#7b8ba3] font-medium">{label}</span>
+      <span className={`text-sm font-extrabold ${color}`}>{value}</span>
+    </div>
+  )
+}
+
+export default function PlanningPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlanningPageInner />
     </Suspense>
   )
 }
