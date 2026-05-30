@@ -3847,29 +3847,3 @@ export default function PlanningPage() {
     </Suspense>
   )
 }
-    </Suspense>
-  )
-}
-    </Suspense>
-  )
-}
-===============================================================
-// Sub-components
-// ===================================================================
-function MiniStat({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string | number; color: string }) {
-  return (
-    <div className="flex items-center gap-2 bg-white border border-[#e6ecf2] rounded-lg px-3 py-1.5">
-      <span className={color}>{icon}</span>
-      <span className="text-[11px] text-[#7b8ba3] font-medium">{label}</span>
-      <span className={`text-sm font-extrabold ${color}`}>{value}</span>
-    </div>
-  )
-}
-
-export default function PlanningPage() {
-  return (
-    <Suspense fallback={null}>
-      <PlanningPageInner />
-    </Suspense>
-  )
-}
