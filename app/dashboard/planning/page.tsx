@@ -34,8 +34,17 @@ import type { PlanningViewMode } from '@/components/planning/shared/types'
 // La colonne legacy `planning_interventions.intervenant_id` reste remplie
 // avec l'ID du 1er intervenant pour la rétrocompat (sans signification).
 
+// V2.3b (30/05/2026) — La table jonction `intervention_intervenants` stocke
+// désormais date/heure PAR assignation (cf. migration-2026-05-30-V2.3b...sql).
+// Lecture front : startDate ?? intervention.date_debut (fallback parent).
 type InterventionIntervenant = {
-  id: string
+  id: string                                              // intervenant_id
+  assignmentId?: string                                   // id de la ligne intervention_intervenants
+  startDate?: string                                      // ISO YYYY-MM-DD
+  endDate?: string                                        // ISO YYYY-MM-DD
+  startTime?: string                                      // HH:MM
+  endTime?: string                                        // HH:MM
+  slot?: 'matin' | 'apres_midi' | 'journee' | 'creneau'   // créneau spécifique à l'assignation
 }
 
 // Helpers pour manipuler les listes du multi-sélecteur (state modal)
@@ -654,14 +663,26 @@ function PlanningPageInner() {
       if (!ivId || !intervenantId) continue
       const sortKey = (r.created_at as string) ?? (r.id as string) ?? intervenantId
       if (!map.has(ivId)) map.set(ivId, [])
-      map.get(ivId)!.push({ id: intervenantId, _sort: sortKey })
+      // V2.3b : on remonte aussi assignmentId + dates/heures/slot. Les
+      // colonnes sont nullable côté BDD (rétrocompat) ; en l'absence de
+      // valeur, on retombe en lecture sur date_debut/heure_debut de l'intervention parent.
+      map.get(ivId)!.push({
+        id: intervenantId,
+        assignmentId: (r.id as string) ?? undefined,
+        startDate: (r.start_date as string) ?? undefined,
+        endDate:   (r.end_date as string)   ?? undefined,
+        startTime: (r.start_time as string) ?? undefined,
+        endTime:   (r.end_time as string)   ?? undefined,
+        slot:      (r.slot as InterventionIntervenant['slot']) ?? undefined,
+        _sort: sortKey,
+      })
     }
     // Tri stable par created_at (ou id) pour la stabilité du rendu.
     map.forEach(list => list.sort((a, b) => a._sort.localeCompare(b._sort)))
     // On retourne une Map<string, InterventionIntervenant[]> (sans _sort)
     const result = new Map<string, InterventionIntervenant[]>()
     map.forEach((list, key) => {
-      result.set(key, list.map(({ id }) => ({ id })))
+      result.set(key, list.map(({ _sort: _drop, ...rest }) => rest))
     })
     return result
   }, [interventionIntervenantsData])
@@ -757,51 +778,89 @@ function PlanningPageInner() {
   //   - BUG MULTI-JOURS : on duplique l'intervention sur chaque jour entre
   //     date_debut et date_fin.
   const planningMap = useMemo(() => {
+    // V2.3b (30/05/2026) — Assignations indépendantes :
+    //   Chaque ligne `intervention_intervenants` porte SA PROPRE date/heure.
+    //   Drag d'une intervention sur la ligne du membre A ne touche QUE
+    //   l'assignation de A, pas les autres membres.
+    //   En lecture, on respecte cette indépendance : pour chaque assignation
+    //   on push avec ses dates propres (fallback parent si NULL pour les
+    //   lignes pré-migration ou non backfillées).
+    //
+    //   Pour pouvoir exposer la date/heure de l'assignation au rendu sans
+    //   casser les rendus existants (qui lisent rec.date_debut, rec.heure_debut,
+    //   rec.creneau…), on crée un objet "vue" qui surcouche l'intervention parent.
+    //   Les colonnes parent restent intactes pour exports PDF / stats.
     const map = new Map<string, R[]>()
     const fallbackIvId = !isSociete && intervenants.length > 0 ? (intervenants[0] as R).id as string : null
+    // Liste des jours [start..end] (max 60 par sécurité)
+    const buildDayKeys = (startDay: string, endDay: string): string[] => {
+      const startD = new Date(startDay + 'T00:00:00')
+      const endD = new Date(endDay + 'T00:00:00')
+      const last = endD < startD ? startD : endD
+      const keys: string[] = []
+      let safety = 0
+      const cur = new Date(startD)
+      while (cur <= last && safety < 60) {
+        keys.push(fmtISO(cur))
+        cur.setDate(cur.getDate() + 1)
+        safety++
+      }
+      return keys
+    }
     for (const item of planningData) {
       const rec = item as R
       const interventionId = rec.id as string
       const dateDebut = rec.date_debut as string
       if (!dateDebut) continue
+      const parentStartDay = dateDebut.split('T')[0]
+      const parentEndDay = ((rec.date_fin as string) || dateDebut).split('T')[0]
 
-      // Récupérer la liste des intervenants liés à cette intervention.
+      // Récupérer la liste des assignations liées à cette intervention.
       // Si aucune liaison (intervention orpheline / pas encore backfillée),
       // on retombe sur l'ancien champ `intervenant_id` + fallback Solo.
       const liaisons = interventionIntervenantsMap.get(interventionId)
-      let targetIvIds: string[]
       if (liaisons && liaisons.length > 0) {
-        targetIvIds = liaisons.map(l => l.id)
+        // Une assignation = sa propre paire (date, intervenant). On override
+        // les champs lus par le rendu (date_debut, date_fin, creneau,
+        // heure_debut, heure_fin) avec les valeurs de l'assignation si présentes.
+        for (const a of liaisons) {
+          const aStart = a.startDate ?? parentStartDay
+          const aEnd = a.endDate ?? a.startDate ?? parentEndDay
+          const aSlot = a.slot ?? (rec.creneau as string)
+          const aHeureD = a.startTime ?? (rec.heure_debut as string | undefined)
+          const aHeureF = a.endTime ?? (rec.heure_fin as string | undefined)
+          // Vue projetée : on enrichit rec sans muter la donnée source.
+          // date_debut/date_fin gardent leur format ISO complet pour rétrocompat.
+          const projected: R = {
+            ...rec,
+            date_debut: `${aStart}T${aHeureD ?? '08:00'}:00`,
+            date_fin:   `${aEnd}T${aHeureF ?? '17:00'}:00`,
+            creneau:    aSlot,
+            heure_debut: aHeureD ?? (rec.heure_debut as string | undefined) ?? null,
+            heure_fin:   aHeureF ?? (rec.heure_fin as string | undefined) ?? null,
+            // Métadonnées assignation pour drag/delete ciblé
+            __assignmentId: a.assignmentId ?? null,
+            __assignmentIvId: a.id,
+          }
+          const dayKeys = buildDayKeys(aStart, aEnd)
+          for (const dayKey of dayKeys) {
+            const key = `${a.id}__${dayKey}`
+            if (!map.has(key)) map.set(key, [])
+            map.get(key)!.push(projected)
+          }
+        }
       } else {
+        // Intervention orpheline : fallback ancien champ legacy `intervenant_id`.
         let ivId = rec.intervenant_id as string
         if (!ivId && fallbackIvId) ivId = fallbackIvId
         if (!ivId) continue
-        targetIvIds = [ivId]
-      }
-
-      // Déterminer la plage de jours couverte par l'intervention
-      const startDay = dateDebut.split('T')[0]
-      const endDateRaw = (rec.date_fin as string) || dateDebut
-      const endDay = endDateRaw.split('T')[0]
-      const startD = new Date(startDay + 'T00:00:00')
-      const endD = new Date(endDay + 'T00:00:00')
-      const last = endD < startD ? startD : endD
-
-      // Push dans chaque (intervenantLié × jour). On itère les jours UNE FOIS
-      // pour ne pas re-parser les dates par intervenant.
-      const dayKeys: string[] = []
-      let safety = 0
-      const cur = new Date(startD)
-      while (cur <= last && safety < 60) {
-        dayKeys.push(fmtISO(cur))
-        cur.setDate(cur.getDate() + 1)
-        safety++
-      }
-      for (const ivId of targetIvIds) {
+        const dayKeys = buildDayKeys(parentStartDay, parentEndDay)
         for (const dayKey of dayKeys) {
           const key = `${ivId}__${dayKey}`
           if (!map.has(key)) map.set(key, [])
-          map.get(key)!.push(rec)
+          // Pas d'assignmentId : drag/delete retombera sur l'ancienne logique
+          // (update planning_interventions parent).
+          map.get(key)!.push({ ...rec, __assignmentId: null, __assignmentIvId: ivId })
         }
       }
     }
@@ -1437,26 +1496,43 @@ function PlanningPageInner() {
     newEnd: number,
     excludeId?: string | null
   ): { titre: string; heureDebut: string; heureFin: string } | null => {
-    const existingOnDay = planningData.filter(p => {
-      const rec = p as R
-      if ((rec.date_debut as string)?.split('T')[0] !== dateStr) return false
-      if (excludeId && rec.id === excludeId) return false
-      // Vérifier si ivId est lié à cette intervention (via jonction OU
-      // legacy `intervenant_id`).
-      const liaisons = interventionIntervenantsMap.get(rec.id as string)
-      if (liaisons && liaisons.length > 0) {
-        return liaisons.some(l => l.id === ivId)
-      }
-      return rec.intervenant_id === ivId
-    })
-    for (const item of existingOnDay) {
+    // V2.3b : on respecte les dates D'ASSIGNATION. Une intervention multi-membres
+    // peut avoir un de ses membres planifié sur une autre date que le parent.
+    // On boucle donc sur les assignations du jour cible pour cet intervenant,
+    // pas sur les interventions parent.
+    for (const item of planningData) {
       const rec = item as R
+      if (excludeId && rec.id === excludeId) continue
+      const liaisons = interventionIntervenantsMap.get(rec.id as string) ?? []
+      // Cas 1 : au moins une assignation existe → on vérifie celle de `ivId`.
+      if (liaisons.length > 0) {
+        const a = liaisons.find(l => l.id === ivId)
+        if (!a) continue
+        const aStart = a.startDate ?? (rec.date_debut as string)?.split('T')[0]
+        if (aStart !== dateStr) continue
+        const aSlot = a.slot ?? (rec.creneau as string)
+        const aHeureD = a.startTime ?? (rec.heure_debut as string | undefined)
+        const aHeureF = a.endTime ?? (rec.heure_fin as string | undefined)
+        const [exStart, exEnd] = creneauToRange(aSlot, aHeureD, aHeureF)
+        if (newStart < exEnd && exStart < newEnd) {
+          const hd = String(aHeureD || (aSlot === 'apres_midi' ? horaires.debutAm : horaires.debutMatin))
+          const hf = String(aHeureF || (aSlot === 'matin' ? horaires.finMatin : horaires.finAm))
+          return {
+            titre: String(rec.titre || rec.description_travaux || 'Intervention'),
+            heureDebut: hd,
+            heureFin: hf,
+          }
+        }
+        continue
+      }
+      // Cas 2 : intervention orpheline (pas de liaison) → fallback legacy.
+      if (rec.intervenant_id !== ivId) continue
+      if ((rec.date_debut as string)?.split('T')[0] !== dateStr) continue
       const [exStart, exEnd] = creneauToRange(
         rec.creneau as string,
         rec.heure_debut as string,
         rec.heure_fin as string
       )
-      // Overlap: A.start < B.end AND B.start < A.end
       if (newStart < exEnd && exStart < newEnd) {
         const hd = String(rec.heure_debut || (rec.creneau === 'apres_midi' ? horaires.debutAm : horaires.debutMatin))
         const hf = String(rec.heure_fin || (rec.creneau === 'matin' ? horaires.finMatin : horaires.finAm))
@@ -1470,38 +1546,92 @@ function PlanningPageInner() {
     return null
   }
 
-  // ── Session 8 : synchronisation des liaisons multi-intervenants ──
-  // Diff propre : on supprime toutes les liaisons existantes pour cette
-  // intervention puis on insère les nouvelles. Plus simple et plus sûr que
-  // de calculer un diff fin (rare cas où l'utilisateur ajoute/retire 1 ligne).
-  // En cas d'échec partiel (rare), on remonte l'erreur — le caller fait
-  // un toast + refetch.
-  const saveLiaisons = useCallback(async (interventionId: string, liaisons: InterventionIntervenant[]) => {
+  // ── Session 8 / V2.3b : synchronisation des liaisons multi-intervenants ──
+  // V2.3b (30/05/2026) — Stratégie UPSERT (NE PURGE PLUS) :
+  //   Les lignes `intervention_intervenants` portent désormais leurs propres
+  //   dates (start_date, end_date, start_time, end_time, slot). Si on purgeait
+  //   à chaque save, on perdrait les divergences créées par drag indépendant.
+  //
+  //   Algorithme :
+  //     1. Lire les liaisons existantes en BDD (par intervention_id).
+  //     2. Pour chaque intervenant dans `liaisons` :
+  //         - Si la ligne existe déjà → on la garde (ses dates restent).
+  //         - Sinon → INSERT avec les dates "parent" passées en argument
+  //           (cohérence à la création / ajout d'un membre).
+  //     3. Supprimer les lignes dont l'intervenant n'est plus dans `liaisons`
+  //        (retrait d'un membre depuis le multi-sélecteur du modal).
+  //
+  //   `parentDates` est optionnel : si null, l'INSERT laisse les colonnes
+  //   start_*/end_*/slot à NULL (fallback parent en lecture).
+  const saveLiaisons = useCallback(async (
+    interventionId: string,
+    liaisons: InterventionIntervenant[],
+    parentDates?: {
+      start_date?: string | null
+      end_date?: string | null
+      start_time?: string | null
+      end_time?: string | null
+      slot?: string | null
+    } | null,
+  ) => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Non connecté')
-    // 1. Purge des anciennes liaisons (RLS filtre par user_id côté policy)
-    const { error: delErr } = await supabase
+
+    // 1. Lire les liaisons existantes
+    const { data: existingRows, error: selErr } = await supabase
       .from('intervention_intervenants')
-      .delete()
+      .select('id, intervenant_id')
       .eq('intervention_id', interventionId)
-    if (delErr) throw new Error(delErr.message)
-    if (liaisons.length === 0) return
-    // 2. Insertion en bulk des nouvelles liaisons.
-    // V2.3 : la notion de Référent est supprimée côté UI mais la colonne `role`
-    // (NOT NULL + CHECK) reste en DB pour rétrocompat. On écrit 'referent' sur
-    // le 1er pour respecter la contrainte historique (1 référent obligatoire)
-    // et 'equipier' pour les autres. Aucune sémantique côté UI.
-    const rows = liaisons.map((l, i) => ({
-      user_id: user.id,
-      intervention_id: interventionId,
-      intervenant_id: l.id,
-      role: i === 0 ? 'referent' : 'equipier',
-    }))
-    const { error: insErr } = await supabase
-      .from('intervention_intervenants')
-      .insert(rows)
-    if (insErr) throw new Error(insErr.message)
+    if (selErr) throw new Error(selErr.message)
+
+    const existingByIv = new Map<string, string>() // intervenant_id -> assignment id
+    for (const row of (existingRows ?? [])) {
+      const r = row as R
+      existingByIv.set(r.intervenant_id as string, r.id as string)
+    }
+
+    // 2. INSERTS pour les nouveaux intervenants
+    const wantedIvIds = new Set(liaisons.map(l => l.id))
+    const toInsert = liaisons.filter(l => !existingByIv.has(l.id))
+    if (toInsert.length > 0) {
+      // V2.3 : la notion de Référent est supprimée côté UI mais la colonne `role`
+      // (NOT NULL + CHECK) reste en DB pour rétrocompat. Aucune sémantique côté UI.
+      //   - Si AUCUNE liaison n'existait, le 1er nouvel inséré prend 'referent'
+      //     pour respecter la contrainte historique (1 référent obligatoire).
+      //   - Sinon (ajout d'un membre supplémentaire) : tous les nouveaux sont 'equipier'.
+      const noneBefore = existingByIv.size === 0
+      const rows = toInsert.map((l, idx) => ({
+        user_id: user.id,
+        intervention_id: interventionId,
+        intervenant_id: l.id,
+        role: (noneBefore && idx === 0) ? 'referent' : 'equipier',
+        // V2.3b : dates par assignation. On préfère les dates passées via `l`
+        // (cas drag) ; sinon les dates parent (cas création de l'intervention).
+        start_date: l.startDate ?? parentDates?.start_date ?? null,
+        end_date:   l.endDate   ?? parentDates?.end_date   ?? null,
+        start_time: l.startTime ?? parentDates?.start_time ?? null,
+        end_time:   l.endTime   ?? parentDates?.end_time   ?? null,
+        slot:       l.slot      ?? parentDates?.slot       ?? null,
+      }))
+      const { error: insErr } = await supabase
+        .from('intervention_intervenants')
+        .insert(rows)
+      if (insErr) throw new Error(insErr.message)
+    }
+
+    // 3. Supprimer les lignes dont l'intervenant a été retiré
+    const toDeleteIds: string[] = []
+    existingByIv.forEach((assignmentId, ivId) => {
+      if (!wantedIvIds.has(ivId)) toDeleteIds.push(assignmentId)
+    })
+    if (toDeleteIds.length > 0) {
+      const { error: delErr } = await supabase
+        .from('intervention_intervenants')
+        .delete()
+        .in('id', toDeleteIds)
+      if (delErr) throw new Error(delErr.message)
+    }
   }, [])
 
   const submitIntervention = async () => {
@@ -1647,10 +1777,22 @@ function PlanningPageInner() {
         statut: mStatut,
         notes: mNotes || null,
       }
+      // V2.3b : dates "parent" passées en argument à saveLiaisons. Servent
+      // de défaut pour les NOUVELLES assignations (création, ajout d'un
+      // membre). Les assignations existantes conservent leurs propres dates
+      // (UPSERT : pas de purge en édition).
+      const parentDatesForLiaisons = {
+        start_date: mDate,
+        end_date: mDateFin || mDate,
+        start_time: startTime,
+        end_time: endTime,
+        slot: mCreneau,
+      }
+
       if (editMode && editId) {
         await updateRow('planning_interventions', editId, payload)
-        // Session 8 : on synchronise les liaisons (purge + insert)
-        await saveLiaisons(editId, effectiveIntervenants)
+        // Session 8 / V2.3b : on synchronise les liaisons (UPSERT).
+        await saveLiaisons(editId, effectiveIntervenants, parentDatesForLiaisons)
         setShowModal(false)
         setEditMode(false); setEditId(null)
         refetch()
@@ -1658,13 +1800,11 @@ function PlanningPageInner() {
         showToast('Intervention modifiee ✓')
       } else {
         const created = await insertRow('planning_interventions', payload)
-        // Session 8 : on insère les liaisons sur la nouvelle intervention.
-        // Si saveLiaisons échoue, l'intervention reste créée mais sans
-        // liaisons : `planningMap` retombera sur `intervenant_id` legacy —
-        // l'utilisateur ne verra qu'1 ligne au lieu de N.
-        // L'erreur est remontée au catch global pour toast.
+        // Session 8 / V2.3b : on insère les liaisons sur la nouvelle intervention.
+        // Toutes initialisées avec les dates parent (= date du modal).
+        // L'utilisateur pourra les divergent ensuite par drag indépendant.
         const newId = (created as R | null)?.id as string | undefined
-        if (newId) await saveLiaisons(newId, effectiveIntervenants)
+        if (newId) await saveLiaisons(newId, effectiveIntervenants, parentDatesForLiaisons)
         setShowModal(false)
         refetch()
         refetchLiaisons()
@@ -1688,11 +1828,21 @@ function PlanningPageInner() {
   //       mis à jour si nécessaire (utilisé comme premier intervenant).
   //     - Cas Y déjà lié : on ne crée pas de doublon, on retire juste X.
   const draggedFromIvIdRef = useRef<string | null>(null)
-  const handleDragStart = (id: string, fromIvId?: string) => {
+  // V2.3b : on capture aussi l'assignmentId de la cellule draggée. Quand il
+  // est défini, le drop ne touche QUE cette ligne `intervention_intervenants`.
+  // Quand il est null (intervention orpheline pré-migration), on retombe sur
+  // l'ancienne logique d'update du parent.
+  const draggedAssignmentIdRef = useRef<string | null>(null)
+  const handleDragStart = (id: string, fromIvId?: string, assignmentId?: string | null) => {
     setDraggedId(id)
     draggedFromIvIdRef.current = fromIvId ?? null
+    draggedAssignmentIdRef.current = assignmentId ?? null
   }
-  const handleDragEnd = () => { setDraggedId(null); setDragOverCell(null); draggedFromIvIdRef.current = null }
+  const handleDragEnd = () => {
+    setDraggedId(null); setDragOverCell(null)
+    draggedFromIvIdRef.current = null
+    draggedAssignmentIdRef.current = null
+  }
   const handleDrop = async (intervenantId: string, dateStr: string) => {
     if (!draggedId) return
     setDragOverCell(null)
@@ -1711,52 +1861,102 @@ function PlanningPageInner() {
       setDraggedId(null)
       return
     }
-    const startTime = (intervention.creneau as string) === 'apres_midi' ? horaires.debutAm : horaires.debutMatin
-    const endTime = (intervention.creneau as string) === 'matin' ? horaires.finMatin : horaires.finAm
+    const creneau = (intervention.creneau as string) ?? 'journee'
+    const startTime = creneau === 'apres_midi' ? horaires.debutAm : horaires.debutMatin
+    const endTime = creneau === 'matin' ? horaires.finMatin : horaires.finAm
 
     // Liaisons actuelles
     const currentLiaisons = interventionIntervenantsMap.get(draggedId) ?? []
     const fromIvId = draggedFromIvIdRef.current
+    const assignmentId = draggedAssignmentIdRef.current
     const sameIvLine = fromIvId !== null && fromIvId === intervenantId
 
     try {
-      // 1. Update toujours la date_debut / date_fin
+      // ── V2.3b : drag d'une ASSIGNATION (cas nominal post-migration) ──
+      // On a l'`assignmentId` exact de la ligne `intervention_intervenants`
+      // sur laquelle on draggue. On update SEULEMENT cette ligne — pas le
+      // parent. Les autres membres restent à leur place avec leurs propres dates.
+      if (assignmentId) {
+        const supabase = createClient()
+        const updateRowPayload: Record<string, unknown> = {
+          start_date: dateStr,
+          end_date: dateStr,
+          start_time: startTime,
+          end_time: endTime,
+          slot: creneau,
+        }
+        // Si drag inter-ligne (membre A vers B) : on réassigne aussi l'intervenant.
+        if (!sameIvLine) {
+          // Si B avait DÉJÀ une assignation sur cette intervention, on retire
+          // l'assignation source (sinon on duplique le membre B sur la même
+          // intervention, ce qui violerait la contrainte unique
+          // (intervention_id, intervenant_id) si elle existe).
+          const targetAlreadyLinked = currentLiaisons.some(l => l.id === intervenantId && l.assignmentId !== assignmentId)
+          if (targetAlreadyLinked) {
+            // On supprime juste l'assignation source — B reste à sa place
+            // avec ses dates propres.
+            const { error: delErr } = await supabase
+              .from('intervention_intervenants')
+              .delete()
+              .eq('id', assignmentId)
+            if (delErr) throw new Error(delErr.message)
+          } else {
+            // Pas de doublon : on réassigne (changement d'intervenant_id + dates).
+            updateRowPayload.intervenant_id = intervenantId
+            const { error: updErr } = await supabase
+              .from('intervention_intervenants')
+              .update(updateRowPayload)
+              .eq('id', assignmentId)
+            if (updErr) throw new Error(updErr.message)
+          }
+        } else {
+          // Drag entre jours sur la même ligne intervenant : juste les dates.
+          const { error: updErr } = await supabase
+            .from('intervention_intervenants')
+            .update(updateRowPayload)
+            .eq('id', assignmentId)
+          if (updErr) throw new Error(updErr.message)
+        }
+        // On NE TOUCHE PAS au parent `planning_interventions`. Les exports
+        // PDF et stats continuent d'utiliser la date parent (= date "principale").
+        refetch()
+        refetchLiaisons()
+        showToast('Intervention deplacee')
+        setDraggedId(null)
+        draggedFromIvIdRef.current = null
+        draggedAssignmentIdRef.current = null
+        return
+      }
+
+      // ── Cas legacy / intervention orpheline (pas d'assignmentId) ──
+      // Aucune assignation backfillée : on retombe sur l'ancienne logique
+      // d'update du parent. Sécurise les comptes qui n'auraient pas encore
+      // appliqué la migration ou les interventions historiques.
       const updatePayload: Record<string, unknown> = {
         date_debut: `${dateStr}T${startTime}:00`,
         date_fin: `${dateStr}T${endTime}:00`,
       }
 
-      // 2. Si on change d'intervenant : adapter la liste des liaisons.
-      // V2.3 : tous les intervenants au même niveau, pas de promotion.
       if (!sameIvLine && fromIvId) {
         const targetAlreadyLinked = currentLiaisons.some(l => l.id === intervenantId)
-        // Construire la nouvelle liste
         let nextList: InterventionIntervenant[]
         if (targetAlreadyLinked) {
-          // Y est déjà dans la liste : on retire X (Y reste à sa place).
           nextList = currentLiaisons
             .filter(l => l.id !== fromIvId)
             .map(l => ({ id: l.id }))
         } else {
-          // Y pas dans la liste : on remplace X par Y à la même position.
           nextList = currentLiaisons.map(l =>
             l.id === fromIvId ? { id: intervenantId } : { id: l.id }
           )
         }
-        // intervenant_id legacy : = ID du 1er intervenant de la nouvelle liste.
         if (nextList.length > 0) updatePayload.intervenant_id = nextList[0].id
-        // Persister la liste mise à jour
         await updateRow('planning_interventions', draggedId, updatePayload)
         await saveLiaisons(draggedId, nextList)
       } else if (currentLiaisons.length === 0 && intervention.intervenant_id !== intervenantId) {
-        // Cas legacy (intervention orpheline sans liaison + on la déplace
-        // sur une autre ligne intervenant) : on met à jour `intervenant_id`
-        // ET on crée la liaison correspondante.
         updatePayload.intervenant_id = intervenantId
         await updateRow('planning_interventions', draggedId, updatePayload)
         await saveLiaisons(draggedId, [{ id: intervenantId }])
       } else {
-        // Drag entre jours sur la même ligne intervenant : juste la date.
         await updateRow('planning_interventions', draggedId, updatePayload)
       }
       refetch()
@@ -1767,6 +1967,7 @@ function PlanningPageInner() {
     }
     setDraggedId(null)
     draggedFromIvIdRef.current = null
+    draggedAssignmentIdRef.current = null
   }
 
   // ── Intervenants list ──
@@ -2562,7 +2763,7 @@ function PlanningPageInner() {
                                       return (
                                         <div key={rec.id as string}
                                           draggable
-                                          onDragStart={() => handleDragStart(rec.id as string, ivId)}
+                                          onDragStart={() => handleDragStart(rec.id as string, ivId, (rec.__assignmentId as string | null | undefined) ?? null)}
                                           onDragEnd={handleDragEnd}
                                           onClick={() => openPanel(rec)}
                                           className={`relative ${interventionPaddingClass} rounded-lg ${interventionGapClass} cursor-grab active:cursor-grabbing transition-all border-l-[3px] leading-normal ${color.bg} ${color.border} ${color.text}
@@ -3094,24 +3295,69 @@ function PlanningPageInner() {
                 >
                   <CalendarDays className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={async () => {
-                    if (!confirm('Supprimer cette intervention ?')) return
-                    try {
-                      await deleteRow('planning_interventions', pi.id as string)
-                      showToast('Intervention supprimée ✓')
-                      closePanel()
-                      refetch()
-                    } catch {
-                      showToast('Erreur lors de la suppression')
-                    }
-                  }}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-600 rounded-xl text-[13px] font-semibold hover:bg-red-100 transition-all"
-                  aria-label="Supprimer l&apos;intervention"
-                  title="Supprimer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {(() => {
+                  // V2.3b (30/05/2026) — Suppression indépendante en vue matrice :
+                  //   Si l'intervention a >1 assignation (multi-intervenants) et que
+                  //   l'on est arrivé sur le panneau via une cellule liée à une
+                  //   assignation précise (__assignmentId présent dans `pi`), le bouton
+                  //   "Supprimer" devient "Retirer ce membre" et ne supprime QUE la
+                  //   ligne `intervention_intervenants` correspondante.
+                  //   Sinon : comportement actuel — DELETE de l'intervention parent
+                  //   (ce qui supprime aussi toutes les liaisons via ON DELETE CASCADE).
+                  const allAssignments = interventionIntervenantsMap.get(pi.id as string) ?? []
+                  const clickedAssignmentId = (pi.__assignmentId as string | null | undefined) ?? null
+                  const clickedIvId = (pi.__assignmentIvId as string | null | undefined) ?? null
+                  const isRetirerMembre =
+                    !!clickedAssignmentId &&
+                    allAssignments.length > 1
+                  const labelTitle = isRetirerMembre ? 'Retirer ce membre' : "Supprimer l'intervention"
+                  const confirmMsg = isRetirerMembre
+                    ? 'Retirer ce membre de l\'intervention ? Les autres membres restent affectés.'
+                    : 'Supprimer cette intervention ?'
+                  return (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(confirmMsg)) return
+                        try {
+                          if (isRetirerMembre && clickedAssignmentId) {
+                            // Supprime UNIQUEMENT la ligne d'assignation cliquée.
+                            const supabase = createClient()
+                            const { error: delErr } = await supabase
+                              .from('intervention_intervenants')
+                              .delete()
+                              .eq('id', clickedAssignmentId)
+                            if (delErr) throw new Error(delErr.message)
+                            // Si on retire l'intervenant qui figurait sur la
+                            // colonne legacy `planning_interventions.intervenant_id`,
+                            // on bascule la valeur sur un membre restant pour que
+                            // les rendus fallback (orphelines / hooks legacy) restent cohérents.
+                            if (clickedIvId && pi.intervenant_id === clickedIvId) {
+                              const remaining = allAssignments.find(a => a.assignmentId !== clickedAssignmentId)
+                              if (remaining) {
+                                await updateRow('planning_interventions', pi.id as string, { intervenant_id: remaining.id })
+                              }
+                            }
+                            showToast('Membre retiré ✓')
+                          } else {
+                            // DELETE de l'intervention parent (cascade sur la table jonction).
+                            await deleteRow('planning_interventions', pi.id as string)
+                            showToast('Intervention supprimée ✓')
+                          }
+                          closePanel()
+                          refetch()
+                          refetchLiaisons()
+                        } catch {
+                          showToast('Erreur lors de la suppression')
+                        }
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-50 text-red-600 rounded-xl text-[13px] font-semibold hover:bg-red-100 transition-all"
+                      aria-label={labelTitle}
+                      title={labelTitle}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )
+                })()}
               </div>
             </aside>
           </>
