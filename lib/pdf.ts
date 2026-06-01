@@ -664,36 +664,36 @@ function drawHeader(doc: jsPDF, ent: Entreprise, opts: HeaderOpts, _startY: numb
   // Pas de fallback texte ici — l'identité de l'artisan apparaîtra dans drawIdentityBoxes
   void logoDrawn
 
-  // Titre ORANGE droite (DEVIS / FACTURE / FACTURE DE SITUATION)
+  // V2.8a.1 — Titre ORANGE CENTRÉ (au lieu d'aligné droite, retour préférence user)
   // Auto-resize si titre long (FACTURE DE SITUATION = 20 chars)
   const titleText = opts.title
   const titleFontSize = titleText.length > 12 ? 20 : 28
   doc.setFontSize(titleFontSize)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.orange)
-  doc.text(titleText, pageW - M, titleZoneY + 12, { align: 'right', charSpace: 1.5 })
+  doc.text(titleText, centerX, titleZoneY + 12, { align: 'center', charSpace: 1.5 })
 
-  // N° doc NAVY droite (sous le titre)
+  // N° doc NAVY CENTRÉ (sous le titre)
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.navy)
-  doc.text(opts.numero, pageW - M, titleZoneY + 20, { align: 'right' })
+  doc.text(opts.numero, centerX, titleZoneY + 20, { align: 'center' })
 
   let y = titleZoneY + 24
 
-  // Sous-titre éventuel (factures de situation) — aligné droite
+  // Sous-titre éventuel (factures de situation) — centré
   if (opts.subtitle) {
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
     setText(doc, C.netBlueAccent)
-    doc.text(opts.subtitle, pageW - M, y, { align: 'right' })
+    doc.text(opts.subtitle, centerX, y, { align: 'center' })
     y += 4
   }
   if (opts.refLine) {
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     setText(doc, C.muted)
-    doc.text(opts.refLine, pageW - M, y, { align: 'right' })
+    doc.text(opts.refLine, centerX, y, { align: 'center' })
     y += 4
   }
 
@@ -744,8 +744,9 @@ function drawIdentityBoxes(
   const lx = M
   const rx = M + boxW + 6
   // V2.7 — padding réduit (5 -> 3) pour densifier les cadres ARTISAN/CLIENT
-  const padX = 3
-  const padTop = 3
+  // V2.8a.1 — padding augmenté pour aérer les boîtes (4 au lieu de 3)
+  const padX = 4
+  const padTop = 4
   const radius = 1.8
 
   // --- Mesure contenu ARTISAN ---
