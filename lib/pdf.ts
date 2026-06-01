@@ -119,6 +119,7 @@ function setText(doc: jsPDF, c: [number, number, number]) { doc.setTextColor(c[0
 
 interface Entreprise {
   nom?: string
+  metier?: string
   adresse?: string
   code_postal?: string
   ville?: string
@@ -613,17 +614,41 @@ interface HeaderOpts {
   dateLine: string       // ligne dates centrée
 }
 
-function drawHeader(doc: jsPDF, ent: Entreprise, opts: HeaderOpts, startY: number): number {
+function drawHeader(doc: jsPDF, ent: Entreprise, opts: HeaderOpts, _startY: number): number {
+  // V2.8a — Refonte Option C : mini-bandeau navy + titre orange droite + N° navy + dates centrées
+  // Le param startY est ignoré : le bandeau démarre TOUJOURS à y=0 (pleine largeur).
+  // Le logo et le nom affichés sont ceux de l'ARTISAN (ent.logo_url, ent.nom) — JAMAIS Nexartis.
   const pageW = 210
   const M = 14
   const centerX = pageW / 2
-  const titleTopY = startY
 
-  // === Logo plus généreux — style Obat ===
-  // hauteur 22mm (avant 14), largeur max 58mm
-  // Position : aligné verticalement au centre du bloc titre+numero
-  const LOGO_H = 22
-  const LOGO_MAX_W = 58
+  // === 1. MINI-BANDEAU NAVY 14mm (pleine largeur, y=0 à y=14) ===
+  setFill(doc, C.navy)
+  doc.rect(0, 0, pageW, 14, 'F')
+
+  // Accent orange à gauche (5mm × 14mm)
+  setFill(doc, C.orange)
+  doc.rect(0, 0, 5, 14, 'F')
+
+  // Texte bandeau : nom artisan + métier (centré verticalement à y=9)
+  const nomEnt = (ent.nom || '').trim()
+  const metierEnt = (ent.metier || '').trim()
+  if (nomEnt || metierEnt) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    setText(doc, C.white)
+    let bandeauText = nomEnt
+    if (nomEnt && metierEnt) bandeauText += '  -  ' + metierEnt
+    else if (metierEnt) bandeauText = metierEnt
+    doc.text(bandeauText, 10, 9)
+  }
+
+  // === 2. ZONE TITRE (sous bandeau) ===
+  const titleZoneY = 22
+
+  // Logo entreprise ARTISAN gauche (jamais Nexartis)
+  const LOGO_H = 26
+  const LOGO_MAX_W = 60
   let logoDrawn = false
   if (ent.logo_url && ent.logo_url.startsWith('data:image')) {
     try {
@@ -631,72 +656,70 @@ function drawHeader(doc: jsPDF, ent: Entreprise, opts: HeaderOpts, startY: numbe
       const imgProps = doc.getImageProperties(ent.logo_url)
       const ratio = imgProps.width / imgProps.height
       let logoW = LOGO_H * ratio
-      if (logoW > LOGO_MAX_W) {
-        logoW = LOGO_MAX_W
-      }
-      // Aligner verticalement le logo avec le titre (centré sur LOGO_H)
-      const logoTopY = titleTopY - 1
-      doc.addImage(ent.logo_url, logoFormat, M, logoTopY, logoW, LOGO_H)
+      if (logoW > LOGO_MAX_W) logoW = LOGO_MAX_W
+      doc.addImage(ent.logo_url, logoFormat, M, titleZoneY, logoW, LOGO_H)
       logoDrawn = true
     } catch { /* logo invalide, ignoré */ }
   }
-  if (!logoDrawn && ent.nom) {
-    // Pas de logo : nom entreprise stylisé à gauche
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    setText(doc, C.netBlue)
-    doc.text(ent.nom, M, titleTopY + 10)
-  }
+  // Pas de fallback texte ici — l'identité de l'artisan apparaîtra dans drawIdentityBoxes
+  void logoDrawn
 
-  // === Titre centré ===
-  // V2.7 — 24pt -> 22pt (densification audit challenger)
-  doc.setFontSize(22)
+  // Titre ORANGE droite (DEVIS / FACTURE / FACTURE DE SITUATION)
+  // Auto-resize si titre long (FACTURE DE SITUATION = 20 chars)
+  const titleText = opts.title
+  const titleFontSize = titleText.length > 12 ? 20 : 28
+  doc.setFontSize(titleFontSize)
   doc.setFont('helvetica', 'bold')
-  setText(doc, C.netBlue)
-  doc.text(opts.title, centerX, titleTopY + 8, { align: 'center' })
+  setText(doc, C.orange)
+  doc.text(titleText, pageW - M, titleZoneY + 12, { align: 'right', charSpace: 1.5 })
 
-  // N° doc
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  setText(doc, C.muted)
-  doc.text(`N° ${opts.numero}`, centerX, titleTopY + 14, { align: 'center' })
+  // N° doc NAVY droite (sous le titre)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  setText(doc, C.navy)
+  doc.text(opts.numero, pageW - M, titleZoneY + 20, { align: 'right' })
 
-  let y = titleTopY + 18
+  let y = titleZoneY + 24
 
-  // Sous-titre éventuel (situation)
+  // Sous-titre éventuel (factures de situation) — aligné droite
   if (opts.subtitle) {
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
     setText(doc, C.netBlueAccent)
-    doc.text(opts.subtitle, centerX, y, { align: 'center' })
+    doc.text(opts.subtitle, pageW - M, y, { align: 'right' })
     y += 4
   }
   if (opts.refLine) {
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     setText(doc, C.muted)
-    doc.text(opts.refLine, centerX, y, { align: 'center' })
+    doc.text(opts.refLine, pageW - M, y, { align: 'right' })
     y += 4
   }
 
-  // V5 : Ligne dates AU-DESSUS du trait bleu, juste sous le numéro
-  doc.setFontSize(8.5)
+  // === 3. LIGNE DATES CENTRÉE ===
+  // Reformatage : "Date :" → "Émis le", "|" → "—", suppression des ":"
+  const dateLineFormatted = opts.dateLine
+    .replace(/Date\s*:\s*/g, 'Émis le ')
+    .replace(/\s*:\s*/g, ' ')
+    .replace(/\s*\|\s*/g, '  -  ')
+
+  const datesY = Math.max(y + 4, 52)
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  setText(doc, C.muted)
-  doc.text(opts.dateLine, centerX, y, { align: 'center' })
-  y += 4.5
+  setText(doc, C.navy)
+  doc.text(dateLineFormatted, centerX, datesY, { align: 'center' })
 
-  // S'assurer que le header descend au moins en dessous du logo
-  const minYAfterLogo = titleTopY + LOGO_H + 1
-  if (y < minYAfterLogo) y = minYAfterLogo
+  // === 4. y FINAL ===
+  let finalY = datesY + 6
 
-  // Trait sky 0.7mm — séparateur fin du header
-  setFill(doc, C.sky)
-  doc.rect(M, y, pageW - 2 * M, 0.7, 'F')
-  // V5 : marge trait—cadres = 8mm (identique à cadres—tableau = 8mm dans drawIdentityBoxes)
-  y += 8
+  // S'assurer que finalY >= bottom du logo (logo zone : titleZoneY à titleZoneY+LOGO_H)
+  const minYAfterLogo = titleZoneY + LOGO_H + 2
+  if (finalY < minYAfterLogo) finalY = minYAfterLogo
 
-  return y
+  // V2.8a : pas de trait sky séparateur (Option C — design plus minimal)
+  // Marge avant cadres ARTISAN/CLIENT
+  return finalY + 4
 }
 
 // -------------------------------------------------------------------
