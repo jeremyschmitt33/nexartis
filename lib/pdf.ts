@@ -562,7 +562,7 @@ function drawFooterAllPages(doc: jsPDF, ent: Entreprise, numero: string) {
       line3Parts.push(`${fj} au capital de ${String(ent.capital_social).trim()} €`)
     }
     if (ent.rcs_rm && ent.rcs_rm.trim()) {
-      line3Parts.push(`RCS/RM ${ent.rcs_rm.trim()}`)
+      line3Parts.push(ent.rcs_rm.trim())
     }
     if (ent.code_naf && String(ent.code_naf).trim()) {
       line3Parts.push(`APE ${String(ent.code_naf).trim()}`)
@@ -1090,6 +1090,8 @@ interface TotalsOpts {
   ht: number
   ttc: number
   tvaGroups: Record<number, number>
+  /** V2.7.1 — Bases HT par taux. Si fourni et multi-taux, affiche "sur X €" dans la ligne TVA. */
+  tvaBases?: Record<number, number>
   netLabel?: string
   netAmount?: number
   // Bloc C — Acompte (devis uniquement)
@@ -1176,9 +1178,17 @@ function drawTotals(doc: jsPDF, opts: TotalsOpts, y: number): number {
   // visuelle (lignes a 0 EUR + sous-total positif). Le bandeau "MODE FORFAIT
   // GLOBAL" est deja dessine au-dessus du tableau (voir drawForfaitBanner).
   drawRow(opts.isForfait ? 'Forfait global HT' : 'Sous-total HT', fmt(opts.ht), true)
-  // TVA par taux
+  // TVA par taux. V2.7.1 : si multi-taux et bases fournies, on affiche
+  // "TVA 5,5% sur 20 300,00 € : 1 116,50 €" pour conformité CGI 242 nonies A
+  // (mention obligatoire du total HT par taux). En mono-taux, le sous-total
+  // HT au-dessus suffit donc on garde le format court.
+  const isMultiTaux = sortedRates.length > 1
   for (const rate of sortedRates) {
-    drawRow(`TVA ${rate}%`, fmt(opts.tvaGroups[rate]), false)
+    const baseHt = opts.tvaBases?.[rate]
+    const rateLabel = isMultiTaux && baseHt !== undefined
+      ? `TVA ${rate}% sur ${fmt(baseHt)}`
+      : `TVA ${rate}%`
+    drawRow(rateLabel, fmt(opts.tvaGroups[rate]), false)
   }
   // Total TTC
   drawRow('Total TTC', fmt(opts.ttc), true)
@@ -1343,14 +1353,16 @@ export function generateDevisPdf(data: DevisData): string {
   const acompteTTC = hasAcompte ? data.montant_ttc * ((data.acompte_pourcent as number) / 100) : undefined
   const resteTTC = hasAcompte ? data.montant_ttc - (acompteTTC as number) : undefined
 
+  // V2.7.1 : calcul des bases HT par taux pour affichage dans le récap
+  // (remplace l'ancien bloc Ventilation TVA séparé)
+  const tvaBases = computeTvaBases(lignes)
+
   let rightY = drawTotals(doc, {
     ht: data.montant_ht,
     ttc: data.montant_ttc,
     tvaGroups,
-    // Parite HTML : si acompte present, NET A PAYER = TTC - acompte
-    // et label devient "NET A PAYER A RECEPTION" pour eviter la confusion
-    // (le total TTC reste affiche dans le recap juste au-dessus).
-    netLabel: hasAcompte ? 'NET À PAYER À RÉCEPTION' : 'NET À PAYER',
+    tvaBases,
+    netLabel: 'NET À PAYER',
     netAmount: hasAcompte ? resteTTC : undefined,
     acomptePct: hasAcompte ? data.acompte_pourcent : undefined,
     acompteMontant: acompteTTC,
@@ -1358,10 +1370,9 @@ export function generateDevisPdf(data: DevisData): string {
     isForfait: isForfaitDevis,
   }, y)
 
-  // —— VENTILATION TVA (sous totaux à droite, si plusieurs taux) ——
-  if (Object.keys(tvaGroups).length > 1) {
-    rightY = drawTvaBreakdown(doc, lignes, rightY + 1)
-  }
+  // V2.7.1 : suppression du bloc Ventilation TVA séparé.
+  // Les bases HT par taux sont désormais intégrées au récapitulatif ci-dessus.
+  // (Conformité CGI 242 nonies A préservée via le format "TVA X% sur Y €".)
 
   // —— COLONNE GAUCHE : conditions + mentions ——
   let leftY = totalsStartY
@@ -1617,14 +1628,16 @@ export function generateFacturePdf(data: FactureData): string {
   }
   const totalsStartY = y
 
+  // V2.7.1 : calcul des bases HT par taux pour le récap facture
+  const tvaBases = computeTvaBases(lignes)
+
   // —— BLOC TOTAUX (droite) avec acompte si présent ——
   const rightEndY = drawTotals(doc, {
     ht: data.montant_ht,
     ttc: data.montant_ttc,
     tvaGroups,
-    // Parite HTML : si acompte verse, label "NET A PAYER A RECEPTION"
-    // pour clarifier qu'il s'agit du solde restant apres acompte.
-    netLabel: hasAcompte ? 'NET À PAYER À RÉCEPTION' : 'NET À PAYER',
+    tvaBases,
+    netLabel: 'NET À PAYER',
     netAmount: hasAcompte ? netAPayerTTC : undefined,
     acomptePct: hasAcompte
       ? (data.acompte_pourcent ?? Math.round((acompteTTC / Math.max(data.montant_ttc, 1)) * 100))
@@ -1733,10 +1746,8 @@ export function generateFacturePdf(data: FactureData): string {
     leftY += 1
   }
 
-  // Ventilation TVA si plusieurs taux (sous totaux à droite)
-  if (Object.keys(tvaGroups).length > 1) {
-    drawTvaBreakdown(doc, lignes, rightEndY + 1)
-  }
+  // V2.7.1 : suppression du bloc Ventilation TVA séparé sur la facture.
+  // Les bases HT par taux sont désormais intégrées au récapitulatif ci-dessus.
 
   // -----------------------------------------------------------------
   // BLOC IBAN/BIC - moitié gauche (88mm), juste APRÈS les mentions
