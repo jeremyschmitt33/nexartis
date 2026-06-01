@@ -842,13 +842,13 @@ function drawObjet(doc: jsPDF, objet: string, y: number): number {
   setText(doc, C.netBlueAccent)
   doc.text('OBJET :', M + 5, y + 5.6)
 
-  doc.setFontSize(10)
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.navyText)
   doc.text(objet, M + 22, y + 5.6, { maxWidth: w - 24 })
 
   // V4 : marge plus généreuse objet — tableau
-  return y + h + 6
+  return y + h + 3
 }
 
 // -------------------------------------------------------------------
@@ -858,6 +858,16 @@ function drawObjet(doc: jsPDF, objet: string, y: number): number {
 interface RowMeta {
   kind: 'section' | 'sous_section' | 'prestation' | 'commentaire'
   ligneIdx: number
+}
+
+function fmtTvaCell(l: { taux_tva?: number | null }): string {
+  if (l.taux_tva == null) return '—'
+  const t = l.taux_tva
+  if (t === 0) return '0%'
+  if (t === 5.5) return '5,5%'
+  if (t === 10) return '10%'
+  if (t === 20) return '20%'
+  return `${t}%`.replace('.', ',')
 }
 
 function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin = 22): number {
@@ -880,7 +890,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       body.push([
         l.numero ?? '',
         l.designation.toUpperCase(),
-        '', '', '',
+        '', '', '', '',
         fmt(sub),
       ])
       meta.push({ kind: 'section', ligneIdx: i })
@@ -889,7 +899,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       body.push([
         l.numero ?? '',
         l.designation,
-        '', '', '',
+        '', '', '', '',
         fmt(sub),
       ])
       meta.push({ kind: 'sous_section', ligneIdx: i })
@@ -897,7 +907,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       body.push([
         l.numero ?? '',
         l.designation,
-        '', '', '', '',
+        '', '', '', '', '',
       ])
       meta.push({ kind: 'commentaire', ligneIdx: i })
     } else {
@@ -910,6 +920,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
         String(q),
         l.unite ?? '',
         fmt(pu),
+        fmtTvaCell(l),
         fmt(q * pu),
       ])
       meta.push({ kind: 'prestation', ligneIdx: i })
@@ -918,7 +929,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
 
   autoTable(doc, {
     startY,
-    head: [['N°', 'DÉSIGNATION', 'QTÉ', 'UNITÉ', 'PRIX U. HT', 'TOTAL HT']],
+    head: [['N°', 'DÉSIGNATION', 'QTÉ', 'UNITÉ', 'PRIX U. HT', 'TVA', 'TOTAL HT']],
     body,
     theme: 'plain',
     margin: { left: M, right: M, top: 18, bottom: bottomMargin },
@@ -945,12 +956,13 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       lineWidth: 0,
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 12 },
+      0: { halign: 'center', cellWidth: 10 },
       1: { halign: 'left', cellWidth: 'auto' },
-      2: { halign: 'center', cellWidth: 13 },
-      3: { halign: 'center', cellWidth: 13 },
-      4: { halign: 'right', cellWidth: 24 },
-      5: { halign: 'right', cellWidth: 26 },
+      2: { halign: 'center', cellWidth: 11 },
+      3: { halign: 'center', cellWidth: 12 },
+      4: { halign: 'right', cellWidth: 22 },
+      5: { halign: 'center', cellWidth: 12 },
+      6: { halign: 'right', cellWidth: 24 },
     },
     didParseCell: (data: CellHookData) => {
       if (data.section !== 'body') return
@@ -965,7 +977,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
           data.cell.styles.textColor = C.netBlue
         } else if (data.column.index === 1) {
           data.cell.styles.textColor = C.navy
-        } else if (data.column.index === 5) {
+        } else if (data.column.index === 6) {
           data.cell.styles.textColor = C.netBlue
           data.cell.styles.halign = 'right'
         } else {
@@ -981,7 +993,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
         } else if (data.column.index === 1) {
           data.cell.styles.textColor = C.navy
           data.cell.styles.fontStyle = 'bold'
-        } else if (data.column.index === 5) {
+        } else if (data.column.index === 6) {
           data.cell.styles.textColor = C.netBlue
           data.cell.styles.halign = 'right'
         } else {
@@ -997,7 +1009,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
           data.cell.styles.textColor = C.muted
         } else if (data.column.index === 3) {
           data.cell.styles.textColor = C.muted
-        } else if (data.column.index === 5) {
+        } else if (data.column.index === 6) {
           data.cell.styles.fontStyle = 'bold'
           data.cell.styles.textColor = C.navy
         }
@@ -1020,7 +1032,7 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       const m = meta[data.row.index]
       const isPrestationRow = data.section === 'body' && (!m || m.kind === 'prestation')
       const isHeader = data.section === 'head'
-      if ((isHeader || isPrestationRow) && data.column.index < 5) {
+      if ((isHeader || isPrestationRow) && data.column.index < 6) {
         setDraw(doc, isHeader ? [255, 255, 255] : C.border)
         doc.setLineWidth(0.1)
         const x = data.cell.x + data.cell.width
@@ -1141,7 +1153,7 @@ function drawTotals(doc: jsPDF, opts: TotalsOpts, y: number): number {
   y = y + blockAH + 3 // marge 3mm récap — NET À PAYER
 
   // —— BLOC B — NET À PAYER (toujours en dernier — ligne la plus importante) ——
-  const netH = 12
+  const netH = 10
   setFill(doc, C.netBlue)
   doc.roundedRect(rightX, y, blockW, netH, 2, 2, 'F')
   doc.setFontSize(10); doc.setFont('helvetica', 'bold'); setText(doc, C.white)
@@ -1264,15 +1276,15 @@ export function generateDevisPdf(data: DevisData): string {
   }
 
   // —— TABLE HIÉRARCHIQUE ——
-  y = drawHierTable(doc, lignes, y)
+  y = drawHierTable(doc, lignes, y, 91)
 
   // —— TOTAUX (à droite) ——
   // Hauteur estimée : récap (~30mm) + NET (11+2) + acompte éventuel (15) + signatures (~32) — 95mm
   const hasAcompte = !!(data.acompte_pourcent && data.acompte_pourcent > 0)
   const NEEDED_BOTTOM = hasAcompte ? 85 : 72
-  if (y + NEEDED_BOTTOM > 270) { doc.addPage(); y = 20 }
+  // V2.6 : addPage redondant supprimé (drawHierTable gère le bottomMargin)
 
-  y += 10 // V4 : marge respiration tableau — totaux (devis)
+  y += 6 // V2.6 : marge respiration tableau — totaux (devis)
   let tvaGroups = computeTvaGroups(lignes)
   const isForfaitDevis = detectForfaitMode(lignes, data.montant_ht)
   // V11 — Meme fix qu'en facture : mode forfait + TVA > 0, on reconstruit
@@ -1365,13 +1377,13 @@ export function generateDevisPdf(data: DevisData): string {
   }
 
   // —— SIGNATURES (bas de page, 2 cadres dashed) ——
-  let sigY = Math.max(leftY, rightY) + 4
+  let sigY = Math.max(leftY, rightY) + 3
   // Hauteur minimale réservée
   if (sigY > 250) { doc.addPage(); sigY = 25 }
 
   const pageW = 210
   const sigBoxW = (pageW - 2 * M - 6) / 2  // 2 colonnes égales
-  const sigH = 28
+  const sigH = 24
   const sigLeftX = M
   const sigRightX = M + sigBoxW + 6
 
@@ -1499,7 +1511,7 @@ export function generateFacturePdf(data: FactureData): string {
   if (hasReste) NEEDED_BOTTOM += 14
   if (hasIban) NEEDED_BOTTOM += 26
   // +10mm de respiration entre fin tableau et début totaux
-  const tableBottomMargin = NEEDED_BOTTOM + 10
+  const tableBottomMargin = NEEDED_BOTTOM + 6
 
   if (isSituation) {
     const M = 14, pageW = 210
@@ -1541,9 +1553,9 @@ export function generateFacturePdf(data: FactureData): string {
   }
 
   // V6 : si malgré la marge réservée, la fin du tableau dépasse, sécurité :
-  if (y + NEEDED_BOTTOM > 290) { doc.addPage(); y = 20 }
+  // V2.6 : addPage redondant supprimé (tableBottomMargin déjà appliqué dans drawHierTable)
 
-  y += 10 // V4 : marge respiration tableau — totaux (facture)
+  y += 6 // V2.6 : marge respiration tableau — totaux (facture)
   let tvaGroups = computeTvaGroups(lignes)
   const isForfaitFacture = detectForfaitMode(lignes, data.montant_ht)
   // V11 — Bug fix : en mode forfait global, les lignes sont a 0 EUR, donc
@@ -1682,8 +1694,8 @@ export function generateFacturePdf(data: FactureData): string {
   // -----------------------------------------------------------------
   if (hasIban) {
     const ribW = leftMaxW
-    const ribH = 21
-    const ribY = leftY + 2
+    const ribH = 18
+    const ribY = leftY + 1
 
     setFill(doc, C.skyVeryPale)
     setDraw(doc, C.sky); doc.setLineWidth(0.3)
@@ -1692,20 +1704,20 @@ export function generateFacturePdf(data: FactureData): string {
     doc.rect(M, ribY, 1.6, ribH, 'F')
 
     doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-    doc.text('POUR RÉGLER PAR VIREMENT', M + 5, ribY + 5)
+    doc.text('POUR RÉGLER PAR VIREMENT', M + 5, ribY + 4)
 
     const ibanClean = (ent.iban as string).replace(/\s+/g, '').toUpperCase()
     const ibanFormatted = ibanClean.match(/.{1,4}/g)?.join(' ') || ibanClean
 
     doc.setFontSize(8); doc.setFont('courier', 'bold'); setText(doc, C.navy)
-    doc.text(`IBAN : ${ibanFormatted}`, M + 5, ribY + 10)
+    doc.text(`IBAN : ${ibanFormatted}`, M + 5, ribY + 8.5)
 
     if (ent.bic && ent.bic.trim()) {
       doc.setFontSize(8); doc.setFont('courier', 'bold'); setText(doc, C.navy)
-      doc.text(`BIC : ${ent.bic.trim().toUpperCase()}`, M + 5, ribY + 14.5)
+      doc.text(`BIC : ${ent.bic.trim().toUpperCase()}`, M + 5, ribY + 12.5)
     }
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); setText(doc, C.muted)
-    doc.text(`Bénéficiaire : ${ent.nom || ''}`, M + 5, ribY + 18.5, { maxWidth: ribW - 8 })
+    doc.text(`Bénéficiaire : ${ent.nom || ''}`, M + 5, ribY + 16, { maxWidth: ribW - 8 })
   }
 
   const miniTitle = isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
