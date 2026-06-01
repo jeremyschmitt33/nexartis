@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Syne, Manrope, Plus_Jakarta_Sans } from 'next/font/google'
+import { Syne, Manrope, Plus_Jakarta_Sans, Hanken_Grotesk, Spline_Sans_Mono } from 'next/font/google'
 import { headers } from 'next/headers'
 import './globals.css'
 import Header from '@/components/Header'
@@ -27,6 +27,24 @@ const jakarta = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
   display: 'swap',
   weight: ['400', '500', '600', '700', '800'],
+})
+
+// V3.0a - Polices du nouveau design devis/facture (PDF + Dashboard).
+// Chargees ici pour etre disponibles globalement via les variables CSS
+// `--font-hanken` et `--font-spline-mono`. Cf `tailwind.config.ts` pour
+// les classes `font-hanken` / `font-spline-mono`.
+const hanken = Hanken_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-hanken',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+})
+
+const splineMono = Spline_Sans_Mono({
+  subsets: ['latin'],
+  variable: '--font-spline-mono',
+  display: 'swap',
+  weight: ['400', '500', '600'],
 })
 
 export const metadata: Metadata = {
@@ -77,14 +95,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Le middleware ajoute l'en-tête `x-maintenance: 1` quand il sert la page
-  // de maintenance via un rewrite. On le lit ici côté serveur pour pouvoir
+  // Le middleware ajoute l'en-tete `x-maintenance: 1` quand il sert la page
+  // de maintenance via un rewrite. On le lit ici cote serveur pour pouvoir
   // forcer le masquage du header / footer marketing (sinon ils apparaissent
-  // parce que l'URL côté navigateur reste celle d'origine, ex: /).
+  // parce que l'URL cote navigateur reste celle d'origine, ex: /).
   const headersList = headers()
   const isMaintenance = headersList.get('x-maintenance') === '1'
 
-  // Schema.org Organization + Person (founder) — present sur toutes les pages
+  // Schema.org Organization + Person (founder) - present sur toutes les pages
   // pour booster la citabilite par les moteurs IA (Mistral, ChatGPT, Perplexity,
   // Google AI Overviews, Claude). Renforce egalement le signal E-E-A-T pour Google.
   const organizationSchema = {
@@ -140,7 +158,7 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="fr" className={`${syne.variable} ${manrope.variable} ${jakarta.variable}`}>
+    <html lang="fr" className={`${syne.variable} ${manrope.variable} ${jakarta.variable} ${hanken.variable} ${splineMono.variable}`}>
       <body className="font-manrope bg-white">
         <script
           type="application/ld+json"

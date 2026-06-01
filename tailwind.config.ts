@@ -28,6 +28,10 @@ const config: Config = {
         syne: ['Syne', 'sans-serif'],
         manrope: ['Manrope', 'sans-serif'],
         jakarta: ['Plus Jakarta Sans', 'sans-serif'],
+        // V3.0a - Polices du nouveau design devis/facture (PDF + Dashboard).
+        // Variables CSS injectees par app/layout.tsx via next/font/google.
+        hanken: ['var(--font-hanken)', 'Hanken Grotesk', 'sans-serif'],
+        'spline-mono': ['var(--font-spline-mono)', 'Spline Sans Mono', 'ui-monospace', 'monospace'],
       },
     },
   },
