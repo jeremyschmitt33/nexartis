@@ -327,6 +327,38 @@ export default function DevisDetailPage() {
     }
   }
 
+  // V2.4d : remplace l'ancien window.print() (rendu HTML divergent) par un
+  // appel a /api/download-devis qui renvoie exactement le meme PDF jsPDF
+  // que celui envoye par email — parite stricte entre les rendus.
+  async function handleDownloadDevisPdf() {
+    if (!devis) return
+    try {
+      setToastMsg('Generation du PDF...')
+      const res = await fetch('/api/download-devis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ devisId: devis.id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.pdfBase64) {
+        setToastMsg(json.error || 'Erreur generation PDF')
+        setTimeout(() => setToastMsg(null), 3000)
+        return
+      }
+      const link = document.createElement('a')
+      link.href = `data:application/pdf;base64,${json.pdfBase64}`
+      link.download = json.filename || `Devis-${devis.numero}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setToastMsg(null)
+    } catch (err) {
+      console.error('Download devis error:', err)
+      setToastMsg('Erreur telechargement PDF')
+      setTimeout(() => setToastMsg(null), 3000)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -421,13 +453,7 @@ export default function DevisDetailPage() {
           </span>
         </div>
         <div className="flex items-center gap-2 relative flex-wrap">
-          <button onClick={() => {
-            const nomClient = client?.nom || devis.notes_client?.split(' | ')[0] || 'client'
-            const originalTitle = document.title
-            document.title = `Devis - ${nomClient}`
-            window.print()
-            setTimeout(() => { document.title = originalTitle }, 1500)
-          }} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">
+          <button onClick={handleDownloadDevisPdf} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">
             <Download size={14} /> <span className="hidden xs:inline">Télécharger</span> PDF
           </button>
           <button onClick={() => setSendModalOpen(true)} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">

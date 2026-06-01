@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
     let clientType = 'particulier'
     // P11 (audit) : SIRET à afficher sur le PDF devis
     let clientSiret: string | undefined
+    // V2.4d : ajout TVA intracommunautaire client pour conformité B2B intra-UE
+    // (helper PDF accepte déjà ce champ — voir DevisData.clientTvaIntra)
+    let clientTvaIntra: string | undefined
     if (devis.client_id) {
       const { data: client } = await supabase
         .from('clients')
@@ -61,6 +64,8 @@ export async function POST(req: NextRequest) {
         clientAdresse = [client.adresse, `${client.code_postal || ''} ${client.ville || ''}`.trim(), client.telephone, client.email].filter(Boolean).join(' | ')
         clientType = client.type || 'particulier'
         clientSiret = (client.siret as string | undefined) || undefined
+        // V2.4d : accès tolérant — devient utile dès que la colonne sera ajoutée à la table clients
+        clientTvaIntra = ((client as Record<string, unknown>).tva_intracommunautaire as string | undefined) || undefined
       }
     }
     // Fallback sur notes_client si pas de client_id ou client non trouvé
@@ -102,6 +107,8 @@ export async function POST(req: NextRequest) {
       clientAdresse,
       clientType,
       clientSiret,
+      // V2.4d : ajout TVA intracommunautaire client pour conformité B2B intra-UE
+      clientTvaIntra,
       montant_ht: totalHT,
       montant_tva: totalTVA,
       montant_ttc: totalTTC,

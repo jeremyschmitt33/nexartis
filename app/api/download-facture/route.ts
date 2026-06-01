@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
     // P11 (audit) : SIRET client et TVA intracom à afficher sur le PDF
     // pour conformité art. L441-9 Code de commerce (facture B2B).
     let clientSiret: string | undefined
+    // V2.4d : ajout TVA intracommunautaire client pour conformité B2B intra-UE
+    // (helper PDF accepte déjà ce champ — voir FactureData.clientTvaIntra)
+    let clientTvaIntra: string | undefined
 
     if (facture.notes_client) {
       // PRIORITÉ 1 : snapshot figé sur la facture (parité HTML)
@@ -64,6 +67,8 @@ export async function POST(req: NextRequest) {
         if (client) {
           clientType = client.type || 'particulier'
           clientSiret = (client.siret as string | undefined) || undefined
+          // V2.4d : accès tolérant — devient utile dès que la colonne sera ajoutée à la table clients
+          clientTvaIntra = ((client as Record<string, unknown>).tva_intracommunautaire as string | undefined) || undefined
         }
       }
     } else if (facture.client_id) {
@@ -82,6 +87,8 @@ export async function POST(req: NextRequest) {
         clientAdresse = adressParts.join(' | ')
         clientType = client.type || 'particulier'
         clientSiret = (client.siret as string | undefined) || undefined
+        // V2.4d : accès tolérant — devient utile dès que la colonne sera ajoutée à la table clients
+        clientTvaIntra = ((client as Record<string, unknown>).tva_intracommunautaire as string | undefined) || undefined
       }
     }
 
@@ -95,6 +102,8 @@ export async function POST(req: NextRequest) {
       clientAdresse,
       clientType,
       clientSiret,
+      // V2.4d : ajout TVA intracommunautaire client pour conformité B2B intra-UE
+      clientTvaIntra,
       montant_ht: facture.montant_ht || 0,
       montant_tva: facture.montant_tva || 0,
       montant_ttc: facture.montant_ttc || 0,
