@@ -8,6 +8,14 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { CellHookData, Styles } from 'jspdf-autotable'
+// V2.4a — Source unique de verite des mentions TVA (parite stricte HTML/PDF).
+// On garde l'import limite aux 3 constantes ; lib/legal-mentions.ts est
+// server-safe (pas de dependance React/DOM).
+import {
+  TVA_MENTION_10 as LEGAL_TVA_MENTION_10,
+  TVA_MENTION_5_5 as LEGAL_TVA_MENTION_5_5,
+  TVA_MENTION_AE as LEGAL_TVA_MENTION_AE,
+} from '@/lib/legal-mentions'
 
 // -------------------------------------------------------------------
 // Palette Nexartis (RGB)
@@ -235,14 +243,15 @@ const DEFAULT_CONDITIONS_PAIEMENT =
 // -------------------------------------------------------------------
 // TVA mentions automatiques
 // -------------------------------------------------------------------
+//
+// V2.4a — Source de verite : lib/legal-mentions.ts (re-export ci-dessous
+// sous les memes noms pour preserver le code existant de ce fichier).
+// Toute modification doit etre faite dans lib/legal-mentions.ts pour ne
+// pas faire diverger HTML dashboard / HTML signer / PDF.
 
-const TVA_MENTION_10 =
-  'Je certifie, en qualité de preneur de la prestation, que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans, qu\'ils n\'ont pas eu pour effet, sur une période de deux ans au plus, de concourir à la production d\'un immeuble neuf au sens du 2° du 2 du I de l\'article 257 du CGI, ni d\'entraîner une augmentation de la surface de plancher des locaux existants supérieure à 10 %, et, le cas échéant, qu\'ils ont la nature de travaux de rénovation.'
-
-const TVA_MENTION_5_5 =
-  'Je certifie que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans et constituent des travaux de rénovation ou d\'amélioration de la qualité énergétique au sens de l\'article 18 bis de l\'annexe IV du CGI (isolation thermique, systèmes de chauffage performants, énergies renouvelables).'
-
-const TVA_MENTION_AE = 'TVA non applicable, article 293 B du Code Général des Impôts.'
+const TVA_MENTION_10 = LEGAL_TVA_MENTION_10
+const TVA_MENTION_5_5 = LEGAL_TVA_MENTION_5_5
+const TVA_MENTION_AE = LEGAL_TVA_MENTION_AE
 
 function getTvaMentions(lignes: Ligne[]): string[] {
   const prest = lignes.filter(isPrestation)

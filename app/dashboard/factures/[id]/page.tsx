@@ -19,6 +19,8 @@ import {
   Pencil,
 } from 'lucide-react'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
+import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
+import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import {
   useSupabaseRecord,
   useFactureLignes,
@@ -312,20 +314,10 @@ export default function FactureDetailPage() {
     tvaGroups[taux] = { ht: totalHT, tva: facture.montant_tva }
   }
 
-  // Mentions TVA automatiques (parité PDF : getTvaMentions dans lib/pdf.ts)
-  const TVA_MENTION_10 =
-    'Je certifie, en qualité de preneur de la prestation, que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans, qu\'ils n\'ont pas eu pour effet, sur une période de deux ans au plus, de concourir à la production d\'un immeuble neuf au sens du 2° du 2 du I de l\'article 257 du CGI, ni d\'entraîner une augmentation de la surface de plancher des locaux existants supérieure à 10 %, et, le cas échéant, qu\'ils ont la nature de travaux de rénovation.'
-  const TVA_MENTION_5_5 =
-    'Je certifie que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans et constituent des travaux de rénovation ou d\'amélioration de la qualité énergétique au sens de l\'article 18 bis de l\'annexe IV du CGI (isolation thermique, systèmes de chauffage performants, énergies renouvelables).'
-  const TVA_MENTION_AE = 'TVA non applicable, article 293 B du Code Général des Impôts.'
-  const tvaMentions: string[] = []
-  const tauxSet = new Set(lignesPrestations.map(l => l.taux_tva ?? 20))
-  if (isSansTva) {
-    tvaMentions.push(TVA_MENTION_AE)
-  } else {
-    if (tauxSet.has(10)) tvaMentions.push(TVA_MENTION_10)
-    if (tauxSet.has(5.5)) tvaMentions.push(TVA_MENTION_5_5)
-  }
+  // V2.4a — Les mentions TVA automatiques (293 B / 10% / 5.5%) sont désormais
+  // rendues par <LegalMentionsBlock> (source unique lib/legal-mentions.ts).
+  // Les constantes locales TVA_MENTION_10/5_5/AE et l'array tvaMentions ont
+  // été supprimées d'ici pour éviter toute divergence avec le PDF.
 
   const printStyles = `@media print {
     nav, header, aside, .no-print, .sidebar-col { display: none !important; }
@@ -395,6 +387,11 @@ export default function FactureDetailPage() {
           )}
         </div>
       </div>
+
+      {/* V2.4a — Bannière "Mentions légales incomplètes" (composant partagé).
+          N'apparaît que si un champ obligatoire (Code de commerce L441-9) manque
+          sur le profil entreprise. Ne s'imprime pas (classe no-print). */}
+      <ProfilIncompletBanner entreprise={entreprise as Record<string, unknown> | null | undefined} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main: Invoice preview */}
@@ -584,21 +581,11 @@ export default function FactureDetailPage() {
                     <p className="text-sm font-manrope text-[#0f1a3a] leading-relaxed whitespace-pre-wrap">{notesPersoAffichees}</p>
                   </div>
                 )}
-                {/* Mentions légales standardisées (parité PDF) */}
-                <div className="pt-2 text-[11px] font-manrope text-[#9ca3af] leading-relaxed">
-                  <p>Pénalités de retard : 3x le taux d&apos;intérêt légal en vigueur (art. L.441-10 C. com.).</p>
-                  {Boolean(client?.client_type === 'professionnel') && (
-                    <p>Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D.441-5 C. com.).</p>
-                  )}
-                  <p>Pas d&apos;escompte pour paiement anticipé.</p>
-                </div>
-                {/* Mentions TVA automatiques (parité PDF : 293B / 10% / 5.5%) */}
-                {tvaMentions.length > 0 && (
-                  <div className="pt-1 text-[10px] font-manrope italic text-[#9ca3af] leading-relaxed space-y-1">
-                    {tvaMentions.map((m, i) => <p key={i}>{m}</p>)}
-                  </div>
-                )}
-                <p className="text-[10px] font-manrope italic text-[#9ca3af] pt-1">Facture émise conformément aux articles L441-3 et suivants du Code de commerce.</p>
+                {/* V2.4a — La liste complète des mentions légales (pénalités,
+                    escompte, TVA, L441-3, etc.) est maintenant rendue UNE seule
+                    fois plus bas via <LegalMentionsBlock>, en remplacement de
+                    l'ancien bloc "MENTIONS LÉGALES entreprise". On évite ainsi
+                    la duplication / divergence entre ces 2 blocs historiques. */}
               </div>
 
               {/* Colonne droite : récap (avec acompte intégré) + NET À PAYER en dernier */}
@@ -674,34 +661,26 @@ export default function FactureDetailPage() {
               </div>
             </div>
 
-            {/* MENTIONS LÉGALES entreprise */}
+            {/* V2.4a — MENTIONS LÉGALES facture (composant partagé).
+                Source unique lib/legal-mentions.ts. Détecte automatiquement le
+                type de client (SIRET → pro, sinon particulier) et applique
+                l'ordre légal facture (décennale → TVA → forme juridique → RCS →
+                qualification → médiateur B2C → pénalités L441-10 → indemnité
+                40 € B2B → escompte → L441-3 → custom). */}
             <div style={{ marginTop: 12, paddingTop: 8, borderTop: '0.5px solid #e5e7eb' }}>
               <p style={{ fontSize: 9, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Mentions légales</p>
-              <div style={{ fontSize: 9, color: '#9ca3af', lineHeight: 1.6 }}>
-                {Boolean(entreprise?.assurance_nom || entreprise?.decennale_numero) && (
-                  <p>
-                    Assurance décennale : {String(entreprise?.assurance_nom || '')}
-                    {Boolean(entreprise?.decennale_numero) && ` — n° ${String(entreprise?.decennale_numero)}`}
-                    {Boolean(entreprise?.assurance_zone) && ` — Zone : ${String(entreprise?.assurance_zone)}`}
-                  </p>
-                )}
-                {/* V15 — Franchise TVA : mention basee sur les taux saisis (taux === 0),
-                    pas sur le statut juridique. Coherent avec le recap ci-dessus. */}
-                {isSansTva && (
-                  <p style={{ fontWeight: 600 }}>TVA non applicable, art. 293 B du Code Général des Impôts.</p>
-                )}
-                {(entreprise?.forme_juridique === 'EI' || entreprise?.forme_juridique === 'Micro-entreprise') && (
-                  <p>{String(entreprise?.nom || '')} — {entreprise?.forme_juridique === 'Micro-entreprise' ? 'Entrepreneur individuel (Micro-entreprise)' : 'Entrepreneur individuel (EI)'}</p>
-                )}
-                {Boolean(entreprise?.capital_social) && ['EURL', 'SARL', 'SAS', 'SASU'].includes(String(entreprise?.forme_juridique || '')) && (
-                  <p>{String(entreprise?.forme_juridique)} au capital de {String(entreprise?.capital_social)}</p>
-                )}
-                {Boolean(entreprise?.rcs_rm) && <p>{String(entreprise?.rcs_rm)}</p>}
-                {Boolean(entreprise?.qualification_pro) && <p>Qualification : {String(entreprise?.qualification_pro)}</p>}
-                {Boolean(entreprise?.mediateur) && <p>Médiateur : {String(entreprise?.mediateur)}</p>}
-                <p style={{ fontStyle: 'italic' }}>Facture émise conformément aux articles L441-3 et suivants du Code de commerce.</p>
-                {Boolean(entreprise?.mentions_legales_custom) && <p>{String(entreprise?.mentions_legales_custom)}</p>}
-              </div>
+              <LegalMentionsBlock
+                ctx={{
+                  kind: 'facture',
+                  entreprise: entreprise as Record<string, unknown> | null | undefined,
+                  client,
+                  clientType: client?.client_type === 'professionnel' || (client?.siret && String(client.siret).trim()) ? 'pro' : 'particulier',
+                  lignes,
+                  factureType: 'standard',
+                }}
+                variant="dashboard"
+                className="text-[9px]"
+              />
             </div>
 
             {/* ────────────────────────────────────────────────── */}

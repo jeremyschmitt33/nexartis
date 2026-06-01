@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { createChantierFromDevis } from '@/lib/services/devis-automatisms'
 import EnvoyerDevisModal from '@/components/dashboard/EnvoyerDevisModal'
+import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
+import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import {
   useSupabaseRecord,
   useDevisLignes,
@@ -455,6 +457,11 @@ export default function DevisDetailPage() {
         </div>
       </div>
 
+      {/* V2.4a — Bannière "Mentions légales incomplètes" (composant partagé).
+          N'apparaît que si un champ obligatoire (Code de commerce L441-9) manque
+          sur le profil entreprise. Ne s'imprime pas (classe no-print). */}
+      <ProfilIncompletBanner entreprise={entreprise as Record<string, unknown> | null | undefined} className="mb-5" />
+
       {/* ── Banderole "À planifier" — visible uniquement si devis accepté sans chantier ── */}
       {devis.statut === 'signe' && !devis.chantier_id && (
         <div className="no-print mb-5 flex items-start gap-4 bg-[#f0fdf4] border border-[#86efac] rounded-xl px-5 py-4">
@@ -666,51 +673,24 @@ export default function DevisDetailPage() {
                     <p className="text-xs font-manrope text-[#6b7280] leading-relaxed">{devis.conditions_paiement}</p>
                   </div>
                 )}
-                {/* Mentions légales obligatoires — générées automatiquement selon le statut */}
+                {/* V2.4a — Mentions légales obligatoires : composant partagé
+                    (source unique lib/legal-mentions.ts). Détecte automatiquement
+                    le type de client (SIRET → pro, sinon particulier) et applique
+                    l'ordre légal devis (décennale → TVA → forme juridique → RCS →
+                    qualification → médiateur B2C → rétractation B2C → custom). */}
                 <div className="border-t border-gray-100 pt-1.5">
                   <h4 className="font-manrope font-semibold text-[9px] text-[#9ca3af] uppercase tracking-wider mb-0.5">Mentions légales</h4>
-                  <div className="space-y-0.5 text-[9px] font-manrope text-[#9ca3af] leading-relaxed">
-                    {/* Assurance décennale */}
-                    {Boolean(entreprise?.assurance_nom || entreprise?.decennale_numero) && (
-                      <p>
-                        Assurance décennale : {String(entreprise?.assurance_nom || '')}
-                        {Boolean(entreprise?.decennale_numero) && ` — n° ${String(entreprise?.decennale_numero)}`}
-                        {Boolean(entreprise?.assurance_zone) && ` — Zone : ${String(entreprise?.assurance_zone)}`}
-                      </p>
-                    )}
-                    {/* V15 — Franchise TVA : mention basee sur les taux saisis (taux === 0),
-                        pas sur le statut juridique. Coherent avec le recap ci-dessus et avec la
-                        regle juridique : tant qu'aucune TVA n'est collectee, l'article 293 B s'applique. */}
-                    {isSansTva && (
-                      <p className="font-semibold">TVA non applicable — art. 293 B du CGI.</p>
-                    )}
-                    {/* Forme juridique EI → mention obligatoire depuis mai 2022 */}
-                    {(entreprise?.forme_juridique === 'EI' || entreprise?.forme_juridique === 'Micro-entreprise') && (
-                      <p>{String(entreprise?.nom || '')} — {entreprise?.forme_juridique === 'Micro-entreprise' ? 'Entrepreneur individuel (Micro-entreprise)' : 'Entrepreneur individuel (EI)'}</p>
-                    )}
-                    {/* Capital social pour les sociétés */}
-                    {Boolean(entreprise?.capital_social) && ['EURL', 'SARL', 'SAS', 'SASU'].includes(String(entreprise?.forme_juridique || '')) && (
-                      <p>{String(entreprise?.forme_juridique)} au capital de {String(entreprise?.capital_social)}</p>
-                    )}
-                    {/* RCS / RM */}
-                    {Boolean(entreprise?.rcs_rm) && (
-                      <p>{String(entreprise?.rcs_rm)}</p>
-                    )}
-                    {/* Qualification professionnelle */}
-                    {Boolean(entreprise?.qualification_pro) && (
-                      <p>Qualification : {String(entreprise?.qualification_pro)}</p>
-                    )}
-                    {/* Médiateur */}
-                    {Boolean(entreprise?.mediateur) && (
-                      <p>Médiateur : {String(entreprise?.mediateur)}</p>
-                    )}
-                    {/* Rétractation — toujours affichée */}
-                    <p>Rétractation 14 jours pour travaux hors établissement (art. L221-18 C. conso.).</p>
-                    {/* Mentions personnalisées */}
-                    {Boolean(entreprise?.mentions_legales_custom) && (
-                      <p>{String(entreprise?.mentions_legales_custom)}</p>
-                    )}
-                  </div>
+                  <LegalMentionsBlock
+                    ctx={{
+                      kind: 'devis',
+                      entreprise: entreprise as Record<string, unknown> | null | undefined,
+                      client,
+                      clientType: client?.siret && String(client.siret).trim() ? 'pro' : 'particulier',
+                      lignes,
+                    }}
+                    variant="dashboard"
+                    className="text-[9px]"
+                  />
                 </div>
                 {/* Déchets — discret, grisé, tout en bas */}
                 {(devis.dechets_nature || devis.dechets_quantite || devis.dechets_collecte_nom) && (
