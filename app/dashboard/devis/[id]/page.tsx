@@ -631,6 +631,8 @@ export default function DevisDetailPage() {
                     <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Qté</th>
                     <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Unité</th>
                     <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20 border-r border-white/30">Prix U. HT</th>
+                    {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
+                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">TVA</th>
                     <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20">Total HT</th>
                   </tr>
                 </thead>
@@ -658,7 +660,8 @@ export default function DevisDetailPage() {
                         return (
                           <tr key={l.id ?? i} className="bg-[#a8d4ec]">
                             <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#1a6fb5]">{numAffiche}</td>
-                            <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#0f1a3a]" colSpan={4}>{l.designation}</td>
+                            {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
+                            <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#0f1a3a]" colSpan={5}>{l.designation}</td>
                             <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-bold text-[#1a6fb5]">{formatCurrency(subtotalAt(i))}</td>
                           </tr>
                         )
@@ -667,7 +670,8 @@ export default function DevisDetailPage() {
                         return (
                           <tr key={l.id ?? i} className="bg-[#dceefa]">
                             <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#1a6fb5]">{numAffiche}</td>
-                            <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#0f1a3a]" colSpan={4}>{l.designation}</td>
+                            {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
+                            <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#0f1a3a]" colSpan={5}>{l.designation}</td>
                             <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a6fb5]">{formatCurrency(subtotalAt(i))}</td>
                           </tr>
                         )
@@ -679,6 +683,8 @@ export default function DevisDetailPage() {
                           <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#1a1a2e] border-r border-gray-100">{l.quantite}</td>
                           <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{l.unite}</td>
                           <td className="px-2 py-1.5 text-[11px] font-manrope text-right text-[#1a1a2e] border-r border-gray-100">{formatCurrency(l.prix_unitaire_ht)}</td>
+                          {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
+                          <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{(l.taux_tva ?? 0).toString().replace('.', ',')}%</td>
                           <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a1a2e]">{formatCurrency(l.quantite * l.prix_unitaire_ht)}</td>
                         </tr>
                       )

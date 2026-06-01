@@ -494,6 +494,8 @@ export default function FactureDetailPage() {
                     <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Qté</th>
                     <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Unité</th>
                     <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20 border-r border-white/30">Prix U. HT</th>
+                    {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
+                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">TVA</th>
                     <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20">Total HT</th>
                   </tr>
                 </thead>
@@ -517,7 +519,8 @@ export default function FactureDetailPage() {
                       return (
                         <tr key={ligne.id ?? i} className="bg-[#a8d4ec]">
                           <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#1a6fb5]">{ligne.numero || ''}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#0f1a3a]" colSpan={4}>{ligne.designation}</td>
+                          {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
+                          <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#0f1a3a]" colSpan={5}>{ligne.designation}</td>
                           <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-bold text-[#1a6fb5]">{fmt(subtotalAt(i))}</td>
                         </tr>
                       )
@@ -526,7 +529,8 @@ export default function FactureDetailPage() {
                       return (
                         <tr key={ligne.id ?? i} className="bg-[#dceefa]">
                           <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#1a6fb5]">{ligne.numero || ''}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#0f1a3a]" colSpan={4}>{ligne.designation}</td>
+                          {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
+                          <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#0f1a3a]" colSpan={5}>{ligne.designation}</td>
                           <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a6fb5]">{fmt(subtotalAt(i))}</td>
                         </tr>
                       )
@@ -535,19 +539,22 @@ export default function FactureDetailPage() {
                       return (
                         <tr key={ligne.id ?? i}>
                           <td className="px-3 py-1.5 text-xs font-manrope text-[#6b7280]" />
-                          <td className="px-3 py-1.5 text-xs font-manrope italic text-[#6b7280]" colSpan={5}>{ligne.designation}</td>
+                          {/* V2.5 — colSpan etendu (6 au lieu de 5) suite a l'ajout de la colonne TVA */}
+                          <td className="px-3 py-1.5 text-xs font-manrope italic text-[#6b7280]" colSpan={6}>{ligne.designation}</td>
                         </tr>
                       )
                     }
                     if (ligne.type === 'saut_page') {
-                      return <tr key={ligne.id ?? i}><td colSpan={6} className="py-1 border-t border-dashed border-gray-300" /></tr>
+                      // V2.5 — colSpan etendu (7 au lieu de 6) suite a l'ajout de la colonne TVA
+                      return <tr key={ligne.id ?? i}><td colSpan={7} className="py-1 border-t border-dashed border-gray-300" /></tr>
                     }
                     // backward compat : ancien format ---
                     const isLegacySection = !ligne.type && ligne.designation?.startsWith('---')
                     if (isLegacySection) {
                       return (
                         <tr key={ligne.id ?? i} className="bg-[#dceefa] border-l-4 border-[#5ab4e0]">
-                          <td colSpan={6} className="px-3 py-2 text-sm font-manrope font-bold text-[#0f1a3a]">{ligne.designation.replace(/^---\s*/, '').replace(/\s*---$/, '')}</td>
+                          {/* V2.5 — colSpan etendu (7 au lieu de 6) suite a l'ajout de la colonne TVA */}
+                          <td colSpan={7} className="px-3 py-2 text-sm font-manrope font-bold text-[#0f1a3a]">{ligne.designation.replace(/^---\s*/, '').replace(/\s*---$/, '')}</td>
                         </tr>
                       )
                     }
@@ -559,6 +566,8 @@ export default function FactureDetailPage() {
                         <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#1a1a2e] border-r border-gray-100">{ligne.quantite}</td>
                         <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{ligne.unite}</td>
                         <td className="px-2 py-1.5 text-[11px] font-manrope text-right text-[#1a1a2e] border-r border-gray-100">{fmt(ligne.prix_unitaire_ht ?? 0)}</td>
+                        {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
+                        <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{(ligne.taux_tva ?? 0).toString().replace('.', ',')}%</td>
                         <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a1a2e]">{fmt(ligne.total_ht || (ligne.quantite ?? 0) * (ligne.prix_unitaire_ht ?? 0))}</td>
                       </tr>
                     )

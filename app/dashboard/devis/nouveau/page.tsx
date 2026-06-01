@@ -436,15 +436,23 @@ function NouveauDevisPage() {
 
   if (useForfait) {
     totalHT = forfaitHT
+    // Mode forfait : on retombe sur le taux global (parite ancienne logique)
+    if (effectiveTva > 0) {
+      tvaGroups[effectiveTva] = { ht: totalHT, tva: totalHT * (effectiveTva / 100) }
+    }
   } else {
+    // V2.5 — TVA par ligne (parite Obat) : agregation par taux saisi sur chaque ligne
     lines.forEach(l => {
       if (l.type !== 'line') return
       const lineTotal = l.qty * l.priceHT
       totalHT += lineTotal
+      const taux = autoEntrepreneur ? 0 : (l.tva ?? 0)
+      if (taux > 0) {
+        if (!tvaGroups[taux]) tvaGroups[taux] = { ht: 0, tva: 0 }
+        tvaGroups[taux].ht += lineTotal
+        tvaGroups[taux].tva += lineTotal * (taux / 100)
+      }
     })
-  }
-  if (effectiveTva > 0) {
-    tvaGroups[effectiveTva] = { ht: totalHT, tva: totalHT * (effectiveTva / 100) }
   }
 
   const totalTVA = Object.values(tvaGroups).reduce((s, g) => s + g.tva, 0)
@@ -537,7 +545,9 @@ function NouveauDevisPage() {
           quantite: l.qty,
           unite: l.unit,
           prix_unitaire_ht: l.priceHT,
-          taux_tva: effectiveTva,
+          // V2.5 — TVA par ligne : on persiste le taux saisi sur la ligne.
+          // En mode AE, on force 0. En mode forfait, on retombe sur effectiveTva.
+          taux_tva: autoEntrepreneur ? 0 : (useForfait ? effectiveTva : (l.tva ?? effectiveTva)),
           ordre: i + 1,
           type: dbType,
           niveau: dbNiveau,
@@ -829,6 +839,8 @@ function NouveauDevisPage() {
                 <th className="px-3 py-2.5 text-center text-xs font-manrope font-semibold uppercase">Qté</th>
                 <th className="px-3 py-2.5 text-center text-xs font-manrope font-semibold uppercase">Unité</th>
                 <th className="px-3 py-2.5 text-right text-xs font-manrope font-semibold uppercase">Prix U. HT</th>
+                {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
+                <th className="px-3 py-2.5 text-center text-xs font-manrope font-semibold uppercase">TVA</th>
                 <th className="px-3 py-2.5 text-right text-xs font-manrope font-semibold uppercase">Total HT</th>
               </tr></thead>
               <tbody>
@@ -838,6 +850,7 @@ function NouveauDevisPage() {
                     <td className="px-3 py-2.5 text-sm font-manrope text-center">{l.type === 'line' ? l.qty : ''}</td>
                     <td className="px-3 py-2.5 text-sm font-manrope text-center text-[#6b7280]">{l.type === 'line' ? l.unit : ''}</td>
                     <td className="px-3 py-2.5 text-sm font-manrope text-right">{l.type === 'line' && l.priceHT > 0 ? formatCurrency(l.priceHT) : l.type === 'line' ? '--' : ''}</td>
+                    <td className="px-3 py-2.5 text-sm font-manrope text-center text-[#6b7280]">{l.type === 'line' ? `${(l.tva ?? 0).toString().replace('.', ',')}%` : ''}</td>
                     <td className="px-3 py-2.5 text-sm font-manrope text-right font-semibold">{l.type === 'line' && l.priceHT > 0 ? formatCurrency(l.qty * l.priceHT) : l.type === 'line' ? '--' : ''}</td>
                   </tr>
                 ))}
@@ -1055,8 +1068,9 @@ function NouveauDevisPage() {
 
             {/* ── Desktop : table classique (≥ sm) ── */}
             <div className="hidden sm:block overflow-x-auto">
-              <div className="bg-[#5ab4e0] text-white grid grid-cols-[1fr_70px_90px_100px_100px_36px] min-w-[500px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
-                <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-right">Total HT</span><span />
+              {/* V2.5 — Colonne TVA par ligne (parite Obat). 7 colonnes au lieu de 6. */}
+              <div className="bg-[#5ab4e0] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
+                <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
               </div>
               {lines.length === 0 && (
                 <div className="px-4 py-8 text-center border-b border-gray-100">
@@ -1065,7 +1079,7 @@ function NouveauDevisPage() {
                 </div>
               )}
               {lines.map(line => (
-                <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_100px_36px] min-w-[500px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#dceefa] border-l-4 border-l-[#5ab4e0]' : line.type === 'subsection' ? 'bg-[#e8f4fb] border-l-2 border-l-[#5ab4e0]/60' : ''}`}>
+                <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#dceefa] border-l-4 border-l-[#5ab4e0]' : line.type === 'subsection' ? 'bg-[#e8f4fb] border-l-2 border-l-[#5ab4e0]/60' : ''}`}>
                   <textarea
                     value={line.designation}
                     onChange={e => { updateLine(line.id, 'designation', e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
@@ -1080,9 +1094,18 @@ function NouveauDevisPage() {
                         {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
                       <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))} className="text-sm text-right border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 px-2 mt-0.5 mx-1" min={0} step={0.01} />
+                      {/* V2.5 — Selecteur TVA par ligne (parite Obat) */}
+                      <select
+                        value={line.tva}
+                        onChange={e => updateLine(line.id, 'tva', Number(e.target.value))}
+                        disabled={autoEntrepreneur}
+                        className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mt-0.5 mx-1 w-full disabled:bg-gray-50 disabled:text-gray-400"
+                      >
+                        {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? '0%' : r === 5.5 ? '5,5%' : `${r}%`}</option>)}
+                      </select>
                       <span className="text-sm font-semibold text-right mt-1.5">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '--'}</span>
                     </>
-                  ) : (line.type === 'section' || line.type === 'subsection') ? (<><span /><span /><span /><span className="text-sm font-bold text-right mt-1.5 text-[#1a6fb5]">{formatCurrency(computeSubtotal(lines.indexOf(line)))}</span></>) : <><span /><span /><span /><span /></>}
+                  ) : (line.type === 'section' || line.type === 'subsection') ? (<><span /><span /><span /><span /><span className="text-sm font-bold text-right mt-1.5 text-[#1a6fb5]">{formatCurrency(computeSubtotal(lines.indexOf(line)))}</span></>) : <><span /><span /><span /><span /><span /></>}
                   <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 mt-1.5"><Trash2 size={14} /></button>
                 </div>
               ))}
@@ -1097,14 +1120,27 @@ function NouveauDevisPage() {
             </div>
           </div>
 
-            {/* Global TVA selector */}
+            {/* V2.5 — Selecteur global = raccourci "Appliquer a toutes les lignes".
+                Le taux reel est saisi ligne par ligne dans le tableau ;
+                ce raccourci pousse la valeur sur TOUTES les lignes existantes. */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Taux de TVA applicable :</label>
-                <select value={globalTvaRate} onChange={e => { const v = Number(e.target.value); setGlobalTvaRate(v); setAutoEntrepreneur(v === 0) }} className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer">
+                <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Appliquer à toutes les lignes :</label>
+                <select
+                  value={globalTvaRate}
+                  onChange={e => {
+                    const v = Number(e.target.value)
+                    setGlobalTvaRate(v)
+                    setAutoEntrepreneur(v === 0)
+                    // V2.5 : pousse le taux sur TOUTES les lignes existantes
+                    setLines(prev => prev.map(l => l.type === 'line' ? { ...l, tva: v } : l))
+                  }}
+                  className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer"
+                >
                   <option value={0}>Sans TVA</option><option value={5.5}>5,5%</option><option value={10}>10%</option><option value={20}>20%</option>
                 </select>
               </div>
+              <span className="text-xs font-manrope text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
               {autoEntrepreneur && (
                 <span className="text-xs font-manrope text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>
               )}

@@ -19,6 +19,8 @@ interface LineItem {
   qty: number
   unit: string
   priceHT: number
+  // V2.5 — TVA par ligne (parite Obat). Defaut 10% (sauf franchise AE → 0).
+  tva: number
   type: 'line' | 'section' | 'subsection' | 'text'
 }
 
@@ -196,7 +198,8 @@ export default function ModifierDevisPage() {
     if (sheetLine) {
       setLines(prev => prev.map(l => l.id === sheetLine.id ? { ...l, designation: payload.designation, qty: payload.qty, unit: payload.unit || l.unit, priceHT: payload.priceHT, type: payload.type } : l))
     } else {
-      setLines(prev => [...prev, { id: nextId++, designation: payload.designation, qty: payload.qty, unit: payload.unit || 'U', priceHT: payload.priceHT, type: payload.type }])
+      // V2.5 : nouvelle ligne herite du taux global (raccourci) ou 10% par defaut.
+      setLines(prev => [...prev, { id: nextId++, designation: payload.designation, qty: payload.qty, unit: payload.unit || 'U', priceHT: payload.priceHT, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type: payload.type }])
     }
   }
   const handleSheetSaveAndNew = (payload: SheetLine) => {
@@ -260,7 +263,8 @@ export default function ModifierDevisPage() {
     const raw = lignesRaw as unknown as LigneRecord[]
     setLines(raw.map((l, i) => {
       const reactType: LineItem['type'] = l.type === 'section' ? 'section' : l.type === 'sous_section' ? 'subsection' : l.type === 'commentaire' ? 'text' : 'line'
-      return { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, type: reactType }
+      // V2.5 : on lit le taux_tva DB par ligne (chaque ligne peut avoir son propre taux).
+      return { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, tva: l.taux_tva ?? 10, type: reactType }
     }))
     nextId += raw.length
     const firstLine = raw.find(l => !l.type || l.type === 'prestation')
@@ -343,7 +347,8 @@ export default function ModifierDevisPage() {
   }
   function removeLine(lid: number) { setLines(prev => prev.filter(l => l.id !== lid)) }
   function addLine(type: 'line' | 'section' | 'subsection' | 'text' = 'line') {
-    setLines(prev => [...prev, { id: nextId++, designation: '', qty: type === 'line' ? 1 : 0, unit: 'U', priceHT: 0, type }])
+    // V2.5 : nouvelle ligne herite du taux global (raccourci) ou 10% par defaut.
+    setLines(prev => [...prev, { id: nextId++, designation: '', qty: type === 'line' ? 1 : 0, unit: 'U', priceHT: 0, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type }])
   }
   function subtotalAt(idx: number): number {
     const current = lines[idx]
@@ -368,10 +373,27 @@ export default function ModifierDevisPage() {
 
   const effectiveTva = autoEntrepreneur ? 0 : globalTvaRate
   let totalHT = 0
-  if (useForfait) { totalHT = forfaitHT } else {
-    lines.forEach(l => { if (l.type === 'line') totalHT += l.qty * l.priceHT })
+  // V2.5 — TVA par ligne (parite Obat) : agregation par taux saisi sur chaque ligne.
+  const tvaGroups: Record<number, { ht: number; tva: number }> = {}
+  if (useForfait) {
+    totalHT = forfaitHT
+    if (effectiveTva > 0) {
+      tvaGroups[effectiveTva] = { ht: totalHT, tva: totalHT * (effectiveTva / 100) }
+    }
+  } else {
+    lines.forEach(l => {
+      if (l.type !== 'line') return
+      const lineTotal = l.qty * l.priceHT
+      totalHT += lineTotal
+      const taux = autoEntrepreneur ? 0 : (l.tva ?? 0)
+      if (taux > 0) {
+        if (!tvaGroups[taux]) tvaGroups[taux] = { ht: 0, tva: 0 }
+        tvaGroups[taux].ht += lineTotal
+        tvaGroups[taux].tva += lineTotal * (taux / 100)
+      }
+    })
   }
-  const totalTVA = effectiveTva > 0 ? totalHT * (effectiveTva / 100) : 0
+  const totalTVA = Object.values(tvaGroups).reduce((s, g) => s + g.tva, 0)
   const dechetsCoutNum = dechetsCout ? parseFloat(dechetsCout) : 0
   const totalTTC = totalHT + totalTVA + (dechetsInclureCout ? dechetsCoutNum : 0)
   const acomptePct = acompteActive && acomptePercent ? parseFloat(acomptePercent) : 0
@@ -495,7 +517,9 @@ export default function ModifierDevisPage() {
           quantite: l.type === 'line' ? l.qty : 0,
           unite: l.type === 'line' ? l.unit : '',
           prix_unitaire_ht: l.type === 'line' ? l.priceHT : 0,
-          taux_tva: effectiveTva,
+          // V2.5 — TVA par ligne : on persiste le taux saisi sur chaque ligne.
+          // En mode AE, on force 0. En mode forfait, on retombe sur effectiveTva.
+          taux_tva: autoEntrepreneur ? 0 : (useForfait ? effectiveTva : (l.tva ?? effectiveTva)),
           ordre: i + 1,
           type: dbType,
           niveau: dbNiveau,
@@ -622,8 +646,9 @@ export default function ModifierDevisPage() {
           </div>
 
           <div className="hidden sm:block overflow-x-auto">
-            <div className="bg-[#5ab4e0] text-white grid grid-cols-[1fr_70px_90px_100px_100px_36px] min-w-[500px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
-              <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-right">Total HT</span><span />
+            {/* V2.5 — Colonne TVA par ligne (parite Obat) */}
+            <div className="bg-[#5ab4e0] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
+              <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
             </div>
             {lines.length === 0 && (
               <div className="px-4 py-8 text-center border-b border-gray-100">
@@ -634,8 +659,8 @@ export default function ModifierDevisPage() {
             {lines.map((line, idx) => {
               if (line.type === 'section') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_100px_36px] min-w-[500px] items-center px-4 py-2 bg-[#a8d4ec] border-l-4 border-[#1a6fb5] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#1a6fb5]/60 [grid-column:span_4]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
+                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-[#a8d4ec] border-l-4 border-[#1a6fb5] border-b border-gray-100">
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#1a6fb5]/60 [grid-column:span_5]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
                     <span className="text-sm font-bold text-[#1a6fb5] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-end"><Trash2 size={14} /></button>
                   </div>
@@ -643,8 +668,8 @@ export default function ModifierDevisPage() {
               }
               if (line.type === 'subsection') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_100px_36px] min-w-[500px] items-center px-4 py-2 bg-[#dceefa] border-l-4 border-[#5ab4e0] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#5ab4e0]/70 [grid-column:span_4]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
+                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-[#dceefa] border-l-4 border-[#5ab4e0] border-b border-gray-100">
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#5ab4e0]/70 [grid-column:span_5]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
                     <span className="text-sm font-semibold text-[#1a6fb5] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-end"><Trash2 size={14} /></button>
                   </div>
@@ -659,13 +684,17 @@ export default function ModifierDevisPage() {
                 )
               }
               return (
-                <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_100px_36px] min-w-[500px] items-center px-4 py-2 border-b border-gray-100">
+                <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
                   <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-manrope border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] px-2 h-9 mr-2" placeholder="Désignation..." />
                   <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1" min={0} />
                   <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1 w-full">
                     {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                   <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))} className="text-sm text-right border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 px-2 mx-1" min={0} step={0.01} />
+                  {/* V2.5 — Selecteur TVA par ligne (parite Obat) */}
+                  <select value={line.tva} onChange={e => updateLine(line.id, 'tva', Number(e.target.value))} disabled={autoEntrepreneur} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1 w-full disabled:bg-gray-50 disabled:text-gray-400">
+                    {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? '0%' : r === 5.5 ? '5,5%' : `${r}%`}</option>)}
+                  </select>
                   <span className="text-sm font-semibold text-right">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '—'}</span>
                   <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>
                 </div>
@@ -681,13 +710,26 @@ export default function ModifierDevisPage() {
           </div>
         </div>
 
+        {/* V2.5 — Selecteur global = raccourci "Appliquer a toutes les lignes". */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Taux de TVA applicable :</label>
-            <select value={globalTvaRate} onChange={e => { const v = Number(e.target.value); setTvaUserOverride(true); setGlobalTvaRate(v); setAutoEntrepreneur(v === 0) }} className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer">
+            <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Appliquer à toutes les lignes :</label>
+            <select
+              value={globalTvaRate}
+              onChange={e => {
+                const v = Number(e.target.value)
+                setTvaUserOverride(true)
+                setGlobalTvaRate(v)
+                setAutoEntrepreneur(v === 0)
+                // V2.5 : pousse le taux sur TOUTES les lignes existantes
+                setLines(prev => prev.map(l => l.type === 'line' ? { ...l, tva: v } : l))
+              }}
+              className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer"
+            >
               {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? 'Sans TVA' : `${r}%`}</option>)}
             </select>
           </div>
+          <span className="text-xs font-manrope text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
           {autoEntrepreneur && <span className="text-xs font-manrope text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>}
         </div>
 
@@ -838,7 +880,10 @@ export default function ModifierDevisPage() {
         <div className="flex justify-end">
           <div className="bg-white rounded-xl border border-gray-200 p-6 w-full sm:w-80">
             <div className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#5f6c80]">Sous-total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
-            {!autoEntrepreneur && effectiveTva > 0 && <div className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#5f6c80]">TVA {effectiveTva}%</span><span className="font-medium">{formatCurrency(totalTVA)}</span></div>}
+            {/* V2.5 — Ventilation TVA par taux (multi-taux Obat) */}
+            {!autoEntrepreneur && Object.entries(tvaGroups).filter(([r, g]) => Number(r) > 0 && g.tva > 0.005).sort(([a], [b]) => Number(a) - Number(b)).map(([rate, group]) => (
+              <div key={rate} className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#5f6c80]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
+            ))}
             {dechetsInclureCout && dechetsCoutNum > 0 && <div className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#e87a2a]">Gestion déchets TTC</span><span className="font-medium text-[#e87a2a]">{formatCurrency(dechetsCoutNum)}</span></div>}
             <div className="border-t mt-2 pt-2 flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#0f1a3a] font-bold">{autoEntrepreneur ? 'Total' : 'Total TTC'}</span><span className="font-bold">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span></div>
             {autoEntrepreneur && <p className="text-xs text-[#6b7280] italic mt-1">TVA non applicable, art. 293 B du CGI</p>}
