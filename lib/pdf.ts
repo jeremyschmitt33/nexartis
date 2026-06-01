@@ -128,6 +128,7 @@ interface Entreprise {
   forme_juridique?: string
   capital_social?: string
   rcs_rm?: string
+  code_naf?: string
   tva_intracommunautaire?: string
   franchise_tva?: boolean
   assurance_nom?: string
@@ -390,7 +391,8 @@ function drawForfaitBanner(doc: jsPDF, montantHt: number, y: number): number {
   const M = 14
   const pageW = 210
   const w = pageW - 2 * M
-  const h = 11
+  // V2.7 — 11 -> 9 (densification audit)
+  const h = 9
   // V10 — Bandeau bleu (parite design system Nexartis) au lieu d'orange.
   // Fond #e8f4fb (skyVeryPale), bordure et accent #1a6fb5 (netBlue).
   setFill(doc, C.skyVeryPale)
@@ -398,12 +400,13 @@ function drawForfaitBanner(doc: jsPDF, montantHt: number, y: number): number {
   doc.roundedRect(M, y, w, h, 1.5, 1.5, 'FD')
   setFill(doc, C.netBlue)
   doc.rect(M, y, 1.8, h, 'F')
-  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-  doc.text('FORFAIT GLOBAL', M + 5, y + 4.6)
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
+  // V2.7 — label 8 -> 7.5 (densification)
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
+  doc.text('FORFAIT GLOBAL', M + 5, y + 3.8)
+  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
   doc.text(
     `Montant total convenu de ${fmt(montantHt)} HT. Le detail ci-dessous est informatif.`,
-    M + 5, y + 8.6
+    M + 5, y + 7.2
   )
   return y + h + 4
 }
@@ -544,6 +547,30 @@ function drawFooterAllPages(doc: jsPDF, ent: Entreprise, numero: string) {
       line2Parts.push(partAssurance)
     }
     if (line2Parts.length) doc.text(line2Parts.join(' — '), pageW / 2, y, { align: 'center', maxWidth: pageW - 2 * M })
+    y += 3.2
+
+    // V2.7 — Ligne 3 conditionnelle : forme juridique + capital, RCS/RM, APE/NAF.
+    // N'apparait que pour les structures concernees (societes avec capital,
+    // immatriculation RCS/RM, ou code NAF). Pour les AE/Micro/EI : rien.
+    // Bloc legal C (corps du devis/facture) garde les memes mentions detaillees ;
+    // ici c'est la version compactee pour le footer (parite Obat / Vosfactures).
+    const fj = (ent.forme_juridique ?? '').trim()
+    const isSociete = fj.length > 0
+      && !/^(ae|micro|micro-?entreprise|micro-entrepreneur|auto-?entrepreneur|ei|entreprise\s+individuelle)$/i.test(fj)
+    const line3Parts: string[] = []
+    if (isSociete && ent.capital_social && String(ent.capital_social).trim()) {
+      line3Parts.push(`${fj} au capital de ${String(ent.capital_social).trim()} €`)
+    }
+    if (ent.rcs_rm && ent.rcs_rm.trim()) {
+      line3Parts.push(`RCS/RM ${ent.rcs_rm.trim()}`)
+    }
+    if (ent.code_naf && String(ent.code_naf).trim()) {
+      line3Parts.push(`APE ${String(ent.code_naf).trim()}`)
+    }
+    if (line3Parts.length) {
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
+      doc.text(line3Parts.join(' — '), pageW / 2, y, { align: 'center', maxWidth: pageW - 2 * M })
+    }
 
     // Coin bas-droit : Page X sur Y + N°
     doc.setFontSize(7)
@@ -622,7 +649,8 @@ function drawHeader(doc: jsPDF, ent: Entreprise, opts: HeaderOpts, startY: numbe
   }
 
   // === Titre centré ===
-  doc.setFontSize(24)
+  // V2.7 — 24pt -> 22pt (densification audit challenger)
+  doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.netBlue)
   doc.text(opts.title, centerX, titleTopY + 8, { align: 'center' })
@@ -692,8 +720,9 @@ function drawIdentityBoxes(
   const boxW = 88
   const lx = M
   const rx = M + boxW + 6
-  const padX = 5
-  const padTop = 5
+  // V2.7 — padding réduit (5 -> 3) pour densifier les cadres ARTISAN/CLIENT
+  const padX = 3
+  const padTop = 3
   const radius = 1.8
 
   // --- Mesure contenu ARTISAN ---
@@ -728,7 +757,8 @@ function drawIdentityBoxes(
   }
 
   // Hauteur uniforme
-  const lineHeight = (size: number) => size * 0.42 + 1.6
+  // V2.7 — gain ~0.4mm par ligne (densification audit)
+  const lineHeight = (size: number) => size * 0.42 + 1.2
   const heightOf = (lines: { size: number }[]) => lines.reduce((s, l) => s + lineHeight(l.size), 0)
   const hA = heightOf(artisanLines)
   const hC = heightOf(clientLines)
@@ -797,7 +827,8 @@ function drawIncompletProfileBanner(
   const M = 14
   const pageW = 210
   const w = pageW - 2 * M
-  const h = 14
+  // V2.7 — 14 -> 11 (densification audit)
+  const h = 11
   setFill(doc, C.amberBg)
   doc.roundedRect(M, y, w, h, 1.5, 1.5, 'F')
   setDraw(doc, C.amberBorder); doc.setLineWidth(0.5)
@@ -806,19 +837,19 @@ function drawIncompletProfileBanner(
   setFill(doc, C.amberAccent)
   doc.rect(M, y, 1.8, h, 'F')
 
-  // Titre
-  doc.setFontSize(8.5)
+  // Titre — V2.7 : 8.5 -> 7 (densification)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.amberText)
-  doc.text('MENTIONS LEGALES INCOMPLETES', M + 5, y + 5)
+  doc.text('MENTIONS LEGALES INCOMPLETES', M + 5, y + 4.2)
 
   // Liste des champs manquants
-  doc.setFontSize(7.5)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
   setText(doc, C.amberAccent)
   const champsStr = `Manquant${champsManquants.length > 1 ? 's' : ''} dans le profil entreprise : ${champsManquants.join(', ')}.`
   const split = doc.splitTextToSize(champsStr, w - 8)
-  doc.text(split, M + 5, y + 9.8)
+  doc.text(split, M + 5, y + 8.2)
 
   return y + h + 4
 }
@@ -827,7 +858,8 @@ function drawObjet(doc: jsPDF, objet: string, y: number): number {
   const M = 14
   const pageW = 210
   const w = pageW - 2 * M
-  const h = 9  // V4 : un poil plus haut pour la respiration
+  // V2.7 — 9 -> 8 (densification audit)
+  const h = 8
   setFill(doc, C.skyVeryPale)
   doc.roundedRect(M, y, w, h, 1.5, 1.5, 'F')
   // Bordure visible
@@ -837,12 +869,13 @@ function drawObjet(doc: jsPDF, objet: string, y: number): number {
   setFill(doc, C.sky)
   doc.rect(M, y, 1.8, h, 'F')
 
-  doc.setFontSize(8)
+  // V2.7 — label OBJET 8 -> 7, texte 9 -> 8.5 (densification audit)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.netBlueAccent)
   doc.text('OBJET :', M + 5, y + 5.6)
 
-  doc.setFontSize(9)
+  doc.setFontSize(8.5)
   doc.setFont('helvetica', 'bold')
   setText(doc, C.navyText)
   doc.text(objet, M + 22, y + 5.6, { maxWidth: w - 24 })
@@ -938,8 +971,8 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
     rowPageBreak: 'avoid',
     styles: {
       font: 'helvetica',
-      fontSize: 8.5,
-      cellPadding: 2.2,
+      fontSize: 8,
+      cellPadding: 1.9,
       lineColor: C.border,
       lineWidth: 0.1,
       textColor: C.navyText,
@@ -952,17 +985,17 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       fontStyle: 'bold',
       fontSize: 8,
       halign: 'center',
-      cellPadding: 2.8,
+      cellPadding: 2.0,
       lineWidth: 0,
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 10 },
+      0: { halign: 'center', cellWidth: 14 },
       1: { halign: 'left', cellWidth: 'auto' },
-      2: { halign: 'center', cellWidth: 11 },
-      3: { halign: 'center', cellWidth: 12 },
-      4: { halign: 'right', cellWidth: 22 },
-      5: { halign: 'center', cellWidth: 12 },
-      6: { halign: 'right', cellWidth: 24 },
+      2: { halign: 'center', cellWidth: 14 },
+      3: { halign: 'center', cellWidth: 17 },
+      4: { halign: 'right', cellWidth: 23 },
+      5: { halign: 'center', cellWidth: 14 },
+      6: { halign: 'right', cellWidth: 25 },
     },
     didParseCell: (data: CellHookData) => {
       if (data.section !== 'body') return
@@ -970,6 +1003,8 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
       if (!m) return
 
       if (m.kind === 'section') {
+        // V2.7 — Hiérarchie typographique forcée (audit challenger : bug à corriger)
+        data.cell.styles.fontSize = 9.5
         data.cell.styles.fillColor = C.skySection
         data.cell.styles.fontStyle = 'bold'
         data.cell.styles.cellPadding = 2.8
@@ -984,6 +1019,8 @@ function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin
           data.cell.styles.textColor = C.navy
         }
       } else if (m.kind === 'sous_section') {
+        // V2.7 — Hiérarchie typographique forcée (audit challenger : bug à corriger)
+        data.cell.styles.fontSize = 9
         data.cell.styles.fillColor = C.skyPale
         data.cell.styles.fontStyle = 'bold'
         data.cell.styles.cellPadding = 2.6
@@ -1122,7 +1159,8 @@ function drawTotals(doc: jsPDF, opts: TotalsOpts, y: number): number {
       setDraw(doc, C.border); doc.setLineWidth(0.15)
       doc.line(rightX + 1.5, rowY, rightX + blockW - 1.5, rowY)
     }
-    doc.setFontSize(8.5)
+    // V2.7 — 8.5 -> 8 (densification recap audit)
+    doc.setFontSize(8)
     doc.setFont('helvetica', isBold ? 'bold' : 'normal')
     setText(doc, labelColor ?? (isBold ? C.navy : C.muted))
     doc.text(label, labelX, rowY + rowH - 1.6)
@@ -1153,7 +1191,8 @@ function drawTotals(doc: jsPDF, opts: TotalsOpts, y: number): number {
   y = y + blockAH + 3 // marge 3mm récap — NET À PAYER
 
   // —— BLOC B — NET À PAYER (toujours en dernier — ligne la plus importante) ——
-  const netH = 10
+  // V2.6.1 : netH 10 → 11 pour donner un peu plus d'air au bandeau bleu
+  const netH = 11
   setFill(doc, C.netBlue)
   doc.roundedRect(rightX, y, blockW, netH, 2, 2, 'F')
   doc.setFontSize(10); doc.setFont('helvetica', 'bold'); setText(doc, C.white)
@@ -1276,11 +1315,17 @@ export function generateDevisPdf(data: DevisData): string {
   }
 
   // —— TABLE HIÉRARCHIQUE ——
-  y = drawHierTable(doc, lignes, y, 91)
+  // V2.6.1 : réserve dynamique selon présence acompte (au lieu de 91 fixe).
+  // Le 91 forçait un saut de page prématuré sur les devis courts.
+  const hasAcompte = !!(data.acompte_pourcent && data.acompte_pourcent > 0)
+  // V2.7 — Densification globale : ~10mm gagnes sur boites + bandeaux + tableau.
+  // On reduit la reserve devis de 10mm pour que le tableau prenne plus de place
+  // avant un saut de page.
+  const tableReserveDevis = hasAcompte ? 78 : 68
+  y = drawHierTable(doc, lignes, y, tableReserveDevis)
 
   // —— TOTAUX (à droite) ——
   // Hauteur estimée : récap (~30mm) + NET (11+2) + acompte éventuel (15) + signatures (~32) — 95mm
-  const hasAcompte = !!(data.acompte_pourcent && data.acompte_pourcent > 0)
   const NEEDED_BOTTOM = hasAcompte ? 85 : 72
   // V2.6 : addPage redondant supprimé (drawHierTable gère le bottomMargin)
 
@@ -1324,7 +1369,8 @@ export function generateDevisPdf(data: DevisData): string {
   const leftMaxW = 88
 
   if (data.conditions_paiement) {
-    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); setText(doc, C.navy)
+    // V2.7 — label 8.5 -> 8 (densification audit)
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.navy)
     doc.text('Conditions de paiement', M, leftY); leftY += 4
     doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
     const split = doc.splitTextToSize(data.conditions_paiement, leftMaxW)
@@ -1383,7 +1429,8 @@ export function generateDevisPdf(data: DevisData): string {
 
   const pageW = 210
   const sigBoxW = (pageW - 2 * M - 6) / 2  // 2 colonnes égales
-  const sigH = 24
+  // V2.7 — 24 -> 22 (densification audit)
+  const sigH = 22
   const sigLeftX = M
   const sigRightX = M + sigBoxW + 6
 
@@ -1599,7 +1646,8 @@ export function generateFacturePdf(data: FactureData): string {
     || (data.notes && data.notes.trim()) // legacy fallback
     || DEFAULT_CONDITIONS_PAIEMENT
 
-  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
+  // V2.7 — label 8.5 -> 8 (densification audit)
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
   doc.text('Conditions de paiement', M, leftY); leftY += 4
   doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
   const splitCond = doc.splitTextToSize(conditions, leftMaxW)
@@ -1608,7 +1656,8 @@ export function generateFacturePdf(data: FactureData): string {
   // Notes personnalisées (visibles client — ex: "Travaux du 11 au 13 mai")
   if (data.notes_personnalisees && data.notes_personnalisees.trim()) {
     leftY += 1.5
-    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
+    // V2.7 — label 8.5 -> 8 (densification audit)
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
     doc.text('Notes', M, leftY); leftY += 4
     doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.navy)
     const splitNotes = doc.splitTextToSize(data.notes_personnalisees, leftMaxW)
@@ -1694,7 +1743,8 @@ export function generateFacturePdf(data: FactureData): string {
   // -----------------------------------------------------------------
   if (hasIban) {
     const ribW = leftMaxW
-    const ribH = 18
+    // V2.7 — 18 -> 16 (densification audit)
+    const ribH = 16
     const ribY = leftY + 1
 
     setFill(doc, C.skyVeryPale)
@@ -1703,21 +1753,23 @@ export function generateFacturePdf(data: FactureData): string {
     setFill(doc, C.sky)
     doc.rect(M, ribY, 1.6, ribH, 'F')
 
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
+    // V2.7 — label 7.5 -> 7 (densification audit)
+    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
     doc.text('POUR RÉGLER PAR VIREMENT', M + 5, ribY + 4)
 
     const ibanClean = (ent.iban as string).replace(/\s+/g, '').toUpperCase()
     const ibanFormatted = ibanClean.match(/.{1,4}/g)?.join(' ') || ibanClean
 
-    doc.setFontSize(8); doc.setFont('courier', 'bold'); setText(doc, C.navy)
-    doc.text(`IBAN : ${ibanFormatted}`, M + 5, ribY + 8.5)
+    // V2.7 — IBAN/BIC 8 -> 7.5 (densification audit) + label 7.5 -> 7
+    doc.setFontSize(7.5); doc.setFont('courier', 'bold'); setText(doc, C.navy)
+    doc.text(`IBAN : ${ibanFormatted}`, M + 5, ribY + 8)
 
     if (ent.bic && ent.bic.trim()) {
-      doc.setFontSize(8); doc.setFont('courier', 'bold'); setText(doc, C.navy)
-      doc.text(`BIC : ${ent.bic.trim().toUpperCase()}`, M + 5, ribY + 12.5)
+      doc.setFontSize(7.5); doc.setFont('courier', 'bold'); setText(doc, C.navy)
+      doc.text(`BIC : ${ent.bic.trim().toUpperCase()}`, M + 5, ribY + 11.6)
     }
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); setText(doc, C.muted)
-    doc.text(`Bénéficiaire : ${ent.nom || ''}`, M + 5, ribY + 16, { maxWidth: ribW - 8 })
+    doc.text(`Bénéficiaire : ${ent.nom || ''}`, M + 5, ribY + 14.5, { maxWidth: ribW - 8 })
   }
 
   const miniTitle = isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
