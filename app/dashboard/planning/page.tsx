@@ -718,26 +718,52 @@ function PlanningPageInner() {
   // ── Planning indexed by date string ──
   // BUG MULTI-JOURS FIX : si une intervention couvre plusieurs jours,
   // on l'ajoute à chaque jour entre date_debut et date_fin (heatmap annuelle correcte)
+  // V2.3c : on respecte les dates D'ASSIGNATION (start_date/end_date par ligne
+  // `intervention_intervenants`). Si une assignation a été draggée seule sur
+  // un autre jour, l'intervention apparaît dans la heatmap sur ce nouveau jour
+  // et plus sur l'ancien. On dédoublonne par (interventionId, jour) pour ne
+  // pas gonfler le compteur si plusieurs membres tombent le même jour.
   const planningByDate = useMemo(() => {
     const map = new Map<string, R[]>()
-    for (const item of planningData) {
-      const rec = item as R
-      const dateDebut = rec.date_debut as string
-      if (!dateDebut) continue
-      const startDay = dateDebut.split('T')[0]
-      const endDateRaw = (rec.date_fin as string) || dateDebut
-      const endDay = endDateRaw.split('T')[0]
+    const seenByDay = new Map<string, Set<string>>() // dayKey -> set d'interventionIds déjà comptés
+    const pushDayRange = (rec: R, startDay: string, endDay: string) => {
       const startD = new Date(startDay + 'T00:00:00')
       const endD = new Date(endDay + 'T00:00:00')
       const last = endD < startD ? startD : endD
       let safety = 0
       const cur = new Date(startD)
+      const ivId = rec.id as string
       while (cur <= last && safety < 60) {
         const dayKey = fmtISO(cur)
         if (!map.has(dayKey)) map.set(dayKey, [])
-        map.get(dayKey)!.push(rec)
+        if (!seenByDay.has(dayKey)) seenByDay.set(dayKey, new Set())
+        const seen = seenByDay.get(dayKey)!
+        if (!seen.has(ivId)) {
+          seen.add(ivId)
+          map.get(dayKey)!.push(rec)
+        }
         cur.setDate(cur.getDate() + 1)
         safety++
+      }
+    }
+    for (const item of planningData) {
+      const rec = item as R
+      const dateDebut = rec.date_debut as string
+      if (!dateDebut) continue
+      const parentStart = dateDebut.split('T')[0]
+      const parentEnd = ((rec.date_fin as string) || dateDebut).split('T')[0]
+      const liaisons = interventionIntervenantsMap.get(rec.id as string) ?? []
+      if (liaisons.length === 0) {
+        // Orpheline : on retombe sur les dates parent.
+        pushDayRange(rec, parentStart, parentEnd)
+        continue
+      }
+      // Pour chaque assignation, on utilise sa start_date/end_date propre
+      // (fallback parent si NULL).
+      for (const a of liaisons) {
+        const aStart = a.startDate ?? parentStart
+        const aEnd = a.endDate ?? parentEnd
+        pushDayRange(rec, aStart, aEnd)
       }
     }
     // 28/05/2026 (fix Jerem) : tri par heure de début croissante dans chaque jour.
@@ -756,7 +782,7 @@ function PlanningPageInner() {
       list.sort((a, b) => startMin(a) - startMin(b))
     })
     return map
-  }, [planningData, horaires])
+  }, [planningData, horaires, interventionIntervenantsMap])
 
   // ── Planning map: key = intervenantId__dateStr ──
   // Session 8 (28/05/2026) — Multi-intervenants :
@@ -971,19 +997,27 @@ function PlanningPageInner() {
   // ── Vague 3 : nb d'intervenants distincts sur les interventions du mois courant ──
   // Sert à SoloAgendaView pour décider d'afficher le bouton "Voir par intervenant".
   // Si ≥2 intervenants distincts sur le mois → toggle pertinent.
+  // V2.3c : on se base sur la date PROPRE de chaque assignation (start_date)
+  // pour rester aligné avec le drag indépendant. Si une assignation a été
+  // déplacée hors du mois courant, on ne la compte plus.
   const monthIntervenantsCount = useMemo(() => {
     const today = new Date()
     const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
     const set = new Set<string>()
     for (const item of planningData) {
       const rec = item as R
-      const d = (rec.date_debut as string) ?? ''
-      if (!d.startsWith(ym)) continue
+      const parentDay = ((rec.date_debut as string) ?? '').split('T')[0]
       const liaisons = interventionIntervenantsMap.get(rec.id as string)
       if (liaisons && liaisons.length > 0) {
-        liaisons.forEach(l => set.add(l.id))
-      } else if (rec.intervenant_id) {
-        set.add(rec.intervenant_id as string)
+        for (const a of liaisons) {
+          const aStart = (a.startDate ?? parentDay) || ''
+          if (aStart.startsWith(ym)) set.add(a.id)
+        }
+      } else {
+        // Orpheline : on retombe sur la date parent + intervenant_id legacy.
+        if (parentDay.startsWith(ym) && rec.intervenant_id) {
+          set.add(rec.intervenant_id as string)
+        }
       }
     }
     return set.size
@@ -1900,6 +1934,28 @@ function PlanningPageInner() {
               .delete()
               .eq('id', assignmentId)
             if (delErr) throw new Error(delErr.message)
+            // V2.3c : toast explicite — sinon l'utilisateur a l'impression
+            // que rien ne s'est passé (l'intervention reste affichée sur la
+            // cellule de B, qui était déjà assignée).
+            const fromIv = fromIvId ? (intervenantMap.get(fromIvId) as R | undefined) : undefined
+            const toIv = intervenantMap.get(intervenantId) as R | undefined
+            const fromName = fromIv
+              ? (fromIv.is_self === true ? 'Vous' : `${fromIv.prenom ?? ''} ${fromIv.nom ?? ''}`.trim())
+              : ''
+            const toName = toIv
+              ? (toIv.is_self === true ? 'Vous' : `${toIv.prenom ?? ''} ${toIv.nom ?? ''}`.trim())
+              : ''
+            if (fromName && toName) {
+              showToast(`${fromName} retiré : ${toName} était déjà sur cette intervention`)
+            } else {
+              showToast('Intervention déjà assignée à ce membre — assignation source retirée')
+            }
+            refetch()
+            refetchLiaisons()
+            setDraggedId(null)
+            draggedFromIvIdRef.current = null
+            draggedAssignmentIdRef.current = null
+            return
           } else {
             // Pas de doublon : on réassigne (changement d'intervenant_id + dates).
             updateRowPayload.intervenant_id = intervenantId
