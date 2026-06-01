@@ -111,7 +111,9 @@ export async function POST(req: NextRequest) {
         // (Sans TVA / franchise art. 293 B). Avant : (0 || 10) renvoyait 10
         // donc le PDF affichait "TVA 10%" meme quand l'utilisateur avait coche
         // "Sans TVA".
-        taux_tva: (l.taux_tva as number) ?? 10,
+        // V2.4b : fallback aligné à 20% (taux normal France) — auparavant 10% ce qui causait
+        // une divergence avec lib/pdf.ts (?? 20) et le rendu HTML dashboard (?? 20).
+        taux_tva: (l.taux_tva as number) ?? 20,
         type: (l.type as 'section' | 'sous_section' | 'prestation' | 'commentaire' | 'saut_page' | undefined),
         niveau: (l.niveau as 1 | 2 | 3 | undefined),
         parent_id: (l.parent_id as string | null | undefined),

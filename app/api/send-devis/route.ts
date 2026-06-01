@@ -115,7 +115,9 @@ export async function POST(req: NextRequest) {
           unite: (l.unite as string) || '',
           prix_unitaire_ht: (l.prix_unitaire_ht as number) || 0,
           // V13 — Bug fix : ?? au lieu de || pour respecter taux_tva=0 (Sans TVA)
-          taux_tva: (l.taux_tva as number) ?? 10,
+          // V2.4b : fallback aligné à 20% (taux normal France) — auparavant 10% ce qui causait
+          // une divergence avec lib/pdf.ts (?? 20) et le rendu HTML dashboard (?? 20).
+          taux_tva: (l.taux_tva as number) ?? 20,
           type: (l.type as 'section' | 'sous_section' | 'prestation' | 'commentaire' | 'saut_page' | undefined),
           niveau: (l.niveau as 1 | 2 | 3 | undefined),
           parent_id: (l.parent_id as string | null | undefined),

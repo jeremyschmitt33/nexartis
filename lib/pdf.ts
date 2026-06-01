@@ -11,10 +11,19 @@ import type { CellHookData, Styles } from 'jspdf-autotable'
 // V2.4a — Source unique de verite des mentions TVA (parite stricte HTML/PDF).
 // On garde l'import limite aux 3 constantes ; lib/legal-mentions.ts est
 // server-safe (pas de dependance React/DOM).
+// V2.4b — Ajout des facades getLegalMentionsDevis / getLegalMentionsFacture
+// pour centraliser la construction des blocs de mentions legales du PDF
+// (decennale, forme juridique, RCS/RM, mediateur, retractation, penalites,
+// indemnite forfaitaire, escompte, L441-3, mentions custom). Les TVA mentions
+// restent rendues separement dans le PDF (positionnement visuel different).
 import {
   TVA_MENTION_10 as LEGAL_TVA_MENTION_10,
   TVA_MENTION_5_5 as LEGAL_TVA_MENTION_5_5,
   TVA_MENTION_AE as LEGAL_TVA_MENTION_AE,
+  getLegalMentionsDevis,
+  getLegalMentionsFacture,
+  type LegalContext,
+  type LegalMention,
 } from '@/lib/legal-mentions'
 
 // -------------------------------------------------------------------
@@ -252,6 +261,75 @@ const DEFAULT_CONDITIONS_PAIEMENT =
 const TVA_MENTION_10 = LEGAL_TVA_MENTION_10
 const TVA_MENTION_5_5 = LEGAL_TVA_MENTION_5_5
 const TVA_MENTION_AE = LEGAL_TVA_MENTION_AE
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V2.4b — Construction du LegalContext pour les facades getLegalMentionsDevis
+// et getLegalMentionsFacture. Centralise la deduction du clientType (pro si
+// SIRET present, sinon particulier) et le mapping entreprise → LegalEntreprise.
+//
+// hasSousTraitanceBTP : reserve pour V2.4c/d quand la colonne DB sera dispo
+// (false par defaut pour ne pas afficher la mention par erreur).
+// ─────────────────────────────────────────────────────────────────────────────
+function buildLegalContext(
+  kind: 'devis' | 'facture',
+  ent: Entreprise,
+  lignes: Ligne[],
+  client: { siret?: string; type?: string },
+  factureType?: 'standard' | 'avoir' | 'acompte' | 'situation',
+): LegalContext {
+  // Deduction clientType : si le client est marque explicitement "professionnel"
+  // ou s'il a un SIRET, on bascule en B2B (declenche l'indemnite forfaitaire 40 EUR).
+  const explicit = (client.type || '').toLowerCase()
+  let clientType: 'particulier' | 'pro' = 'particulier'
+  if (explicit === 'professionnel' || explicit === 'pro' || explicit === 'entreprise') {
+    clientType = 'pro'
+  } else if (client.siret && client.siret.trim() !== '') {
+    clientType = 'pro'
+  }
+
+  return {
+    kind,
+    entreprise: ent as unknown as LegalContext['entreprise'],
+    client: { siret: client.siret, client_type: client.type },
+    clientType,
+    lignes: lignes as unknown as LegalContext['lignes'],
+    factureType,
+    hasSousTraitanceBTP: false, // V2.4c/d : ajouter la lecture depuis la DB
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V2.4b — Filtre des cles "TVA" produites par les facades (deja rendues
+// separement dans le PDF). On extrait egalement la cle "autoliq" si on
+// la traite plus tard dans la zone TVA — pour le moment elle reste dans le
+// bloc "entreprise" puisque hasSousTraitanceBTP=false.
+// ─────────────────────────────────────────────────────────────────────────────
+const TVA_KEYS = new Set(['tva-ae', 'tva-10', 'tva-55'])
+
+function isTvaMention(m: LegalMention): boolean {
+  return TVA_KEYS.has(m.key)
+}
+
+// Rendu d'une liste de mentions en italique 6.5pt (style standard PDF bas de page).
+// Retourne le nouveau leftY apres rendu.
+function drawLegalMentionsBlock(
+  doc: jsPDF,
+  mentions: LegalMention[],
+  startY: number,
+  x: number,
+  maxW: number,
+): number {
+  let leftY = startY
+  for (const m of mentions) {
+    doc.setFontSize(6.5)
+    doc.setFont('helvetica', m.italique === false ? 'normal' : 'italic')
+    setText(doc, C.muted)
+    const split = doc.splitTextToSize(m.text, maxW)
+    doc.text(split, x, leftY)
+    leftY += split.length * 2.6 + 0.6
+  }
+  return leftY
+}
 
 function getTvaMentions(lignes: Ligne[]): string[] {
   const prest = lignes.filter(isPrestation)
@@ -1268,47 +1346,21 @@ export function generateDevisPdf(data: DevisData): string {
     doc.text(dechWrapped, M, leftY); leftY += dechWrapped.length * 2.8
   }
 
-  // P12 (audit) — Mentions légales entreprise sur le DEVIS (parité facture)
-  // Inclut : assurance décennale + zone géographique (obligation BTP),
-  // forme juridique, capital, RCS/RM, qualification pro, médiateur.
-  const entMentionsDevis: string[] = []
-  if (ent.assurance_nom || ent.decennale_numero) {
-    let line = `Assurance décennale : ${ent.assurance_nom || ''}`
-    if (ent.decennale_numero) line += ` — n° ${ent.decennale_numero}`
-    if (ent.assurance_zone) line += ` — Zone : ${ent.assurance_zone}`
-    entMentionsDevis.push(line.trim())
-  }
-  if (ent.forme_juridique === 'EI' || ent.forme_juridique === 'Micro-entreprise') {
-    entMentionsDevis.push(`${ent.nom || ''} — ${ent.forme_juridique === 'Micro-entreprise' ? 'Entrepreneur individuel (Micro-entreprise)' : 'Entrepreneur individuel (EI)'}`)
-  }
-  if (ent.capital_social && ['EURL', 'SARL', 'SAS', 'SASU'].includes(String(ent.forme_juridique || ''))) {
-    entMentionsDevis.push(`${ent.forme_juridique} au capital de ${ent.capital_social}`)
-  }
-  if (ent.rcs_rm) entMentionsDevis.push(String(ent.rcs_rm))
-  if (ent.qualification_pro) entMentionsDevis.push(`Qualification : ${ent.qualification_pro}`)
-  // Médiateur : on reconstitue depuis les 4 nouveaux champs ; fallback sur l'ancien champ libre.
-  {
-    const mNom = (ent.mediateur_nom as string) || ''
-    const mAdr = (ent.mediateur_adresse as string) || ''
-    const mCP = (ent.mediateur_code_postal as string) || ''
-    const mVille = (ent.mediateur_ville as string) || ''
-    const ligneAdresse = [mAdr, [mCP, mVille].filter(Boolean).join(' ')].filter(Boolean).join(' — ')
-    const mediateurFmt = [mNom, ligneAdresse].filter(Boolean).join(' — ')
-    if (mediateurFmt) {
-      entMentionsDevis.push(`Médiateur : ${mediateurFmt}`)
-    } else if (ent.mediateur) {
-      entMentionsDevis.push(`Médiateur : ${ent.mediateur}`)
-    }
-  }
-  if (ent.mentions_legales_custom) entMentionsDevis.push(String(ent.mentions_legales_custom))
-
-  if (entMentionsDevis.length > 0) {
+  // V2.4b — Mentions legales standardisees (devis) issues de la facade
+  // getLegalMentionsDevis (lib/legal-mentions.ts). Source UNIQUE de verite
+  // partagee avec : HTML dashboard devis, HTML signer client (V2.4c).
+  // On exclut ici les mentions TVA, deja rendues plus haut (positionnement
+  // visuel distinct dans le PDF).
+  const devisLegalCtx = buildLegalContext(
+    'devis',
+    ent,
+    lignes,
+    { siret: data.clientSiret, type: data.clientType },
+  )
+  const devisLegalMentions = getLegalMentionsDevis(devisLegalCtx).filter(m => !isTvaMention(m))
+  if (devisLegalMentions.length > 0) {
     leftY += 1
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
-    for (const m of entMentionsDevis) {
-      const split = doc.splitTextToSize(m, leftMaxW)
-      doc.text(split, M, leftY); leftY += split.length * 2.6 + 0.6
-    }
+    leftY = drawLegalMentionsBlock(doc, devisLegalMentions, leftY, M, leftMaxW)
     leftY += 1
   }
 
@@ -1551,18 +1603,46 @@ export function generateFacturePdf(data: FactureData): string {
     doc.text(splitNotes, M, leftY); leftY += splitNotes.length * 3.2 + 2
   }
 
-  // Mentions légales standardisées
-  leftY += 1
-  doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-  doc.text('Pénalités de retard : 3x le taux d\'intérêt légal en vigueur (art. L.441-10 C. com.).', M, leftY, { maxWidth: leftMaxW })
-  leftY += 5.5
-  if (data.clientType === 'professionnel') {
-    doc.text('Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D.441-5 C. com.).', M, leftY, { maxWidth: leftMaxW })
-    leftY += 5.5
-  }
-  doc.text('Pas d\'escompte pour paiement anticipé.', M, leftY); leftY += 4
+  // V2.4b — Mentions legales standardisees (facture) issues de la facade
+  // getLegalMentionsFacture (lib/legal-mentions.ts). Source UNIQUE de verite
+  // partagee avec : HTML dashboard facture, HTML signer client (V2.4c).
+  //
+  // Ordre visuel preserve (parite avec versions precedentes du PDF) :
+  //   1. Penalites L441-10 / Indemnite 40 EUR (B2B) / Escompte → bloc legal A
+  //   2. Mentions TVA (deja rendues plus bas via getTvaMentions)
+  //   3. Article L441-3 → bloc legal B
+  //   4. Mentions entreprise (decennale, forme jur., RCS/RM, mediateur, etc.)
+  //      → bloc legal C
+  //
+  // La facade renvoie l'ensemble dans son ordre canonique : on filtre pour
+  // recreer 3 sous-blocs visuels distincts via les keys.
+  const factureLegalCtx = buildLegalContext(
+    'facture',
+    ent,
+    lignes,
+    { siret: data.clientSiret, type: data.clientType },
+    data.type,
+  )
+  const factureLegalMentions = getLegalMentionsFacture(factureLegalCtx)
 
-  // Mentions TVA (293B auto ou 10%/5.5%)
+  // Bloc A : penalites + indemnite + escompte (texte standard 7pt, NON italique)
+  const blocA = factureLegalMentions.filter(m =>
+    m.key === 'penalites' || m.key === 'indemnite-40' || m.key === 'escompte'
+  )
+  leftY += 1
+  for (const m of blocA) {
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
+    const split = doc.splitTextToSize(m.text, leftMaxW)
+    doc.text(split, M, leftY)
+    // Espacement legacy : 5.5 pour penalites/indemnite, 4 pour escompte (=> dernier)
+    if (m.key === 'escompte') {
+      leftY += split.length * 3.2 + 0.8
+    } else {
+      leftY += split.length * 3.2 + 2.3
+    }
+  }
+
+  // Mentions TVA (293B auto ou 10%/5.5%) — emplacement visuel inchange
   const tvaMentions = getTvaMentions(lignes)
   if (tvaMentions.length > 0) {
     doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
@@ -1572,51 +1652,23 @@ export function generateFacturePdf(data: FactureData): string {
     }
   }
 
-  // Article L441-3
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
-  doc.text('Facture émise conformément aux articles L441-3 et suivants du Code de commerce.', M, leftY, { maxWidth: leftMaxW })
-  leftY += 4
+  // Bloc B : Article L441-3 (italique 6.5pt)
+  const blocB = factureLegalMentions.filter(m => m.key === 'l441-3')
+  if (blocB.length > 0) {
+    leftY = drawLegalMentionsBlock(doc, blocB, leftY, M, leftMaxW)
+    leftY += 0.8
+  }
 
-  // Mentions légales entreprise (parité HTML) — assurance décennale, RCS_RM,
-  // médiateur, qualification pro, forme juridique, capital, custom.
-  // Format compact italique 7pt, identique au reste des mentions.
-  const entMentions: string[] = []
-  if (ent.assurance_nom || ent.decennale_numero) {
-    let line = `Assurance décennale : ${ent.assurance_nom || ''}`
-    if (ent.decennale_numero) line += ` — n° ${ent.decennale_numero}`
-    if (ent.assurance_zone) line += ` — Zone : ${ent.assurance_zone}`
-    entMentions.push(line.trim())
-  }
-  if (ent.forme_juridique === 'EI' || ent.forme_juridique === 'Micro-entreprise') {
-    entMentions.push(`${ent.nom || ''} — ${ent.forme_juridique === 'Micro-entreprise' ? 'Entrepreneur individuel (Micro-entreprise)' : 'Entrepreneur individuel (EI)'}`)
-  }
-  if (ent.capital_social && ['EURL', 'SARL', 'SAS', 'SASU'].includes(String(ent.forme_juridique || ''))) {
-    entMentions.push(`${ent.forme_juridique} au capital de ${ent.capital_social}`)
-  }
-  if (ent.rcs_rm) entMentions.push(String(ent.rcs_rm))
-  if (ent.qualification_pro) entMentions.push(`Qualification : ${ent.qualification_pro}`)
-  // Médiateur : on reconstitue depuis les 4 nouveaux champs ; fallback sur l'ancien champ libre.
-  {
-    const mNom = (ent.mediateur_nom as string) || ''
-    const mAdr = (ent.mediateur_adresse as string) || ''
-    const mCP = (ent.mediateur_code_postal as string) || ''
-    const mVille = (ent.mediateur_ville as string) || ''
-    const ligneAdresse = [mAdr, [mCP, mVille].filter(Boolean).join(' ')].filter(Boolean).join(' — ')
-    const mediateurFmt = [mNom, ligneAdresse].filter(Boolean).join(' — ')
-    if (mediateurFmt) {
-      entMentions.push(`Médiateur : ${mediateurFmt}`)
-    } else if (ent.mediateur) {
-      entMentions.push(`Médiateur : ${ent.mediateur}`)
-    }
-  }
-  if (ent.mentions_legales_custom) entMentions.push(String(ent.mentions_legales_custom))
-
-  if (entMentions.length > 0) {
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
-    for (const m of entMentions) {
-      const split = doc.splitTextToSize(m, leftMaxW)
-      doc.text(split, M, leftY); leftY += split.length * 2.6 + 0.6
-    }
+  // Bloc C : mentions entreprise (decennale, autoliq, forme juridique,
+  // RCS/RM, qualif, mediateur, custom). On retire TVA + penalites + indemnite
+  // + escompte + L441-3 (deja rendus).
+  const renderedKeys = new Set<string>([
+    ...Array.from(TVA_KEYS),
+    'penalites', 'indemnite-40', 'escompte', 'l441-3',
+  ])
+  const blocC = factureLegalMentions.filter(m => !renderedKeys.has(m.key))
+  if (blocC.length > 0) {
+    leftY = drawLegalMentionsBlock(doc, blocC, leftY, M, leftMaxW)
     leftY += 1
   }
 
@@ -1660,4 +1712,6 @@ export function generateFacturePdf(data: FactureData): string {
   drawMiniHeaderAllPagesAfterFirst(doc, miniTitle, data.numero)
   drawFooterAllPages(doc, ent, data.numero)
   return doc.output('datauristring').split(',')[1]
+}
+g').split(',')[1]
 }
