@@ -67,9 +67,12 @@ export async function GET(
 
     // 4. Récupérer l'entreprise (infos publiques uniquement)
     // ✅ SÉCURITÉ : Exclure signature_base64 et tampon_base64 (données sensibles)
+    // V2.4c : ajout des mentions légales obligatoires manquantes (décennale n°,
+    // qualification pro, médiateur structuré, mentions custom). Les champs sensibles
+    // (signature/tampon base64, IBAN, BIC) RESTENT volontairement exclus.
     const { data: entreprise } = await supabase
       .from('entreprises')
-      .select('nom, adresse, code_postal, ville, telephone, email, siret, tva_intracommunautaire, assurance_nom, assurance_zone, forme_juridique, capital_social, rcs_rm, franchise_tva, logo_url')
+      .select('nom, adresse, code_postal, ville, telephone, email, siret, tva_intracommunautaire, assurance_nom, assurance_zone, forme_juridique, capital_social, rcs_rm, franchise_tva, logo_url, decennale_numero, qualification_pro, mediateur, mediateur_nom, mediateur_adresse, mediateur_code_postal, mediateur_ville, mentions_legales_custom')
       .eq('user_id', devis.user_id)
       .single()
 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
+import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
+import type { LegalContext } from '@/lib/legal-mentions'
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -66,7 +68,15 @@ interface Entreprise {
   capital_social?: string
   rcs_rm?: string
   qualification_pro?: string
+  /** Médiateur de la consommation — legacy (champ libre) */
   mediateur?: string
+  /** Médiateur — sous-champs structurés (V2.4c) */
+  mediateur_nom?: string
+  mediateur_adresse?: string
+  mediateur_code_postal?: string
+  mediateur_ville?: string
+  /** Mentions personnalisées libres (textarea Paramètres) — V2.4c */
+  mentions_legales_custom?: string
   /** Auto-entrepreneur / micro-entreprise / EI → franchise TVA art. 293 B CGI */
   franchise_tva?: boolean
   logo_url?: string
@@ -542,12 +552,24 @@ export default function SignerDevisPage() {
                     <p className="text-gray-700 whitespace-pre-line">{devis.conditions_paiement}</p>
                   </div>
                 )}
-                <div>
-                  <p className="font-bold text-[#1a1a2e] mb-1 uppercase text-[10px] tracking-wider">Mentions légales</p>
-                  <p className="text-gray-600 leading-relaxed">
-                    Rétractation 14 jours pour travaux hors établissement (art. L221-18 C. conso.).
-                  </p>
-                </div>
+                {/* V2.4c — Mentions légales centralisées via <LegalMentionsBlock>
+                    (parité stricte avec PDF + dashboards). Le clientType est déduit
+                    de la présence du SIRET : SIRET → 'pro', sinon → 'particulier'. */}
+                {(() => {
+                  const ctx: LegalContext = {
+                    kind: 'devis',
+                    entreprise: entreprise as unknown as LegalContext['entreprise'],
+                    client: { siret: client.siret || null },
+                    clientType: (client.siret && client.siret.trim() !== '') ? 'pro' : 'particulier',
+                    lignes,
+                  }
+                  return (
+                    <div>
+                      <p className="font-bold text-[#1a1a2e] mb-1 uppercase text-[10px] tracking-wider">Mentions légales</p>
+                      <LegalMentionsBlock ctx={ctx} variant="signer" className="text-gray-600" />
+                    </div>
+                  )
+                })()}
                 {devis.dechets_nature && (
                   <div>
                     <p className="font-bold text-[#1a1a2e] mb-1 uppercase text-[10px] tracking-wider">Gestion des déchets (AGEC)</p>
@@ -662,31 +684,9 @@ export default function SignerDevisPage() {
                 {entreprise.email && `Email : ${entreprise.email}`}
               </p>
             )}
-            {/* P12 (audit) — Assurance décennale + zone géographique (obligation BTP) */}
-            {(entreprise.assurance_nom || entreprise.decennale_numero) && (
-              <p className="mt-0.5 italic">
-                Assurance décennale : {entreprise.assurance_nom || ''}
-                {entreprise.decennale_numero && ` — n° ${entreprise.decennale_numero}`}
-                {entreprise.assurance_zone && ` — Zone : ${entreprise.assurance_zone}`}
-              </p>
-            )}
-            {/* Mentions légales complémentaires : forme juridique, capital, RCS */}
-            {(entreprise.forme_juridique === 'EI' ||
-              entreprise.forme_juridique === 'Micro-entreprise') && (
-              <p className="mt-0.5 italic">
-                {entreprise.nom} —{' '}
-                {entreprise.forme_juridique === 'Micro-entreprise'
-                  ? 'Entrepreneur individuel (Micro-entreprise)'
-                  : 'Entrepreneur individuel (EI)'}
-              </p>
-            )}
-            {entreprise.capital_social &&
-              ['EURL', 'SARL', 'SAS', 'SASU'].includes(entreprise.forme_juridique || '') && (
-                <p className="mt-0.5 italic">
-                  {entreprise.forme_juridique} au capital de {entreprise.capital_social}
-                </p>
-              )}
-            {entreprise.rcs_rm && <p className="mt-0.5 italic">{entreprise.rcs_rm}</p>}
+            {/* V2.4c — Décennale, forme juridique, capital, RCS, médiateur, qualification,
+                mentions custom : tout est désormais centralisé dans <LegalMentionsBlock>
+                placé plus haut dans la colonne gauche (parité PDF + dashboards). */}
           </div>
         </div>
 
