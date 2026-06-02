@@ -436,6 +436,8 @@ export default function SignerDevisPage() {
       telephone: entreprise.telephone ?? null,
       email: entreprise.email ?? null,
       logo_url: entreprise.logo_url ?? null,
+      signature_base64: entreprise.signature_base64 ?? null,
+      tampon_base64: entreprise.tampon_base64 ?? null,
       assurance_nom: entreprise.assurance_nom ?? null,
       decennale_numero: entreprise.decennale_numero ?? null,
       assurance_zone: entreprise.assurance_zone ?? null,

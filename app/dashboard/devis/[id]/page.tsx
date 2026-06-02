@@ -490,6 +490,8 @@ export default function DevisDetailPage() {
       iban: (entreprise?.iban as string | undefined) ?? null,
       bic: (entreprise?.bic as string | undefined) ?? null,
       logo_url: (entreprise?.logo_url as string | undefined) ?? null,
+      signature_base64: (entreprise?.signature_base64 as string | undefined) ?? null,
+      tampon_base64: (entreprise?.tampon_base64 as string | undefined) ?? null,
       assurance_nom: (entreprise?.assurance_nom as string | undefined) ?? null,
       decennale_numero: (entreprise?.decennale_numero as string | undefined) ?? null,
       assurance_zone: (entreprise?.assurance_zone as string | undefined) ?? null,
