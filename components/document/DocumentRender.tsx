@@ -1,4 +1,4 @@
-// V3.0b.3 — DocumentRender (footer 4 lignes, pagination isolee)
+// V3.0b.5 — DocumentRender : 1 section unique, signatures avant footer navy, net a payer simplifie
 import { Fragment } from 'react'
 import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentMeta, DocumentTotals } from '@/lib/document-data'
@@ -6,7 +6,6 @@ import { eur, tauxLabel } from '@/lib/document-data'
 
 export default function DocumentRender({ data }: { data: DocumentData }) {
   const isDevis = data.docType === 'devis'
-  const hasPage2 = isDevis
   return (
     <div className={`dv-doc dv-dir-D dv-density-compact dv-doctype-${data.docType}`}>
       <section className="dv-page">
@@ -16,16 +15,10 @@ export default function DocumentRender({ data }: { data: DocumentData }) {
           <LinesTable groups={data.groups} />
           {isDevis ? <RecapDevis data={data} /> : <RecapFacture data={data} />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
+          {isDevis && <Signature artisan={data.artisan} />}
         </div>
-        <PageFootRich artisan={data.artisan} meta={data.meta} docType={data.docType} pageNum={1} totalPages={hasPage2 ? 2 : 1} />
+        <PageFootRich artisan={data.artisan} />
       </section>
-      {hasPage2 && (
-        <section className="dv-page">
-          <PageHead2 artisan={data.artisan} meta={data.meta} docType={data.docType} />
-          <div className="dv-body"><Signature artisan={data.artisan} /></div>
-          <PageFootSimple meta={data.meta} docType={data.docType} pageNum={2} totalPages={2} />
-        </section>
-      )}
     </div>
   )
 }
@@ -167,6 +160,7 @@ function GroupRows({ group }: { group: DocumentGroup }) {
 }
 
 function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType: 'devis' | 'facture'; meta: DocumentMeta }) {
+  const hasAcompte = docType === 'devis' && totals.acomptePct > 0
   return (
     <div className="dv-recap-box">
       <div className="dv-recap-line"><span>Sous-total HT</span><span>{eur(totals.sousTotalHt)}</span></div>
@@ -177,17 +171,26 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
         </div>
       ))}
       <div className="dv-recap-line dv-recap-line--ttc"><span>Total TTC</span><span>{eur(totals.totalTtc)}</span></div>
-      {docType === 'devis' && totals.acomptePct > 0 && (
+      {hasAcompte && (
         <div className="dv-recap-line dv-recap-line--mute"><span>Acompte ({totals.acomptePct} %)</span><span>− {eur(totals.acompteMontant)}</span></div>
       )}
+      {/* V3.0b.5 — Label "Net a payer" simple (sans "a la commande") */}
       <div className="dv-recap-net">
-        <span>{docType === 'devis' && totals.acomptePct > 0 ? 'Net à payer à la commande' : 'Net à payer'}</span>
-        <strong>{eur(docType === 'devis' && totals.acomptePct > 0 ? totals.acompteMontant : totals.totalTtc)}</strong>
+        <span>Net à payer</span>
+        <strong>{eur(hasAcompte ? totals.acompteMontant : totals.totalTtc)}</strong>
       </div>
-      {docType === 'devis' && totals.acomptePct > 0 && (
-        <div className="dv-recap-foot">Reste dû à la livraison : {eur(totals.resteDu)} · Total TTC : {eur(totals.totalTtc)}</div>
+      {/* V3.0b.5 — Reste du / Total TTC en 2 lignes formelles */}
+      {hasAcompte && (
+        <div className="dv-recap-foot">
+          <div className="dv-recap-foot-line"><span>Reste dû à la livraison</span><strong>{eur(totals.resteDu)}</strong></div>
+          <div className="dv-recap-foot-line"><span>Total TTC</span><strong>{eur(totals.totalTtc)}</strong></div>
+        </div>
       )}
-      {docType === 'facture' && meta.dateRight && (<div className="dv-recap-foot">Échéance de règlement : {meta.dateRight}</div>)}
+      {docType === 'facture' && meta.dateRight && (
+        <div className="dv-recap-foot">
+          <div className="dv-recap-foot-line"><span>Échéance de règlement</span><strong>{meta.dateRight}</strong></div>
+        </div>
+      )}
     </div>
   )
 }
@@ -315,8 +318,8 @@ function LegalFacture({ data }: { data: DocumentData }) {
   )
 }
 
-function PageFootRich({ artisan, meta, docType, pageNum, totalPages }: { artisan: DocumentArtisan; meta: DocumentMeta; docType: 'devis' | 'facture'; pageNum: number; totalPages: number }) {
-  const label = docType === 'devis' ? 'Devis' : 'Facture'
+// V3.0b.5 — Footer riche SANS pagination (la pagination reviendra avec le PDF)
+function PageFootRich({ artisan }: { artisan: DocumentArtisan }) {
   const line1Parts = [
     artisan.nom,
     [artisan.adresseLine1, artisan.adresseLine2].filter(Boolean).join(', '),
@@ -330,30 +333,6 @@ function PageFootRich({ artisan, meta, docType, pageNum, totalPages }: { artisan
       {line1Parts.length > 0 && <div>{line1Parts.join(' — ')}</div>}
       {line2Parts.length > 0 && <div>{line2Parts.join(' — ')}</div>}
       {line3Parts.length > 0 && <div className="dv-pf-rcs">{line3Parts.join(' — ')}</div>}
-      <div className="dv-pf-pagenum">
-        <span>{label} N° {meta.numero}</span>
-        <span>Page {pageNum} sur {totalPages}</span>
-      </div>
-    </div>
-  )
-}
-
-function PageFootSimple({ meta, docType, pageNum, totalPages }: { meta: DocumentMeta; docType: 'devis' | 'facture'; pageNum: number; totalPages: number }) {
-  const label = docType === 'devis' ? 'Devis' : 'Facture'
-  return (
-    <div className="dv-page-foot-simple">
-      <span>{label} N° {meta.numero}</span>
-      <span className="dv-pf-pagenum">Page {pageNum} sur {totalPages}</span>
-    </div>
-  )
-}
-
-function PageHead2({ artisan, meta, docType }: { artisan: DocumentArtisan; meta: DocumentMeta; docType: 'devis' | 'facture' }) {
-  const label = docType === 'devis' ? 'Devis' : 'Facture'
-  return (
-    <div className="dv-page-head2">
-      <span className="dv-ph2-brand">{artisan.nom}</span>
-      <span className="dv-ph2-meta">{label} {meta.numero}{meta.dateEmission && ` · ${meta.dateEmission}`}</span>
     </div>
   )
 }

@@ -1,8 +1,9 @@
-/* V3.0b.3+.4 — Edition Signature */
+/* V3.0b.5 — Edition Signature : net a payer grossi, reste du 2 lignes, sections colorees, signatures avant footer */
 .dv-doc { --paper:#ffffff; --accent:#0f1a3a; --accent-ink:#ffffff; --accent2:#e87a2a;
   --accent2-ink:#1c1304; --accent-soft:#f1f3f7; --ink:#19202b; --mute:#6b7480;
   --line:#e7e9ee; --title-size:41px; --card-radius:24px;
   --stone-bg:#f5f3ee; --stone-border:#e2ddd1; --stone-ink:#3a3329; --stone-mute:#857a68; --stone-rule:#d6cfc0;
+  --group-bg:#fcf3ed; --sub-bg:#f4f5f8;
   font-family: var(--font-hanken, 'Hanken Grotesk'), system-ui, sans-serif;
   color: var(--ink); font-size: 13px; line-height: 1.45;
   -webkit-font-smoothing: antialiased; font-feature-settings: 'tnum' 1, 'lnum' 1; }
@@ -74,17 +75,21 @@
 .dv-density-compact .dv-row--item td { padding-top:6px; padding-bottom:6px; }
 .dv-density-compact .dv-row--group td { padding-top:13px; }
 .dv-density-compact .dv-row--sub td { padding-top:8px; padding-bottom:4px; }
-.dv-row--group td { padding-top:18px; border-bottom:1px solid var(--line); }
+/* V3.0b.5 — Groupes et sous-sections avec fond colore */
+.dv-row--group td { padding-top:14px; padding-bottom:10px;
+  background:var(--group-bg); border-bottom:1px solid var(--line); }
 .dv-row--group .dv-c-desg { font-weight:700; font-size:13.5px; color:var(--ink); }
-.dv-row--group .dv-c-num { font-weight:700; color:var(--accent); }
-.dv-row--group .dv-c-tot { font-weight:700; }
-.dv-row--sub td { padding-top:11px; padding-bottom:5px; }
+.dv-row--group .dv-c-num { font-weight:700; color:var(--accent2); }
+.dv-row--group .dv-c-tot { font-weight:700; color:var(--ink); }
+.dv-row--sub td { padding-top:10px; padding-bottom:6px;
+  background:var(--sub-bg); }
 .dv-row--sub .dv-c-desg { font-weight:600; color:var(--ink); font-size:12.5px; }
-.dv-row--sub .dv-c-num { color:var(--ink); }
-.dv-row--sub .dv-c-tot { color:var(--mute); font-weight:600; }
+.dv-row--sub .dv-c-num { color:var(--accent); }
+.dv-row--sub .dv-c-tot { color:var(--accent); font-weight:600; }
 .dv-row--item td { border-bottom:1px solid var(--line); }
 .dv-row--item .dv-c-desg { color:var(--mute); padding-left:4px; max-width:320px; }
 .dv-row--item .dv-c-tot { color:var(--ink); font-weight:600; }
+/* Recap Stone */
 .dv-recap { display:grid; grid-template-columns:1fr 320px; gap:36px; padding-top:30px; align-items:start; }
 .dv-recap-notes-title { font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--accent); font-weight:600; margin-bottom:8px; }
 .dv-recap-notes p { font-size:12px; color:var(--mute); margin-bottom:8px; max-width:360px; }
@@ -98,13 +103,23 @@
 .dv-recap-line--mute em { font-style:normal; font-size:10.5px; opacity:.85; }
 .dv-recap-line--ttc { font-weight:700; color:#2a2218;
   border-top:1px solid var(--stone-rule); border-bottom:2px solid var(--stone-rule); padding:9px 0; margin-top:4px; }
+/* V3.0b.5 — Net a payer GROSSI (label 15px, montant 28px) */
 .dv-recap-net { display:flex; justify-content:space-between; align-items:baseline;
   background:var(--accent2); color:var(--accent2-ink);
-  padding:14px 18px; margin:12px -18px 0; }
-.dv-recap-net span { font-size:12.5px; font-weight:600; }
-.dv-recap-net strong { font-size:22px; font-weight:700; white-space:nowrap;
+  padding:18px 20px; margin:14px -18px 0; }
+.dv-recap-net span { font-size:15px; font-weight:700; letter-spacing:.01em; }
+.dv-recap-net strong { font-size:28px; font-weight:800; white-space:nowrap;
+  font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
+  letter-spacing:-.02em; }
+/* V3.0b.5 — Reste du / Total TTC en 2 lignes formelles */
+.dv-recap-foot { margin-top:14px; padding:8px 18px 14px;
+  background:#fafaf7; border-top:1px solid var(--stone-rule);
+  margin-left:-18px; margin-right:-18px; }
+.dv-recap-foot-line { display:flex; justify-content:space-between; align-items:baseline;
+  padding:4px 0; font-size:11.5px; color:var(--stone-mute);
+  font-variant-numeric:tabular-nums; }
+.dv-recap-foot-line strong { color:var(--stone-ink); font-weight:600;
   font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace; }
-.dv-recap-foot { font-size:10.5px; color:var(--mute); margin-top:9px; text-align:right; }
 .dv-pay { margin-top:14px; padding:14px 16px; border-radius:12px; background:var(--accent-soft); border:1px solid var(--line); }
 .dv-pay-k { font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--accent); font-weight:700; margin-bottom:8px; }
 .dv-pay-row { display:flex; gap:12px; font-size:12px; color:var(--mute); padding:2px 0; }
@@ -114,7 +129,7 @@
   font-size:11.5px; word-break:break-all; }
 .dv-sign { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding-top:36px; }
 .dv-sign-box { border:1px solid var(--line); border-radius:10px; min-height:132px; padding:14px 16px;
-  display:flex; flex-direction:column; justify-content:space-between; }
+  display:flex; flex-direction:column; justify-content:space-between; background:#fff; }
 .dv-sign-label { font-size:12px; font-weight:700; color:var(--ink); }
 .dv-sign-hint { font-size:11px; color:var(--mute); margin-top:3px; }
 .dv-sign-img-wrap { flex:1; display:flex; align-items:center; justify-content:center; margin-top:8px; }
@@ -136,20 +151,12 @@
 .dv-dechets { margin-top:12px; padding-top:8px; border-top:1px solid var(--line); }
 .dv-dechets-k { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); margin-bottom:4px; }
 .dv-dechets-text { font-size:11px; color:var(--mute); line-height:1.5; }
+/* V3.0b.5 — Footer navy SANS pagination (la pagination revient au PDF futur) */
 .dv-page-foot-rich { display:flex; flex-direction:column; align-items:center;
   padding:18px 54px 22px; background:var(--accent); color:rgba(255,255,255,.78);
   font-size:10.5px; line-height:1.55; text-align:center; gap:3px;
   border-top:3px solid var(--accent2); }
 .dv-page-foot-rich strong { color:#fff; font-weight:600; }
 .dv-page-foot-rich .dv-pf-rcs { font-size:9.5px; margin-top:4px; color:rgba(255,255,255,.62); }
-.dv-page-foot-rich .dv-pf-pagenum { margin-top:10px; padding-top:8px; width:100%;
-  border-top:1px solid rgba(255,255,255,.18);
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:9.5px; color:rgba(255,255,255,.55);
-  font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace; }
-.dv-page-foot-simple { display:flex; justify-content:space-between;
-  padding:14px 54px 22px; border-top:1px solid var(--line);
-  font-size:10px; color:var(--mute); letter-spacing:.02em; }
-.dv-page-foot-simple .dv-pf-pagenum { font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace; }
 @media print { @page { size:A4; margin:0; }
   .dv-page { box-shadow:none !important; margin:0 !important; min-height:1123px; break-after:page; } }
