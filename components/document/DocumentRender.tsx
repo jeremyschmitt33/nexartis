@@ -171,19 +171,16 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
         </div>
       ))}
       <div className="dv-recap-line dv-recap-line--ttc"><span>Total TTC</span><span>{eur(totals.totalTtc)}</span></div>
-      {hasAcompte && (
-        <div className="dv-recap-line dv-recap-line--mute"><span>Acompte ({totals.acomptePct} %)</span><span>− {eur(totals.acompteMontant)}</span></div>
-      )}
-      {/* V3.0b.5 — Label "Net a payer" simple (sans "a la commande") */}
+      {/* V3.0b.6 — Net a payer = Total TTC (engagement du devis, pas l'acompte) */}
       <div className="dv-recap-net">
         <span>Net à payer</span>
-        <strong>{eur(hasAcompte ? totals.acompteMontant : totals.totalTtc)}</strong>
+        <strong>{eur(totals.totalTtc)}</strong>
       </div>
-      {/* V3.0b.5 — Reste du / Total TTC en 2 lignes formelles */}
+      {/* V3.0b.6 — Mini-bloc : a verser maintenant + reste a la livraison */}
       {hasAcompte && (
         <div className="dv-recap-foot">
+          <div className="dv-recap-foot-line"><span>À verser à la commande ({totals.acomptePct} %)</span><strong>{eur(totals.acompteMontant)}</strong></div>
           <div className="dv-recap-foot-line"><span>Reste dû à la livraison</span><strong>{eur(totals.resteDu)}</strong></div>
-          <div className="dv-recap-foot-line"><span>Total TTC</span><strong>{eur(totals.totalTtc)}</strong></div>
         </div>
       )}
       {docType === 'facture' && meta.dateRight && (

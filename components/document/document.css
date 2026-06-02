@@ -11,7 +11,7 @@
 .dv-page { width:100%; max-width:794px; background:var(--paper); position:relative;
   display:flex; flex-direction:column; margin:0 auto; }
 .dv-page + .dv-page { margin-top:28px; }
-.dv-body { flex:1; padding:0 54px; }
+.dv-body { flex:1; padding:0 54px 36px; }
 .dv-party { display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--mute); }
 .dv-headD { position:relative; }
 .dv-headD .dv-d-band { position:relative; background:var(--accent); padding:40px 54px 76px;
@@ -156,7 +156,4 @@
   padding:18px 54px 22px; background:var(--accent); color:rgba(255,255,255,.78);
   font-size:10.5px; line-height:1.55; text-align:center; gap:3px;
   border-top:3px solid var(--accent2); }
-.dv-page-foot-rich strong { color:#fff; font-weight:600; }
-.dv-page-foot-rich .dv-pf-rcs { font-size:9.5px; margin-top:4px; color:rgba(255,255,255,.62); }
-@media print { @page { size:A4; margin:0; }
-  .dv-page { box-shadow:none !important; margin:0 !important; min-height:1123px; break-after:page; } }
+.dv-page-f
