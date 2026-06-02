@@ -1,344 +1,192 @@
-/* ============================================================================
-   components/document/document.css
-   ----------------------------------------------------------------------------
-   V3.0b.1 — Edition Signature pour les devis & factures Nexartis.
-
-   Port direct de devis-styles.css du handoff (Direction D uniquement),
-   adapte aux couleurs officielles Nexartis (navy + orange).
-
-   Toutes les classes sont prefixees `dv-` pour eviter toute collision avec
-   le reste du site.
-   ============================================================================ */
-
-/* ---------- CSS variables (theme Nexartis) ---------- */
+/* V3.0b.2 — Edition Signature (compact) */
 .dv-doc {
-  --paper: #ffffff;
-  --accent: #0f1a3a;
-  --accent-ink: #ffffff;
-  --accent2: #e87a2a;
-  --accent2-ink: #1c1304;
-  --accent-soft: #f1f3f7;
-  --ink: #19202b;
-  --mute: #6b7480;
-  --line: #e7e9ee;
-  --title-size: 41px;
-  --card-radius: 24px;
-
+  --paper:#ffffff; --accent:#0f1a3a; --accent-ink:#ffffff; --accent2:#e87a2a;
+  --accent2-ink:#1c1304; --accent-soft:#f1f3f7; --ink:#19202b; --mute:#6b7480;
+  --line:#e7e9ee; --title-size:41px; --card-radius:24px;
   font-family: var(--font-hanken, 'Hanken Grotesk'), system-ui, sans-serif;
-  color: var(--ink);
-  font-size: 13px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  color: var(--ink); font-size: 13px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased; font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
-
 .dv-doc * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ---------- Page (V3.0b.1 : pas de min-height a l'ecran) ---------- */
-.dv-page {
-  width: 794px;
-  background: var(--paper);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  margin: 0 auto;
-}
+.dv-page { width: 794px; background: var(--paper); position: relative;
+  display: flex; flex-direction: column; margin: 0 auto; }
 .dv-page + .dv-page { margin-top: 28px; }
-
 .dv-body { flex: 1; padding: 0 54px; }
+.dv-page-foot { display:flex; justify-content:space-between; padding:18px 54px 26px;
+  font-size:10.5px; color:var(--mute); letter-spacing:.02em; }
+.dv-party { display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--mute); }
 
-.dv-page-foot {
-  display: flex;
-  justify-content: space-between;
-  padding: 18px 54px 26px;
-  font-size: 10.5px;
-  color: var(--mute);
-  letter-spacing: .02em;
-}
-
-.dv-party { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--mute); }
-
-/* ============================================================================
-   Direction D — Edition Signature
-   ============================================================================ */
+/* ===== Direction D ===== */
 .dv-headD { position: relative; }
+.dv-headD .dv-d-band { position:relative; background:var(--accent); padding:40px 54px 76px;
+  display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
+.dv-headD .dv-d-geo { position:absolute; top:0; right:0; height:100%; width:340px;
+  background:var(--accent2); opacity:.10; clip-path:polygon(38% 0,100% 0,100% 100%,8% 100%); }
+.dv-headD .dv-d-geo2 { position:absolute; top:0; right:232px; height:100%; width:70px;
+  background:var(--accent2); opacity:.85; clip-path:polygon(58% 0,100% 0,42% 100%,0% 100%); }
 
-.dv-headD .dv-d-band {
-  position: relative;
-  background: var(--accent);
-  padding: 40px 54px 76px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  overflow: hidden;
-}
+/* Logo (V3.0b.2 : fond blanc) */
+.dv-headD .dv-d-brand { display:flex; align-items:center; gap:18px; position:relative; z-index:2; }
+.dv-headD .dv-d-logomark { width:72px; height:72px; border-radius:16px;
+  background:#ffffff; color:var(--accent); display:grid; place-items:center;
+  flex:0 0 auto; overflow:hidden; border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 2px 8px rgba(0,0,0,.18); }
+.dv-headD .dv-d-logomark img { width:100%; height:100%; object-fit:contain; display:block; padding:4px; }
+.dv-headD .dv-d-logomark svg { width:36px; height:36px; }
+.dv-headD .dv-d-brandtext { display:flex; flex-direction:column; white-space:nowrap; }
+.dv-headD .dv-d-name { color:#fff; font-weight:800; font-size:28px; letter-spacing:-.01em; line-height:1.05; }
+.dv-headD .dv-d-base { color:rgba(255,255,255,.72); font-size:13.5px; margin-top:4px; font-weight:500; }
 
-.dv-headD .dv-d-geo {
-  position: absolute; top: 0; right: 0; height: 100%; width: 340px;
-  background: var(--accent2); opacity: .10;
-  clip-path: polygon(38% 0, 100% 0, 100% 100%, 8% 100%);
-}
-.dv-headD .dv-d-geo2 {
-  position: absolute; top: 0; right: 232px; height: 100%; width: 70px;
-  background: var(--accent2); opacity: .85;
-  clip-path: polygon(58% 0, 100% 0, 42% 100%, 0% 100%);
-}
+.dv-headD .dv-d-title { position:relative; z-index:2; text-align:right; }
+.dv-headD .dv-d-doctype { color:#fff; font-weight:800; font-size:var(--title-size); line-height:.85;
+  letter-spacing:.01em; text-transform:uppercase; }
+.dv-headD .dv-d-num { display:inline-block; margin-top:14px; background:var(--accent2);
+  color:var(--accent2-ink); font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
+  font-weight:600; font-size:14px; padding:6px 13px; border-radius:7px; letter-spacing:-.01em; }
+.dv-headD .dv-d-metaline { display:flex; gap:20px; justify-content:flex-end; margin-top:14px;
+  font-size:11.5px; color:rgba(255,255,255,.66); }
+.dv-headD .dv-d-metaline strong { color:#fff; font-weight:600; }
 
-/* Logo + nom artisan (V3.0b.1 : agrandis suite retour Jerem) */
-.dv-headD .dv-d-brand { display: flex; align-items: center; gap: 18px; position: relative; z-index: 2; }
-.dv-headD .dv-d-logomark {
-  width: 72px; height: 72px; border-radius: 16px;
-  background: var(--accent2); color: var(--accent2-ink);
-  display: grid; place-items: center; flex: 0 0 auto;
-  overflow: hidden;
-}
-.dv-headD .dv-d-logomark img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-.dv-headD .dv-d-logomark svg { width: 36px; height: 36px; }
-.dv-headD .dv-d-brandtext { display: flex; flex-direction: column; white-space: nowrap; }
-.dv-headD .dv-d-name { color: #fff; font-weight: 800; font-size: 28px; letter-spacing: -.01em; line-height: 1.05; }
-.dv-headD .dv-d-base { color: rgba(255,255,255,.72); font-size: 13.5px; margin-top: 4px; font-weight: 500; }
+.dv-headD .dv-d-parties { display:grid; grid-template-columns:1fr 1fr; gap:20px;
+  padding:0 54px; margin-top:-46px; position:relative; z-index:3; }
+.dv-headD .dv-d-card { border-radius:var(--card-radius); padding:20px 22px;
+  position:relative; overflow:hidden; box-shadow:0 14px 34px rgba(18,28,46,.18); }
+.dv-headD .dv-d-card--from { background:#fff; border:1px solid var(--line); }
+.dv-headD .dv-d-card--from::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent2); }
+.dv-headD .dv-d-card--to { background:var(--accent); color:#fff; }
+.dv-headD .dv-d-chip { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; padding:4px 11px; border-radius:6px; white-space:nowrap;
+  background:var(--accent); color:#fff; margin-bottom:13px; }
+.dv-headD .dv-d-chip--accent { background:var(--accent2); color:var(--accent2-ink); }
+.dv-headD .dv-d-cardname { display:block; font-size:17px; font-weight:700; letter-spacing:-.01em; }
+.dv-headD .dv-d-card--from .dv-d-cardname { color:var(--ink); }
+.dv-headD .dv-d-cardrows { display:flex; flex-direction:column; gap:2px; margin-top:8px; font-size:12px; }
+.dv-headD .dv-d-card--from .dv-d-cardrows { color:var(--mute); }
+.dv-headD .dv-d-card--to .dv-d-cardrows { color:rgba(255,255,255,.72); }
 
-.dv-headD .dv-d-title { position: relative; z-index: 2; text-align: right; }
-.dv-headD .dv-d-doctype {
-  color: #fff; font-weight: 800; font-size: var(--title-size); line-height: .85;
-  letter-spacing: .01em; text-transform: uppercase;
-}
-.dv-headD .dv-d-num {
-  display: inline-block; margin-top: 14px;
-  background: var(--accent2); color: var(--accent2-ink);
-  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace; font-weight: 600; font-size: 14px;
-  padding: 6px 13px; border-radius: 7px; letter-spacing: -.01em;
-}
-.dv-headD .dv-d-metaline {
-  display: flex; gap: 20px; justify-content: flex-end;
-  margin-top: 14px; font-size: 11.5px; color: rgba(255,255,255,.66);
-}
-.dv-headD .dv-d-metaline strong { color: #fff; font-weight: 600; }
+.dv-dir-D .dv-objet { padding-top:30px; }
+.dv-dir-D .dv-recap-net { background:var(--accent2); color:var(--accent2-ink); }
+.dv-dir-D .dv-row--group .dv-c-num { color:var(--accent2); }
 
-.dv-headD .dv-d-parties {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-  padding: 0 54px; margin-top: -46px; position: relative; z-index: 3;
-}
-.dv-headD .dv-d-card {
-  border-radius: var(--card-radius); padding: 20px 22px; position: relative; overflow: hidden;
-  box-shadow: 0 14px 34px rgba(18,28,46,.18);
-}
-.dv-headD .dv-d-card--from { background: #fff; border: 1px solid var(--line); }
-.dv-headD .dv-d-card--from::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent2);
-}
-.dv-headD .dv-d-card--to { background: var(--accent); color: #fff; }
+/* ===== Objet ===== */
+.dv-objet { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding:22px 0 20px; }
+.dv-objet > div { font-size:13px; color:var(--ink); display:flex; flex-direction:column; }
+.dv-objet-k { font-size:10px; text-transform:uppercase; letter-spacing:.14em;
+  color:var(--accent); font-weight:600; margin-bottom:5px; }
 
-.dv-headD .dv-d-chip {
-  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; padding: 4px 11px; border-radius: 6px; white-space: nowrap;
-  background: var(--accent); color: #fff; margin-bottom: 13px;
-}
-.dv-headD .dv-d-chip--accent { background: var(--accent2); color: var(--accent2-ink); }
-.dv-headD .dv-d-cardname { display: block; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
-.dv-headD .dv-d-card--from .dv-d-cardname { color: var(--ink); }
-.dv-headD .dv-d-cardrows { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; font-size: 12px; }
-.dv-headD .dv-d-card--from .dv-d-cardrows { color: var(--mute); }
-.dv-headD .dv-d-card--to .dv-d-cardrows { color: rgba(255,255,255,.72); }
+/* ===== Tableau ===== */
+.dv-table { width:100%; border-collapse:collapse; }
+.dv-table thead th { font-size:10px; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--mute); font-weight:600; text-align:left; padding:0 10px 9px; border-bottom:1.5px solid var(--ink); }
+.dv-c-num { width:42px; }
+.dv-c-qte { width:70px; text-align:right !important; }
+.dv-c-pu { width:92px; text-align:right !important; }
+.dv-c-tva { width:56px; text-align:right !important; }
+.dv-c-tot { width:104px; text-align:right !important; }
+.dv-row td { padding:9px 10px; vertical-align:top; }
+.dv-c-qte, .dv-c-pu, .dv-c-tva, .dv-c-tot { text-align:right; white-space:nowrap; }
+.dv-c-num { color:var(--mute); font-variant-numeric:tabular-nums; font-size:11px; }
+.dv-unit { color:var(--mute); font-size:10.5px; }
 
-.dv-dir-D .dv-objet { padding-top: 30px; }
-.dv-dir-D .dv-recap-net { background: var(--accent2); color: var(--accent2-ink); }
-.dv-dir-D .dv-row--group .dv-c-num { color: var(--accent2); }
+.dv-density-compact .dv-row--item td { padding-top:6px; padding-bottom:6px; }
+.dv-density-compact .dv-row--group td { padding-top:13px; }
+.dv-density-compact .dv-row--sub td { padding-top:8px; padding-bottom:4px; }
 
-/* ---------- Objet + chantier ---------- */
-.dv-objet {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
-  padding: 22px 0 20px;
-}
-.dv-objet > div { font-size: 13px; color: var(--ink); display: flex; flex-direction: column; }
-.dv-objet-k {
-  font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
-  color: var(--accent); font-weight: 600; margin-bottom: 5px;
-}
+.dv-row--group td { padding-top:18px; border-bottom:1px solid var(--line); }
+.dv-row--group .dv-c-desg { font-weight:700; font-size:13.5px; color:var(--ink); }
+.dv-row--group .dv-c-num { font-weight:700; color:var(--accent); }
+.dv-row--group .dv-c-tot { font-weight:700; }
 
-/* ---------- Tableau ---------- */
-.dv-table { width: 100%; border-collapse: collapse; }
-.dv-table thead th {
-  font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--mute); font-weight: 600; text-align: left;
-  padding: 0 10px 9px; border-bottom: 1.5px solid var(--ink);
-}
-.dv-c-num { width: 42px; }
-.dv-c-qte { width: 70px; text-align: right !important; }
-.dv-c-pu  { width: 92px; text-align: right !important; }
-.dv-c-tva { width: 56px; text-align: right !important; }
-.dv-c-tot { width: 104px; text-align: right !important; }
+.dv-row--sub td { padding-top:11px; padding-bottom:5px; }
+.dv-row--sub .dv-c-desg { font-weight:600; color:var(--ink); font-size:12.5px; }
+.dv-row--sub .dv-c-num { color:var(--ink); }
+.dv-row--sub .dv-c-tot { color:var(--mute); font-weight:600; }
 
-.dv-row td { padding: 9px 10px; vertical-align: top; }
-.dv-c-qte, .dv-c-pu, .dv-c-tva, .dv-c-tot { text-align: right; white-space: nowrap; }
-.dv-c-num { color: var(--mute); font-variant-numeric: tabular-nums; font-size: 11px; }
-.dv-unit { color: var(--mute); font-size: 10.5px; }
+.dv-row--item td { border-bottom:1px solid var(--line); }
+.dv-row--item .dv-c-desg { color:var(--mute); padding-left:4px; max-width:320px; }
+.dv-row--item .dv-c-tot { color:var(--ink); font-weight:600; }
 
-.dv-density-compact .dv-row--item td { padding-top: 6px; padding-bottom: 6px; }
-.dv-density-compact .dv-row--group td { padding-top: 13px; }
-.dv-density-compact .dv-row--sub td { padding-top: 8px; padding-bottom: 4px; }
+/* ===== Recap ===== */
+.dv-recap { display:grid; grid-template-columns:1fr 320px; gap:36px; padding-top:30px; align-items:start; }
+.dv-recap-notes-title { font-size:10px; text-transform:uppercase; letter-spacing:.14em;
+  color:var(--accent); font-weight:600; margin-bottom:8px; }
+.dv-recap-notes p { font-size:12px; color:var(--mute); margin-bottom:8px; max-width:360px; }
+.dv-recap-notes strong { color:var(--ink); }
+.dv-recap-iban { font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
+  font-size:11px !important; word-break:break-all; }
 
-.dv-row--group td { padding-top: 18px; border-bottom: 1px solid var(--line); }
-.dv-row--group .dv-c-desg { font-weight: 700; font-size: 13.5px; color: var(--ink); }
-.dv-row--group .dv-c-num { font-weight: 700; color: var(--accent); }
-.dv-row--group .dv-c-tot { font-weight: 700; }
+.dv-recap-line { display:flex; justify-content:space-between; align-items:baseline;
+  padding:8px 0; font-size:13px; color:var(--ink); border-bottom:1px solid var(--line); }
+.dv-recap-line--mute { color:var(--mute); font-size:12px; }
+.dv-recap-line--mute em { font-style:normal; font-size:11px; opacity:.8; }
+.dv-recap-line--ttc { font-weight:700; border-bottom:2px solid var(--ink); }
+.dv-recap-net { display:flex; justify-content:space-between; align-items:baseline;
+  background:var(--accent2); color:var(--accent2-ink); padding:14px 16px; border-radius:10px; margin-top:14px; }
+.dv-recap-net span { font-size:12.5px; font-weight:600; }
+.dv-recap-net strong { font-size:22px; font-weight:700; white-space:nowrap; }
+.dv-recap-foot { font-size:10.5px; color:var(--mute); margin-top:9px; text-align:right; }
 
-.dv-row--sub td { padding-top: 11px; padding-bottom: 5px; }
-.dv-row--sub .dv-c-desg { font-weight: 600; color: var(--ink); font-size: 12.5px; }
-.dv-row--sub .dv-c-num { color: var(--ink); }
-.dv-row--sub .dv-c-tot { color: var(--mute); font-weight: 600; }
+/* Facture paiement */
+.dv-pay { margin-top:14px; padding:14px 16px; border-radius:12px; background:var(--accent-soft); border:1px solid var(--line); }
+.dv-pay-k { font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--accent); font-weight:700; margin-bottom:8px; }
+.dv-pay-row { display:flex; gap:12px; font-size:12px; color:var(--mute); padding:2px 0; }
+.dv-pay-row span { width:84px; flex:0 0 auto; }
+.dv-pay-row strong { color:var(--ink); font-weight:600;
+  font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
+  font-size:11.5px; word-break:break-all; }
 
-.dv-row--item td { border-bottom: 1px solid var(--line); }
-.dv-row--item .dv-c-desg { color: var(--mute); padding-left: 4px; max-width: 320px; }
-.dv-row--item .dv-c-tot { color: var(--ink); font-weight: 600; }
+/* ===== Signature (V3.0b.2) ===== */
+.dv-sign { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding-top:36px; }
+.dv-sign-box { border:1px solid var(--line); border-radius:10px; min-height:132px; padding:14px 16px;
+  display:flex; flex-direction:column; justify-content:space-between; }
+.dv-sign-label { font-size:12px; font-weight:700; color:var(--ink); }
+.dv-sign-hint { font-size:11px; color:var(--mute); margin-top:3px; }
+.dv-sign-img-wrap { flex:1; display:flex; align-items:center; justify-content:center; margin-top:8px; }
+.dv-sign-img { max-height:70px; max-width:80%; object-fit:contain; }
 
-/* ---------- Recap ---------- */
-.dv-recap {
-  display: grid; grid-template-columns: 1fr 320px; gap: 36px;
-  padding-top: 30px; align-items: start;
-}
-.dv-recap-notes-title {
-  font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
-  color: var(--accent); font-weight: 600; margin-bottom: 8px;
-}
-.dv-recap-notes p { font-size: 12px; color: var(--mute); margin-bottom: 8px; max-width: 360px; }
-.dv-recap-notes strong { color: var(--ink); }
-.dv-recap-iban {
-  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace;
-  font-size: 11px !important;
-  word-break: break-all;
-}
+/* ===== Mentions (compact V3.0b.2) ===== */
+.dv-legal { padding-top:24px; }
+.dv-legal-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 32px;
+  padding-top:14px; border-top:1px solid var(--line); }
+.dv-legal-grid > div { font-size:10.5px; color:var(--mute); line-height:1.4; }
+.dv-legal-k { display:block; font-size:9px; text-transform:uppercase; letter-spacing:.12em;
+  color:var(--ink); font-weight:700; margin-bottom:2px; }
+.dv-legal-foot { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:18px;
+  padding-top:12px; border-top:1px solid var(--line); font-size:10px; color:var(--mute); }
 
-.dv-recap-line {
-  display: flex; justify-content: space-between; align-items: baseline;
-  padding: 8px 0; font-size: 13px; color: var(--ink);
-  border-bottom: 1px solid var(--line);
-}
-.dv-recap-line--mute { color: var(--mute); font-size: 12px; }
-.dv-recap-line--mute em { font-style: normal; font-size: 11px; opacity: .8; }
-.dv-recap-line--ttc { font-weight: 700; border-bottom: 2px solid var(--ink); }
-.dv-recap-net {
-  display: flex; justify-content: space-between; align-items: baseline;
-  background: var(--accent2); color: var(--accent2-ink);
-  padding: 14px 16px; border-radius: 10px; margin-top: 14px;
-}
-.dv-recap-net span { font-size: 12.5px; font-weight: 600; }
-.dv-recap-net strong { font-size: 22px; font-weight: 700; white-space: nowrap; }
-.dv-recap-foot { font-size: 10.5px; color: var(--mute); margin-top: 9px; text-align: right; }
+/* ===== Page 2 head ===== */
+.dv-page-head2 { display:flex; justify-content:space-between; align-items:baseline;
+  padding:40px 54px 18px; border-bottom:1px solid var(--line); }
+.dv-ph2-brand { font-weight:700; font-size:14px; color:var(--ink); }
+.dv-ph2-meta { font-size:11px; color:var(--mute);
+  font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace; }
 
-/* Bloc paiement (facture) */
-.dv-pay {
-  margin-top: 14px; padding: 14px 16px; border-radius: 12px;
-  background: var(--accent-soft); border: 1px solid var(--line);
-}
-.dv-pay-k {
-  font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
-  color: var(--accent); font-weight: 700; margin-bottom: 8px;
-}
-.dv-pay-row { display: flex; gap: 12px; font-size: 12px; color: var(--mute); padding: 2px 0; }
-.dv-pay-row span { width: 84px; flex: 0 0 auto; }
-.dv-pay-row strong {
-  color: var(--ink); font-weight: 600;
-  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace; font-size: 11.5px;
-  word-break: break-all;
-}
+/* ===== Attestation TVA + Dechets ===== */
+.dv-attest-tva { margin-top:10px; font-size:10.5px; color:var(--mute); line-height:1.55; font-style:italic; }
+.dv-attest-tva p + p { margin-top:6px; }
+.dv-dechets { margin-top:12px; padding-top:8px; border-top:1px solid var(--line); }
+.dv-dechets-k { font-size:10px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink); margin-bottom:4px; }
+.dv-dechets-text { font-size:11px; color:var(--mute); line-height:1.5; }
 
-/* ---------- Signature ---------- */
-.dv-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding-top: 36px; }
-.dv-sign-box {
-  border: 1px solid var(--line); border-radius: 10px;
-  height: 132px; padding: 14px 16px;
-  display: flex; flex-direction: column; justify-content: flex-start;
-}
-.dv-sign-label { font-size: 12px; font-weight: 700; color: var(--ink); }
-.dv-sign-hint { font-size: 11px; color: var(--mute); margin-top: 3px; }
-
-/* ---------- Mentions legales ---------- */
-.dv-legal { padding-top: 34px; }
-.dv-legal-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px 36px;
-  padding-top: 18px; border-top: 1px solid var(--line);
-}
-.dv-legal-grid > div { font-size: 11px; color: var(--mute); line-height: 1.5; }
-.dv-legal-k {
-  display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em;
-  color: var(--ink); font-weight: 700; margin-bottom: 3px;
-}
-.dv-legal-foot {
-  display: flex; flex-wrap: wrap; gap: 6px 18px;
-  margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
-  font-size: 10px; color: var(--mute);
-}
-
-/* ---------- Page 2 head ---------- */
-.dv-page-head2 {
-  display: flex; justify-content: space-between; align-items: baseline;
-  padding: 40px 54px 18px; border-bottom: 1px solid var(--line);
-}
-.dv-ph2-brand { font-weight: 700; font-size: 14px; color: var(--ink); }
-.dv-ph2-meta { font-size: 11px; color: var(--mute); font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace; }
-
-/* ---------- V3.0b.1 — Attestation TVA + Dechets + Footer riche + Top band ---------- */
-.dv-attest-tva {
-  margin-top: 10px;
-  font-size: 10.5px;
-  color: var(--mute);
-  line-height: 1.55;
-  font-style: italic;
-}
-.dv-attest-tva p + p { margin-top: 6px; }
-
-.dv-dechets {
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-.dv-dechets-k {
-  font-size: 10px; font-weight: 700;
-  letter-spacing: .12em; text-transform: uppercase;
-  color: var(--ink); margin-bottom: 4px;
-}
-.dv-dechets-text {
-  font-size: 11px; color: var(--mute); line-height: 1.5;
-}
-
-.dv-page-foot-rich {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 14px 54px 22px;
-  border-top: 1px solid var(--line);
-  font-size: 10px;
-  color: var(--mute);
-  line-height: 1.55;
-  text-align: center;
-  gap: 1px;
-}
-.dv-page-foot-rich .dv-pf-bottom {
-  display: flex; justify-content: space-between; width: 100%;
-  margin-top: 6px;
-  font-size: 9.5px;
-}
+/* ===== Footer riche (page 1) ===== */
+.dv-page-foot-rich { display:flex; flex-direction:column; align-items:center;
+  padding:14px 54px 22px; border-top:1px solid var(--line);
+  font-size:10px; color:var(--mute); line-height:1.55; text-align:center; gap:1px; }
+.dv-page-foot-rich .dv-pf-bottom { display:flex; justify-content:space-between;
+  width:100%; margin-top:6px; font-size:9.5px; }
 .dv-page-foot-rich .dv-pf-pagenum {
-  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace;
-}
+  font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace; }
 
-.dv-d-topband {
-  background: var(--accent2);
-  color: var(--accent2-ink);
-  padding: 6px 54px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .04em;
-}
-.dv-d-topband strong { font-weight: 800; }
+/* ===== Footer simple (page 2) ===== */
+.dv-page-foot-simple { display:flex; justify-content:space-between;
+  padding:14px 54px 22px; border-top:1px solid var(--line);
+  font-size:10px; color:var(--mute); letter-spacing:.02em; }
+.dv-page-foot-simple .dv-pf-pagenum {
+  font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace; }
 
-/* ---------- Impression ---------- */
 @media print {
-  @page { size: A4; margin: 0; }
-  .dv-page {
-    box-shadow: none !important; margin: 0 !important;
-    min-height: 1123px;
-    break-after: page;
-  }
+  @page { size:A4; margin:0; }
+  .dv-page { box-shadow:none !important; margin:0 !important; min-height:1123px; break-after:page; }
 }

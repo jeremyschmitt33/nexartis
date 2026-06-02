@@ -1,21 +1,8 @@
 // ============================================================================
 // lib/document-data.ts
 // ----------------------------------------------------------------------------
-// Source UNIQUE de donnees pour les 4 rendus devis/facture (V3.0b+c).
-//
-// Consommateurs :
-//   - app/dashboard/devis/[id]/page.tsx       (HTML artisan)
-//   - app/dashboard/factures/[id]/page.tsx    (HTML artisan)
-//   - app/signer/[token]/page.tsx             (HTML client final)
-//   - lib/pdf.ts                              (PDF jsPDF)
-//
-// Tout passe par buildDocumentData() pour garantir que les 4 rendus affichent
-// strictement les memes montants, la meme hierarchie et les memes mentions.
+// V3.0b.2 — Source UNIQUE de donnees pour les 4 rendus devis/facture.
 // ============================================================================
-
-// ---------------------------------------------------------------------------
-// Types publics
-// ---------------------------------------------------------------------------
 
 export type DocumentType = 'devis' | 'facture'
 
@@ -31,6 +18,9 @@ export interface DocumentArtisan {
   iban?: string
   bic?: string
   logoUrl?: string
+  // V3.0b.2 — Signature / tampon artisan (base64) pour affichage cadre signature
+  signatureBase64?: string
+  tamponBase64?: string
   assurance?: string
   rcs?: string
   ape?: string
@@ -99,7 +89,6 @@ export interface DocumentMeta {
   chantierAdresse: string
   conditionsPaiement?: string
   penalitesCustom?: string
-  // V3.0b.1 — Gestion des dechets (AGEC) sur le devis
   dechets?: {
     nature?: string
     responsable?: string
@@ -117,12 +106,11 @@ export interface DocumentData {
   groups: DocumentGroup[]
   totals: DocumentTotals
   isForfait: boolean
-  // V3.0b.1 — type de client : 'pro' si SIRET present, sinon 'particulier'.
   clientType: 'pro' | 'particulier'
 }
 
 // ---------------------------------------------------------------------------
-// Shape des donnees brutes (entree, alignee sur la DB Nexartis)
+// Raw input (DB shape)
 // ---------------------------------------------------------------------------
 
 export interface RawLigne {
@@ -146,7 +134,6 @@ export interface RawDevis {
   objet?: string | null
   acompte_pourcent?: number | null
   conditions_paiement?: string | null
-  // V3.0b.1 — Gestion des dechets (AGEC)
   dechets_nature?: string | null
   dechets_responsable?: string | null
   dechets_tri?: string | null
@@ -189,6 +176,9 @@ export interface RawEntreprise {
   iban?: string | null
   bic?: string | null
   logo_url?: string | null
+  // V3.0b.2 — Signature / tampon en base64 (uploades par l'artisan dans Parametres)
+  signature_base64?: string | null
+  tampon_base64?: string | null
   assurance_nom?: string | null
   decennale_numero?: string | null
   assurance_zone?: string | null
@@ -212,7 +202,7 @@ export interface RawChantier {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers de formatage
+// Helpers
 // ---------------------------------------------------------------------------
 
 export function eur(n: number): string {
@@ -235,7 +225,7 @@ export function fmtDate(d: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// Construction de l'arbre hierarchique
+// Hierarchie
 // ---------------------------------------------------------------------------
 
 export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; isForfait: boolean } {
@@ -358,7 +348,7 @@ function leafFromRaw(l: RawLigne, numero: string): DocumentLeaf {
 }
 
 // ---------------------------------------------------------------------------
-// Calcul des totaux
+// Totaux
 // ---------------------------------------------------------------------------
 
 export function computeTotals(groups: DocumentGroup[], acomptePct: number): DocumentTotals {
@@ -404,7 +394,7 @@ export function computeTotals(groups: DocumentGroup[], acomptePct: number): Docu
 }
 
 // ---------------------------------------------------------------------------
-// Construction des sous-objets artisan / client / meta
+// Builders
 // ---------------------------------------------------------------------------
 
 function buildArtisan(ent: RawEntreprise): DocumentArtisan {
@@ -435,6 +425,8 @@ function buildArtisan(ent: RawEntreprise): DocumentArtisan {
     iban: ent.iban ?? undefined,
     bic: ent.bic ?? undefined,
     logoUrl: ent.logo_url ?? undefined,
+    signatureBase64: ent.signature_base64 ?? undefined,
+    tamponBase64: ent.tampon_base64 ?? undefined,
     assurance,
     rcs: ent.rcs_rm ?? undefined,
     ape: ent.code_naf ?? undefined,
@@ -473,10 +465,6 @@ function buildChantierAdresse(chantier: RawChantier | null | undefined, fallback
   const parts = [fallbackClient.adresse, [fallbackClient.code_postal, fallbackClient.ville].filter(Boolean).join(' ')].filter(Boolean)
   return parts.join(', ')
 }
-
-// ---------------------------------------------------------------------------
-// Builders publics
-// ---------------------------------------------------------------------------
 
 export function buildDevisDocument(opts: {
   doc: RawDevis
