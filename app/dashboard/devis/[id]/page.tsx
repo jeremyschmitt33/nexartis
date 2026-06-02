@@ -450,6 +450,11 @@ export default function DevisDetailPage() {
       objet: devis.objet ?? null,
       acompte_pourcent: devis.acompte_pourcent ?? null,
       conditions_paiement: devis.conditions_paiement ?? null,
+      dechets_nature: devis.dechets_nature ?? null,
+      dechets_responsable: devis.dechets_responsable ?? null,
+      dechets_tri: devis.dechets_tri ?? null,
+      dechets_collecte_nom: devis.dechets_collecte_nom ?? null,
+      dechets_collecte_type: devis.dechets_collecte_type ?? null,
     },
     lignes: (lignesRaw ?? []).map((l, idx) => ({
       designation: String((l as Record<string, unknown>).designation ?? ''),

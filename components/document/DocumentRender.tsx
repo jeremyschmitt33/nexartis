@@ -1,18 +1,8 @@
 // ============================================================================
 // components/document/DocumentRender.tsx
 // ----------------------------------------------------------------------------
-// V3.0b+c — Composant React partage qui rend un devis OU une facture au format
-// "Edition Signature" (handoff du 01/06/2026).
-//
-// Consomme un objet DocumentData (cf. lib/document-data.ts) construit a partir
-// des donnees Supabase. Garantie de parite stricte entre les 4 rendus.
-//
-// Usage :
-//   import DocumentRender from '@/components/document/DocumentRender'
-//   import { buildDevisDocument } from '@/lib/document-data'
-//
-//   const data = buildDevisDocument({ doc, lignes, client, entreprise, chantier })
-//   <DocumentRender data={data} />
+// V3.0b.1 — Composant React partage qui rend un devis OU une facture au format
+// "Edition Signature".
 // ============================================================================
 
 import { Fragment } from 'react'
@@ -33,28 +23,47 @@ import { eur, tauxLabel } from '@/lib/document-data'
 
 export default function DocumentRender({ data }: { data: DocumentData }) {
   const isDevis = data.docType === 'devis'
+  // V3.0b.1 — La signature passe en page 2 UNIQUEMENT pour les devis.
+  const hasPage2 = isDevis
   return (
     <div className={`dv-doc dv-dir-D dv-density-compact dv-doctype-${data.docType}`}>
-      {/* PAGE 1 — bandeau, cartes, objet, tableau */}
+      {/* PAGE 1 — bandeau, cartes, objet, tableau, recap, mentions */}
       <section className="dv-page">
+        <TopBand artisan={data.artisan} />
         <HeaderD data={data} />
         <div className="dv-body">
           <Objet meta={data.meta} />
           <LinesTable groups={data.groups} />
-        </div>
-        <PageFoot artisan={data.artisan} meta={data.meta} docType={data.docType} pageNum={1} />
-      </section>
-
-      {/* PAGE 2 — recap, signature (devis), mentions */}
-      <section className="dv-page">
-        <PageHead2 artisan={data.artisan} meta={data.meta} docType={data.docType} />
-        <div className="dv-body">
           {isDevis ? <RecapDevis data={data} /> : <RecapFacture data={data} />}
-          {isDevis && <Signature artisan={data.artisan} />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
         </div>
-        <PageFoot artisan={data.artisan} meta={data.meta} docType={data.docType} pageNum={2} />
+        <PageFootRich artisan={data.artisan} meta={data.meta} docType={data.docType} pageNum={1} totalPages={hasPage2 ? 2 : 1} />
       </section>
+
+      {/* PAGE 2 — Signatures (devis uniquement) */}
+      {hasPage2 && (
+        <section className="dv-page">
+          <PageHead2 artisan={data.artisan} meta={data.meta} docType={data.docType} />
+          <div className="dv-body">
+            <Signature artisan={data.artisan} />
+          </div>
+          <PageFootRich artisan={data.artisan} meta={data.meta} docType={data.docType} pageNum={2} totalPages={2} />
+        </section>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
+// Top band — mini-bandeau orange "Nom artisan - Metier" au-dessus du header
+// ============================================================================
+
+function TopBand({ artisan }: { artisan: DocumentArtisan }) {
+  if (!artisan.nom && !artisan.baseline) return null
+  return (
+    <div className="dv-d-topband">
+      <strong>{artisan.nom}</strong>
+      {artisan.baseline && <> - {artisan.baseline}</>}
     </div>
   )
 }
@@ -70,11 +79,9 @@ function HeaderD({ data }: { data: DocumentData }) {
   return (
     <header className="dv-head dv-headD">
       <div className="dv-d-band">
-        {/* Accents geometriques ambre */}
         <span className="dv-d-geo" aria-hidden="true" />
         <span className="dv-d-geo2" aria-hidden="true" />
 
-        {/* Gauche : logo + nom + baseline */}
         <div className="dv-d-brand">
           <div className="dv-d-logomark">
             {artisan.logoUrl ? (
@@ -90,7 +97,6 @@ function HeaderD({ data }: { data: DocumentData }) {
           </div>
         </div>
 
-        {/* Droite : titre + n° + ligne meta */}
         <div className="dv-d-title">
           <div className="dv-d-doctype">{titre}</div>
           <div className="dv-d-num">{meta.numero}</div>
@@ -105,7 +111,6 @@ function HeaderD({ data }: { data: DocumentData }) {
         </div>
       </div>
 
-      {/* Cartes flottantes (chevauchement -46px) */}
       <div className="dv-d-parties">
         <CardFrom artisan={artisan} />
         <CardTo client={data.client} />
@@ -153,7 +158,7 @@ function CardTo({ client }: { client: DocumentClient }) {
 }
 
 // ============================================================================
-// Objet + adresse chantier (2 colonnes)
+// Objet + adresse chantier
 // ============================================================================
 
 function Objet({ meta }: { meta: DocumentMeta }) {
@@ -172,7 +177,7 @@ function Objet({ meta }: { meta: DocumentMeta }) {
 }
 
 // ============================================================================
-// Tableau des lignes (hierarchie 3 niveaux)
+// Tableau des lignes
 // ============================================================================
 
 function LinesTable({ groups }: { groups: DocumentGroup[] }) {
@@ -198,7 +203,6 @@ function LinesTable({ groups }: { groups: DocumentGroup[] }) {
 }
 
 function GroupRows({ group }: { group: DocumentGroup }) {
-  // Si le groupe n'a pas de designation (mode liste plate), on n'affiche pas la ligne groupe
   const hasGroupLabel = Boolean(group.designation && group.designation.trim())
 
   return (
@@ -242,7 +246,7 @@ function GroupRows({ group }: { group: DocumentGroup }) {
 }
 
 // ============================================================================
-// Recapitulatif — colonne droite (totaux) partagee
+// TotalsBox — colonne droite (totaux) partagee
 // ============================================================================
 
 function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType: 'devis' | 'facture'; meta: DocumentMeta }) {
@@ -301,18 +305,19 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
 }
 
 // ============================================================================
-// Recap DEVIS — colonne gauche : conditions de reglement + IBAN
+// Recap DEVIS — V3.0b.1 (sans IBAN, avec attestation TVA, avec dechets)
 // ============================================================================
 
 function RecapDevis({ data }: { data: DocumentData }) {
-  const { artisan, totals, meta } = data
+  const { totals, meta } = data
   const hasAcompte = totals.acomptePct > 0
   const conditionsLibres = meta.conditionsPaiement?.trim()
+  const hasTvaReduite = totals.tvaLignes.some(l => l.taux === 5.5 || l.taux === 10)
 
   return (
     <div className="dv-recap">
       <div className="dv-recap-notes">
-        <div className="dv-recap-notes-title">Conditions de règlement</div>
+        <div className="dv-recap-notes-title">Conditions de paiement</div>
 
         {conditionsLibres ? (
           <p>{conditionsLibres}</p>
@@ -326,12 +331,41 @@ function RecapDevis({ data }: { data: DocumentData }) {
           <p>Règlement à la réception des travaux, par virement ou chèque, sous 30 jours.</p>
         )}
 
-        {(artisan.iban || artisan.bic) && (
-          <p className="dv-recap-iban">
-            {artisan.iban && <>IBAN {artisan.iban}</>}
-            {artisan.iban && artisan.bic && ' · '}
-            {artisan.bic && <>BIC {artisan.bic}</>}
-          </p>
+        {hasTvaReduite && (
+          <div className="dv-attest-tva">
+            <p>
+              Je certifie, en qualité de preneur de la prestation, que les travaux
+              réalisés concernent des locaux à usage d&apos;habitation achevés depuis
+              plus de deux ans, qu&apos;ils n&apos;ont pas eu pour effet, sur une
+              période de deux ans au plus, de concourir à la production d&apos;un
+              immeuble neuf au sens du 2° du 2 du I de l&apos;article 257 du CGI, ni
+              d&apos;entraîner une augmentation de la surface de plancher des locaux
+              existants supérieure à 10 %, et, le cas échéant, qu&apos;ils ont la
+              nature de travaux de rénovation.
+            </p>
+            {totals.tvaLignes.some(l => l.taux === 5.5) && (
+              <p>
+                Je certifie que les travaux réalisés concernent des locaux à usage
+                d&apos;habitation achevés depuis plus de deux ans et constituent des
+                travaux de rénovation ou d&apos;amélioration de la qualité énergétique
+                au sens de l&apos;article 18 bis de l&apos;annexe IV du CGI.
+              </p>
+            )}
+          </div>
+        )}
+
+        {meta.dechets && (
+          <div className="dv-dechets">
+            <div className="dv-dechets-k">Gestion des déchets (AGEC)</div>
+            <div className="dv-dechets-text">
+              {[
+                meta.dechets.nature && `Nature : ${meta.dechets.nature}`,
+                meta.dechets.responsable,
+                meta.dechets.tri && `Tri : ${meta.dechets.tri}`,
+                meta.dechets.collecteNom && `Collecte : ${meta.dechets.collecteNom}${meta.dechets.collecteType ? ` (${meta.dechets.collecteType})` : ''}`,
+              ].filter(Boolean).join(' · ')}
+            </div>
+          </div>
         )}
       </div>
       <TotalsBox totals={totals} docType="devis" meta={meta} />
@@ -340,7 +374,7 @@ function RecapDevis({ data }: { data: DocumentData }) {
 }
 
 // ============================================================================
-// Recap FACTURE — colonne gauche : conditions + penalites + bloc virement
+// Recap FACTURE
 // ============================================================================
 
 function RecapFacture({ data }: { data: DocumentData }) {
@@ -377,7 +411,7 @@ function RecapFacture({ data }: { data: DocumentData }) {
 }
 
 // ============================================================================
-// Signature (devis uniquement)
+// Signature
 // ============================================================================
 
 function Signature({ artisan }: { artisan: DocumentArtisan }) {
@@ -388,49 +422,54 @@ function Signature({ artisan }: { artisan: DocumentArtisan }) {
         <div className="dv-sign-hint">Date, mention « Bon pour accord » et signature</div>
       </div>
       <div className="dv-sign-box">
-        <div className="dv-sign-label">{artisan.nom || 'L\'entreprise'}</div>
-        <div className="dv-sign-hint">Signature & cachet de l'entreprise</div>
+        <div className="dv-sign-label">{artisan.nom || "L'entreprise"}</div>
+        <div className="dv-sign-hint">Signature & cachet de l&apos;entreprise</div>
       </div>
     </div>
   )
 }
 
 // ============================================================================
-// Mentions legales DEVIS
+// Mentions legales DEVIS (V3.0b.1)
 // ============================================================================
 
 function LegalDevis({ data }: { data: DocumentData }) {
-  const { artisan, meta } = data
-  const mediation = data.artisan.mediateurAdresse
-    ? data.artisan.mediateurAdresse
+  const { artisan, clientType } = data
+  const mediation = artisan.mediateurAdresse
+    ? artisan.mediateurAdresse
     : 'Médiateur de la consommation : mediation-conso.fr — recours gratuit.'
+
+  const statutJuridique = [artisan.formeJuridique, artisan.rcs]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div className="dv-legal">
       <div className="dv-legal-grid">
-        <div>
-          <span className="dv-legal-k">Validité</span>
-          {meta.dateRight
-            ? <>Ce devis est valable jusqu&apos;au {meta.dateRight}. Au-delà, les prix sont susceptibles de révision.</>
-            : <>Ce devis est valable 30 jours. Au-delà, les prix sont susceptibles de révision.</>
-          }
-        </div>
-        <div>
-          <span className="dv-legal-k">Exécution</span>
-          Travaux réalisés dans les règles de l&apos;art. Délai indicatif à convenir après acceptation.
-        </div>
         {artisan.assurance && (
           <div>
-            <span className="dv-legal-k">Assurance</span>
+            <span className="dv-legal-k">Assurance décennale</span>
             {artisan.assurance}
           </div>
         )}
+        {statutJuridique && (
+          <div>
+            <span className="dv-legal-k">Statut juridique</span>
+            {artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}
+            {artisan.rcs && <><br />{artisan.rcs}</>}
+          </div>
+        )}
         <div>
-          <span className="dv-legal-k">Médiation</span>
+          <span className="dv-legal-k">Médiateur</span>
           {mediation}
         </div>
+        {clientType === 'particulier' && (
+          <div>
+            <span className="dv-legal-k">Rétractation</span>
+            Rétractation 14 jours pour travaux hors établissement (art. L221-18 C. conso.).
+          </div>
+        )}
       </div>
-      <LegalFoot artisan={artisan} />
     </div>
   )
 }
@@ -440,13 +479,13 @@ function LegalDevis({ data }: { data: DocumentData }) {
 // ============================================================================
 
 function LegalFacture({ data }: { data: DocumentData }) {
-  const { artisan } = data
+  const { artisan, clientType } = data
   const mediation = artisan.mediateurAdresse
     ? artisan.mediateurAdresse
     : 'Médiateur de la consommation : mediation-conso.fr — recours gratuit.'
 
-  // Detection TVA reduite (5,5% ou 10%) => attestation TVA logement
   const hasTvaReduite = data.totals.tvaLignes.some(l => l.taux === 5.5 || l.taux === 10)
+  const statutJuridique = [artisan.formeJuridique, artisan.rcs].filter(Boolean).join(' · ')
 
   return (
     <div className="dv-legal">
@@ -468,48 +507,70 @@ function LegalFacture({ data }: { data: DocumentData }) {
             {artisan.assurance}
           </div>
         )}
+        {statutJuridique && (
+          <div>
+            <span className="dv-legal-k">Statut juridique</span>
+            {artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}
+            {artisan.rcs && <><br />{artisan.rcs}</>}
+          </div>
+        )}
         <div>
           <span className="dv-legal-k">Médiation</span>
           {mediation}
         </div>
+        {clientType === 'particulier' && (
+          <div>
+            <span className="dv-legal-k">Pénalités</span>
+            En cas de retard : pénalités au taux de 3× l&apos;intérêt légal. Pas
+            d&apos;escompte pour paiement anticipé.
+          </div>
+        )}
       </div>
-      <LegalFoot artisan={artisan} />
-    </div>
-  )
-}
-
-function LegalFoot({ artisan }: { artisan: DocumentArtisan }) {
-  return (
-    <div className="dv-legal-foot">
-      <span>{artisan.nom}</span>
-      {artisan.siret && <span>SIRET {artisan.siret}</span>}
-      {artisan.tvaIntra && <span>TVA {artisan.tvaIntra}</span>}
-      {artisan.rcs && <span>{artisan.rcs}</span>}
-      {artisan.ape && <span>{artisan.ape}</span>}
     </div>
   )
 }
 
 // ============================================================================
-// Pied de page + bandeau page 2
+// Footer riche + bandeau page 2
 // ============================================================================
 
-function PageFoot({
+function PageFootRich({
   artisan,
   meta,
   docType,
   pageNum,
+  totalPages,
 }: {
   artisan: DocumentArtisan
   meta: DocumentMeta
   docType: 'devis' | 'facture'
   pageNum: number
+  totalPages: number
 }) {
   const label = docType === 'devis' ? 'Devis' : 'Facture'
+
+  const line1Parts = [
+    artisan.nom,
+    [artisan.adresseLine1, artisan.adresseLine2].filter(Boolean).join(', '),
+    artisan.siret && `SIRET : ${artisan.siret}`,
+    artisan.email && `Email : ${artisan.email}`,
+  ].filter(Boolean)
+
+  const line2Parts = [
+    artisan.tel && `Tél : ${artisan.tel}`,
+    artisan.assurance,
+  ].filter(Boolean)
+
+  const line3Parts = [artisan.rcs, artisan.ape].filter(Boolean)
+
   return (
-    <div className="dv-page-foot">
-      <span>{artisan.nom} · {label} {meta.numero}</span>
-      <span>Page {pageNum} / 2</span>
+    <div className="dv-page-foot-rich">
+      {line1Parts.length > 0 && <div>{line1Parts.join(' — ')}</div>}
+      {line2Parts.length > 0 && <div>{line2Parts.join(' — ')}</div>}
+      <div className="dv-pf-bottom">
+        <span>{line3Parts.join(' — ')}</span>
+        <span className="dv-pf-pagenum">Page {pageNum} sur {totalPages} — N° {meta.numero} ({label})</span>
+      </div>
     </div>
   )
 }
@@ -536,7 +597,7 @@ function PageHead2({
 }
 
 // ============================================================================
-// Placeholder logo (eclair ambre) — utilise si artisan.logoUrl est vide
+// Placeholder logo
 // ============================================================================
 
 function BoltIcon() {

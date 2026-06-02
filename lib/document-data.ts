@@ -21,20 +21,19 @@ export type DocumentType = 'devis' | 'facture'
 
 export interface DocumentArtisan {
   nom: string
-  baseline: string         // metier (ex. "Installation & renovation electrique")
-  adresseLine1: string     // numero + rue
-  adresseLine2: string     // CP + ville
+  baseline: string
+  adresseLine1: string
+  adresseLine2: string
   siret?: string
   tvaIntra?: string
   tel?: string
   email?: string
   iban?: string
   bic?: string
-  logoUrl?: string         // url Supabase storage du logo upload, ou null
-  // Mentions legales
-  assurance?: string       // "AXA - Garantie decennale n° POL XXX 2024 - Zone : France"
-  rcs?: string             // "RCS Bordeaux 123 456 789" ou "RM Bordeaux ..."
-  ape?: string             // "APE 4321A"
+  logoUrl?: string
+  assurance?: string
+  rcs?: string
+  ape?: string
   formeJuridique?: string
   mediateurNom?: string
   mediateurAdresse?: string
@@ -44,41 +43,41 @@ export interface DocumentArtisan {
 }
 
 export interface DocumentClient {
-  nom: string              // "M. Eric Ror" / "SARL Toto"
+  nom: string
   adresseLine1: string
-  adresseLine2: string     // CP + ville
+  adresseLine2: string
   tel?: string
   email?: string
-  siret?: string           // si client pro
+  siret?: string
 }
 
 export interface DocumentLeaf {
-  n: string                // "1.1.1"
+  n: string
   designation: string
   qte: number
   unite: string
   pu: number
-  tva: number              // 5.5 / 10 / 20 / 0
+  tva: number
 }
 
 export interface DocumentSub {
-  n: string                // "1.1"
+  n: string
   designation: string
   items: DocumentLeaf[]
-  total: number            // sous-total HT
+  total: number
 }
 
 export interface DocumentGroup {
-  n: string                // "1"
+  n: string
   designation: string
   subs: DocumentSub[]
-  total: number            // total HT du groupe
+  total: number
 }
 
 export interface DocumentTvaLine {
-  taux: number             // 5.5 / 10 / 20
-  base: number             // base HT
-  montant: number          // base * taux/100
+  taux: number
+  base: number
+  montant: number
 }
 
 export interface DocumentTotals {
@@ -86,22 +85,28 @@ export interface DocumentTotals {
   tvaLignes: DocumentTvaLine[]
   totalTva: number
   totalTtc: number
-  acomptePct: number       // 0 si pas d'acompte (facture, ou devis sans acompte)
-  acompteMontant: number   // ttc * pct / 100
-  resteDu: number          // ttc - acompte (pour le devis : reste a la livraison)
+  acomptePct: number
+  acompteMontant: number
+  resteDu: number
 }
 
 export interface DocumentMeta {
-  numero: string           // "D-2026-32742" / "F-2026-06490"
-  dateEmission: string     // "01/06/2026" deja formatte fr-FR
-  dateRight: string        // "01/07/2026" (validite si devis, echeance si facture)
-  dateRightLabel: string   // "Valable jusqu'au" / "Echeance"
+  numero: string
+  dateEmission: string
+  dateRight: string
+  dateRightLabel: string
   objet: string
-  chantierAdresse: string  // adresse chantier complete sur une ligne
-  // Conditions affichees dans le recap (colonne gauche)
+  chantierAdresse: string
   conditionsPaiement?: string
-  // Penalites custom artisan (facture uniquement)
   penalitesCustom?: string
+  // V3.0b.1 — Gestion des dechets (AGEC) sur le devis
+  dechets?: {
+    nature?: string
+    responsable?: string
+    tri?: string
+    collecteNom?: string
+    collecteType?: string
+  }
 }
 
 export interface DocumentData {
@@ -111,8 +116,9 @@ export interface DocumentData {
   meta: DocumentMeta
   groups: DocumentGroup[]
   totals: DocumentTotals
-  // Forfait : si toutes les lignes sont reduites a un seul total sans detail
   isForfait: boolean
+  // V3.0b.1 — type de client : 'pro' si SIRET present, sinon 'particulier'.
+  clientType: 'pro' | 'particulier'
 }
 
 // ---------------------------------------------------------------------------
@@ -127,9 +133,9 @@ export interface RawLigne {
   prix_unitaire_ht?: number | null
   taux_tva?: number | null
   ordre?: number | null
-  type?: string | null      // 'section' | 'sous_section' | 'prestation' | 'commentaire' | 'saut_page'
-  niveau?: number | null    // 1 | 2 | 3
-  numero?: string | null    // "1", "1.1", "1.1.1"
+  type?: string | null
+  niveau?: number | null
+  numero?: string | null
   parent_id?: string | null
 }
 
@@ -140,6 +146,12 @@ export interface RawDevis {
   objet?: string | null
   acompte_pourcent?: number | null
   conditions_paiement?: string | null
+  // V3.0b.1 — Gestion des dechets (AGEC)
+  dechets_nature?: string | null
+  dechets_responsable?: string | null
+  dechets_tri?: string | null
+  dechets_collecte_nom?: string | null
+  dechets_collecte_type?: string | null
 }
 
 export interface RawFacture {
@@ -200,22 +212,19 @@ export interface RawChantier {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers de formatage (utilises par HTML + PDF)
+// Helpers de formatage
 // ---------------------------------------------------------------------------
 
-/** Formate un nombre en euro fr-FR avec 2 decimales. Ex: 1234.5 -> "1 234,50 €". */
 export function eur(n: number): string {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
-/** Formate un taux TVA fr-FR avec virgule + espace insecable. Ex: 5.5 -> "5,5 %". */
 export function tauxLabel(t: number): string {
   if (t === 0) return '—'
   const txt = t % 1 === 0 ? t.toString() : t.toString().replace('.', ',')
-  return txt + ' %'
+  return txt + ' %'
 }
 
-/** Convertit une ISO date "2026-06-01" ou Date en "01/06/2026". Vide si null/undefined. */
 export function fmtDate(d: string | null | undefined): string {
   if (!d) return ''
   try {
@@ -226,20 +235,9 @@ export function fmtDate(d: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// Construction de l'arbre hierarchique a partir des lignes flat
+// Construction de l'arbre hierarchique
 // ---------------------------------------------------------------------------
 
-/**
- * Transforme un tableau de lignes flat (DB) en arbre groupe/sous-section/prestation.
- *
- * Regles :
- *  - Si aucune ligne n'a de type/niveau/numero : toutes les lignes sont des
- *    prestations niveau 3, regroupees sous un faux groupe sans nom (mode "forfait
- *    ou liste simple").
- *  - Sinon : on regroupe selon le niveau (1 = group, 2 = sub, 3 = item).
- *  - Les commentaires et sauts de page sont ignores pour le rendu V3.0b+c
- *    (ils peuvent etre reintroduits dans une version ulterieure).
- */
 export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; isForfait: boolean } {
   const cleanLignes = [...lignes]
     .filter(l => l.type !== 'saut_page' && l.type !== 'commentaire')
@@ -247,7 +245,6 @@ export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; i
 
   const hasHierarchy = cleanLignes.some(l => (l.type && l.type !== 'prestation') || (l.niveau && l.niveau < 3) || l.numero)
 
-  // -------- Cas 1 : pas de hierarchie -> un seul groupe implicite --------
   if (!hasHierarchy) {
     const items: DocumentLeaf[] = cleanLignes.map((l, i) => leafFromRaw(l, String(i + 1)))
     if (items.length === 0) {
@@ -274,7 +271,6 @@ export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; i
     }
   }
 
-  // -------- Cas 2 : hierarchie --------
   const groups: DocumentGroup[] = []
   let currentGroup: DocumentGroup | null = null
   let currentSub: DocumentSub | null = null
@@ -299,7 +295,6 @@ export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; i
       groups.push(currentGroup)
     } else if (niveau === 2) {
       if (!currentGroup) {
-        // sub orpheline -> creer un groupe implicite
         groupCounter += 1
         subCounter = 0
         itemCounter = 0
@@ -316,7 +311,6 @@ export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; i
       }
       currentGroup.subs.push(currentSub)
     } else {
-      // niveau 3 ou prestation
       if (!currentGroup) {
         groupCounter += 1
         subCounter = 0
@@ -341,7 +335,6 @@ export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; i
     }
   }
 
-  // calcul des totaux remontants
   for (const g of groups) {
     g.total = 0
     for (const s of g.subs) {
@@ -368,16 +361,6 @@ function leafFromRaw(l: RawLigne, numero: string): DocumentLeaf {
 // Calcul des totaux
 // ---------------------------------------------------------------------------
 
-/**
- * Calcule les totaux a partir des groupes (deja hierarchises) + un pourcentage
- * d'acompte (0 = pas d'acompte).
- *
- * - sousTotalHt = somme de toutes les feuilles
- * - tvaLignes  = ventilation par taux (5.5, 10, 20...) avec base et montant
- * - totalTtc   = ht + tva
- * - acompte    = ttc * pct / 100
- * - resteDu    = ttc - acompte
- */
 export function computeTotals(groups: DocumentGroup[], acomptePct: number): DocumentTotals {
   let sousTotalHt = 0
   const parTaux: Record<string, number> = {}
@@ -425,19 +408,15 @@ export function computeTotals(groups: DocumentGroup[], acomptePct: number): Docu
 // ---------------------------------------------------------------------------
 
 function buildArtisan(ent: RawEntreprise): DocumentArtisan {
-  // Adresse en 2 lignes : "rue, num" + "CP ville"
   const adresseLine1 = (ent.adresse ?? '').trim()
   const adresseLine2 = [(ent.code_postal ?? '').trim(), (ent.ville ?? '').trim()].filter(Boolean).join(' ')
 
-  // Assurance : on assemble "nom — Garantie decennale n° X — Zone : Y"
   const assuranceParts: string[] = []
   if (ent.assurance_nom) assuranceParts.push(ent.assurance_nom)
   if (ent.decennale_numero) assuranceParts.push(`Garantie décennale n° ${ent.decennale_numero}`)
   if (ent.assurance_zone) assuranceParts.push(`Zone : ${ent.assurance_zone}`)
   const assurance = assuranceParts.length > 0 ? assuranceParts.join(' — ') : undefined
 
-  // Mediateur : si les 4 nouveaux champs sont remplis, on les concatene.
-  // Sinon, fallback sur l'ancien champ libre `mediateur`.
   const medParts: string[] = []
   if (ent.mediateur_nom) medParts.push(ent.mediateur_nom)
   const medLoc = [ent.mediateur_adresse, [ent.mediateur_code_postal, ent.mediateur_ville].filter(Boolean).join(' ')].filter(Boolean).join(', ')
@@ -469,7 +448,6 @@ function buildArtisan(ent: RawEntreprise): DocumentArtisan {
 }
 
 function buildClient(cli: RawClient): DocumentClient {
-  // "M. Eric Ror" / "Mme Dupont" / "SARL Toto" selon civilite + prenom + nom
   const civilite = (cli.civilite ?? '').trim()
   const prenom = (cli.prenom ?? '').trim()
   const nom = (cli.nom ?? '').trim()
@@ -492,13 +470,12 @@ function buildChantierAdresse(chantier: RawChantier | null | undefined, fallback
     const parts = [chantier.adresse, [chantier.code_postal, chantier.ville].filter(Boolean).join(' ')].filter(Boolean)
     if (parts.length > 0) return parts.join(', ')
   }
-  // fallback adresse client
   const parts = [fallbackClient.adresse, [fallbackClient.code_postal, fallbackClient.ville].filter(Boolean).join(' ')].filter(Boolean)
   return parts.join(', ')
 }
 
 // ---------------------------------------------------------------------------
-// Builders publics (un par type de doc)
+// Builders publics
 // ---------------------------------------------------------------------------
 
 export function buildDevisDocument(opts: {
@@ -513,6 +490,17 @@ export function buildDevisDocument(opts: {
   const { groups, isForfait } = buildHierarchy(opts.lignes)
   const totals = computeTotals(groups, opts.doc.acompte_pourcent ?? 0)
 
+  const dechets = opts.doc.dechets_nature || opts.doc.dechets_responsable ||
+                  opts.doc.dechets_tri || opts.doc.dechets_collecte_nom
+    ? {
+        nature: opts.doc.dechets_nature ?? undefined,
+        responsable: opts.doc.dechets_responsable ?? undefined,
+        tri: opts.doc.dechets_tri ?? undefined,
+        collecteNom: opts.doc.dechets_collecte_nom ?? undefined,
+        collecteType: opts.doc.dechets_collecte_type ?? undefined,
+      }
+    : undefined
+
   const meta: DocumentMeta = {
     numero: opts.doc.numero,
     dateEmission: fmtDate(opts.doc.date_emission),
@@ -521,9 +509,12 @@ export function buildDevisDocument(opts: {
     objet: opts.doc.objet ?? '',
     chantierAdresse: buildChantierAdresse(opts.chantier, opts.client),
     conditionsPaiement: opts.doc.conditions_paiement ?? undefined,
+    dechets,
   }
 
-  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait }
+  const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
+
+  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType }
 }
 
 export function buildFactureDocument(opts: {
@@ -536,7 +527,6 @@ export function buildFactureDocument(opts: {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
   const { groups, isForfait } = buildHierarchy(opts.lignes)
-  // facture : pas d'acompte (deja paye / pas applicable)
   const totals = computeTotals(groups, 0)
 
   const meta: DocumentMeta = {
@@ -550,5 +540,7 @@ export function buildFactureDocument(opts: {
     penalitesCustom: opts.doc.penalites_retard ?? undefined,
   }
 
-  return { docType: 'facture', artisan, client, meta, groups, totals, isForfait }
+  const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
+
+  return { docType: 'facture', artisan, client, meta, groups, totals, isForfait, clientType }
 }
