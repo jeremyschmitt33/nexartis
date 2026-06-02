@@ -19,6 +19,8 @@ import { createChantierFromDevis } from '@/lib/services/devis-automatisms'
 import EnvoyerDevisModal from '@/components/dashboard/EnvoyerDevisModal'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
+import DocumentRender from '@/components/document/DocumentRender'
+import { buildDevisDocument } from '@/lib/document-data'
 import {
   useSupabaseRecord,
   useDevisLignes,
@@ -439,6 +441,67 @@ export default function DevisDetailPage() {
   const statutStyle = STATUT_STYLES[devis.statut] ?? 'bg-gray-100 text-gray-600'
   const clientNom = client?.nom ?? devis.notes_client?.split(' | ')[0] ?? 'Non renseigné'
 
+  // V3.0b — DocumentData unifie pour le rendu visuel (header + cartes + tableau + recap).
+  const documentData = buildDevisDocument({
+    doc: {
+      numero: devis.numero,
+      date_emission: devis.date_emission ?? null,
+      date_validite: devis.date_validite ?? null,
+      objet: devis.objet ?? null,
+      acompte_pourcent: devis.acompte_pourcent ?? null,
+      conditions_paiement: devis.conditions_paiement ?? null,
+    },
+    lignes: (lignesRaw ?? []).map((l, idx) => ({
+      designation: String((l as Record<string, unknown>).designation ?? ''),
+      quantite: Number((l as Record<string, unknown>).quantite ?? 0),
+      unite: String((l as Record<string, unknown>).unite ?? ''),
+      prix_unitaire_ht: Number((l as Record<string, unknown>).prix_unitaire_ht ?? 0),
+      taux_tva: Number((l as Record<string, unknown>).taux_tva ?? 0),
+      ordre: Number((l as Record<string, unknown>).ordre ?? idx),
+      type: ((l as Record<string, unknown>).type ?? null) as string | null,
+      niveau: ((l as Record<string, unknown>).niveau ?? null) as number | null,
+      numero: ((l as Record<string, unknown>).numero ?? null) as string | null,
+    })),
+    client: {
+      civilite: client?.civilite ?? null,
+      nom: client?.nom ?? null,
+      prenom: client?.prenom ?? null,
+      adresse: client?.adresse ?? null,
+      code_postal: client?.code_postal ?? null,
+      ville: client?.ville ?? null,
+      telephone: client?.telephone ?? null,
+      email: client?.email ?? null,
+      siret: client?.siret ?? null,
+    },
+    entreprise: {
+      nom: (entreprise?.nom as string | undefined) ?? null,
+      adresse: (entreprise?.adresse as string | undefined) ?? null,
+      code_postal: (entreprise?.code_postal as string | undefined) ?? null,
+      ville: (entreprise?.ville as string | undefined) ?? null,
+      siret: (entreprise?.siret as string | undefined) ?? null,
+      tva_intracommunautaire: (entreprise?.tva_intracommunautaire as string | undefined) ?? null,
+      telephone: (entreprise?.telephone as string | undefined) ?? null,
+      email: (entreprise?.email as string | undefined) ?? null,
+      iban: (entreprise?.iban as string | undefined) ?? null,
+      bic: (entreprise?.bic as string | undefined) ?? null,
+      logo_url: (entreprise?.logo_url as string | undefined) ?? null,
+      assurance_nom: (entreprise?.assurance_nom as string | undefined) ?? null,
+      decennale_numero: (entreprise?.decennale_numero as string | undefined) ?? null,
+      assurance_zone: (entreprise?.assurance_zone as string | undefined) ?? null,
+      rcs_rm: (entreprise?.rcs_rm as string | undefined) ?? null,
+      code_naf: (entreprise?.code_naf as string | undefined) ?? null,
+      forme_juridique: (entreprise?.forme_juridique as string | undefined) ?? null,
+      mediateur: (entreprise?.mediateur as string | undefined) ?? null,
+      mediateur_nom: (entreprise?.mediateur_nom as string | undefined) ?? null,
+      mediateur_adresse: (entreprise?.mediateur_adresse as string | undefined) ?? null,
+      mediateur_code_postal: (entreprise?.mediateur_code_postal as string | undefined) ?? null,
+      mediateur_ville: (entreprise?.mediateur_ville as string | undefined) ?? null,
+      auto_entrepreneur: (entreprise?.auto_entrepreneur as boolean | undefined) ?? null,
+      franchise_tva: (entreprise?.franchise_tva as boolean | undefined) ?? null,
+    },
+    chantier: null,
+  })
+
   return (
     <div className="min-h-screen">
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
@@ -534,316 +597,7 @@ export default function DevisDetailPage() {
         {/* Main -- preview card */}
         <div className="flex-1 min-w-0">
           <div className="bg-white shadow-xl rounded-xl p-3 sm:p-8 lg:p-12 print-zone">
-            <div className="devis-header-block" style={{position:'relative', marginBottom:10, minHeight: 90}}>
-              {/* DEVIS + Numéro — centré absolument au milieu de la page */}
-              <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', paddingTop:0, paddingBottom:0}}>
-                <div className="print-devis-title" style={{fontSize:38, fontWeight:900, color:'#1a6fb5', letterSpacing:4, textTransform:'uppercase', lineHeight:1}}>DEVIS</div>
-                <div style={{fontSize:14, color:'#374151', marginTop:10, lineHeight:1}}>N° <strong>{devis.numero}</strong></div>
-              </div>
-              {/* Logo — généreux, position absolue à gauche, hauteur agrandie pour mise en valeur (parité facture style Obat) */}
-              {Boolean(entreprise?.logo_url) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={String(entreprise?.logo_url || '')} alt="Logo" className="print-logo-img" style={{ position:'absolute', left:0, top:0, height:90, width:'auto', maxWidth: 220, objectFit: 'contain', mixBlendMode: 'multiply' }} />
-              )}
-            </div>
-
-            {/* V5 — Dates AU-DESSUS du trait bleu, juste sous le numéro */}
-            <div className="print-dates" style={{display:'flex', flexWrap:'wrap', justifyContent:'center', gap:'16px', marginTop: -4, marginBottom:12, padding:'4px 0'}}>
-              <span style={{fontSize:12, color:'#374151'}}>Date : <strong style={{color:'#1a1a2e'}}>{formatDate(devis.date_emission || devis.created_at)}</strong></span>
-              {devis.date_validite && <span style={{fontSize:12, color:'#374151'}}>Valide jusqu&apos;au : <strong style={{color:'#1a1a2e'}}>{formatDate(devis.date_validite)}</strong></span>}
-              {devis.duree_estimee && <span style={{fontSize:12, color:'#374151'}}>Durée estimée : <strong style={{color:'#1a1a2e'}}>{devis.duree_estimee}</strong></span>}
-            </div>
-
-            {/* Trait bleu — séparateur fin du header */}
-            <div style={{height:3, background:'#5ab4e0', borderRadius:2, marginBottom:22}} />
-
-            {/* 2 CADRES : artisan gauche, client droite — marges symétriques V5 (trait↔cadre = cadre↔tableau = 22) */}
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:22, alignItems:'stretch'}}>
-              {/* Cadre artisan */}
-              <div className="print-info-box" style={{background:'#cde4f5', border:'2px solid #5ab4e0', borderLeft:'5px solid #5ab4e0', borderRadius:8, padding:10, display:'flex', flexDirection:'column'}}>
-                <div style={{fontSize:9, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#1a6fb5', marginBottom:6}}>Artisan</div>
-                <div style={{fontSize:12, fontWeight:700, color:'#111', marginBottom:3}}>{String(entreprise?.nom || 'Mon Entreprise')}</div>
-                <div className="print-info-lines" style={{fontSize:11, color:'#6b7280', lineHeight:1.7}}>
-                  {Boolean(entreprise?.adresse) && <div>{String(entreprise?.adresse || '')}</div>}
-                  {Boolean(entreprise?.code_postal || entreprise?.ville) && <div>{String(entreprise?.code_postal || '')} {String(entreprise?.ville || '')}</div>}
-                  {Boolean(entreprise?.siret) && <div>SIRET : {String(entreprise?.siret || '')}</div>}
-                  {Boolean((entreprise as Record<string, unknown> | null | undefined)?.tva_intracommunautaire) && (
-                    <div>TVA intracom. : {String((entreprise as Record<string, unknown> | null | undefined)?.tva_intracommunautaire || '')}</div>
-                  )}
-                  {Boolean(entreprise?.telephone) && <div>Tél : {String(entreprise?.telephone || '')}</div>}
-                </div>
-              </div>
-              {/* Cadre client */}
-              <div className="print-info-box" style={{background:'#c9efd5', border:'2px solid #22c55e', borderLeft:'5px solid #22c55e', borderRadius:8, padding:10, display:'flex', flexDirection:'column'}}>
-                <div style={{fontSize:9, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:'#15803d', marginBottom:6}}>Client</div>
-                <div className="print-info-lines" style={{lineHeight:1.7}}>
-                  {devis.notes_client ? (() => {
-                    const parts = devis.notes_client.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean)
-                    return parts.map((info: string, i: number) => (
-                      <div key={i} style={{fontWeight: i === 0 ? 700 : 400, color: i === 0 ? '#111' : '#6b7280', fontSize: i === 0 ? 12 : 11}}>
-                        {info}
-                      </div>
-                    ))
-                  })() : (
-                    <>
-                      {/* Ordre logique : Civilite + Prenom + Nom (ex: "M. Eric Dupont") */}
-                      <div style={{fontWeight:700, color:'#111', fontSize:12}}>{
-                        client
-                          ? [client.civilite, client.prenom, client.nom].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim() || 'Non renseigné'
-                          : 'Non renseigné'
-                      }</div>
-                      {client?.adresse && <div style={{color:'#6b7280', fontSize:11}}>{client.adresse}</div>}
-                      {(client?.code_postal || client?.ville) && (
-                        <div style={{color:'#6b7280', fontSize:11}}>{client?.code_postal ?? ''} {client?.ville ?? ''}</div>
-                      )}
-                      {client?.siret && <div style={{color:'#6b7280', fontSize:11}}>SIRET : {client.siret}</div>}
-                      {client?.telephone && <div style={{color:'#6b7280', fontSize:11}}>{client.telephone}</div>}
-                      {client?.email && <div style={{color:'#6b7280', fontSize:11}}>{client.email}</div>}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* ═══ OBJET — parité facture, bandeau pleine largeur sky pâle, accent gauche bleu ═══ */}
-            {devis.objet && (
-              <div style={{ marginTop: 14, marginBottom: 18, background: '#e8f4fb', border: '1.5px solid #5ab4e0', borderLeft: '5px solid #5ab4e0', borderRadius: 6, padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#2d8bc9', textTransform: 'uppercase', letterSpacing: 1.2 }}>OBJET :</div>
-                <div style={{ fontSize: 13, color: '#0f1a3a', fontWeight: 700 }}>{devis.objet}</div>
-              </div>
-            )}
-
-            {/* FORFAIT GLOBAL (V10) — bandeau bleu (parite design system) si lignes a 0 EUR + total positif */}
-            {isForfaitMode && (
-              <div style={{ marginBottom: 14, background: '#e8f4fb', border: '1.5px solid #1a6fb5', borderLeft: '5px solid #1a6fb5', borderRadius: 6, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#1a6fb5', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>FORFAIT GLOBAL</div>
-                <div style={{ fontSize: 12, color: '#5f6c80' }}>Montant total convenu de <strong style={{ color: '#0f1a3a' }}>{formatCurrency(totalHtDevis)} HT</strong>. Le detail ci-dessous est informatif.</div>
-              </div>
-            )}
-
-            {/* ═══ TABLEAU — plus de marge au-dessus pour aérer (V4) ═══ */}
-            {lignes.length > 0 && (
-              <table className="w-full mb-8 print-table">
-                <thead>
-                  <tr className="bg-[#0f1a3a] text-white">
-                    <th className="px-2 py-1.5 text-left text-[10px] font-manrope font-semibold uppercase w-8 border-r border-white/30">N°</th>
-                    <th className="px-2 py-1.5 text-left text-[10px] font-manrope font-semibold uppercase border-r border-white/30">Désignation</th>
-                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Qté</th>
-                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Unité</th>
-                    <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20 border-r border-white/30">Prix U. HT</th>
-                    {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
-                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">TVA</th>
-                    <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20">Total HT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    // Helper : calcule le sous-total d'une section (somme des prestations
-                    // jusqu'a la prochaine section) ou sous-section (jusqu'a la prochaine
-                    // section ou sous-section).
-                    const subtotalAt = (idx: number): number => {
-                      const cur = lignes[idx]
-                      if (!cur || (cur.type !== 'section' && cur.type !== 'sous_section')) return 0
-                      let sum = 0
-                      for (let j = idx + 1; j < lignes.length; j++) {
-                        const ll = lignes[j]
-                        if (cur.type === 'section' && ll.type === 'section') break
-                        if (cur.type === 'sous_section' && (ll.type === 'section' || ll.type === 'sous_section')) break
-                        if (!ll.type || ll.type === 'prestation') sum += (ll.quantite ?? 0) * (ll.prix_unitaire_ht ?? 0)
-                      }
-                      return sum
-                    }
-                    return lignes.map((l, i) => {
-                      const numAffiche = l.numero || ''
-                      if (l.type === 'section') {
-                        // Parité facture/PDF : numero + total HT de section en netBlue (#1a6fb5)
-                        return (
-                          <tr key={l.id ?? i} className="bg-[#a8d4ec]">
-                            <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#1a6fb5]">{numAffiche}</td>
-                            {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
-                            <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#0f1a3a]" colSpan={5}>{l.designation}</td>
-                            <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-bold text-[#1a6fb5]">{formatCurrency(subtotalAt(i))}</td>
-                          </tr>
-                        )
-                      }
-                      if (l.type === 'sous_section') {
-                        return (
-                          <tr key={l.id ?? i} className="bg-[#dceefa]">
-                            <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#1a6fb5]">{numAffiche}</td>
-                            {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
-                            <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#0f1a3a]" colSpan={5}>{l.designation}</td>
-                            <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a6fb5]">{formatCurrency(subtotalAt(i))}</td>
-                          </tr>
-                        )
-                      }
-                      return (
-                        <tr key={l.id ?? i} className={i % 2 === 1 ? 'bg-[#f8faff]' : ''}>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-[#6b7280] border-r border-gray-100">{numAffiche}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-[#1a1a2e] border-r border-gray-100">{l.designation}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#1a1a2e] border-r border-gray-100">{l.quantite}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{l.unite}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-right text-[#1a1a2e] border-r border-gray-100">{formatCurrency(l.prix_unitaire_ht)}</td>
-                          {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{(l.taux_tva ?? 0).toString().replace('.', ',')}%</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a1a2e]">{formatCurrency(l.quantite * l.prix_unitaire_ht)}</td>
-                        </tr>
-                      )
-                    })
-                  })()}
-                </tbody>
-              </table>
-            )}
-
-            {/* ═══ CONDITIONS + TOTAUX : 2 colonnes côte à côte ═══ */}
-            <div className="print-bottom grid grid-cols-1 md:grid-cols-2 gap-4 mb-2 mt-6">
-              {/* Gauche : conditions de paiement + mentions légales + déchets (discret en bas) */}
-              <div className="space-y-2">
-                {/* Conditions de paiement — en premier, c'est le plus important */}
-                {devis.conditions_paiement && (
-                  <div>
-                    <h4 className="font-manrope font-semibold text-xs text-[#1a1a2e] mb-0.5">Conditions de paiement</h4>
-                    <p className="text-xs font-manrope text-[#6b7280] leading-relaxed">{devis.conditions_paiement}</p>
-                  </div>
-                )}
-                {/* V2.4a — Mentions légales obligatoires : composant partagé
-                    (source unique lib/legal-mentions.ts). Détecte automatiquement
-                    le type de client (SIRET → pro, sinon particulier) et applique
-                    l'ordre légal devis (décennale → TVA → forme juridique → RCS →
-                    qualification → médiateur B2C → rétractation B2C → custom). */}
-                <div className="border-t border-gray-100 pt-1.5">
-                  <h4 className="font-manrope font-semibold text-[9px] text-[#9ca3af] uppercase tracking-wider mb-0.5">Mentions légales</h4>
-                  <LegalMentionsBlock
-                    ctx={{
-                      kind: 'devis',
-                      entreprise: entreprise as Record<string, unknown> | null | undefined,
-                      client,
-                      clientType: client?.siret && String(client.siret).trim() ? 'pro' : 'particulier',
-                      lignes,
-                    }}
-                    variant="dashboard"
-                    className="text-[9px]"
-                  />
-                </div>
-                {/* Déchets — discret, grisé, tout en bas */}
-                {(devis.dechets_nature || devis.dechets_quantite || devis.dechets_collecte_nom) && (
-                  <div className="border-t border-gray-100 pt-1.5">
-                    <h4 className="font-manrope font-semibold text-[9px] text-[#9ca3af] uppercase tracking-wider mb-0.5">Gestion des déchets (AGEC)</h4>
-                    <div className="text-[9px] font-manrope text-[#9ca3af] leading-relaxed">
-                      {devis.dechets_nature && <span>Nature : {devis.dechets_nature}</span>}
-                      {devis.dechets_quantite && <span> · Qté : {devis.dechets_quantite}</span>}
-                      {devis.dechets_responsable && <span> · {devis.dechets_responsable}</span>}
-                      {devis.dechets_tri && <span> · Tri : {devis.dechets_tri}</span>}
-                      {devis.dechets_collecte_nom && <span> · Collecte : {devis.dechets_collecte_nom}{devis.dechets_collecte_type && ` (${devis.dechets_collecte_type})`}</span>}
-                      {devis.dechets_cout != null && devis.dechets_cout > 0 && <span> · Coût estimé : {formatCurrency(devis.dechets_cout)} TTC {devis.dechets_inclure_cout ? '(inclus)' : '(informatif)'}</span>}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Droite : récap (avec acompte intégré) + NET À PAYER en dernier — parité stricte facture */}
-              <div>
-                <div className="rounded-lg border-2 border-gray-300 bg-gray-100 overflow-hidden shadow-sm">
-                  <div className="px-3 py-2 text-[10px] font-manrope font-bold text-[#5f6c80] uppercase tracking-wider border-b border-gray-300 bg-gray-200/60">Récapitulatif</div>
-                  {/* V10 — En mode forfait global, on remplace "Sous-total HT" par "Forfait global HT"
-                      pour eviter l'incoherence visuelle (lignes a 0 EUR + sous-total positif). */}
-                  <div className="px-3 py-2.5 flex justify-between text-sm font-manrope">
-                    <span className="text-[#5f6c80]">{isForfaitMode ? 'Forfait global HT' : 'Sous-total HT'}</span>
-                    <span className="text-[#0f1a3a] font-bold">{formatCurrency(totalHT)}</span>
-                  </div>
-                  {/* Bug fix (V8.1) : on filtre rate <= 0 ET tva == 0 pour ne PAS afficher
-                      "TVA 10% — 0,00 €" quand le devis est en mode "Sans TVA" ou forfait global a 0. */}
-                  {Object.entries(tvaGroups)
-                    .filter(([rate, group]) => Number(rate) > 0 && group.tva > 0.005)
-                    .sort(([a], [b]) => Number(a) - Number(b))
-                    .map(([rate, group]) => (
-                      <div key={rate} className="px-3 py-2.5 flex justify-between text-sm font-manrope border-t border-gray-300">
-                        <span className="text-[#5f6c80]">TVA {rate}%</span>
-                        <span className="text-[#0f1a3a]">{formatCurrency(group.tva)}</span>
-                      </div>
-                    ))}
-                  <div className="px-3 py-2.5 flex justify-between text-sm font-manrope border-t border-gray-300">
-                    <span className="text-[#0f1a3a] font-bold">Total TTC</span>
-                    <span className="text-[#0f1a3a] font-bold">{formatCurrency(totalTTC)}</span>
-                  </div>
-                  {Boolean(devis.acompte_pourcent && devis.acompte_pourcent > 0) && (
-                    <div className="px-3 py-2.5 flex justify-between text-sm font-manrope border-t border-gray-300">
-                      <span className="text-[#15803d] font-bold">Acompte à verser ({devis.acompte_pourcent}%)</span>
-                      <span className="text-[#15803d] font-bold">- {formatCurrency(totalTTC * ((devis.acompte_pourcent || 0) / 100))}</span>
-                    </div>
-                  )}
-                </div>
-                {/* NET À PAYER — toujours la dernière ligne, la plus importante.
-                    Si un acompte est demandé, on affiche le solde restant après acompte
-                    (label "NET À PAYER À RÉCEPTION" pour éviter la confusion). */}
-                {(() => {
-                  const acomptePct = devis.acompte_pourcent || 0
-                  const hasAcompteDevis = acomptePct > 0
-                  const acompteMontant = totalTTC * (acomptePct / 100)
-                  const netAPayerDevis = hasAcompteDevis ? Math.max(totalTTC - acompteMontant, 0) : totalTTC
-                  const netLabelDevis = hasAcompteDevis ? 'NET À PAYER À RÉCEPTION' : 'NET À PAYER'
-                  return (
-                    <div className="print-net-payer bg-[#1a6fb5] text-white rounded-lg p-3 mt-2 flex justify-between items-center shadow-md">
-                      <span className="font-syne font-bold text-sm">{netLabelDevis}</span>
-                      <span className="font-syne font-bold text-lg">{formatCurrency(netAPayerDevis)}</span>
-                    </div>
-                  )
-                })()}
-                {/* ═══ SIGNATURES — sous NET À PAYER, 2 cadres identiques ═══ */}
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  {/* Signature artisan */}
-                  <div className="border border-gray-300 rounded p-2 flex flex-col items-center justify-center" style={{ height: 70 }}>
-                    <div className="text-[8px] font-manrope font-bold text-[#9ca3af] uppercase tracking-widest mb-1">Artisan</div>
-                    {(Boolean(entreprise?.signature_base64) || Boolean(entreprise?.tampon_base64)) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={String(entreprise?.signature_base64 || entreprise?.tampon_base64 || '')}
-                        alt={entreprise?.signature_base64 ? 'Signature' : 'Tampon'}
-                        className="max-w-full"
-                        style={{ height: entreprise?.tampon_base64 && !entreprise?.signature_base64 ? 48 : 42, objectFit: 'contain' }}
-                      />
-                    ) : null}
-                  </div>
-                  {/* Signature client */}
-                  <div className="border border-gray-300 rounded p-2 flex flex-col items-center justify-center" style={{ height: 70 }}>
-                    <div className="text-[8px] font-manrope font-bold text-[#9ca3af] uppercase tracking-widest mb-1">Client</div>
-                    {devis.date_signature ? (
-                      devis.client_signature_base64 ? (
-                        <div className="text-center">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={devis.client_signature_base64}
-                            alt="Signature client"
-                            className="max-w-full"
-                            style={{ height: 38, objectFit: 'contain' }}
-                          />
-                          <div className="text-[7px] font-manrope text-[#6b7280] mt-0.5">
-                            {new Date(devis.date_signature).toLocaleDateString('fr-FR')}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="text-[9px] font-manrope font-semibold text-green-600">Signé</div>
-                          <div className="text-[8px] font-manrope text-[#6b7280]">
-                            {new Date(devis.date_signature).toLocaleDateString('fr-FR')}
-                            {devis.signed_by && ` — ${devis.signed_by}`}
-                          </div>
-                        </div>
-                      )
-                    ) : (
-                      <div className="text-[8px] font-manrope text-[#c0c0c0] italic">En attente</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ═══ FOOTER LÉGAL ═══ */}
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '0.5px solid #e5e7eb', fontSize: 9.5, color: '#9ca3af', textAlign: 'center', lineHeight: 1.5, pageBreakBefore: 'avoid', breakBefore: 'avoid' }}>
-              {String(entreprise?.nom || '')} — {String(entreprise?.adresse || '')}, {String(entreprise?.code_postal || '')} {String(entreprise?.ville || '')}
-              {Boolean(entreprise?.siret) && ` — SIRET : ${String(entreprise?.siret || '')}`}
-              {Boolean(entreprise?.email) && ` — Email : ${String(entreprise?.email || '')}`}
-              <br /><span style={{ color: '#d1d5db' }}>Généré via Nexartis — nexartis.fr</span>
-            </div>
-
+            <DocumentRender data={documentData} />
           </div>
         </div>
 

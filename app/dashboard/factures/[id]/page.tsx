@@ -21,6 +21,8 @@ import {
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
+import DocumentRender from '@/components/document/DocumentRender'
+import { buildFactureDocument } from '@/lib/document-data'
 import {
   useSupabaseRecord,
   useFactureLignes,
@@ -325,6 +327,66 @@ export default function FactureDetailPage() {
     .print-zone { box-shadow: none !important; border: none !important; margin: 0 !important; }
   }`
 
+  // V3.0b — DocumentData unifie pour le rendu visuel (header + cartes + tableau + recap).
+  const documentData = buildFactureDocument({
+    doc: {
+      numero: facture.numero,
+      date_emission: facture.date_emission ?? null,
+      date_echeance: facture.date_echeance ?? null,
+      objet: facture.objet ?? null,
+      conditions_paiement: facture.conditions_paiement ?? null,
+    },
+    lignes: (lignes ?? []).map((l, idx) => ({
+      designation: l.designation ?? '',
+      quantite: Number(l.quantite ?? 0),
+      unite: l.unite ?? '',
+      prix_unitaire_ht: Number(l.prix_unitaire_ht ?? 0),
+      taux_tva: Number(l.taux_tva ?? 0),
+      ordre: Number(l.ordre ?? idx),
+      type: l.type ?? null,
+      niveau: l.niveau ?? null,
+      numero: l.numero ?? null,
+    })),
+    client: {
+      civilite: client?.civilite ?? null,
+      nom: client?.nom ?? null,
+      prenom: client?.prenom ?? null,
+      adresse: client?.adresse ?? null,
+      code_postal: client?.code_postal ?? null,
+      ville: client?.ville ?? null,
+      telephone: client?.telephone ?? null,
+      email: client?.email ?? null,
+      siret: client?.siret ?? null,
+    },
+    entreprise: {
+      nom: (entreprise?.nom as string | undefined) ?? null,
+      adresse: (entreprise?.adresse as string | undefined) ?? null,
+      code_postal: (entreprise?.code_postal as string | undefined) ?? null,
+      ville: (entreprise?.ville as string | undefined) ?? null,
+      siret: (entreprise?.siret as string | undefined) ?? null,
+      tva_intracommunautaire: (entreprise?.tva_intracommunautaire as string | undefined) ?? null,
+      telephone: (entreprise?.telephone as string | undefined) ?? null,
+      email: (entreprise?.email as string | undefined) ?? null,
+      iban: (entreprise?.iban as string | undefined) ?? null,
+      bic: (entreprise?.bic as string | undefined) ?? null,
+      logo_url: (entreprise?.logo_url as string | undefined) ?? null,
+      assurance_nom: (entreprise?.assurance_nom as string | undefined) ?? null,
+      decennale_numero: (entreprise?.decennale_numero as string | undefined) ?? null,
+      assurance_zone: (entreprise?.assurance_zone as string | undefined) ?? null,
+      rcs_rm: (entreprise?.rcs_rm as string | undefined) ?? null,
+      code_naf: (entreprise?.code_naf as string | undefined) ?? null,
+      forme_juridique: (entreprise?.forme_juridique as string | undefined) ?? null,
+      mediateur: (entreprise?.mediateur as string | undefined) ?? null,
+      mediateur_nom: (entreprise?.mediateur_nom as string | undefined) ?? null,
+      mediateur_adresse: (entreprise?.mediateur_adresse as string | undefined) ?? null,
+      mediateur_code_postal: (entreprise?.mediateur_code_postal as string | undefined) ?? null,
+      mediateur_ville: (entreprise?.mediateur_ville as string | undefined) ?? null,
+      auto_entrepreneur: (entreprise?.auto_entrepreneur as boolean | undefined) ?? null,
+      franchise_tva: (entreprise?.franchise_tva as boolean | undefined) ?? null,
+    },
+    chantier: null,
+  })
+
   return (
     <div className="space-y-6">
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
@@ -397,352 +459,7 @@ export default function FactureDetailPage() {
         {/* Main: Invoice preview */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-8 print-zone">
-
-            {/* HEADER — Logo + FACTURE centré (parité PDF) */}
-            <div style={{position:'relative', marginBottom:10, minHeight: 60}}>
-              {/* FACTURE + Numéro + Date — centré au milieu de la page (parité PDF : sobre, sans letter-spacing massif) */}
-              <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', paddingTop:0, paddingBottom:0}}>
-                <div style={{fontSize:28, fontWeight:700, color:'#1a6fb5', textTransform:'uppercase', lineHeight:1}}>FACTURE</div>
-                <div style={{fontSize:12, color:'#6b7280', marginTop:6, lineHeight:1}}>N° <strong>{facture.numero}</strong></div>
-                <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 4 }}>
-                  Date : {formatDate(facture.date_emission || facture.created_at)}
-                  {(facture as FactureRecord & { date_prestation?: string }).date_prestation && ` | Prestation : ${formatDate((facture as FactureRecord & { date_prestation?: string }).date_prestation)}`}
-                  {facture.date_echeance && ` | Échéance : ${formatDate(facture.date_echeance)}`}
-                </div>
-              </div>
-              {/* Logo — sobre, position absolue à gauche (parité PDF : hauteur 60px ≈ 22mm) */}
-              {Boolean(entreprise?.logo_url) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={String(entreprise?.logo_url || '')} alt="Logo" style={{ position:'absolute', left:0, top:0, height:60, width:'auto', maxWidth: 90, objectFit: 'contain' }} />
-              )}
-            </div>
-
-            <div style={{height:3, background:'#5ab4e0', borderRadius:2, marginBottom:22}} />
-
-            {/* Cadres Artisan + Client — parité PDF (fond pâle, bordure 1px, accent gauche 3px) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22, alignItems: 'stretch' }}>
-              {/* Cadre artisan — fond sky très pâle + bordure 1px + accent gauche 3px */}
-              <div style={{ background: '#e6f3fb', border: '1px solid #5ab4e0', borderLeft: '3px solid #5ab4e0', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#1a6fb5', marginBottom: 6 }}>Artisan</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#111', marginBottom: 3 }}>{String(entreprise?.nom || 'Mon Entreprise')}</div>
-                <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.7 }}>
-                  {Boolean(entreprise?.adresse) && <div>{String(entreprise?.adresse || '')}</div>}
-                  {Boolean(entreprise?.code_postal || entreprise?.ville) && <div>{String(entreprise?.code_postal || '')} {String(entreprise?.ville || '')}</div>}
-                  {Boolean(entreprise?.siret) && <div>SIRET : {String(entreprise?.siret || '')}</div>}
-                  {Boolean((entreprise as Record<string, unknown> | null | undefined)?.tva_intracommunautaire) && (
-                    <div>TVA intracom. : {String((entreprise as Record<string, unknown> | null | undefined)?.tva_intracommunautaire || '')}</div>
-                  )}
-                  {Boolean(entreprise?.telephone) && <div>Tel : {String(entreprise?.telephone || '')}</div>}
-                </div>
-              </div>
-              {/* Cadre client — fond green très pâle + bordure 1px + accent gauche 3px (parité PDF) */}
-              <div style={{ background: '#e6f7eb', border: '1px solid #22c55e', borderLeft: '3px solid #22c55e', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#15803d', marginBottom: 6 }}>Client</div>
-                <div style={{ lineHeight: 1.7 }}>
-                  {facture.notes_client ? (() => {
-                    // Parité PDF : split UNIQUEMENT par "|" (pas de séparation email/tél/CP)
-                    const parts = facture.notes_client
-                      .split(/\s*\|\s*/)
-                      .map((s: string) => s.trim())
-                      .filter(Boolean)
-                    return parts.map((info: string, i: number) => (
-                      <div key={i} style={{ fontWeight: i === 0 ? 700 : 400, color: i === 0 ? '#111' : '#6b7280', fontSize: i === 0 ? 12 : 11 }}>
-                        {info}
-                      </div>
-                    ))
-                  })() : (
-                    <>
-                      <div style={{ fontWeight: 700, color: '#111', fontSize: 12 }}>{resolvedClientName}</div>
-                      {client?.adresse && <div style={{ color: '#6b7280', fontSize: 11 }}>{client.adresse}</div>}
-                      {(client?.code_postal || client?.ville) && (
-                        <div style={{ color: '#6b7280', fontSize: 11 }}>{client?.code_postal ?? ''} {client?.ville ?? ''}</div>
-                      )}
-                      {client?.siret && <div style={{ color: '#6b7280', fontSize: 11 }}>SIRET : {client.siret}</div>}
-                      {client?.telephone && <div style={{ color: '#6b7280', fontSize: 11 }}>{client.telephone}</div>}
-                      {client?.email && <div style={{ color: '#6b7280', fontSize: 11 }}>{client.email}</div>}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* (titre FACTURE déplacé dans le header au-dessus) */}
-
-            {/* Objet — bandeau pleine largeur sky pâle, accent gauche bleu (parité PDF) */}
-            {facture.objet && (
-              <div style={{ marginTop: 14, marginBottom: 18, background: '#e8f4fb', border: '1.5px solid #5ab4e0', borderLeft: '5px solid #5ab4e0', borderRadius: 6, padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#2d8bc9', textTransform: 'uppercase', letterSpacing: 1.2 }}>OBJET :</div>
-                <div style={{ fontSize: 13, color: '#0f1a3a', fontWeight: 700 }}>{facture.objet}</div>
-              </div>
-            )}
-
-            {/* FORFAIT GLOBAL (V10) — bandeau bleu (parite design system) si lignes a 0 EUR + total positif */}
-            {isForfaitMode && (
-              <div style={{ marginBottom: 14, background: '#e8f4fb', border: '1.5px solid #1a6fb5', borderLeft: '5px solid #1a6fb5', borderRadius: 6, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#1a6fb5', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>FORFAIT GLOBAL</div>
-                <div style={{ fontSize: 12, color: '#5f6c80' }}>Montant total convenu de <strong style={{ color: '#0f1a3a' }}>{fmt(totalHT)} HT</strong>. Le detail ci-dessous est informatif.</div>
-              </div>
-            )}
-
-            {/* TABLEAU — bandeau navy (parité PDF) */}
-            {lignes.length > 0 && (
-              <table className="w-full mb-8 print-table">
-                <thead>
-                  <tr className="bg-[#0f1a3a] text-white">
-                    <th className="px-2 py-1.5 text-left text-[10px] font-manrope font-semibold uppercase w-8 border-r border-white/30">N°</th>
-                    <th className="px-2 py-1.5 text-left text-[10px] font-manrope font-semibold uppercase border-r border-white/30">Désignation</th>
-                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Qté</th>
-                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">Unité</th>
-                    <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20 border-r border-white/30">Prix U. HT</th>
-                    {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
-                    <th className="px-2 py-1.5 text-center text-[10px] font-manrope font-semibold uppercase w-14 border-r border-white/30">TVA</th>
-                    <th className="px-2 py-1.5 text-right text-[10px] font-manrope font-semibold uppercase w-20">Total HT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lignes.map((ligne, i) => {
-                    // Helper : calcule le sous-total d'une section ou sous-section
-                    const subtotalAt = (idx: number): number => {
-                      const cur = lignes[idx]
-                      if (!cur || (cur.type !== 'section' && cur.type !== 'sous_section')) return 0
-                      let sum = 0
-                      for (let j = idx + 1; j < lignes.length; j++) {
-                        const ll = lignes[j]
-                        if (cur.type === 'section' && ll.type === 'section') break
-                        if (cur.type === 'sous_section' && (ll.type === 'section' || ll.type === 'sous_section')) break
-                        if (!ll.type || ll.type === 'prestation') sum += (ll.quantite ?? 0) * (ll.prix_unitaire_ht ?? 0)
-                      }
-                      return sum
-                    }
-                    if (ligne.type === 'section') {
-                      // Parité PDF : numéro + total en #1a6fb5 (netBlue), designation en #0f1a3a (navy)
-                      return (
-                        <tr key={ligne.id ?? i} className="bg-[#a8d4ec]">
-                          <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#1a6fb5]">{ligne.numero || ''}</td>
-                          {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
-                          <td className="px-2 py-1.5 text-[11px] font-manrope font-bold text-[#0f1a3a]" colSpan={5}>{ligne.designation}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-bold text-[#1a6fb5]">{fmt(subtotalAt(i))}</td>
-                        </tr>
-                      )
-                    }
-                    if (ligne.type === 'sous_section') {
-                      return (
-                        <tr key={ligne.id ?? i} className="bg-[#dceefa]">
-                          <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#1a6fb5]">{ligne.numero || ''}</td>
-                          {/* V2.5 — colSpan etendu (5 au lieu de 4) suite a l'ajout de la colonne TVA */}
-                          <td className="px-2 py-1.5 text-[11px] font-manrope font-semibold text-[#0f1a3a]" colSpan={5}>{ligne.designation}</td>
-                          <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a6fb5]">{fmt(subtotalAt(i))}</td>
-                        </tr>
-                      )
-                    }
-                    if (ligne.type === 'commentaire') {
-                      return (
-                        <tr key={ligne.id ?? i}>
-                          <td className="px-3 py-1.5 text-xs font-manrope text-[#6b7280]" />
-                          {/* V2.5 — colSpan etendu (6 au lieu de 5) suite a l'ajout de la colonne TVA */}
-                          <td className="px-3 py-1.5 text-xs font-manrope italic text-[#6b7280]" colSpan={6}>{ligne.designation}</td>
-                        </tr>
-                      )
-                    }
-                    if (ligne.type === 'saut_page') {
-                      // V2.5 — colSpan etendu (7 au lieu de 6) suite a l'ajout de la colonne TVA
-                      return <tr key={ligne.id ?? i}><td colSpan={7} className="py-1 border-t border-dashed border-gray-300" /></tr>
-                    }
-                    // backward compat : ancien format ---
-                    const isLegacySection = !ligne.type && ligne.designation?.startsWith('---')
-                    if (isLegacySection) {
-                      return (
-                        <tr key={ligne.id ?? i} className="bg-[#dceefa] border-l-4 border-[#5ab4e0]">
-                          {/* V2.5 — colSpan etendu (7 au lieu de 6) suite a l'ajout de la colonne TVA */}
-                          <td colSpan={7} className="px-3 py-2 text-sm font-manrope font-bold text-[#0f1a3a]">{ligne.designation.replace(/^---\s*/, '').replace(/\s*---$/, '')}</td>
-                        </tr>
-                      )
-                    }
-                    return (
-                      // Parité PDF : pas de zébrage sur les lignes prestation
-                      <tr key={ligne.id ?? i}>
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-[#6b7280] border-r border-gray-100">{ligne.numero || ''}</td>
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-[#1a1a2e] border-r border-gray-100">{ligne.designation}</td>
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#1a1a2e] border-r border-gray-100">{ligne.quantite}</td>
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{ligne.unite}</td>
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-right text-[#1a1a2e] border-r border-gray-100">{fmt(ligne.prix_unitaire_ht ?? 0)}</td>
-                        {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-center text-[#6b7280] border-r border-gray-100">{(ligne.taux_tva ?? 0).toString().replace('.', ',')}%</td>
-                        <td className="px-2 py-1.5 text-[11px] font-manrope text-right font-semibold text-[#1a1a2e]">{fmt(ligne.total_ht || (ligne.quantite ?? 0) * (ligne.prix_unitaire_ht ?? 0))}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {/* TOTAUX (parité PDF) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6 mt-6">
-              {/* Colonne gauche : conditions de paiement + notes personnalisées + mentions */}
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-manrope font-bold text-sm text-[#1a6fb5] mb-1.5">Conditions de paiement</h4>
-                  <p className="text-sm font-manrope text-[#5f6c80] leading-relaxed whitespace-pre-wrap">{conditionsAffichees}</p>
-                </div>
-                {Boolean(notesPersoAffichees) && (
-                  <div>
-                    <h4 className="font-manrope font-bold text-sm text-[#1a6fb5] mb-1.5">Notes</h4>
-                    <p className="text-sm font-manrope text-[#0f1a3a] leading-relaxed whitespace-pre-wrap">{notesPersoAffichees}</p>
-                  </div>
-                )}
-                {/* V2.4a — La liste complète des mentions légales (pénalités,
-                    escompte, TVA, L441-3, etc.) est maintenant rendue UNE seule
-                    fois plus bas via <LegalMentionsBlock>, en remplacement de
-                    l'ancien bloc "MENTIONS LÉGALES entreprise". On évite ainsi
-                    la duplication / divergence entre ces 2 blocs historiques. */}
-              </div>
-
-              {/* Colonne droite : récap (avec acompte intégré) + NET À PAYER en dernier */}
-              <div>
-                <div className="rounded-lg border-2 border-gray-300 bg-gray-100 overflow-hidden shadow-sm">
-                  <div className="px-3 py-2 text-[10px] font-manrope font-bold text-[#5f6c80] uppercase tracking-wider border-b border-gray-300 bg-gray-200/60">Récapitulatif</div>
-                  {/* V10 — En mode forfait global, on remplace "Sous-total HT" par "Forfait global HT"
-                      pour eviter l'incoherence visuelle (lignes a 0 EUR + sous-total positif). */}
-                  <div className="px-3 py-2.5 flex justify-between text-sm font-manrope">
-                    <span className="text-[#5f6c80]">{isForfaitMode ? 'Forfait global HT' : 'Sous-total HT'}</span>
-                    <span className="text-[#0f1a3a] font-bold">{fmt(totalHT)}</span>
-                  </div>
-                  {/* Bug fix (V8.1) : on filtre rate <= 0 ET tva == 0 pour ne PAS afficher
-                      "TVA 10% — 0,00 €" quand la facture est en mode "Sans TVA" ou forfait global a 0. */}
-                  {Object.entries(tvaGroups)
-                    .filter(([r, g]) => Number(r) > 0 && g.tva > 0.005)
-                    .sort(([a], [b]) => Number(a) - Number(b))
-                    .map(([rate, group]) => (
-                      <div key={rate} className="px-3 py-2.5 flex justify-between text-sm font-manrope border-t border-gray-300">
-                        <span className="text-[#5f6c80]">TVA {rate}%</span>
-                        <span className="text-[#0f1a3a]">{fmt(group.tva)}</span>
-                      </div>
-                    ))}
-                  <div className="px-3 py-2.5 flex justify-between text-sm font-manrope border-t border-gray-300">
-                    <span className="text-[#0f1a3a] font-bold">Total TTC</span>
-                    <span className="text-[#0f1a3a] font-bold">{fmt(totalTTC)}</span>
-                  </div>
-                  {hasAcompte && (
-                    <div className="px-3 py-2.5 flex justify-between text-sm font-manrope border-t border-gray-300">
-                      <span className="text-[#15803d] font-bold">
-                        Acompte versé{facture.acompte_pourcent ? ` (${facture.acompte_pourcent}%)` : ''}
-                      </span>
-                      <span className="text-[#15803d] font-bold">- {fmt(acompteTTC)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* NET À PAYER — parité PDF : taille modérée, sobre.
-                    Si acompte versé, label "NET À PAYER À RÉCEPTION" pour clarifier
-                    qu'il s'agit du solde restant. Font-syne pour parité devis. */}
-                <div className="bg-[#1a6fb5] text-white rounded-lg px-3 py-2.5 mt-2 flex justify-between items-center shadow-md">
-                  <span className="font-syne font-bold text-sm">{hasAcompte ? 'NET À PAYER À RÉCEPTION' : 'NET À PAYER'}</span>
-                  <span className="font-syne font-bold text-base">{fmt(netAPayerAffiche)}</span>
-                </div>
-
-                {/* Ventilation TVA multi-taux (parité PDF : drawTvaBreakdown) */}
-                {Object.keys(tvaGroups).filter(r => Number(r) > 0).length > 1 && (
-                  <div className="mt-3 rounded-lg border border-gray-200 bg-white overflow-hidden">
-                    <div className="px-3 py-1.5 text-[10px] font-manrope font-bold text-[#5f6c80] uppercase tracking-wider border-b border-gray-200 bg-gray-50">Ventilation TVA</div>
-                    <table className="w-full text-[11px] font-manrope">
-                      <thead>
-                        <tr className="text-[#5f6c80]">
-                          <th className="px-3 py-1.5 text-left font-medium">Taux</th>
-                          <th className="px-3 py-1.5 text-right font-medium">Base HT</th>
-                          <th className="px-3 py-1.5 text-right font-medium">TVA</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(tvaGroups)
-                          .filter(([r]) => Number(r) > 0)
-                          .sort(([a], [b]) => Number(a) - Number(b))
-                          .map(([rate, group]) => (
-                            <tr key={rate} className="border-t border-gray-100">
-                              <td className="px-3 py-1.5 text-[#0f1a3a]">{rate}%</td>
-                              <td className="px-3 py-1.5 text-right text-[#0f1a3a]">{fmt(group.ht)}</td>
-                              <td className="px-3 py-1.5 text-right text-[#0f1a3a]">{fmt(group.tva)}</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* V2.4a — MENTIONS LÉGALES facture (composant partagé).
-                Source unique lib/legal-mentions.ts. Détecte automatiquement le
-                type de client (SIRET → pro, sinon particulier) et applique
-                l'ordre légal facture (décennale → TVA → forme juridique → RCS →
-                qualification → médiateur B2C → pénalités L441-10 → indemnité
-                40 € B2B → escompte → L441-3 → custom). */}
-            <div style={{ marginTop: 12, paddingTop: 8, borderTop: '0.5px solid #e5e7eb' }}>
-              <p style={{ fontSize: 9, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Mentions légales</p>
-              <LegalMentionsBlock
-                ctx={{
-                  kind: 'facture',
-                  entreprise: entreprise as Record<string, unknown> | null | undefined,
-                  client,
-                  clientType: client?.client_type === 'professionnel' || (client?.siret && String(client.siret).trim()) ? 'pro' : 'particulier',
-                  lignes,
-                  factureType: 'standard',
-                }}
-                variant="dashboard"
-                className="text-[9px]"
-              />
-            </div>
-
-            {/* ────────────────────────────────────────────────── */}
-            {/* BLOC IBAN/BIC — moitié gauche, juste après mentions (parité PDF) */}
-            {/* ────────────────────────────────────────────────── */}
-            {Boolean(entreprise?.iban && String(entreprise?.iban).trim()) && (
-              <div style={{
-                marginTop: 12,
-                background: '#e8f4fb',
-                border: '1px solid #5ab4e0',
-                borderLeft: '4px solid #5ab4e0',
-                borderRadius: 8,
-                padding: '10px 14px',
-                width: '50%',
-                maxWidth: 360,
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: '#1a6fb5', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>POUR RÉGLER PAR VIREMENT</div>
-                <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 12.5, color: '#0f1a3a', fontWeight: 700, letterSpacing: 0.5 }}>
-                  IBAN : {String(entreprise?.iban || '').replace(/\s+/g, '').toUpperCase().match(/.{1,4}/g)?.join(' ')}
-                </div>
-                {Boolean(entreprise?.bic && String(entreprise?.bic).trim()) && (
-                  <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 12, color: '#0f1a3a', fontWeight: 700, marginTop: 2 }}>
-                    BIC : {String(entreprise?.bic || '').trim().toUpperCase()}
-                  </div>
-                )}
-                <div style={{ fontSize: 10.5, color: '#5f6c80', marginTop: 4 }}>
-                  Bénéficiaire : {String(entreprise?.nom || '')}
-                </div>
-              </div>
-            )}
-
-            {/* FOOTER COORDONNÉES — parité PDF : 2 lignes (entreprise/adresse/SIRET/email + tel/décennale) */}
-            <div style={{ marginTop: 14, paddingTop: 10, borderTop: '0.5px solid #5ab4e0', fontSize: 9.5, color: '#9ca3af', textAlign: 'center', lineHeight: 1.7 }}>
-              <div>
-                {[
-                  String(entreprise?.nom || ''),
-                  entreprise?.adresse ? `${String(entreprise?.adresse)}${entreprise?.code_postal || entreprise?.ville ? `, ${String(entreprise?.code_postal || '')} ${String(entreprise?.ville || '')}`.replace(/  +/g, ' ').trim() : ''}` : '',
-                  entreprise?.siret ? `SIRET : ${String(entreprise?.siret)}` : '',
-                  entreprise?.email ? `Email : ${String(entreprise?.email)}` : '',
-                ].filter(Boolean).join(' — ')}
-              </div>
-              {(entreprise?.telephone || entreprise?.assurance_nom) && (
-                <div>
-                  {[
-                    entreprise?.telephone ? `Tél : ${String(entreprise?.telephone)}` : '',
-                    entreprise?.assurance_nom
-                      ? `Garantie décennale ${String(entreprise?.assurance_nom)}${entreprise?.decennale_numero ? ` (n° ${String(entreprise?.decennale_numero)})` : ''}`
-                      : '',
-                  ].filter(Boolean).join(' — ')}
-                </div>
-              )}
-            </div>
-
+            <DocumentRender data={documentData} />
           </div>
         </div>
 

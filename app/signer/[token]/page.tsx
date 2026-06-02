@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import type { LegalContext } from '@/lib/legal-mentions'
+import DocumentRender from '@/components/document/DocumentRender'
+import { buildDevisDocument } from '@/lib/document-data'
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -91,6 +93,11 @@ interface ClientInfo {
   email: string
   /** P11 (audit) : SIRET du client (si pro), à afficher sur le devis signé */
   siret?: string
+  // V3.0b — champs additionnels servis par /api/public/devis/[token]
+  civilite?: string
+  prenom?: string
+  code_postal?: string
+  ville?: string
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -384,6 +391,61 @@ export default function SignerDevisPage() {
     })
   }
 
+  // V3.0b — DocumentData unique pour le rendu visuel (header + cartes + tableau + recap).
+  const documentData = buildDevisDocument({
+    doc: {
+      numero: devis.numero,
+      date_emission: devis.date_emission ?? null,
+      date_validite: devis.date_validite ?? null,
+      objet: devis.objet ?? null,
+      acompte_pourcent: devis.acompte_pourcent ?? null,
+      conditions_paiement: devis.conditions_paiement ?? null,
+    },
+    lignes: lignes.map((l, idx) => ({
+      designation: l.designation,
+      quantite: l.quantite,
+      unite: l.unite,
+      prix_unitaire_ht: l.prix_unitaire_ht,
+      taux_tva: l.taux_tva,
+      ordre: l.ordre ?? idx,
+      type: l.type ?? null,
+    })),
+    client: {
+      civilite: client.civilite ?? null,
+      nom: client.nom ?? null,
+      prenom: client.prenom ?? null,
+      adresse: client.adresse ?? null,
+      code_postal: client.code_postal ?? null,
+      ville: client.ville ?? null,
+      telephone: client.telephone ?? null,
+      email: client.email ?? null,
+      siret: client.siret ?? null,
+    },
+    entreprise: {
+      nom: entreprise.nom ?? null,
+      adresse: entreprise.adresse ?? null,
+      code_postal: entreprise.code_postal ?? null,
+      ville: entreprise.ville ?? null,
+      siret: entreprise.siret ?? null,
+      tva_intracommunautaire: entreprise.tva_intracommunautaire ?? null,
+      telephone: entreprise.telephone ?? null,
+      email: entreprise.email ?? null,
+      logo_url: entreprise.logo_url ?? null,
+      assurance_nom: entreprise.assurance_nom ?? null,
+      decennale_numero: entreprise.decennale_numero ?? null,
+      assurance_zone: entreprise.assurance_zone ?? null,
+      rcs_rm: entreprise.rcs_rm ?? null,
+      forme_juridique: entreprise.forme_juridique ?? null,
+      mediateur: entreprise.mediateur ?? null,
+      mediateur_nom: entreprise.mediateur_nom ?? null,
+      mediateur_adresse: entreprise.mediateur_adresse ?? null,
+      mediateur_code_postal: entreprise.mediateur_code_postal ?? null,
+      mediateur_ville: entreprise.mediateur_ville ?? null,
+      franchise_tva: entreprise.franchise_tva ?? null,
+    },
+    chantier: null,
+  })
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header bar minimal — juste le rappel du numéro devis pour la navigation */}
@@ -395,299 +457,9 @@ export default function SignerDevisPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* ═══ DEVIS PREVIEW — design harmonisé avec le PDF ═══ */}
+        {/* ═══ DEVIS — composant partagé V3.0b+c (Édition Signature) ═══ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 sm:p-8 space-y-6">
-
-            {/* HEADER : logo gauche + DEVIS centré bleu + numéro */}
-            <div className="grid grid-cols-3 items-center pb-4 border-b border-gray-100">
-              <div className="flex items-center">
-                {entreprise.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={entreprise.logo_url} alt="Logo" className="h-14 max-w-[120px] object-contain" />
-                ) : (
-                  <div className="h-14" />
-                )}
-              </div>
-              <div className="text-center">
-                <h1 className="font-syne font-extrabold text-3xl sm:text-4xl text-[#2563eb] tracking-tight">DEVIS</h1>
-                <p className="font-manrope font-bold text-sm text-[#1a1a2e] mt-1">N° {devis.numero}</p>
-              </div>
-              <div />
-            </div>
-
-            {/* BANDEAU DATES — pas de date de début des travaux : non pertinent
-                pour le client (il peut mettre du temps à répondre, la date deviendrait fausse).
-                Ce champ reste utilisable côté artisan pour le planning interne. */}
-            <div className="flex flex-wrap justify-center gap-x-8 gap-y-1 text-xs font-manrope text-gray-600 -mt-2">
-              {devis.date_emission && <p><span className="font-semibold">Date :</span> {formatDate(devis.date_emission)}</p>}
-              {devis.date_validite && <p><span className="font-semibold">Valide jusqu&apos;au :</span> {formatDate(devis.date_validite)}</p>}
-              {devis.duree_estimee && <p><span className="font-semibold">Durée estimée :</span> {devis.duree_estimee}</p>}
-            </div>
-
-            {/* CADRES ARTISAN / CLIENT — comme dans le PDF */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-lg p-4" style={{background:'#cde4f5', border:'1px solid #5ab4e0', borderLeft:'4px solid #5ab4e0'}}>
-                <p className="text-[10px] font-manrope font-bold uppercase tracking-wider mb-2" style={{color:'#1a6fb5'}}>Artisan</p>
-                <p className="font-manrope font-bold text-[#1a1a2e] text-sm mb-1">{entreprise.nom}</p>
-                {entreprise.adresse && <p className="font-manrope text-gray-700 text-xs">{entreprise.adresse}</p>}
-                {(entreprise.code_postal || entreprise.ville) && (
-                  <p className="font-manrope text-gray-700 text-xs">{entreprise.code_postal} {entreprise.ville}</p>
-                )}
-                {entreprise.siret && <p className="font-manrope text-gray-700 text-xs mt-1">SIRET : {entreprise.siret}</p>}
-                {entreprise.tva_intracommunautaire && (
-                  <p className="font-manrope text-gray-700 text-xs">TVA intracom. : {entreprise.tva_intracommunautaire}</p>
-                )}
-                {entreprise.telephone && <p className="font-manrope text-gray-700 text-xs">Tél : {entreprise.telephone}</p>}
-              </div>
-              <div className="rounded-lg p-4" style={{background:'#c9efd5', border:'1px solid #22c55e', borderLeft:'4px solid #22c55e'}}>
-                <p className="text-[10px] font-manrope font-bold uppercase tracking-wider mb-2" style={{color:'#15803d'}}>Client</p>
-                <p className="font-manrope font-bold text-[#1a1a2e] text-sm mb-1">{client.nom}</p>
-                {client.adresse && client.adresse.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean).map((part,idx)=>(
-                  <p key={idx} className="font-manrope text-gray-700 text-xs">{part}</p>
-                ))}
-                {client.siret && <p className="font-manrope text-gray-700 text-xs mt-1">SIRET : {client.siret}</p>}
-                {client.telephone && <p className="font-manrope text-gray-700 text-xs mt-1">{client.telephone}</p>}
-                {client.email && <p className="font-manrope text-gray-700 text-xs">{client.email}</p>}
-              </div>
-            </div>
-
-            {/* OBJET — barre verticale bleue + texte */}
-            {devis.objet && (
-              <div className="border-l-4 border-[#2563eb] pl-4 py-1">
-                <p className="text-[10px] font-manrope font-bold text-[#2563eb] uppercase tracking-wider">Objet</p>
-                <p className="font-manrope text-[#1a1a2e] text-sm font-medium mt-0.5">{devis.objet}</p>
-              </div>
-            )}
-
-            {/* TABLEAU DES LIGNES — header bleu */}
-            <div className="overflow-x-auto -mx-2 sm:mx-0">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-[#2563eb] text-white">
-                    <th className="py-2.5 px-2 sm:px-3 font-manrope font-bold text-[10px] uppercase tracking-wider text-left w-[40px]">N°</th>
-                    <th className="py-2.5 px-2 sm:px-3 font-manrope font-bold text-[10px] uppercase tracking-wider text-left">Désignation</th>
-                    <th className="py-2.5 px-2 sm:px-3 font-manrope font-bold text-[10px] uppercase tracking-wider text-right">Qté</th>
-                    <th className="py-2.5 px-2 sm:px-3 font-manrope font-bold text-[10px] uppercase tracking-wider text-right hidden sm:table-cell">Unité</th>
-                    <th className="py-2.5 px-2 sm:px-3 font-manrope font-bold text-[10px] uppercase tracking-wider text-right hidden sm:table-cell">Prix U. HT</th>
-                    <th className="py-2.5 px-2 sm:px-3 font-manrope font-bold text-[10px] uppercase tracking-wider text-right">Total HT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const subtotalAt = (idx: number): number => {
-                      const cur = lignes[idx]
-                      if (!cur || (cur.type !== 'section' && cur.type !== 'sous_section')) return 0
-                      let sum = 0
-                      for (let j = idx + 1; j < lignes.length; j++) {
-                        const ll = lignes[j]
-                        if (cur.type === 'section' && ll.type === 'section') break
-                        if (cur.type === 'sous_section' && (ll.type === 'section' || ll.type === 'sous_section')) break
-                        if (!ll.type || ll.type === 'prestation') sum += (ll.quantite ?? 0) * (ll.prix_unitaire_ht ?? 0)
-                      }
-                      return sum
-                    }
-                    return lignes.map((l, i) => {
-                    if (l.type === 'section') {
-                      return (
-                        <tr key={i} style={{background:'#dceefa', borderLeft:'4px solid #5ab4e0'}}>
-                          <td className="py-2.5 px-3 font-manrope font-bold text-xs" style={{color:'#1a6fb5'}}>{i+1}</td>
-                          <td colSpan={4} className="py-2.5 px-3 font-manrope font-bold text-sm" style={{color:'#0f1a3a'}}>
-                            {l.designation}
-                          </td>
-                          <td className="py-2.5 px-3 font-manrope font-bold text-right" style={{color:'#1a6fb5'}}>{formatCurrency(subtotalAt(i))}</td>
-                        </tr>
-                      )
-                    }
-                    if (l.type === 'sous_section') {
-                      return (
-                        <tr key={i} style={{background:'#e8f4fb'}}>
-                          <td className="py-2.5 px-3 font-manrope text-xs text-gray-600">{i+1}</td>
-                          <td colSpan={4} className="py-2.5 px-3 font-manrope font-semibold text-sm" style={{color:'#0f1a3a'}}>
-                            {l.designation}
-                          </td>
-                          <td className="py-2.5 px-3 font-manrope font-semibold text-right" style={{color:'#0f1a3a'}}>{formatCurrency(subtotalAt(i))}</td>
-                        </tr>
-                      )
-                    }
-                    if (l.type === 'commentaire') {
-                      return (
-                        <tr key={i}>
-                          <td colSpan={6} className="py-1 px-3 font-manrope text-gray-500 text-xs italic">
-                            {l.designation}
-                          </td>
-                        </tr>
-                      )
-                    }
-                    if (l.type === 'saut_page') return null
-                    const montantHT = l.quantite * l.prix_unitaire_ht
-                    const lineNum = lignes.slice(0, i + 1).filter(x => x.type !== 'section' && x.type !== 'commentaire' && x.type !== 'saut_page').length
-                    return (
-                      <tr key={i} className={`border-b border-gray-100 ${l.optionnel ? 'opacity-60' : ''}`}>
-                        <td className="py-2.5 px-2 sm:px-3 font-manrope text-gray-500 text-center">{lineNum}</td>
-                        <td className="py-2.5 px-2 sm:px-3 font-manrope text-[#1a1a2e]">
-                          {l.designation}
-                          {l.optionnel && <span className="ml-2 text-xs text-orange-500 font-medium">(option)</span>}
-                        </td>
-                        <td className="py-2.5 px-2 sm:px-3 font-manrope text-gray-700 text-right">{l.quantite}</td>
-                        <td className="py-2.5 px-2 sm:px-3 font-manrope text-gray-700 text-right hidden sm:table-cell">{l.unite}</td>
-                        <td className="py-2.5 px-2 sm:px-3 font-manrope text-gray-700 text-right hidden sm:table-cell">{formatCurrency(l.prix_unitaire_ht)}</td>
-                        <td className="py-2.5 px-2 sm:px-3 font-manrope text-[#1a1a2e] font-medium text-right">{formatCurrency(montantHT)}</td>
-                      </tr>
-                    )
-                  })
-                  })()}
-                </tbody>
-              </table>
-            </div>
-
-            {/* SECTION BAS : conditions/mentions à gauche, totaux à droite */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-
-              {/* COLONNE GAUCHE — Conditions, mentions, déchets */}
-              <div className="space-y-4 text-xs font-manrope">
-                {devis.conditions_paiement && (
-                  <div>
-                    <p className="font-bold text-[#1a1a2e] mb-1">Conditions de paiement</p>
-                    <p className="text-gray-700 whitespace-pre-line">{devis.conditions_paiement}</p>
-                  </div>
-                )}
-                {/* V2.4c — Mentions légales centralisées via <LegalMentionsBlock>
-                    (parité stricte avec PDF + dashboards). Le clientType est déduit
-                    de la présence du SIRET : SIRET → 'pro', sinon → 'particulier'. */}
-                {(() => {
-                  const ctx: LegalContext = {
-                    kind: 'devis',
-                    entreprise: entreprise as unknown as LegalContext['entreprise'],
-                    client: { siret: client.siret || null },
-                    clientType: (client.siret && client.siret.trim() !== '') ? 'pro' : 'particulier',
-                    lignes,
-                  }
-                  return (
-                    <div>
-                      <p className="font-bold text-[#1a1a2e] mb-1 uppercase text-[10px] tracking-wider">Mentions légales</p>
-                      <LegalMentionsBlock ctx={ctx} variant="signer" className="text-gray-600" />
-                    </div>
-                  )
-                })()}
-                {devis.dechets_nature && (
-                  <div>
-                    <p className="font-bold text-[#1a1a2e] mb-1 uppercase text-[10px] tracking-wider">Gestion des déchets (AGEC)</p>
-                    <p className="text-gray-600 leading-relaxed">
-                      {[
-                        devis.dechets_nature && `Nature : ${devis.dechets_nature}`,
-                        devis.dechets_responsable && devis.dechets_responsable,
-                        devis.dechets_tri && `Tri : ${devis.dechets_tri}`,
-                        devis.dechets_collecte_nom && `Collecte : ${devis.dechets_collecte_nom}${devis.dechets_collecte_type ? ` (${devis.dechets_collecte_type})` : ''}`,
-                      ].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* COLONNE DROITE — Totaux + NET À PAYER (parité stricte devis/facture) */}
-              <div className="space-y-1 text-sm font-manrope">
-                <div className="flex justify-between py-1.5 border-b border-gray-100">
-                  <span className="text-gray-700">{isSansTva ? 'Total' : 'Total HT'}</span>
-                  <span className="text-[#1a1a2e] font-semibold">{formatCurrency(totalHT)}</span>
-                </div>
-                {!isSansTva && Object.entries(tvaGroups).map(([rate, vals]) => (
-                  <div key={rate} className="flex justify-between py-1.5 border-b border-gray-100">
-                    <span className="text-gray-700">TVA {rate}%</span>
-                    <span className="text-[#1a1a2e]">{formatCurrency(vals.tva)}</span>
-                  </div>
-                ))}
-                {!isSansTva && (
-                  <div className="flex justify-between py-1.5 border-b border-gray-100">
-                    <span className="text-[#0f1a3a] font-bold">Total TTC</span>
-                    <span className="text-[#0f1a3a] font-bold">{formatCurrency(totalTTC)}</span>
-                  </div>
-                )}
-                {isSansTva && (
-                  <p className="text-[11px] font-manrope italic text-gray-500 py-1.5">
-                    TVA non applicable, art. 293 B du CGI
-                  </p>
-                )}
-                {/* Acompte (en vert, comme devis/facture HTML) */}
-                {devis.acompte_pourcent && devis.acompte_pourcent > 0 && (() => {
-                  const baseAcompte = isSansTva ? totalHT : totalTTC
-                  const acompte = baseAcompte * devis.acompte_pourcent / 100
-                  return (
-                    <div className="flex justify-between py-1.5 border-b border-gray-100">
-                      <span className="text-[#15803d] font-bold">Acompte à verser ({devis.acompte_pourcent}%)</span>
-                      <span className="text-[#15803d] font-bold">- {formatCurrency(acompte)}</span>
-                    </div>
-                  )
-                })()}
-                {/* NET À PAYER (parité devis : netBlue #1a6fb5 + font-syne text-base).
-                    Si acompte présent, on affiche le solde restant après acompte
-                    (label "NET À PAYER À RÉCEPTION"). */}
-                {(() => {
-                  const base = isSansTva ? totalHT : totalTTC
-                  const acomptePct = devis.acompte_pourcent || 0
-                  const hasAcompteSigner = acomptePct > 0
-                  const acompteMontant = base * (acomptePct / 100)
-                  const netAPayerSigner = hasAcompteSigner ? Math.max(base - acompteMontant, 0) : base
-                  const netLabelSigner = hasAcompteSigner ? 'NET À PAYER À RÉCEPTION' : 'NET À PAYER'
-                  return (
-                    <div className="bg-[#1a6fb5] text-white rounded-md px-3 py-2.5 flex justify-between items-center mt-2 shadow-md">
-                      <span className="font-syne font-bold text-sm uppercase tracking-wider">{netLabelSigner}</span>
-                      <span className="font-syne font-bold text-base">{formatCurrency(netAPayerSigner)}</span>
-                    </div>
-                  )
-                })()}
-              </div>
-            </div>
-
-            {/* CADRES SIGNATURES (artisan / client) — comme PDF */}
-            <div className="grid grid-cols-2 gap-4 pt-4">
-              <div className="border border-gray-200 rounded-lg p-3 min-h-[80px]">
-                <p className="text-[10px] font-manrope font-bold text-gray-500 uppercase tracking-wider text-center">Artisan</p>
-                {entreprise.signature_base64 && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={entreprise.signature_base64} alt="Signature artisan" className="h-12 mx-auto mt-1 object-contain" />
-                )}
-              </div>
-              <div className="border border-gray-200 rounded-lg p-3 min-h-[80px] flex flex-col items-center justify-center">
-                <p className="text-[10px] font-manrope font-bold text-gray-500 uppercase tracking-wider">Client</p>
-                {(devis.statut === 'signe' || devis.statut === 'facture') ? (
-                  <>
-                    {devis.client_signature_base64 ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={devis.client_signature_base64} alt="Signature client" className="h-12 mx-auto mt-1 object-contain" />
-                    ) : (
-                      <p className="text-xs font-bold text-green-700 mt-1">Bon pour accord</p>
-                    )}
-                    <p className="text-[10px] text-gray-500 mt-0.5">
-                      {devis.date_signature ? formatDate(devis.date_signature) : ''}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-xs italic text-gray-400 mt-1">En attente</p>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          {/* FOOTER — mentions légales artisan (comme dans le PDF) */}
-          <div className="border-t border-gray-100 px-6 sm:px-8 py-4 text-center text-[10px] font-manrope text-gray-500 leading-relaxed">
-            {entreprise.nom}
-            {entreprise.adresse && ` — ${entreprise.adresse}`}
-            {(entreprise.code_postal || entreprise.ville) && `, ${entreprise.code_postal || ''} ${entreprise.ville || ''}`}
-            {entreprise.siret && ` — SIRET : ${entreprise.siret}`}
-            {entreprise.tva_intracommunautaire && ` — TVA intracom. : ${entreprise.tva_intracommunautaire}`}
-            {(entreprise.telephone || entreprise.email) && (
-              <p className="mt-0.5">
-                {entreprise.telephone && `Tél : ${entreprise.telephone}`}
-                {entreprise.telephone && entreprise.email && ' — '}
-                {entreprise.email && `Email : ${entreprise.email}`}
-              </p>
-            )}
-            {/* V2.4c — Décennale, forme juridique, capital, RCS, médiateur, qualification,
-                mentions custom : tout est désormais centralisé dans <LegalMentionsBlock>
-                placé plus haut dans la colonne gauche (parité PDF + dashboards). */}
-          </div>
+          <DocumentRender data={documentData} />
         </div>
 
         {/* ═══ SECTION SIGNATURE ═══ */}

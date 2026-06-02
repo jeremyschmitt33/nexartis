@@ -1,0 +1,297 @@
+/* ============================================================================
+   components/document/document.css
+   ----------------------------------------------------------------------------
+   V3.0b+c — Edition Signature pour les devis & factures Nexartis.
+
+   Port direct de devis-styles.css du handoff (Direction D uniquement),
+   adapte aux couleurs officielles Nexartis (navy + orange).
+
+   Toutes les classes sont prefixees `dv-` pour eviter toute collision avec
+   le reste du site.
+   ============================================================================ */
+
+/* ---------- CSS variables (theme Nexartis) ---------- */
+.dv-doc {
+  --paper: #ffffff;
+  --accent: #0f1a3a;           /* navy Nexartis */
+  --accent-ink: #ffffff;
+  --accent2: #e87a2a;          /* orange Nexartis */
+  --accent2-ink: #1c1304;
+  --accent-soft: #f1f3f7;
+  --ink: #19202b;
+  --mute: #6b7480;
+  --line: #e7e9ee;
+  --title-size: 41px;
+  --card-radius: 24px;
+
+  font-family: var(--font-hanken, 'Hanken Grotesk'), system-ui, sans-serif;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+.dv-doc * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ---------- Page (A4 @96dpi) ---------- */
+.dv-page {
+  width: 794px;
+  min-height: 1123px;
+  background: var(--paper);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+}
+.dv-page + .dv-page { margin-top: 28px; }
+
+.dv-body { flex: 1; padding: 0 54px; }
+
+.dv-page-foot {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 54px 26px;
+  font-size: 10.5px;
+  color: var(--mute);
+  letter-spacing: .02em;
+}
+
+/* ---------- Party blocks (emetteur / client) ---------- */
+.dv-party { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--mute); }
+
+/* ============================================================================
+   Direction D — "Edition Signature" (bandeau geometrique + cartes flottantes)
+   ============================================================================ */
+.dv-headD { position: relative; }
+
+.dv-headD .dv-d-band {
+  position: relative;
+  background: var(--accent);
+  padding: 40px 54px 76px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+/* Accents geometriques angulaires */
+.dv-headD .dv-d-geo {
+  position: absolute; top: 0; right: 0; height: 100%; width: 340px;
+  background: var(--accent2); opacity: .10;
+  clip-path: polygon(38% 0, 100% 0, 100% 100%, 8% 100%);
+}
+.dv-headD .dv-d-geo2 {
+  position: absolute; top: 0; right: 232px; height: 100%; width: 70px;
+  background: var(--accent2); opacity: .85;
+  clip-path: polygon(58% 0, 100% 0, 42% 100%, 0% 100%);
+}
+
+/* Logo + nom artisan */
+.dv-headD .dv-d-brand { display: flex; align-items: center; gap: 14px; position: relative; z-index: 2; }
+.dv-headD .dv-d-logomark {
+  width: 50px; height: 50px; border-radius: 13px;
+  background: var(--accent2); color: var(--accent2-ink);
+  display: grid; place-items: center; flex: 0 0 auto;
+  overflow: hidden;
+}
+.dv-headD .dv-d-logomark img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.dv-headD .dv-d-logomark svg { width: 24px; height: 24px; }
+.dv-headD .dv-d-brandtext { display: flex; flex-direction: column; white-space: nowrap; }
+.dv-headD .dv-d-name { color: #fff; font-weight: 800; font-size: 21px; letter-spacing: -.01em; }
+.dv-headD .dv-d-base { color: rgba(255,255,255,.62); font-size: 11.5px; margin-top: 2px; }
+
+/* Titre + n° + meta */
+.dv-headD .dv-d-title { position: relative; z-index: 2; text-align: right; }
+.dv-headD .dv-d-doctype {
+  color: #fff; font-weight: 800; font-size: var(--title-size); line-height: .85;
+  letter-spacing: .01em; text-transform: uppercase;
+}
+.dv-headD .dv-d-num {
+  display: inline-block; margin-top: 14px;
+  background: var(--accent2); color: var(--accent2-ink);
+  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace; font-weight: 600; font-size: 14px;
+  padding: 6px 13px; border-radius: 7px; letter-spacing: -.01em;
+}
+.dv-headD .dv-d-metaline {
+  display: flex; gap: 20px; justify-content: flex-end;
+  margin-top: 14px; font-size: 11.5px; color: rgba(255,255,255,.66);
+}
+.dv-headD .dv-d-metaline strong { color: #fff; font-weight: 600; }
+
+/* Cartes flottantes (emetteur + client) qui chevauchent le bas du bandeau */
+.dv-headD .dv-d-parties {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  padding: 0 54px; margin-top: -46px; position: relative; z-index: 3;
+}
+.dv-headD .dv-d-card {
+  border-radius: var(--card-radius); padding: 20px 22px; position: relative; overflow: hidden;
+  box-shadow: 0 14px 34px rgba(18,28,46,.18);
+}
+.dv-headD .dv-d-card--from { background: #fff; border: 1px solid var(--line); }
+.dv-headD .dv-d-card--from::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent2);
+}
+.dv-headD .dv-d-card--to { background: var(--accent); color: #fff; }
+
+.dv-headD .dv-d-chip {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; padding: 4px 11px; border-radius: 6px; white-space: nowrap;
+  background: var(--accent); color: #fff; margin-bottom: 13px;
+}
+.dv-headD .dv-d-chip--accent { background: var(--accent2); color: var(--accent2-ink); }
+.dv-headD .dv-d-cardname { display: block; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.dv-headD .dv-d-card--from .dv-d-cardname { color: var(--ink); }
+.dv-headD .dv-d-cardrows { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; font-size: 12px; }
+.dv-headD .dv-d-card--from .dv-d-cardrows { color: var(--mute); }
+.dv-headD .dv-d-card--to .dv-d-cardrows { color: rgba(255,255,255,.72); }
+
+/* Objet + chantier — un peu d'air sous les cartes */
+.dv-dir-D .dv-objet { padding-top: 30px; }
+.dv-dir-D .dv-recap-net { background: var(--accent2); color: var(--accent2-ink); }
+.dv-dir-D .dv-row--group .dv-c-num { color: var(--accent2); }
+
+/* ---------- Objet + chantier (2 colonnes) ---------- */
+.dv-objet {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  padding: 22px 0 20px;
+}
+.dv-objet > div { font-size: 13px; color: var(--ink); display: flex; flex-direction: column; }
+.dv-objet-k {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--accent); font-weight: 600; margin-bottom: 5px;
+}
+
+/* ---------- Tableau des lignes (hierarchie 3 niveaux) ---------- */
+.dv-table { width: 100%; border-collapse: collapse; }
+.dv-table thead th {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--mute); font-weight: 600; text-align: left;
+  padding: 0 10px 9px; border-bottom: 1.5px solid var(--ink);
+}
+.dv-c-num { width: 42px; }
+.dv-c-qte { width: 70px; text-align: right !important; }
+.dv-c-pu  { width: 92px; text-align: right !important; }
+.dv-c-tva { width: 56px; text-align: right !important; }
+.dv-c-tot { width: 104px; text-align: right !important; }
+
+.dv-row td { padding: 9px 10px; vertical-align: top; }
+.dv-c-qte, .dv-c-pu, .dv-c-tva, .dv-c-tot { text-align: right; white-space: nowrap; }
+.dv-c-num { color: var(--mute); font-variant-numeric: tabular-nums; font-size: 11px; }
+.dv-unit { color: var(--mute); font-size: 10.5px; }
+
+/* Densite compact (par defaut V3) */
+.dv-density-compact .dv-row--item td { padding-top: 6px; padding-bottom: 6px; }
+.dv-density-compact .dv-row--group td { padding-top: 13px; }
+.dv-density-compact .dv-row--sub td { padding-top: 8px; padding-bottom: 4px; }
+
+/* Niveau 1 — groupe */
+.dv-row--group td { padding-top: 18px; border-bottom: 1px solid var(--line); }
+.dv-row--group .dv-c-desg { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.dv-row--group .dv-c-num { font-weight: 700; color: var(--accent); }
+.dv-row--group .dv-c-tot { font-weight: 700; }
+
+/* Niveau 2 — sous-section */
+.dv-row--sub td { padding-top: 11px; padding-bottom: 5px; }
+.dv-row--sub .dv-c-desg { font-weight: 600; color: var(--ink); font-size: 12.5px; }
+.dv-row--sub .dv-c-num { color: var(--ink); }
+.dv-row--sub .dv-c-tot { color: var(--mute); font-weight: 600; }
+
+/* Niveau 3 — feuille */
+.dv-row--item td { border-bottom: 1px solid var(--line); }
+.dv-row--item .dv-c-desg { color: var(--mute); padding-left: 4px; max-width: 320px; }
+.dv-row--item .dv-c-tot { color: var(--ink); font-weight: 600; }
+
+/* ---------- Recap (2 colonnes : notes + totaux) ---------- */
+.dv-recap {
+  display: grid; grid-template-columns: 1fr 320px; gap: 36px;
+  padding-top: 30px; align-items: start;
+}
+.dv-recap-notes-title {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--accent); font-weight: 600; margin-bottom: 8px;
+}
+.dv-recap-notes p { font-size: 12px; color: var(--mute); margin-bottom: 8px; max-width: 360px; }
+.dv-recap-notes strong { color: var(--ink); }
+.dv-recap-iban {
+  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace;
+  font-size: 11px !important;
+  word-break: break-all;
+}
+
+.dv-recap-line {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0; font-size: 13px; color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.dv-recap-line--mute { color: var(--mute); font-size: 12px; }
+.dv-recap-line--mute em { font-style: normal; font-size: 11px; opacity: .8; }
+.dv-recap-line--ttc { font-weight: 700; border-bottom: 2px solid var(--ink); }
+.dv-recap-net {
+  display: flex; justify-content: space-between; align-items: baseline;
+  background: var(--accent2); color: var(--accent2-ink);
+  padding: 14px 16px; border-radius: 10px; margin-top: 14px;
+}
+.dv-recap-net span { font-size: 12.5px; font-weight: 600; }
+.dv-recap-net strong { font-size: 22px; font-weight: 700; white-space: nowrap; }
+.dv-recap-foot { font-size: 10.5px; color: var(--mute); margin-top: 9px; text-align: right; }
+
+/* Bloc paiement (facture) */
+.dv-pay {
+  margin-top: 14px; padding: 14px 16px; border-radius: 12px;
+  background: var(--accent-soft); border: 1px solid var(--line);
+}
+.dv-pay-k {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--accent); font-weight: 700; margin-bottom: 8px;
+}
+.dv-pay-row { display: flex; gap: 12px; font-size: 12px; color: var(--mute); padding: 2px 0; }
+.dv-pay-row span { width: 84px; flex: 0 0 auto; }
+.dv-pay-row strong {
+  color: var(--ink); font-weight: 600;
+  font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace; font-size: 11.5px;
+  word-break: break-all;
+}
+
+/* ---------- Signature (devis uniquement) ---------- */
+.dv-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding-top: 36px; }
+.dv-sign-box {
+  border: 1px solid var(--line); border-radius: 10px;
+  height: 132px; padding: 14px 16px;
+  display: flex; flex-direction: column; justify-content: flex-start;
+}
+.dv-sign-label { font-size: 12px; font-weight: 700; color: var(--ink); }
+.dv-sign-hint { font-size: 11px; color: var(--mute); margin-top: 3px; }
+
+/* ---------- Mentions legales ---------- */
+.dv-legal { padding-top: 34px; }
+.dv-legal-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px 36px;
+  padding-top: 18px; border-top: 1px solid var(--line);
+}
+.dv-legal-grid > div { font-size: 11px; color: var(--mute); line-height: 1.5; }
+.dv-legal-k {
+  display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink); font-weight: 700; margin-bottom: 3px;
+}
+.dv-legal-foot {
+  display: flex; flex-wrap: wrap; gap: 6px 18px;
+  margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 10px; color: var(--mute);
+}
+
+/* ---------- Page 2 — petit bandeau de tete ---------- */
+.dv-page-head2 {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 40px 54px 18px; border-bottom: 1px solid var(--line);
+}
+.dv-ph2-brand { font-weight: 700; font-size: 14px; color: var(--ink); }
+.dv-ph2-meta { font-size: 11px; color: var(--mute); font-family: var(--font-spline-mono, 'Spline Sans Mono'), ui-monospace, monospace; }
+
+/* ---------- Impression ---------- */
+@media print {
+  @page { size: A4; margin: 0; }
+  .dv-page { box-shadow: none !important; margin: 0 !important; break-after: page; }
+}
