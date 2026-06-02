@@ -1,4 +1,4 @@
-// V3.0b.2 — DocumentRender (sans TopBand, signature/tampon visibles, footer simple page 2)
+// V3.0b.3 — DocumentRender (footer 4 lignes, pagination isolee)
 import { Fragment } from 'react'
 import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentMeta, DocumentTotals } from '@/lib/document-data'
@@ -22,9 +22,7 @@ export default function DocumentRender({ data }: { data: DocumentData }) {
       {hasPage2 && (
         <section className="dv-page">
           <PageHead2 artisan={data.artisan} meta={data.meta} docType={data.docType} />
-          <div className="dv-body">
-            <Signature artisan={data.artisan} />
-          </div>
+          <div className="dv-body"><Signature artisan={data.artisan} /></div>
           <PageFootSimple meta={data.meta} docType={data.docType} pageNum={2} totalPages={2} />
         </section>
       )}
@@ -32,9 +30,6 @@ export default function DocumentRender({ data }: { data: DocumentData }) {
   )
 }
 
-// ============================================================================
-// Header
-// ============================================================================
 function HeaderD({ data }: { data: DocumentData }) {
   const { artisan, meta, docType } = data
   const titre = docType === 'devis' ? 'DEVIS' : 'FACTURE'
@@ -86,13 +81,7 @@ function CardFrom({ artisan }: { artisan: DocumentArtisan }) {
         {!artisan.adresseLine1 && artisan.adresseLine2 && <div>{artisan.adresseLine2}</div>}
         {artisan.siret && <div>SIRET {artisan.siret}</div>}
         {artisan.tvaIntra && <div>TVA {artisan.tvaIntra}</div>}
-        {(artisan.tel || artisan.email) && (
-          <div>
-            {artisan.tel}
-            {artisan.tel && artisan.email && ' · '}
-            {artisan.email}
-          </div>
-        )}
+        {(artisan.tel || artisan.email) && (<div>{artisan.tel}{artisan.tel && artisan.email && ' · '}{artisan.email}</div>)}
       </div>
     </div>
   )
@@ -114,9 +103,6 @@ function CardTo({ client }: { client: DocumentClient }) {
   )
 }
 
-// ============================================================================
-// Objet + Tableau
-// ============================================================================
 function Objet({ meta }: { meta: DocumentMeta }) {
   return (
     <div className="dv-objet">
@@ -131,17 +117,12 @@ function LinesTable({ groups }: { groups: DocumentGroup[] }) {
     <table className="dv-table">
       <thead>
         <tr>
-          <th className="dv-c-num">#</th>
-          <th className="dv-c-desg">Désignation</th>
-          <th className="dv-c-qte">Qté</th>
-          <th className="dv-c-pu">P.U. HT</th>
-          <th className="dv-c-tva">TVA</th>
-          <th className="dv-c-tot">Total HT</th>
+          <th className="dv-c-num">#</th><th className="dv-c-desg">Désignation</th>
+          <th className="dv-c-qte">Qté</th><th className="dv-c-pu">P.U. HT</th>
+          <th className="dv-c-tva">TVA</th><th className="dv-c-tot">Total HT</th>
         </tr>
       </thead>
-      <tbody>
-        {groups.map((g, gi) => (<GroupRows key={`g-${gi}`} group={g} />))}
-      </tbody>
+      <tbody>{groups.map((g, gi) => (<GroupRows key={`g-${gi}`} group={g} />))}</tbody>
     </table>
   )
 }
@@ -172,10 +153,7 @@ function GroupRows({ group }: { group: DocumentGroup }) {
               <tr key={`i-${ii}`} className="dv-row dv-row--item">
                 <td className="dv-c-num">{it.n}</td>
                 <td className="dv-c-desg">{it.designation}</td>
-                <td className="dv-c-qte">
-                  {Number(it.qte).toLocaleString('fr-FR')}
-                  {it.unite && <span className="dv-unit"> {it.unite}</span>}
-                </td>
+                <td className="dv-c-qte">{Number(it.qte).toLocaleString('fr-FR')}{it.unite && <span className="dv-unit"> {it.unite}</span>}</td>
                 <td className="dv-c-pu">{eur(it.pu)}</td>
                 <td className="dv-c-tva">{tauxLabel(it.tva)}</td>
                 <td className="dv-c-tot">{eur(it.qte * it.pu)}</td>
@@ -188,28 +166,19 @@ function GroupRows({ group }: { group: DocumentGroup }) {
   )
 }
 
-// ============================================================================
-// Recap
-// ============================================================================
 function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType: 'devis' | 'facture'; meta: DocumentMeta }) {
   return (
     <div className="dv-recap-box">
       <div className="dv-recap-line"><span>Sous-total HT</span><span>{eur(totals.sousTotalHt)}</span></div>
-      {totals.tvaLignes.length === 0 && (
-        <div className="dv-recap-line dv-recap-line--mute"><span>TVA non applicable</span><span>{eur(0)}</span></div>
-      )}
+      {totals.tvaLignes.length === 0 && (<div className="dv-recap-line dv-recap-line--mute"><span>TVA non applicable</span><span>{eur(0)}</span></div>)}
       {totals.tvaLignes.map(l => (
         <div className="dv-recap-line dv-recap-line--mute" key={`t-${l.taux}`}>
-          <span>TVA {tauxLabel(l.taux)} <em>(base {eur(l.base)})</em></span>
-          <span>{eur(l.montant)}</span>
+          <span>TVA {tauxLabel(l.taux)} <em>(base {eur(l.base)})</em></span><span>{eur(l.montant)}</span>
         </div>
       ))}
       <div className="dv-recap-line dv-recap-line--ttc"><span>Total TTC</span><span>{eur(totals.totalTtc)}</span></div>
       {docType === 'devis' && totals.acomptePct > 0 && (
-        <div className="dv-recap-line dv-recap-line--mute">
-          <span>Acompte ({totals.acomptePct} %)</span>
-          <span>− {eur(totals.acompteMontant)}</span>
-        </div>
+        <div className="dv-recap-line dv-recap-line--mute"><span>Acompte ({totals.acomptePct} %)</span><span>− {eur(totals.acompteMontant)}</span></div>
       )}
       <div className="dv-recap-net">
         <span>{docType === 'devis' && totals.acomptePct > 0 ? 'Net à payer à la commande' : 'Net à payer'}</span>
@@ -218,9 +187,7 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
       {docType === 'devis' && totals.acomptePct > 0 && (
         <div className="dv-recap-foot">Reste dû à la livraison : {eur(totals.resteDu)} · Total TTC : {eur(totals.totalTtc)}</div>
       )}
-      {docType === 'facture' && meta.dateRight && (
-        <div className="dv-recap-foot">Échéance de règlement : {meta.dateRight}</div>
-      )}
+      {docType === 'facture' && meta.dateRight && (<div className="dv-recap-foot">Échéance de règlement : {meta.dateRight}</div>)}
     </div>
   )
 }
@@ -287,9 +254,6 @@ function RecapFacture({ data }: { data: DocumentData }) {
   )
 }
 
-// ============================================================================
-// Signature (V3.0b.2 : affiche signatureBase64 ou tamponBase64)
-// ============================================================================
 function Signature({ artisan }: { artisan: DocumentArtisan }) {
   const imgSrc = artisan.signatureBase64 || artisan.tamponBase64
   const imgAlt = artisan.signatureBase64 ? 'Signature' : 'Tampon'
@@ -306,17 +270,12 @@ function Signature({ artisan }: { artisan: DocumentArtisan }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imgSrc} alt={imgAlt} className="dv-sign-img" />
           </div>
-        ) : (
-          <div className="dv-sign-hint">Signature &amp; cachet de l&apos;entreprise</div>
-        )}
+        ) : (<div className="dv-sign-hint">Signature &amp; cachet de l&apos;entreprise</div>)}
       </div>
     </div>
   )
 }
 
-// ============================================================================
-// Mentions DEVIS
-// ============================================================================
 function LegalDevis({ data }: { data: DocumentData }) {
   const { artisan, clientType } = data
   const mediation = artisan.mediateurAdresse || 'Médiateur de la consommation : mediation-conso.fr — recours gratuit.'
@@ -326,24 +285,15 @@ function LegalDevis({ data }: { data: DocumentData }) {
       <div className="dv-legal-grid">
         {artisan.assurance && (<div><span className="dv-legal-k">Assurance décennale</span>{artisan.assurance}</div>)}
         {statutJuridique && (
-          <div>
-            <span className="dv-legal-k">Statut juridique</span>
-            {artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}
-            {artisan.rcs && <><br />{artisan.rcs}</>}
-          </div>
+          <div><span className="dv-legal-k">Statut juridique</span>{artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}{artisan.rcs && <><br />{artisan.rcs}</>}</div>
         )}
         <div><span className="dv-legal-k">Médiateur</span>{mediation}</div>
-        {clientType === 'particulier' && (
-          <div><span className="dv-legal-k">Rétractation</span>Rétractation 14 jours pour travaux hors établissement (art. L221-18 C. conso.).</div>
-        )}
+        {clientType === 'particulier' && (<div><span className="dv-legal-k">Rétractation</span>Rétractation 14 jours pour travaux hors établissement (art. L221-18 C. conso.).</div>)}
       </div>
     </div>
   )
 }
 
-// ============================================================================
-// Mentions FACTURE
-// ============================================================================
 function LegalFacture({ data }: { data: DocumentData }) {
   const { artisan, clientType } = data
   const mediation = artisan.mediateurAdresse || 'Médiateur de la consommation : mediation-conso.fr — recours gratuit.'
@@ -352,30 +302,19 @@ function LegalFacture({ data }: { data: DocumentData }) {
   return (
     <div className="dv-legal">
       <div className="dv-legal-grid">
-        {hasTvaReduite && (
-          <div><span className="dv-legal-k">Attestation TVA</span>Le client atteste que les travaux portent sur des locaux d&apos;habitation achevés depuis plus de 2 ans, ouvrant droit aux taux de TVA réduits.</div>
-        )}
+        {hasTvaReduite && (<div><span className="dv-legal-k">Attestation TVA</span>Le client atteste que les travaux portent sur des locaux d&apos;habitation achevés depuis plus de 2 ans, ouvrant droit aux taux de TVA réduits.</div>)}
         <div><span className="dv-legal-k">Cadre légal</span>Facture émise conformément aux articles L.441-3 et suivants du Code de commerce.</div>
         {artisan.assurance && (<div><span className="dv-legal-k">Assurance décennale</span>{artisan.assurance}</div>)}
         {statutJuridique && (
-          <div>
-            <span className="dv-legal-k">Statut juridique</span>
-            {artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}
-            {artisan.rcs && <><br />{artisan.rcs}</>}
-          </div>
+          <div><span className="dv-legal-k">Statut juridique</span>{artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}{artisan.rcs && <><br />{artisan.rcs}</>}</div>
         )}
         <div><span className="dv-legal-k">Médiation</span>{mediation}</div>
-        {clientType === 'particulier' && (
-          <div><span className="dv-legal-k">Pénalités</span>En cas de retard : pénalités au taux de 3× l&apos;intérêt légal. Pas d&apos;escompte pour paiement anticipé.</div>
-        )}
+        {clientType === 'particulier' && (<div><span className="dv-legal-k">Pénalités</span>En cas de retard : pénalités au taux de 3× l&apos;intérêt légal. Pas d&apos;escompte pour paiement anticipé.</div>)}
       </div>
     </div>
   )
 }
 
-// ============================================================================
-// Footers + Page 2 head
-// ============================================================================
 function PageFootRich({ artisan, meta, docType, pageNum, totalPages }: { artisan: DocumentArtisan; meta: DocumentMeta; docType: 'devis' | 'facture'; pageNum: number; totalPages: number }) {
   const label = docType === 'devis' ? 'Devis' : 'Facture'
   const line1Parts = [
@@ -390,9 +329,10 @@ function PageFootRich({ artisan, meta, docType, pageNum, totalPages }: { artisan
     <div className="dv-page-foot-rich">
       {line1Parts.length > 0 && <div>{line1Parts.join(' — ')}</div>}
       {line2Parts.length > 0 && <div>{line2Parts.join(' — ')}</div>}
-      <div className="dv-pf-bottom">
-        <span>{line3Parts.join(' — ')}</span>
-        <span className="dv-pf-pagenum">Page {pageNum} sur {totalPages} — N° {meta.numero} ({label})</span>
+      {line3Parts.length > 0 && <div className="dv-pf-rcs">{line3Parts.join(' — ')}</div>}
+      <div className="dv-pf-pagenum">
+        <span>{label} N° {meta.numero}</span>
+        <span>Page {pageNum} sur {totalPages}</span>
       </div>
     </div>
   )
