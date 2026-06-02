@@ -30,3 +30,6 @@ Thumbs.db
 npm-debug.log*
 
 tsconfig.tsbuildinfo
+
+# Artefacts Linux/FUSE
+.fuse_hidden*
