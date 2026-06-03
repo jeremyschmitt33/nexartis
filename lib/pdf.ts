@@ -1,123 +1,35 @@
-// -------------------------------------------------------------------
-// Server-side PDF generation for devis & factures
-// jsPDF + jspdf-autotable
-// Refonte v2 : hiérarchie 3 niveaux (sections / sous-sections / prestations),
-// nouvelle palette Nexartis, factures de situation, footer répété.
-// -------------------------------------------------------------------
+// lib/pdf.ts - V3.0c "Edition Signature"
+// Orchestrateur PDF Devis + Facture. La logique de rendu est repartie dans
+// les modules lib/pdf/* (palette, utils, header, identity, objet, table,
+// totals, legal, signatures, footer).
+//
+// Exports publics conserves (utilises par les routes API) :
+//   - generateDevisPdf(data: DevisData): string
+//   - generateFacturePdf(data: FactureData): string
 
 import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import type { CellHookData, Styles } from 'jspdf-autotable'
-// V2.4a — Source unique de verite des mentions TVA (parite stricte HTML/PDF).
-// On garde l'import limite aux 3 constantes ; lib/legal-mentions.ts est
-// server-safe (pas de dependance React/DOM).
-// V2.4b — Ajout des facades getLegalMentionsDevis / getLegalMentionsFacture
-// pour centraliser la construction des blocs de mentions legales du PDF
-// (decennale, forme juridique, RCS/RM, mediateur, retractation, penalites,
-// indemnite forfaitaire, escompte, L441-3, mentions custom). Les TVA mentions
-// restent rendues separement dans le PDF (positionnement visuel different).
+import { registerPdfFonts } from '@/lib/pdf-fonts'
+
+import { fmtDate, normalizeLignes, detectForfaitMode, type PdfLigne } from './pdf/utils'
+import { drawHeader, drawMiniHeaderPages2Plus } from './pdf/header'
+import { drawIdentityCards } from './pdf/identity'
+import { drawObjet } from './pdf/objet'
+import { drawTable } from './pdf/table'
+import { drawTotals } from './pdf/totals'
 import {
-  TVA_MENTION_10 as LEGAL_TVA_MENTION_10,
-  TVA_MENTION_5_5 as LEGAL_TVA_MENTION_5_5,
-  TVA_MENTION_AE as LEGAL_TVA_MENTION_AE,
-  getLegalMentionsDevis,
-  getLegalMentionsFacture,
-  type LegalContext,
-  type LegalMention,
-} from '@/lib/legal-mentions'
+  drawLegal,
+  getChampsLegauxManquants,
+  drawIncompletProfileBanner,
+  type LegalEntreprise,
+} from './pdf/legal'
+import { drawSignatures } from './pdf/signatures'
+import { drawFooterAllPages } from './pdf/footer'
 
-// -------------------------------------------------------------------
-// Palette Nexartis (RGB)
-// jsPDF ne supporte pas l'alpha sur setFillColor : on utilise les
-// équivalents solides calculés sur fond blanc pour les zones « avec
-// opacité » (cadres artisan/client, bandeau objet, etc.).
-// -------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Interfaces publiques (conservation stricte des champs vs ancien lib/pdf.ts)
+// ---------------------------------------------------------------------------
 
-const C = {
-  navy: [15, 26, 58] as [number, number, number],          // #0f1a3a
-  navyText: [15, 26, 58] as [number, number, number],
-  sky: [90, 180, 224] as [number, number, number],         // #5ab4e0
-  skySection: [168, 212, 236] as [number, number, number], // #a8d4ec (fond section tableau)
-  skyPale: [220, 238, 250] as [number, number, number],    // #dceefa
-  skyVeryPale: [232, 244, 251] as [number, number, number],// #e8f4fb (objet)
-  skyArtisanBg: [230, 243, 251] as [number, number, number], // #e6f3fb (fond cadre artisan pale)
-  skyBorder: [171, 214, 236] as [number, number, number],  // #abd6ec (bordure 40%)
-  netBlue: [26, 111, 181] as [number, number, number],     // #1a6fb5 (NET A PAYER, accents)
-  netBlueAccent: [45, 139, 201] as [number, number, number], // #2d8bc9
-  green: [34, 197, 94] as [number, number, number],        // #22c55e
-  greenDark: [21, 128, 61] as [number, number, number],    // #15803d
-  greenPale: [230, 247, 235] as [number, number, number],  // #e6f7eb (fond cadre client pale)
-  greenBorder: [168, 216, 185] as [number, number, number],// #a8d8b9
-  orange: [232, 122, 42] as [number, number, number],      // #e87a2a
-  muted: [95, 108, 128] as [number, number, number],       // #5f6c80
-  border: [230, 236, 242] as [number, number, number],     // #e6ecf2
-  white: [255, 255, 255] as [number, number, number],
-  black: [40, 40, 40] as [number, number, number],
-  grayLightBg: [249, 250, 251] as [number, number, number], // #f9fafb (fond récap totaux)
-  // Filet de sécurité — bannière "mentions légales incomplètes"
-  amberBg: [254, 243, 199] as [number, number, number],    // #fef3c7 (amber-100)
-  amberBorder: [252, 211, 77] as [number, number, number], // #fcd34d (amber-300)
-  amberText: [120, 53, 15] as [number, number, number],    // #78350f (amber-900)
-  amberAccent: [180, 83, 9] as [number, number, number],   // #b45309 (amber-700)
-}
-
-// ─────────────────────────────────────────────────────────────
-// Détection profil entreprise incomplet (mentions légales)
-// ─────────────────────────────────────────────────────────────
-//
-// Doit rester en miroir avec lib/helpers.ts (CHAMPS_LEGAUX_DEVIS).
-// On ne fait pas l'import depuis helpers pour garder ce fichier
-// 100% server-safe et autonome.
-
-const CHAMPS_LEGAUX_PDF: { champ: string; label: string }[] = [
-  { champ: 'nom', label: 'Raison sociale' },
-  { champ: 'siret', label: 'SIRET' },
-  { champ: 'forme_juridique', label: 'Forme juridique' },
-  { champ: 'adresse', label: 'Adresse' },
-  { champ: 'code_postal', label: 'Code postal' },
-  { champ: 'ville', label: 'Ville' },
-]
-
-function getChampsLegauxManquants(ent: Record<string, unknown> | null | undefined): string[] {
-  if (!ent) return CHAMPS_LEGAUX_PDF.map(c => c.label)
-  return CHAMPS_LEGAUX_PDF
-    .filter(c => {
-      const val = ent[c.champ]
-      return !val || String(val).trim() === ''
-    })
-    .map(c => c.label)
-}
-
-// -------------------------------------------------------------------
-// Helpers
-// -------------------------------------------------------------------
-
-function fmt(n: number): string {
-  // Bug fix (V8) : Intl.NumberFormat('fr-FR') retourne un narrow no-break space U+202F
-  // (Node >= 18) ou un no-break space U+00A0 (anciens runtimes) comme separateur de milliers.
-  // La police Helvetica de jsPDF ne sait pas dessiner ces glyphes et affiche un caractere
-  // casse en prod ("40/000,00 €" au lieu de "40 000,00 €"). On normalise donc tous
-  // les espaces unicode vers un espace ASCII standard.
-  const raw = new Intl.NumberFormat('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n)
-  // U+00A0 no-break, U+202F narrow no-break, U+2009 thin space
-  const safe = raw.replace(/[\u00a0\u202f\u2009]/g, ' ')
-  return safe + ' €'
-}
-
-const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('fr-FR') : ''
-
-function setFill(doc: jsPDF, c: [number, number, number]) { doc.setFillColor(c[0], c[1], c[2]) }
-function setDraw(doc: jsPDF, c: [number, number, number]) { doc.setDrawColor(c[0], c[1], c[2]) }
-function setText(doc: jsPDF, c: [number, number, number]) { doc.setTextColor(c[0], c[1], c[2]) }
-
-// -------------------------------------------------------------------
-// Interfaces
-// -------------------------------------------------------------------
-
-interface Entreprise {
+export interface Entreprise {
   nom?: string
   metier?: string
   adresse?: string
@@ -141,7 +53,6 @@ interface Entreprise {
   logo_url?: string
   signature_base64?: string
   tampon_base64?: string
-  // Médiateur — ancien champ libre (rétro-compatibilité) + 4 nouveaux sous-champs (28/05/2026).
   mediateur?: string
   mediateur_nom?: string
   mediateur_adresse?: string
@@ -165,7 +76,7 @@ export interface Ligne {
   taux_tva?: number
 }
 
-interface Dechets {
+export interface Dechets {
   nature?: string
   quantite?: string
   responsable?: string
@@ -189,10 +100,10 @@ export interface DevisData {
   clientNom: string
   clientAdresse?: string
   clientType?: string
-  /** SIRET du client si professionnel (B2B). Obligatoire art. L441-9 C. comm. */
   clientSiret?: string
-  /** N° TVA intracommunautaire du client (B2B intra-UE). */
   clientTvaIntra?: string
+  /** Adresse du chantier (peut differer de l'adresse client). */
+  chantier_adresse?: string
   montant_ht: number
   montant_tva: number
   montant_ttc: number
@@ -213,27 +124,22 @@ export interface FactureData {
   clientNom: string
   clientAdresse?: string
   clientType?: string
-  /** SIRET du client si professionnel (B2B). Obligatoire art. L441-9 C. comm. */
   clientSiret?: string
-  /** N° TVA intracommunautaire du client (B2B intra-UE). */
   clientTvaIntra?: string
+  chantier_adresse?: string
   montant_ht: number
   montant_tva: number
   montant_ttc: number
   lignes: Ligne[]
   entreprise: Entreprise
-  /** @deprecated utiliser `conditions_paiement` (UI dédiée) + `notes_personnalisees` (notes visibles client) */
+  /** @deprecated utiliser `conditions_paiement` + `notes_personnalisees` */
   notes?: string
-  /** Conditions de règlement visibles sur le PDF. Pré-rempli par défaut si vide. */
   conditions_paiement?: string
-  /** Notes libres visibles client (ex: "Travaux du 11 au 13 mai 2026"). Remplace l'ancien "notes internes". */
   notes_personnalisees?: string
-  /** Acompte déjà versé — montants HT/TTC et libellé optionnel. */
   acompte_pourcent?: number
   acompte_montant_ht?: number
   acompte_montant_ttc?: number
   acompte_label?: string
-  // Factures de situation
   type?: 'standard' | 'acompte' | 'situation' | 'avoir'
   numero_situation?: number
   pourcentage_situation?: number
@@ -245,1570 +151,201 @@ export interface FactureData {
   reste_a_facturer_ttc?: number
 }
 
-// -------------------------------------------------------------------
-// Conditions de paiement par défaut (si vide)
-// -------------------------------------------------------------------
-const DEFAULT_CONDITIONS_PAIEMENT =
+export const DEFAULT_CONDITIONS_PAIEMENT =
   'Méthodes de paiement acceptées : Virement bancaire, Chèque.'
 
-// -------------------------------------------------------------------
-// TVA mentions automatiques
-// -------------------------------------------------------------------
-//
-// V2.4a — Source de verite : lib/legal-mentions.ts (re-export ci-dessous
-// sous les memes noms pour preserver le code existant de ce fichier).
-// Toute modification doit etre faite dans lib/legal-mentions.ts pour ne
-// pas faire diverger HTML dashboard / HTML signer / PDF.
-
-const TVA_MENTION_10 = LEGAL_TVA_MENTION_10
-const TVA_MENTION_5_5 = LEGAL_TVA_MENTION_5_5
-const TVA_MENTION_AE = LEGAL_TVA_MENTION_AE
-
-// ─────────────────────────────────────────────────────────────────────────────
-// V2.4b — Construction du LegalContext pour les facades getLegalMentionsDevis
-// et getLegalMentionsFacture. Centralise la deduction du clientType (pro si
-// SIRET present, sinon particulier) et le mapping entreprise → LegalEntreprise.
-//
-// hasSousTraitanceBTP : reserve pour V2.4c/d quand la colonne DB sera dispo
-// (false par defaut pour ne pas afficher la mention par erreur).
-// ─────────────────────────────────────────────────────────────────────────────
-function buildLegalContext(
-  kind: 'devis' | 'facture',
-  ent: Entreprise,
-  lignes: Ligne[],
-  client: { siret?: string; type?: string },
-  factureType?: 'standard' | 'avoir' | 'acompte' | 'situation',
-): LegalContext {
-  // Deduction clientType : si le client est marque explicitement "professionnel"
-  // ou s'il a un SIRET, on bascule en B2B (declenche l'indemnite forfaitaire 40 EUR).
-  const explicit = (client.type || '').toLowerCase()
-  let clientType: 'particulier' | 'pro' = 'particulier'
-  if (explicit === 'professionnel' || explicit === 'pro' || explicit === 'entreprise') {
-    clientType = 'pro'
-  } else if (client.siret && client.siret.trim() !== '') {
-    clientType = 'pro'
-  }
-
-  return {
-    kind,
-    entreprise: ent as unknown as LegalContext['entreprise'],
-    client: { siret: client.siret, client_type: client.type },
-    clientType,
-    lignes: lignes as unknown as LegalContext['lignes'],
-    factureType,
-    hasSousTraitanceBTP: false, // V2.4c/d : ajouter la lecture depuis la DB
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// V2.4b — Filtre des cles "TVA" produites par les facades (deja rendues
-// separement dans le PDF). On extrait egalement la cle "autoliq" si on
-// la traite plus tard dans la zone TVA — pour le moment elle reste dans le
-// bloc "entreprise" puisque hasSousTraitanceBTP=false.
-// ─────────────────────────────────────────────────────────────────────────────
-const TVA_KEYS = new Set(['tva-ae', 'tva-10', 'tva-55'])
-
-function isTvaMention(m: LegalMention): boolean {
-  return TVA_KEYS.has(m.key)
-}
-
-// Rendu d'une liste de mentions en italique 6.5pt (style standard PDF bas de page).
-// Retourne le nouveau leftY apres rendu.
-function drawLegalMentionsBlock(
-  doc: jsPDF,
-  mentions: LegalMention[],
-  startY: number,
-  x: number,
-  maxW: number,
-): number {
-  let leftY = startY
-  for (const m of mentions) {
-    doc.setFontSize(6.5)
-    doc.setFont('helvetica', m.italique === false ? 'normal' : 'italic')
-    setText(doc, C.muted)
-    const split = doc.splitTextToSize(m.text, maxW)
-    doc.text(split, x, leftY)
-    leftY += split.length * 2.6 + 0.6
-  }
-  return leftY
-}
-
-function getTvaMentions(lignes: Ligne[]): string[] {
-  const prest = lignes.filter(isPrestation)
-  const taux = new Set(prest.map((l) => l.taux_tva ?? 20))
-  const mentions: string[] = []
-  const allZero = prest.length > 0 && prest.every((l) => (l.taux_tva ?? 20) === 0)
-  if (allZero) { mentions.push(TVA_MENTION_AE); return mentions }
-  if (taux.has(10)) mentions.push(TVA_MENTION_10)
-  if (taux.has(5.5)) mentions.push(TVA_MENTION_5_5)
-  return mentions
-}
-
-function computeTvaGroups(lignes: Ligne[]): Record<number, number> {
-  const groups: Record<number, number> = {}
-  for (const l of lignes.filter(isPrestation)) {
-    const rate = l.taux_tva ?? 20
-    const ht = (l.quantite ?? 0) * (l.prix_unitaire_ht ?? 0)
-    groups[rate] = (groups[rate] || 0) + ht * (rate / 100)
-  }
-  return groups
-}
-
-function computeTvaBases(lignes: Ligne[]): Record<number, number> {
-  const bases: Record<number, number> = {}
-  for (const l of lignes.filter(isPrestation)) {
-    const rate = l.taux_tva ?? 20
-    const ht = (l.quantite ?? 0) * (l.prix_unitaire_ht ?? 0)
-    bases[rate] = (bases[rate] || 0) + ht
-  }
-  return bases
-}
-
-/**
- * Detecte le "mode forfait global" : l'artisan a coche la case "prix forfaitaire
- * global" cote saisie, ce qui sauvegarde un montant_ht > 0 alors que toutes les
- * lignes ont un prix unitaire HT a 0. Sans cette detection, le PDF affiche des
- * lignes a 0 EUR + un sous-total a 40 000 EUR = confusion client garantie.
- *
- * Retour true uniquement si :
- *   - il y a au moins une prestation
- *   - la somme des prestations vaut 0
- *   - le montant_ht passe par l'appelant est strictement positif
- */
-export function detectForfaitMode(lignes: Ligne[], montantHt: number): boolean {
-  const prest = lignes.filter(isPrestation)
-  if (prest.length === 0) return false
-  if (!(montantHt > 0)) return false
-  const sumLignes = prest.reduce((s, l) => s + (l.quantite ?? 0) * (l.prix_unitaire_ht ?? 0), 0)
-  return sumLignes < 0.01
-}
-
-/**
- * Dessine un bandeau "MODE FORFAIT GLOBAL" pleine largeur juste avant le tableau,
- * pour expliquer pourquoi les lignes vont apparaitre a 0 EUR alors que le total
- * indique 40 000 EUR. Visible parite HTML/PDF.
- */
-function drawForfaitBanner(doc: jsPDF, montantHt: number, y: number): number {
-  const M = 14
-  const pageW = 210
-  const w = pageW - 2 * M
-  // V2.7 — 11 -> 9 (densification audit)
-  const h = 9
-  // V10 — Bandeau bleu (parite design system Nexartis) au lieu d'orange.
-  // Fond #e8f4fb (skyVeryPale), bordure et accent #1a6fb5 (netBlue).
-  setFill(doc, C.skyVeryPale)
-  setDraw(doc, C.netBlue); doc.setLineWidth(0.4)
-  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'FD')
-  setFill(doc, C.netBlue)
-  doc.rect(M, y, 1.8, h, 'F')
-  // V2.7 — label 8 -> 7.5 (densification)
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-  doc.text('FORFAIT GLOBAL', M + 5, y + 3.8)
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-  doc.text(
-    `Montant total convenu de ${fmt(montantHt)} HT. Le detail ci-dessous est informatif.`,
-    M + 5, y + 7.2
-  )
-  return y + h + 4
-}
-
-// -------------------------------------------------------------------
-// Hiérarchie : normalisation + sous-totaux
-// -------------------------------------------------------------------
-
-function isPrestation(l: Ligne): boolean {
-  // backward compat : ligne sans type/niveau = prestation
-  if (!l.type && !l.niveau) return true
-  if (l.type === 'prestation') return true
-  if (l.niveau === 3 && l.type !== 'commentaire' && l.type !== 'saut_page') return true
-  return false
-}
-
-/**
- * Normalise les lignes : si aucune n'a de type/niveau (ancien format),
- * toutes deviennent des prestations niveau 3 avec numéro séquentiel.
- * Sinon, on remplit les niveau/type/numero manquants au mieux.
- */
-function normalizeLignes(input: Ligne[]): Ligne[] {
-  const hasHierarchy = input.some(l => l.type || l.niveau || l.numero || l.parent_id)
-
-  if (!hasHierarchy) {
-    return input.map((l, i) => ({
-      ...l,
-      type: 'prestation' as const,
-      niveau: 3 as const,
-      numero: String(i + 1),
-    }))
-  }
-
-  // Format hiérarchique : on garde tel quel, en complétant les défauts
-  return input.map((l, i) => {
-    const niveau = (l.niveau ?? (l.type === 'section' ? 1 : l.type === 'sous_section' ? 2 : 3)) as 1 | 2 | 3
-    const type = l.type ?? (niveau === 1 ? 'section' : niveau === 2 ? 'sous_section' : 'prestation')
-    return {
-      ...l,
-      niveau,
-      type,
-      numero: l.numero ?? '',
-    }
-  })
-}
-
-/**
- * Calcule les sous-totaux pour chaque section et sous-section.
- * Retourne un Map<id, total HT>.
- *
- * Règle :
- * - Sous-section = somme des prestations dont parent_id = id de la sous-section
- * - Section = somme des sous-totaux de ses sous-sections + somme directe des
- *   prestations dont parent_id = id de la section (cas où il n'y a pas de
- *   sous-section intermédiaire)
- */
-export function computeSubtotals(lignes: Ligne[]): Map<string, number> {
-  const map = new Map<string, number>()
-
-  // V12 — Bug fix : la version precedente s'appuyait sur l.parent_id qui n'est
-  // PAS stocke en DB (sauvegarde page Nouveau/Modifier ne le persiste pas).
-  // Resultat : tous les sous-totaux a 0,00 EUR sur le PDF.
-  // Nouvelle approche : on itere dans l'ordre visuel. Chaque prestation est
-  // rattachee implicitement a la derniere section/sous-section vue, comme dans
-  // le rendu HTML. C'est plus robuste et fonctionne pour les factures historiques
-  // sans parent_id.
-  const sorted = [...lignes].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
-
-  let currentSectionId: string | null = null
-  let currentSubSectionId: string | null = null
-
-  for (const l of sorted) {
-    if (l.type === 'section' && l.id) {
-      currentSectionId = l.id as string
-      currentSubSectionId = null
-      if (!map.has(currentSectionId)) map.set(currentSectionId, 0)
-    } else if (l.type === 'sous_section' && l.id) {
-      currentSubSectionId = l.id as string
-      if (!map.has(currentSubSectionId)) map.set(currentSubSectionId, 0)
-    } else if (isPrestation(l)) {
-      const ht = (l.quantite ?? 0) * (l.prix_unitaire_ht ?? 0)
-      if (currentSubSectionId) {
-        map.set(currentSubSectionId, (map.get(currentSubSectionId) ?? 0) + ht)
-      }
-      if (currentSectionId) {
-        map.set(currentSectionId, (map.get(currentSectionId) ?? 0) + ht)
-      }
-    }
-  }
-
-  return map
-}
-
-// -------------------------------------------------------------------
-// Footer répété sur chaque page
-// -------------------------------------------------------------------
-
-function drawFooterAllPages(doc: jsPDF, ent: Entreprise, numero: string) {
-  const total = doc.getNumberOfPages()
-  const pageW = 210
-  const pageH = 297
-  const M = 14
-  const footerTop = pageH - 14 // y du trait sky
-
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i)
-
-    // Trait sky 0.4mm
-    setDraw(doc, C.sky)
-    doc.setLineWidth(0.4)
-    doc.line(M, footerTop, pageW - M, footerTop)
-
-    let y = footerTop + 3.2
-
-    doc.setFontSize(7)
-    doc.setFont('helvetica', 'normal')
-    setText(doc, C.muted)
-
-    // Ligne 1 : entreprise + adresse + SIRET + email
-    // L'email vient toujours de la fiche entreprise (workaround V8 retiré le 21/05/2026)
-    const id = [
-      ent.nom,
-      ent.adresse ? `${ent.adresse}${ent.code_postal || ent.ville ? `, ${ent.code_postal || ''} ${ent.ville || ''}`.replace(/  +/g, ' ').trim() : ''}` : '',
-      ent.siret ? `SIRET : ${ent.siret}` : '',
-      ent.email ? `Email : ${ent.email}` : '',
-    ].filter(Boolean).join(' — ')
-    if (id) doc.text(id, pageW / 2, y, { align: 'center', maxWidth: pageW - 2 * M })
-    y += 3.2
-
-    // Ligne 2 : tel + décennale (avec zone géographique, P12 audit)
-    const line2Parts: string[] = []
-    if (ent.telephone) line2Parts.push(`Tél : ${ent.telephone}`)
-    if (ent.assurance_nom) {
-      let partAssurance = `Garantie décennale ${ent.assurance_nom}`
-      if (ent.decennale_numero) partAssurance += ` (n° ${ent.decennale_numero})`
-      // P12 (audit) : zone géographique couverte par la décennale (obligation BTP)
-      if (ent.assurance_zone) partAssurance += ` — Zone : ${ent.assurance_zone}`
-      line2Parts.push(partAssurance)
-    }
-    if (line2Parts.length) doc.text(line2Parts.join(' — '), pageW / 2, y, { align: 'center', maxWidth: pageW - 2 * M })
-    y += 3.2
-
-    // V2.7 — Ligne 3 conditionnelle : forme juridique + capital, RCS/RM, APE/NAF.
-    // N'apparait que pour les structures concernees (societes avec capital,
-    // immatriculation RCS/RM, ou code NAF). Pour les AE/Micro/EI : rien.
-    // Bloc legal C (corps du devis/facture) garde les memes mentions detaillees ;
-    // ici c'est la version compactee pour le footer (parite Obat / Vosfactures).
-    const fj = (ent.forme_juridique ?? '').trim()
-    const isSociete = fj.length > 0
-      && !/^(ae|micro|micro-?entreprise|micro-entrepreneur|auto-?entrepreneur|ei|entreprise\s+individuelle)$/i.test(fj)
-    const line3Parts: string[] = []
-    if (isSociete && ent.capital_social && String(ent.capital_social).trim()) {
-      line3Parts.push(`${fj} au capital de ${String(ent.capital_social).trim()} €`)
-    }
-    if (ent.rcs_rm && ent.rcs_rm.trim()) {
-      line3Parts.push(ent.rcs_rm.trim())
-    }
-    if (ent.code_naf && String(ent.code_naf).trim()) {
-      line3Parts.push(`APE ${String(ent.code_naf).trim()}`)
-    }
-    if (line3Parts.length) {
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-      doc.text(line3Parts.join(' — '), pageW / 2, y, { align: 'center', maxWidth: pageW - 2 * M })
-    }
-
-    // Coin bas-droit : Page X sur Y + N°
-    doc.setFontSize(7)
-    setText(doc, C.muted)
-    doc.text(`Page ${i} sur ${total} — N° ${numero}`, pageW - M, pageH - 4, { align: 'right' })
-  }
-}
-
-// -------------------------------------------------------------------
-// Mini-header pour pages 2+ (titre + numéro + page X/Y, trait sky)
-// Doit être appelé APRÈS le rendu complet (toutes pages connues)
-// -------------------------------------------------------------------
-
-function drawMiniHeaderAllPagesAfterFirst(doc: jsPDF, title: string, numero: string) {
-  const total = doc.getNumberOfPages()
-  if (total < 2) return
-  const pageW = 210
-  const M = 14
-
-  for (let i = 2; i <= total; i++) {
-    doc.setPage(i)
-    // Texte centré "TITRE N° XXX — Page X/Y"
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); setText(doc, C.navy)
-    doc.text(`${title} N° ${numero} — Page ${i}/${total}`, pageW / 2, 10, { align: 'center' })
-    // Trait sky 0.3mm
-    setDraw(doc, C.sky); doc.setLineWidth(0.3)
-    doc.line(M, 13, pageW - M, 13)
-  }
-}
-
-// -------------------------------------------------------------------
-// Header (logo + titre + n° + dates) — partagé devis/facture
-// -------------------------------------------------------------------
-
-interface HeaderOpts {
-  title: string          // "DEVIS" ou "FACTURE" ou "FACTURE DE SITUATION"
-  numero: string
-  subtitle?: string      // ex "Situation N° 2"
-  refLine?: string       // ex "Sur devis N° D-2025-001 du 01/01/2025"
-  dateLine: string       // ligne dates centrée
-}
-
-function drawHeader(doc: jsPDF, ent: Entreprise, opts: HeaderOpts, _startY: number): number {
-  // V2.8a — Refonte Option C : mini-bandeau navy + titre orange droite + N° navy + dates centrées
-  // Le param startY est ignoré : le bandeau démarre TOUJOURS à y=0 (pleine largeur).
-  // Le logo et le nom affichés sont ceux de l'ARTISAN (ent.logo_url, ent.nom) — JAMAIS Nexartis.
-  const pageW = 210
-  const M = 14
-  const centerX = pageW / 2
-
-  // === 1. MINI-BANDEAU NAVY 14mm (pleine largeur, y=0 à y=14) ===
-  setFill(doc, C.navy)
-  doc.rect(0, 0, pageW, 14, 'F')
-
-  // Accent orange à gauche (5mm × 14mm)
-  setFill(doc, C.orange)
-  doc.rect(0, 0, 5, 14, 'F')
-
-  // Texte bandeau : nom artisan + métier (centré verticalement à y=9)
-  const nomEnt = (ent.nom || '').trim()
-  const metierEnt = (ent.metier || '').trim()
-  if (nomEnt || metierEnt) {
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    setText(doc, C.white)
-    let bandeauText = nomEnt
-    if (nomEnt && metierEnt) bandeauText += '  -  ' + metierEnt
-    else if (metierEnt) bandeauText = metierEnt
-    doc.text(bandeauText, 10, 9)
-  }
-
-  // === 2. ZONE TITRE (sous bandeau) ===
-  const titleZoneY = 22
-
-  // Logo entreprise ARTISAN gauche (jamais Nexartis)
-  const LOGO_H = 26
-  const LOGO_MAX_W = 60
-  let logoDrawn = false
-  if (ent.logo_url && ent.logo_url.startsWith('data:image')) {
-    try {
-      const logoFormat = ent.logo_url.includes('image/png') ? 'PNG' : 'JPEG'
-      const imgProps = doc.getImageProperties(ent.logo_url)
-      const ratio = imgProps.width / imgProps.height
-      let logoW = LOGO_H * ratio
-      if (logoW > LOGO_MAX_W) logoW = LOGO_MAX_W
-      doc.addImage(ent.logo_url, logoFormat, M, titleZoneY, logoW, LOGO_H)
-      logoDrawn = true
-    } catch { /* logo invalide, ignoré */ }
-  }
-  // Pas de fallback texte ici — l'identité de l'artisan apparaîtra dans drawIdentityBoxes
-  void logoDrawn
-
-  // V2.8a.1 — Titre ORANGE CENTRÉ (au lieu d'aligné droite, retour préférence user)
-  // Auto-resize si titre long (FACTURE DE SITUATION = 20 chars)
-  const titleText = opts.title
-  const titleFontSize = titleText.length > 12 ? 20 : 28
-  doc.setFontSize(titleFontSize)
-  doc.setFont('helvetica', 'bold')
-  setText(doc, C.orange)
-  doc.text(titleText, centerX, titleZoneY + 12, { align: 'center', charSpace: 1.5 })
-
-  // N° doc NAVY CENTRÉ (sous le titre)
-  doc.setFontSize(14)
-  doc.setFont('helvetica', 'bold')
-  setText(doc, C.navy)
-  doc.text(opts.numero, centerX, titleZoneY + 20, { align: 'center' })
-
-  let y = titleZoneY + 24
-
-  // Sous-titre éventuel (factures de situation) — centré
-  if (opts.subtitle) {
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    setText(doc, C.netBlueAccent)
-    doc.text(opts.subtitle, centerX, y, { align: 'center' })
-    y += 4
-  }
-  if (opts.refLine) {
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    setText(doc, C.muted)
-    doc.text(opts.refLine, centerX, y, { align: 'center' })
-    y += 4
-  }
-
-  // === 3. LIGNE DATES CENTRÉE ===
-  // Reformatage : "Date :" → "Émis le", "|" → "—", suppression des ":"
-  const dateLineFormatted = opts.dateLine
-    .replace(/Date\s*:\s*/g, 'Émis le ')
-    .replace(/\s*:\s*/g, ' ')
-    .replace(/\s*\|\s*/g, '  -  ')
-
-  const datesY = Math.max(y + 4, 52)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  setText(doc, C.navy)
-  doc.text(dateLineFormatted, centerX, datesY, { align: 'center' })
-
-  // === 4. y FINAL ===
-  let finalY = datesY + 6
-
-  // S'assurer que finalY >= bottom du logo (logo zone : titleZoneY à titleZoneY+LOGO_H)
-  const minYAfterLogo = titleZoneY + LOGO_H + 2
-  if (finalY < minYAfterLogo) finalY = minYAfterLogo
-
-  // V2.8a : pas de trait sky séparateur (Option C — design plus minimal)
-  // Marge avant cadres ARTISAN/CLIENT
-  return finalY + 4
-}
-
-// -------------------------------------------------------------------
-// Cadres ARTISAN + CLIENT
-// -------------------------------------------------------------------
-
-function drawIdentityBoxes(
-  doc: jsPDF,
-  ent: Entreprise,
-  data: {
-    clientNom: string
-    clientAdresse?: string
-    /** SIRET du client (si pro). Obligatoire art. L441-9 C. comm. */
-    clientSiret?: string
-    /** N° TVA intracom du client (B2B intra-UE). */
-    clientTvaIntra?: string
-  },
-  y: number,
-): number {
-  const M = 14
-  const boxW = 88
-  const lx = M
-  const rx = M + boxW + 6
-  // V2.7 — padding réduit (5 -> 3) pour densifier les cadres ARTISAN/CLIENT
-  // V2.8a.1 — padding augmenté pour aérer les boîtes (4 au lieu de 3)
-  const padX = 4
-  const padTop = 4
-  const radius = 1.8
-
-  // --- Mesure contenu ARTISAN ---
-  const artisanLines: { text: string; size: number; bold?: boolean; color: [number, number, number] }[] = []
-  artisanLines.push({ text: 'A R T I S A N', size: 8, bold: true, color: C.netBlue })
-  artisanLines.push({ text: ent.nom || '', size: 11, bold: true, color: C.navyText })
-  if (ent.adresse) artisanLines.push({ text: ent.adresse, size: 8.5, color: C.muted })
-  if (ent.code_postal || ent.ville) artisanLines.push({ text: `${ent.code_postal || ''} ${ent.ville || ''}`.trim(), size: 8.5, color: C.muted })
-  if (ent.siret) artisanLines.push({ text: `SIRET : ${ent.siret}`, size: 8.5, color: C.muted })
-  // P11 (audit) : afficher le N° TVA intracom de l'émetteur. Obligation
-  // facture B2B / intra-UE. Champ DB : entreprises.tva_intracommunautaire.
-  if (ent.tva_intracommunautaire) {
-    artisanLines.push({ text: `TVA intracom. : ${ent.tva_intracommunautaire}`, size: 8.5, color: C.muted })
-  }
-  if (ent.telephone) artisanLines.push({ text: `Tél : ${ent.telephone}`, size: 8.5, color: C.muted })
-
-  // --- Mesure contenu CLIENT ---
-  const clientLines: { text: string; size: number; bold?: boolean; color: [number, number, number] }[] = []
-  clientLines.push({ text: 'C L I E N T', size: 8, bold: true, color: C.greenDark })
-  clientLines.push({ text: data.clientNom, size: 11, bold: true, color: C.navyText })
-  if (data.clientAdresse) {
-    const parts = data.clientAdresse.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean)
-    for (const p of parts) clientLines.push({ text: p, size: 8.5, color: C.muted })
-  }
-  // P11 (audit) : afficher le SIRET du client si pro. Obligation art. L441-9 C. comm.
-  if (data.clientSiret) {
-    clientLines.push({ text: `SIRET : ${data.clientSiret}`, size: 8.5, color: C.muted })
-  }
-  // TVA intracom du client (B2B intra-UE) — affiché si présent.
-  if (data.clientTvaIntra) {
-    clientLines.push({ text: `TVA intracom. : ${data.clientTvaIntra}`, size: 8.5, color: C.muted })
-  }
-
-  // Hauteur uniforme
-  // V2.7 — gain ~0.4mm par ligne (densification audit)
-  const lineHeight = (size: number) => size * 0.42 + 1.2
-  const heightOf = (lines: { size: number }[]) => lines.reduce((s, l) => s + lineHeight(l.size), 0)
-  const hA = heightOf(artisanLines)
-  const hC = heightOf(clientLines)
-  const boxH = Math.max(hA, hC) + padTop + 4
-
-  // --- Dessin ARTISAN ---
-  setFill(doc, C.skyArtisanBg)
-  doc.roundedRect(lx, y, boxW, boxH, radius, radius, 'F')
-  setDraw(doc, C.sky)
-  doc.setLineWidth(0.6)
-  doc.roundedRect(lx, y, boxW, boxH, radius, radius, 'S')
-  // Bordure gauche épaisse 4px — 1.4mm
-  setFill(doc, C.sky)
-  doc.rect(lx, y, 1.4, boxH, 'F')
-
-  let ay = y + padTop
-  for (const line of artisanLines) {
-    doc.setFontSize(line.size)
-    doc.setFont('helvetica', line.bold ? 'bold' : 'normal')
-    setText(doc, line.color)
-    ay += line.size * 0.42
-    doc.text(line.text, lx + padX, ay, { maxWidth: boxW - padX - 3 })
-    ay += 1.6
-  }
-
-  // --- Dessin CLIENT ---
-  setFill(doc, C.greenPale)
-  doc.roundedRect(rx, y, boxW, boxH, radius, radius, 'F')
-  setDraw(doc, C.green)
-  doc.setLineWidth(0.6)
-  doc.roundedRect(rx, y, boxW, boxH, radius, radius, 'S')
-  setFill(doc, C.green)
-  doc.rect(rx, y, 1.4, boxH, 'F')
-
-  let cy = y + padTop
-  for (const line of clientLines) {
-    doc.setFontSize(line.size)
-    doc.setFont('helvetica', line.bold ? 'bold' : 'normal')
-    setText(doc, line.color)
-    cy += line.size * 0.42
-    doc.text(line.text, rx + padX, cy, { maxWidth: boxW - padX - 3 })
-    cy += 1.6
-  }
-
-  // V5 : marge cadres — objet/tableau = 8mm (identique à trait—cadres pour symétrie parfaite)
-  return y + boxH + 8
-}
-
-// -------------------------------------------------------------------
-// Bandeau OBJET
-// -------------------------------------------------------------------
-
-// ─────────────────────────────────────────────────────────────
-// Bannière jaune "Mentions légales incomplètes" (filet de sécurité)
-// ─────────────────────────────────────────────────────────────
-//
-// Affichée en haut du PDF du devis dès qu'au moins une mention
-// obligatoire manque dans le profil entreprise. Coûte ~16mm de
-// hauteur. Disparaît automatiquement dès que l'artisan complète
-// son profil dans les Paramètres.
-function drawIncompletProfileBanner(
-  doc: jsPDF,
-  champsManquants: string[],
-  y: number,
-): number {
-  const M = 14
-  const pageW = 210
-  const w = pageW - 2 * M
-  // V2.7 — 14 -> 11 (densification audit)
-  const h = 11
-  setFill(doc, C.amberBg)
-  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'F')
-  setDraw(doc, C.amberBorder); doc.setLineWidth(0.5)
-  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'S')
-  // Trait gauche épais
-  setFill(doc, C.amberAccent)
-  doc.rect(M, y, 1.8, h, 'F')
-
-  // Titre — V2.7 : 8.5 -> 7 (densification)
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'bold')
-  setText(doc, C.amberText)
-  doc.text('MENTIONS LEGALES INCOMPLETES', M + 5, y + 4.2)
-
-  // Liste des champs manquants
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-  setText(doc, C.amberAccent)
-  const champsStr = `Manquant${champsManquants.length > 1 ? 's' : ''} dans le profil entreprise : ${champsManquants.join(', ')}.`
-  const split = doc.splitTextToSize(champsStr, w - 8)
-  doc.text(split, M + 5, y + 8.2)
-
-  return y + h + 4
-}
-
-function drawObjet(doc: jsPDF, objet: string, y: number): number {
-  const M = 14
-  const pageW = 210
-  const w = pageW - 2 * M
-  // V2.7 — 9 -> 8 (densification audit)
-  const h = 8
-  setFill(doc, C.skyVeryPale)
-  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'F')
-  // Bordure visible
-  setDraw(doc, C.sky); doc.setLineWidth(0.4)
-  doc.roundedRect(M, y, w, h, 1.5, 1.5, 'S')
-  // Trait gauche épais 5px — 1.8mm
-  setFill(doc, C.sky)
-  doc.rect(M, y, 1.8, h, 'F')
-
-  // V2.7 — label OBJET 8 -> 7, texte 9 -> 8.5 (densification audit)
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'bold')
-  setText(doc, C.netBlueAccent)
-  doc.text('OBJET :', M + 5, y + 5.6)
-
-  doc.setFontSize(8.5)
-  doc.setFont('helvetica', 'bold')
-  setText(doc, C.navyText)
-  doc.text(objet, M + 22, y + 5.6, { maxWidth: w - 24 })
-
-  // V4 : marge plus généreuse objet — tableau
-  return y + h + 3
-}
-
-// -------------------------------------------------------------------
-// Tableau hiérarchique (sections / sous-sections / prestations)
-// -------------------------------------------------------------------
-
-interface RowMeta {
-  kind: 'section' | 'sous_section' | 'prestation' | 'commentaire'
-  ligneIdx: number
-}
-
-function fmtTvaCell(l: { taux_tva?: number | null }): string {
-  if (l.taux_tva == null) return '—'
-  const t = l.taux_tva
-  if (t === 0) return '0%'
-  if (t === 5.5) return '5,5%'
-  if (t === 10) return '10%'
-  if (t === 20) return '20%'
-  return `${t}%`.replace('.', ',')
-}
-
-function drawHierTable(doc: jsPDF, lignes: Ligne[], startY: number, bottomMargin = 22): number {
-  const M = 14
-  const pageW = 210
-  const tableW = pageW - 2 * M
-
-  const subtotals = computeSubtotals(lignes)
-
-  // Construction des lignes du tableau dans l'ordre des `lignes` reçues
-  const body: (string | { content: string; styles?: Partial<Styles> })[][] = []
-  const meta: RowMeta[] = []
-
-  for (let i = 0; i < lignes.length; i++) {
-    const l = lignes[i]
-    if (l.type === 'saut_page') continue
-
-    if (l.type === 'section') {
-      const sub = (l.id && subtotals.get(l.id)) || 0
-      body.push([
-        l.numero ?? '',
-        l.designation.toUpperCase(),
-        '', '', '', '',
-        fmt(sub),
-      ])
-      meta.push({ kind: 'section', ligneIdx: i })
-    } else if (l.type === 'sous_section') {
-      const sub = (l.id && subtotals.get(l.id)) || 0
-      body.push([
-        l.numero ?? '',
-        l.designation,
-        '', '', '', '',
-        fmt(sub),
-      ])
-      meta.push({ kind: 'sous_section', ligneIdx: i })
-    } else if (l.type === 'commentaire') {
-      body.push([
-        l.numero ?? '',
-        l.designation,
-        '', '', '', '', '',
-      ])
-      meta.push({ kind: 'commentaire', ligneIdx: i })
-    } else {
-      // prestation (default)
-      const q = l.quantite ?? 0
-      const pu = l.prix_unitaire_ht ?? 0
-      body.push([
-        l.numero ?? '',
-        l.designation,
-        String(q),
-        l.unite ?? '',
-        fmt(pu),
-        fmtTvaCell(l),
-        fmt(q * pu),
-      ])
-      meta.push({ kind: 'prestation', ligneIdx: i })
-    }
-  }
-
-  autoTable(doc, {
-    startY,
-    head: [['N°', 'DÉSIGNATION', 'QTÉ', 'UNITÉ', 'PRIX U. HT', 'TVA', 'TOTAL HT']],
-    body,
-    theme: 'plain',
-    margin: { left: M, right: M, top: 18, bottom: bottomMargin },
-    tableWidth: tableW,
-    showHead: 'everyPage',
-    rowPageBreak: 'avoid',
-    styles: {
-      font: 'helvetica',
-      fontSize: 8,
-      cellPadding: 1.9,
-      lineColor: C.border,
-      lineWidth: 0.1,
-      textColor: C.navyText,
-      overflow: 'linebreak',
-      valign: 'middle',
-    },
-    headStyles: {
-      fillColor: C.navy,
-      textColor: C.white,
-      fontStyle: 'bold',
-      fontSize: 8,
-      halign: 'center',
-      cellPadding: 2.0,
-      lineWidth: 0,
-    },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 14 },
-      1: { halign: 'left', cellWidth: 'auto' },
-      2: { halign: 'center', cellWidth: 14 },
-      3: { halign: 'center', cellWidth: 17 },
-      4: { halign: 'right', cellWidth: 23 },
-      5: { halign: 'center', cellWidth: 14 },
-      6: { halign: 'right', cellWidth: 25 },
-    },
-    didParseCell: (data: CellHookData) => {
-      if (data.section !== 'body') return
-      const m = meta[data.row.index]
-      if (!m) return
-
-      if (m.kind === 'section') {
-        // V2.7 — Hiérarchie typographique forcée (audit challenger : bug à corriger)
-        data.cell.styles.fontSize = 9.5
-        data.cell.styles.fillColor = C.skySection
-        data.cell.styles.fontStyle = 'bold'
-        data.cell.styles.cellPadding = 2.8
-        if (data.column.index === 0) {
-          data.cell.styles.textColor = C.netBlue
-        } else if (data.column.index === 1) {
-          data.cell.styles.textColor = C.navy
-        } else if (data.column.index === 6) {
-          data.cell.styles.textColor = C.netBlue
-          data.cell.styles.halign = 'right'
-        } else {
-          data.cell.styles.textColor = C.navy
-        }
-      } else if (m.kind === 'sous_section') {
-        // V2.7 — Hiérarchie typographique forcée (audit challenger : bug à corriger)
-        data.cell.styles.fontSize = 9
-        data.cell.styles.fillColor = C.skyPale
-        data.cell.styles.fontStyle = 'bold'
-        data.cell.styles.cellPadding = 2.6
-        if (data.column.index === 0) {
-          data.cell.styles.textColor = C.netBlue
-          data.cell.styles.fontStyle = 'bold'
-        } else if (data.column.index === 1) {
-          data.cell.styles.textColor = C.navy
-          data.cell.styles.fontStyle = 'bold'
-        } else if (data.column.index === 6) {
-          data.cell.styles.textColor = C.netBlue
-          data.cell.styles.halign = 'right'
-        } else {
-          data.cell.styles.textColor = C.navy
-        }
-      } else if (m.kind === 'commentaire') {
-        data.cell.styles.fillColor = C.white
-        data.cell.styles.textColor = C.muted
-        data.cell.styles.fontStyle = 'italic'
-      } else {
-        // prestation
-        if (data.column.index === 0) {
-          data.cell.styles.textColor = C.muted
-        } else if (data.column.index === 3) {
-          data.cell.styles.textColor = C.muted
-        } else if (data.column.index === 6) {
-          data.cell.styles.fontStyle = 'bold'
-          data.cell.styles.textColor = C.navy
-        }
-      }
-    },
-    didDrawCell: (data: CellHookData) => {
-      // Trait gauche d'accent : SECTION (2pt netBlue) et SOUS_SECTION (1pt sky)
-      if (data.section === 'body' && data.column.index === 0) {
-        const m = meta[data.row.index]
-        if (m?.kind === 'section') {
-          setFill(doc, C.netBlue)
-          doc.rect(data.cell.x, data.cell.y, 1.2, data.cell.height, 'F')
-        } else if (m?.kind === 'sous_section') {
-          setFill(doc, C.sky)
-          doc.rect(data.cell.x, data.cell.y, 0.8, data.cell.height, 'F')
-        }
-      }
-      // Traits verticaux fins entre colonnes (header + lignes prestation uniquement,
-      // pas pour sections/sous-sections qui ont des cellules fusionnees visuellement)
-      const m = meta[data.row.index]
-      const isPrestationRow = data.section === 'body' && (!m || m.kind === 'prestation')
-      const isHeader = data.section === 'head'
-      if ((isHeader || isPrestationRow) && data.column.index < 6) {
-        setDraw(doc, isHeader ? [255, 255, 255] : C.border)
-        doc.setLineWidth(0.1)
-        const x = data.cell.x + data.cell.width
-        doc.line(x, data.cell.y, x, data.cell.y + data.cell.height)
-      }
-    },
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (doc as any).lastAutoTable.finalY + 4
-}
-
-// -------------------------------------------------------------------
-// Bloc totaux + NET A PAYER (à droite) — refonte v3 : 3 blocs encadrés
-// -------------------------------------------------------------------
-
-interface TotalsOpts {
-  ht: number
-  ttc: number
-  tvaGroups: Record<number, number>
-  /** V2.7.1 — Bases HT par taux. Si fourni et multi-taux, affiche "sur X €" dans la ligne TVA. */
-  tvaBases?: Record<number, number>
-  netLabel?: string
-  netAmount?: number
-  // Bloc C — Acompte (devis uniquement)
-  acomptePct?: number
-  acompteMontant?: number
-  resteMontant?: number
-  // Bloc C alternatif — Reste à facturer (factures de situation)
-  resteAFacturerHT?: number
-  resteAFacturerTTC?: number
-  // V9 — Mode forfait global : remplace le libellé "Sous-total HT" par
-  // "Forfait global" pour eviter l'incoherence visuelle (lignes a 0 EUR
-  // au-dessus + sous-total positif). Coche cote saisie "Appliquer un prix
-  // forfaitaire global". Calcule via detectForfaitMode() par l'appelant.
-  isForfait?: boolean
-}
-
-function drawTotals(doc: jsPDF, opts: TotalsOpts, y: number): number {
-  const pageW = 210
-  const M = 14
-  const blockW = 80
-  const rightX = pageW - M - blockW
-  const padX = 3
-  const valueX = pageW - M - padX
-  const labelX = rightX + padX
-
-  // V4 : l'acompte devient une LIGNE du récap (entre Total TTC et NET À PAYER),
-  // pour que NET À PAYER reste la dernière ligne — la plus importante.
-  const hasAcompte = opts.acomptePct !== undefined && opts.acomptePct > 0
-    && opts.acompteMontant !== undefined && opts.resteMontant !== undefined
-
-  // —— BLOC A — RÉCAPITULATIF HT/TVA/TTC (+ acompte si présent) ——
-  // Bug fix (V8) : on filtre les taux nuls / NaN / negatifs (cas "Sans TVA",
-  // franchise art. 293 B CGI / auto-entrepreneur) pour ne PAS afficher de ligne
-  // "TVA 0% — 0,00 €" ni "TVA 10% — 0,00 €" parasites dans le recapitulatif.
-  // Si pas de TVA -> aucune ligne TVA n'est dessinee.
-  const sortedRates = Object.keys(opts.tvaGroups)
-    .map(Number)
-    .filter((r) => Number.isFinite(r) && r > 0 && (opts.tvaGroups[r] ?? 0) > 0.005)
-    .sort((a, b) => a - b)
-  const headerH = 5
-  const rowH = 4.8         // un poil plus aéré
-  // 2 lignes fixes (HT + TTC) + TVA(s) + (acompte si présent)
-  const rowsCount = 2 + sortedRates.length + (hasAcompte ? 1 : 0)
-  const blockAH = headerH + rowsCount * rowH + 1.8
-
-  // Cadre extérieur — fond gris très clair, bordure visible
-  setFill(doc, C.grayLightBg)
-  setDraw(doc, C.border); doc.setLineWidth(0.4)
-  doc.roundedRect(rightX, y, blockW, blockAH, 1.5, 1.5, 'FD')
-
-  // Header "RÉCAPITULATIF"
-  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); setText(doc, C.muted)
-  doc.text('RÉCAPITULATIF', labelX, y + 3.4, { charSpace: 0.4 })
-
-  let rowY = y + headerH + 0.5
-  let rowIdx = 0
-
-  // Helper : dessine une ligne — couleurs configurables pour l'acompte (vert)
-  const drawRow = (
-    label: string,
-    value: string,
-    isBold: boolean,
-    labelColor?: [number, number, number],
-    valueColor?: [number, number, number],
-  ) => {
-    if (rowIdx > 0) {
-      setDraw(doc, C.border); doc.setLineWidth(0.15)
-      doc.line(rightX + 1.5, rowY, rightX + blockW - 1.5, rowY)
-    }
-    // V2.7 — 8.5 -> 8 (densification recap audit)
-    doc.setFontSize(8)
-    doc.setFont('helvetica', isBold ? 'bold' : 'normal')
-    setText(doc, labelColor ?? (isBold ? C.navy : C.muted))
-    doc.text(label, labelX, rowY + rowH - 1.6)
-    doc.setFont('helvetica', isBold ? 'bold' : 'normal')
-    setText(doc, valueColor ?? C.navy)
-    doc.text(value, valueX, rowY + rowH - 1.6, { align: 'right' })
-    rowY += rowH
-    rowIdx++
-  }
-
-  // Sous-total HT — V9 : si mode forfait global (case "prix forfaitaire global"
-  // cochee cote saisie), on remplace le libelle pour eviter l'incoherence
-  // visuelle (lignes a 0 EUR + sous-total positif). Le bandeau "MODE FORFAIT
-  // GLOBAL" est deja dessine au-dessus du tableau (voir drawForfaitBanner).
-  drawRow(opts.isForfait ? 'Forfait global HT' : 'Sous-total HT', fmt(opts.ht), true)
-  // TVA par taux. V2.7.1 : si multi-taux et bases fournies, on affiche
-  // "TVA 5,5% sur 20 300,00 € : 1 116,50 €" pour conformité CGI 242 nonies A
-  // (mention obligatoire du total HT par taux). En mono-taux, le sous-total
-  // HT au-dessus suffit donc on garde le format court.
-  const isMultiTaux = sortedRates.length > 1
-  for (const rate of sortedRates) {
-    const baseHt = opts.tvaBases?.[rate]
-    const rateLabel = isMultiTaux && baseHt !== undefined
-      ? `TVA ${rate}% sur ${fmt(baseHt)}`
-      : `TVA ${rate}%`
-    drawRow(rateLabel, fmt(opts.tvaGroups[rate]), false)
-  }
-  // Total TTC
-  drawRow('Total TTC', fmt(opts.ttc), true)
-  // Acompte versé (intégré au récap, en vert, avec signe -)
-  if (hasAcompte) {
-    const label = opts.acomptePct ? `Acompte versé (${opts.acomptePct}%)` : 'Acompte versé'
-    drawRow(label, `- ${fmt(opts.acompteMontant!)}`, true, C.greenDark, C.greenDark)
-  }
-
-  y = y + blockAH + 3 // marge 3mm récap — NET À PAYER
-
-  // —— BLOC B — NET À PAYER (toujours en dernier — ligne la plus importante) ——
-  // V2.6.1 : netH 10 → 11 pour donner un peu plus d'air au bandeau bleu
-  const netH = 11
-  setFill(doc, C.netBlue)
-  doc.roundedRect(rightX, y, blockW, netH, 2, 2, 'F')
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); setText(doc, C.white)
-  doc.text(opts.netLabel ?? 'NET À PAYER', rightX + 4, y + netH / 2 + 1.5)
-  doc.setFontSize(12)
-  // Si acompte présent, netAmount = TTC - acompte (déjà calculé par l'appelant)
-  doc.text(fmt(opts.netAmount ?? opts.ttc), pageW - M - 4, y + netH / 2 + 2, { align: 'right' })
-  y += netH + 2
-
-  // —— BLOC C — Reste à facturer (factures de situation uniquement) ——
-  const hasReste = opts.resteAFacturerHT !== undefined || opts.resteAFacturerTTC !== undefined
-
-  if (false) {
-    // hasAcompte est maintenant géré DANS le récap ci-dessus — bloc séparé supprimé
-  } else if (hasReste) {
-    const accH = 13
-    setFill(doc, C.greenPale)
-    doc.roundedRect(rightX, y, blockW, accH, 1.5, 1.5, 'F')
-    setFill(doc, C.green)
-    doc.rect(rightX, y, 1.4, accH, 'F')
-
-    const lineGap = 5
-    const yLine1 = y + 5
-    const yLine2 = yLine1 + lineGap
-
-    if (opts.resteAFacturerHT !== undefined) {
-      doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-      doc.text('Reste à facturer HT', rightX + 4, yLine1)
-      doc.setFont('helvetica', 'bold'); setText(doc, C.navy)
-      doc.text(fmt(opts.resteAFacturerHT), pageW - M - padX, yLine1, { align: 'right' })
-    }
-    if (opts.resteAFacturerTTC !== undefined) {
-      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); setText(doc, C.greenDark)
-      doc.text('Reste à facturer TTC', rightX + 4, yLine2)
-      doc.text(fmt(opts.resteAFacturerTTC), pageW - M - padX, yLine2, { align: 'right' })
-    }
-
-    y += accH + 2
-  }
-
-  return y
-}
-
-// -------------------------------------------------------------------
-// Ventilation TVA (tableau simple aligné à droite)
-// -------------------------------------------------------------------
-
-function drawTvaBreakdown(doc: jsPDF, lignes: Ligne[], y: number): number {
-  const groups = computeTvaGroups(lignes)
-  const bases = computeTvaBases(lignes)
-  // Bug fix (V8) : on exclut les taux nuls / NaN / negatifs ET les montants nuls
-  // du tableau de ventilation TVA (franchise art. 293 B CGI : pas de mention
-  // "Taux 0% — Base : X — 0 €" ni "TVA 10% — 0 €" parasite).
-  const rates = Object.keys(groups)
-    .map(Number)
-    .filter((r) => Number.isFinite(r) && r > 0 && (groups[r] ?? 0) > 0.005)
-    .sort((a, b) => a - b)
-  if (rates.length === 0) return y
-
-  const pageW = 210
-  const M = 14
-  const rightX = pageW - M - 80
-  const valueX = pageW - M
-
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); setText(doc, C.muted)
-  doc.text('VENTILATION TVA', rightX, y)
-  y += 3
-
-  setDraw(doc, C.border); doc.setLineWidth(0.2)
-  doc.line(rightX, y, valueX, y); y += 3
-
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal')
-  for (const r of rates) {
-    setText(doc, C.muted); doc.text(`Taux ${r}%`, rightX, y)
-    setText(doc, C.navy); doc.text(`Base : ${fmt(bases[r] ?? 0)}`, rightX + 26, y)
-    doc.text(fmt(groups[r]), valueX, y, { align: 'right' })
-    y += 4
-  }
-
-  return y + 1
-}
-
-// ===================================================================
-// DEVIS PDF
-// ===================================================================
-
+// ===========================================================================
+// DEVIS
+// ===========================================================================
 export function generateDevisPdf(data: DevisData): string {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  registerPdfFonts(doc)
   const ent = data.entreprise
-  const lignes = normalizeLignes(data.lignes)
+  const lignes = normalizeLignes(data.lignes as PdfLigne[])
 
-  // —— HEADER ——
-  const dateParts: string[] = []
-  dateParts.push(`Date : ${fmtDate(data.date_emission)}`)
-  if (data.date_validite) dateParts.push(`Valide jusqu'au : ${fmtDate(data.date_validite)}`)
-  if (data.duree_travaux) dateParts.push(`Durée estimée : ${data.duree_travaux}`)
-
-  let y = drawHeader(doc, ent, {
-    title: 'DEVIS',
-    numero: data.numero,
-    dateLine: dateParts.join(' | '),
-  }, 12)
-
-  // —— FILET DE SÉCURITÉ : bannière "mentions légales incomplètes" ——
-  // Disparaît dès que le profil entreprise est complet.
-  const champsManquantsDevis = getChampsLegauxManquants(ent as unknown as Record<string, unknown>)
-  if (champsManquantsDevis.length > 0) {
-    y = drawIncompletProfileBanner(doc, champsManquantsDevis, y)
-  }
-
-  // —— CADRES ARTISAN + CLIENT ——
-  y = drawIdentityBoxes(doc, ent, { clientNom: data.clientNom, clientAdresse: data.clientAdresse }, y)
-
-  // —— OBJET ——
-  if (data.objet) y = drawObjet(doc, data.objet, y)
-
-  // —— MODE FORFAIT GLOBAL (V8) : bandeau explicite si les lignes sont a 0 EUR ——
-  if (detectForfaitMode(lignes, data.montant_ht)) {
-    y = drawForfaitBanner(doc, data.montant_ht, y)
-  }
-
-  // —— TABLE HIÉRARCHIQUE ——
-  // V2.6.1 : réserve dynamique selon présence acompte (au lieu de 91 fixe).
-  // Le 91 forçait un saut de page prématuré sur les devis courts.
-  const hasAcompte = !!(data.acompte_pourcent && data.acompte_pourcent > 0)
-  // V2.7 — Densification globale : ~10mm gagnes sur boites + bandeaux + tableau.
-  // On reduit la reserve devis de 10mm pour que le tableau prenne plus de place
-  // avant un saut de page.
-  const tableReserveDevis = hasAcompte ? 78 : 68
-  y = drawHierTable(doc, lignes, y, tableReserveDevis)
-
-  // —— TOTAUX (à droite) ——
-  // Hauteur estimée : récap (~30mm) + NET (11+2) + acompte éventuel (15) + signatures (~32) — 95mm
-  const NEEDED_BOTTOM = hasAcompte ? 85 : 72
-  // V2.6 : addPage redondant supprimé (drawHierTable gère le bottomMargin)
-
-  y += 6 // V2.6 : marge respiration tableau — totaux (devis)
-  let tvaGroups = computeTvaGroups(lignes)
-  const isForfaitDevis = detectForfaitMode(lignes, data.montant_ht)
-  // V11 — Meme fix qu'en facture : mode forfait + TVA > 0, on reconstruit
-  // tvaGroups depuis data.montant_tva sinon la ligne TVA disparait du recap.
-  if (isForfaitDevis && data.montant_tva > 0 && data.montant_ht > 0) {
-    const tauxBrut = (data.montant_tva / data.montant_ht) * 100
-    const taux = Math.round(tauxBrut * 10) / 10
-    tvaGroups = { [taux]: data.montant_tva }
-  }
-  const totalsStartY = y
-  const acompteTTC = hasAcompte ? data.montant_ttc * ((data.acompte_pourcent as number) / 100) : undefined
-  const resteTTC = hasAcompte ? data.montant_ttc - (acompteTTC as number) : undefined
-
-  // V2.7.1 : calcul des bases HT par taux pour affichage dans le récap
-  // (remplace l'ancien bloc Ventilation TVA séparé)
-  const tvaBases = computeTvaBases(lignes)
-
-  let rightY = drawTotals(doc, {
-    ht: data.montant_ht,
-    ttc: data.montant_ttc,
-    tvaGroups,
-    tvaBases,
-    netLabel: 'NET À PAYER',
-    netAmount: hasAcompte ? resteTTC : undefined,
-    acomptePct: hasAcompte ? data.acompte_pourcent : undefined,
-    acompteMontant: acompteTTC,
-    resteMontant: resteTTC,
-    isForfait: isForfaitDevis,
-  }, y)
-
-  // V2.7.1 : suppression du bloc Ventilation TVA séparé.
-  // Les bases HT par taux sont désormais intégrées au récapitulatif ci-dessus.
-  // (Conformité CGI 242 nonies A préservée via le format "TVA X% sur Y €".)
-
-  // —— COLONNE GAUCHE : conditions + mentions ——
-  let leftY = totalsStartY
-  const M = 14
-  const leftMaxW = 88
-
-  if (data.conditions_paiement) {
-    // V2.7 — label 8.5 -> 8 (densification audit)
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.navy)
-    doc.text('Conditions de paiement', M, leftY); leftY += 4
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-    const split = doc.splitTextToSize(data.conditions_paiement, leftMaxW)
-    doc.text(split, M, leftY); leftY += split.length * 3.2 + 3
-  }
-
-  // Mentions TVA (italique, petit)
-  const tvaMentions = getTvaMentions(lignes)
-  if (tvaMentions.length > 0) {
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
-    for (const m of tvaMentions) {
-      const split = doc.splitTextToSize(m, leftMaxW)
-      doc.text(split, M, leftY); leftY += split.length * 2.6 + 1.5
-    }
-  }
-
-  // Déchets AGEC
-  if (data.dechets && (data.dechets.nature || data.dechets.collecte_nom)) {
-    leftY += 1
-    setDraw(doc, C.border); doc.setLineWidth(0.2)
-    doc.line(M, leftY, M + leftMaxW, leftY); leftY += 2.5
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); setText(doc, C.muted)
-    doc.text('GESTION DES DÉCHETS (AGEC)', M, leftY); leftY += 3
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-    const dechParts: string[] = []
-    if (data.dechets.nature) dechParts.push(`Nature : ${data.dechets.nature}`)
-    if (data.dechets.responsable) dechParts.push(data.dechets.responsable)
-    if (data.dechets.tri) dechParts.push(`Tri : ${data.dechets.tri}`)
-    if (data.dechets.collecte_nom) dechParts.push(`Collecte : ${data.dechets.collecte_nom}${data.dechets.collecte_type ? ` (${data.dechets.collecte_type})` : ''}`)
-    const dechWrapped = doc.splitTextToSize(dechParts.join(' · '), leftMaxW)
-    doc.text(dechWrapped, M, leftY); leftY += dechWrapped.length * 2.8
-  }
-
-  // V2.4b — Mentions legales standardisees (devis) issues de la facade
-  // getLegalMentionsDevis (lib/legal-mentions.ts). Source UNIQUE de verite
-  // partagee avec : HTML dashboard devis, HTML signer client (V2.4c).
-  // On exclut ici les mentions TVA, deja rendues plus haut (positionnement
-  // visuel distinct dans le PDF).
-  const devisLegalCtx = buildLegalContext(
-    'devis',
+  // 1. HEADER bandeau navy
+  const headerBottomY = drawHeader(
+    doc,
     ent,
-    lignes,
-    { siret: data.clientSiret, type: data.clientType },
+    'DEVIS',
+    data.numero,
+    fmtDate(data.date_emission),
+    'Émis le',
+    fmtDate(data.date_validite),
+    "Valable jusqu'au",
   )
-  const devisLegalMentions = getLegalMentionsDevis(devisLegalCtx).filter(m => !isTvaMention(m))
-  if (devisLegalMentions.length > 0) {
-    leftY += 1
-    leftY = drawLegalMentionsBlock(doc, devisLegalMentions, leftY, M, leftMaxW)
-    leftY += 1
+
+  // 2. Filet securite mentions incompletes (juste sous le bandeau)
+  let y = headerBottomY + 6
+  const champsManquants = getChampsLegauxManquants(ent as LegalEntreprise)
+  if (champsManquants.length > 0) {
+    y = drawIncompletProfileBanner(doc, champsManquants, y)
   }
 
-  // —— SIGNATURES (bas de page, 2 cadres dashed) ——
-  let sigY = Math.max(leftY, rightY) + 3
-  // Hauteur minimale réservée
-  if (sigY > 250) { doc.addPage(); sigY = 25 }
+  // 3. Cartes identite (badges chevauchent 2.5mm au-dessus de yStart)
+  y = drawIdentityCards(
+    doc,
+    ent,
+    {
+      clientNom: data.clientNom,
+      clientAdresse: data.clientAdresse,
+      clientSiret: data.clientSiret,
+      clientTvaIntra: data.clientTvaIntra,
+    },
+    y,
+  )
 
-  const pageW = 210
-  const sigBoxW = (pageW - 2 * M - 6) / 2  // 2 colonnes égales
-  // V2.7 — 24 -> 22 (densification audit)
-  const sigH = 22
-  const sigLeftX = M
-  const sigRightX = M + sigBoxW + 6
-
-  // Dashed approximation : on fait des petits segments
-  const drawDashedRect = (x: number, yy: number, w: number, h: number, color: [number, number, number]) => {
-    setDraw(doc, color); doc.setLineWidth(0.3)
-    const dash = 1.6, gap = 1.2
-    let cx = x
-    while (cx < x + w) {
-      const end = Math.min(cx + dash, x + w)
-      doc.line(cx, yy, end, yy)
-      doc.line(cx, yy + h, end, yy + h)
-      cx += dash + gap
-    }
-    let cy = yy
-    while (cy < yy + h) {
-      const end = Math.min(cy + dash, yy + h)
-      doc.line(x, cy, x, end)
-      doc.line(x + w, cy, x + w, end)
-      cy += dash + gap
-    }
+  // 4. Objet + adresse chantier
+  if (data.objet || data.chantier_adresse) {
+    y = drawObjet(doc, data.objet, data.chantier_adresse, y) + 4
   }
 
-  // Cadre ARTISAN
-  drawDashedRect(sigLeftX, sigY, sigBoxW, sigH, C.sky)
-  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-  doc.text('A R T I S A N', sigLeftX + 3, sigY + 5)
-  const artisanVisual = ent.signature_base64 || ent.tampon_base64
-  if (artisanVisual) {
-    try { doc.addImage(artisanVisual, 'PNG', sigLeftX + 4, sigY + 7, 0, sigH - 12) } catch { /* ignore */ }
-  }
+  // 5. Tableau
+  const isForfait = detectForfaitMode(lignes, data.montant_ht)
+  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht)
 
-  // Cadre CLIENT
-  drawDashedRect(sigRightX, sigY, sigBoxW, sigH, C.green)
-  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.greenDark)
-  doc.text('C L I E N T', sigRightX + 3, sigY + 5)
+  // 6. Bloc CONDITIONS + RECAP + NET A PAYER
+  const hasAcompte = !!(data.acompte_pourcent && data.acompte_pourcent > 0)
+  y = drawTotals(
+    doc,
+    {
+      numero: data.numero,
+      conditions_paiement: data.conditions_paiement,
+      acompte_pourcent: data.acompte_pourcent,
+      montant_ht: data.montant_ht,
+      montant_tva: data.montant_tva,
+      montant_ttc: data.montant_ttc,
+      entreprise: ent,
+      netLabel: hasAcompte ? 'Net à payer à la commande' : 'Net à payer',
+    },
+    lignes,
+    false, // pas de bloc IBAN pour les devis
+    y,
+  )
 
-  const isAccepte = data.statut === 'signe' || data.statut === 'facture'
-  if (isAccepte) {
-    if (data.client_signature_base64) {
-      try { doc.addImage(data.client_signature_base64, 'PNG', sigRightX + 4, sigY + 7, 0, sigH - 14) } catch { /* ignore */ }
-    } else {
-      doc.setFontSize(9); doc.setFont('helvetica', 'bold'); setText(doc, C.greenDark)
-      doc.text('Bon pour accord', sigRightX + sigBoxW / 2, sigY + sigH / 2 + 1, { align: 'center' })
-    }
-    if (data.date_signature) {
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-      doc.text(`Le ${fmtDate(data.date_signature)}`, sigRightX + sigBoxW / 2, sigY + sigH - 3, { align: 'center' })
-    }
-  } else {
-    doc.setFontSize(8); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
-    doc.text('Date et signature précédées de "Bon pour accord"', sigRightX + sigBoxW / 2, sigY + sigH - 3, { align: 'center' })
-  }
+  // 7. Mentions legales (encadre 2x2 + AGEC + TVA)
+  y += 4
+  if (y > 250) { doc.addPage(); y = 25 }
+  y = drawLegal(
+    doc,
+    ent as LegalEntreprise,
+    { clientSiret: data.clientSiret, clientType: data.clientType },
+    lignes,
+    'devis',
+    y,
+    { dechets: data.dechets },
+  )
 
-  drawMiniHeaderAllPagesAfterFirst(doc, 'DEVIS', data.numero)
-  drawFooterAllPages(doc, ent, data.numero)
+  // 8. Signatures (toujours sur une nouvelle page pour avoir l'espace requis)
+  doc.addPage()
+  drawSignatures(doc, ent, {
+    statut: data.statut,
+    date_signature: data.date_signature,
+    client_signature_base64: data.client_signature_base64,
+  }, 30)
+
+  // 9. Mini-header pages 2+ + footer toutes pages
+  drawMiniHeaderPages2Plus(doc, ent, 'DEVIS', data.numero, data.date_emission)
+  drawFooterAllPages(doc, ent, data.numero, 'Devis')
+
   return doc.output('datauristring').split(',')[1]
 }
 
-// ===================================================================
-// FACTURE PDF
-// ===================================================================
-
+// ===========================================================================
+// FACTURE
+// ===========================================================================
 export function generateFacturePdf(data: FactureData): string {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  registerPdfFonts(doc)
   const ent = data.entreprise
-  const lignes = normalizeLignes(data.lignes)
+  const lignes = normalizeLignes(data.lignes as PdfLigne[])
   const isSituation = data.type === 'situation'
 
-  // —— 0. Calculs préliminaires (acompte versé) ——————————————————
+  const title = isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
+
+  // 1. HEADER
+  const headerBottomY = drawHeader(
+    doc,
+    ent,
+    title,
+    data.numero,
+    fmtDate(data.date_emission),
+    'Émis le',
+    fmtDate(data.date_echeance),
+    'Échéance',
+  )
+
+  // 2. Filet securite mentions incompletes
+  let y = headerBottomY + 6
+  const champsManquants = getChampsLegauxManquants(ent as LegalEntreprise)
+  if (champsManquants.length > 0) {
+    y = drawIncompletProfileBanner(doc, champsManquants, y)
+  }
+
+  // 3. Cartes identite
+  y = drawIdentityCards(
+    doc,
+    ent,
+    {
+      clientNom: data.clientNom,
+      clientAdresse: data.clientAdresse,
+      clientSiret: data.clientSiret,
+      clientTvaIntra: data.clientTvaIntra,
+    },
+    y,
+  )
+
+  // 4. Objet + adresse chantier
+  if (data.objet || data.chantier_adresse) {
+    y = drawObjet(doc, data.objet, data.chantier_adresse, y) + 4
+  }
+
+  // 5. Tableau
+  const isForfait = detectForfaitMode(lignes, data.montant_ht)
+  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht)
+
+  // 6. Bloc CONDITIONS (avec IBAN) + RECAP + NET A PAYER
   const hasAcompte = !!(
     (data.acompte_montant_ttc !== undefined && data.acompte_montant_ttc > 0) ||
     (data.acompte_pourcent !== undefined && data.acompte_pourcent > 0)
   )
-  const acompteTTC = hasAcompte
-    ? (data.acompte_montant_ttc !== undefined
-      ? data.acompte_montant_ttc
-      : data.montant_ttc * ((data.acompte_pourcent as number) / 100))
-    : 0
-  const acompteHT = hasAcompte
-    ? (data.acompte_montant_ht !== undefined
-      ? data.acompte_montant_ht
-      : data.montant_ht * (acompteTTC / Math.max(data.montant_ttc, 1)))
-    : 0
-  const netAPayerTTC = Math.max(data.montant_ttc - acompteTTC, 0)
-
-  const dateParts: string[] = []
-  dateParts.push(`Date : ${fmtDate(data.date_emission)}`)
-  if (data.date_echeance) dateParts.push(`Échéance : ${fmtDate(data.date_echeance)}`)
-  if (data.date_prestation) dateParts.push(`Prestation : ${fmtDate(data.date_prestation)}`)
-
-  const headerOpts: HeaderOpts = isSituation
-    ? {
-      title: 'FACTURE DE SITUATION',
+  y = drawTotals(
+    doc,
+    {
       numero: data.numero,
-      subtitle: data.numero_situation ? `Situation N° ${data.numero_situation}` : undefined,
-      refLine: data.devis_ref ? `Sur devis N° ${data.devis_ref}${data.devis_date ? ` du ${fmtDate(data.devis_date)}` : ''}` : undefined,
-      dateLine: dateParts.join(' | '),
-    }
-    : {
-      title: 'FACTURE',
-      numero: data.numero,
-      dateLine: dateParts.join(' | '),
-    }
-
-  let y = drawHeader(doc, ent, headerOpts, 12)
-
-  // —— FILET DE SÉCURITÉ : bannière "mentions légales incomplètes" ——
-  // Mêmes mentions obligatoires que pour les devis (art. 242 nonies A CGI).
-  const champsManquantsFacture = getChampsLegauxManquants(ent as unknown as Record<string, unknown>)
-  if (champsManquantsFacture.length > 0) {
-    y = drawIncompletProfileBanner(doc, champsManquantsFacture, y)
-  }
-
-  y = drawIdentityBoxes(doc, ent, { clientNom: data.clientNom, clientAdresse: data.clientAdresse }, y)
-  if (data.objet) y = drawObjet(doc, data.objet, y)
-
-  // —— V6 : pré-calcul de l'espace requis en bas pour totaux+conditions+IBAN ——
-  // Le bottomMargin du tableau est calé sur ce besoin réel pour éviter tout vide blanc :
-  // si la table ne tient pas, elle saute proprement de page ; si elle tient, les totaux suivent direct.
-  const hasReste = isSituation && (data.reste_a_facturer_ht !== undefined || data.reste_a_facturer_ttc !== undefined)
-  const hasIban = !!(ent.iban && ent.iban.trim())
-  let NEEDED_BOTTOM = 55
-  if (hasAcompte) NEEDED_BOTTOM += 14
-  if (hasReste) NEEDED_BOTTOM += 14
-  if (hasIban) NEEDED_BOTTOM += 26
-  // +10mm de respiration entre fin tableau et début totaux
-  const tableBottomMargin = NEEDED_BOTTOM + 6
-
-  if (isSituation) {
-    const M = 14, pageW = 210
-    const w = pageW - 2 * M
-    const pct = data.pourcentage_situation ?? 0
-    const totalTTC = data.montant_ttc / (pct > 0 ? pct / 100 : 1)
-    const desc = `Situation #${data.numero_situation ?? '?'} pour le devis n° ${data.devis_ref ?? '-'}${data.devis_date ? ` du ${fmtDate(data.devis_date)}` : ''} - ${pct}% TTC sur un montant total de ${fmt(totalTTC)} TTC`
-
-    setFill(doc, C.skyVeryPale)
-    const blockH = 22
-    doc.roundedRect(M, y, w, blockH, 2, 2, 'F')
-    setFill(doc, C.sky); doc.rect(M, y, 1.4, blockH, 'F')
-
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlueAccent)
-    doc.text('DESCRIPTION DE LA SITUATION', M + 5, y + 5.5)
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); setText(doc, C.navy)
-    const split = doc.splitTextToSize(desc, w - 10)
-    doc.text(split, M + 5, y + 11)
-    y += blockH + 4
-
-    autoTable(doc, {
-      startY: y,
-      head: [['DÉSIGNATION', 'TOTAL HT']],
-      body: [[`Situation N°${data.numero_situation ?? '?'} (${pct}%)`, fmt(data.montant_ht)]],
-      theme: 'plain',
-      margin: { left: M, right: M, bottom: tableBottomMargin },
-      styles: { font: 'helvetica', fontSize: 9, cellPadding: 3, textColor: C.navy, lineColor: C.border, lineWidth: 0.1 },
-      headStyles: { fillColor: C.navy, textColor: C.white, fontStyle: 'bold', halign: 'center' },
-      columnStyles: { 0: { halign: 'left' }, 1: { halign: 'right', cellWidth: 32 } },
-    })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    y = (doc as any).lastAutoTable.finalY + 4
-  } else {
-    // —— MODE FORFAIT GLOBAL (V8) : bandeau explicite si les lignes sont a 0 EUR ——
-    if (detectForfaitMode(lignes, data.montant_ht)) {
-      y = drawForfaitBanner(doc, data.montant_ht, y)
-    }
-    y = drawHierTable(doc, lignes, y, tableBottomMargin)
-  }
-
-  // V6 : si malgré la marge réservée, la fin du tableau dépasse, sécurité :
-  // V2.6 : addPage redondant supprimé (tableBottomMargin déjà appliqué dans drawHierTable)
-
-  y += 6 // V2.6 : marge respiration tableau — totaux (facture)
-  let tvaGroups = computeTvaGroups(lignes)
-  const isForfaitFacture = detectForfaitMode(lignes, data.montant_ht)
-  // V11 — Bug fix : en mode forfait global, les lignes sont a 0 EUR, donc
-  // computeTvaGroups(lignes) retourne {} ou {10: 0}. La ligne TVA disparaissait
-  // du recapitulatif (filtre > 0.005 ligne 878) alors que data.montant_tva > 0
-  // (ex: facture forfait 3000 HT + TVA 10% = 3300 TTC, ligne TVA 300 invisible).
-  // On reconstruit tvaGroups depuis data.montant_tva en deduisant le taux.
-  if (isForfaitFacture && data.montant_tva > 0 && data.montant_ht > 0) {
-    const tauxBrut = (data.montant_tva / data.montant_ht) * 100
-    const taux = Math.round(tauxBrut * 10) / 10 // arrondi a 0.1% (gere 5.5, 10, 20)
-    tvaGroups = { [taux]: data.montant_tva }
-  }
-  const totalsStartY = y
-
-  // V2.7.1 : calcul des bases HT par taux pour le récap facture
-  const tvaBases = computeTvaBases(lignes)
-
-  // —— BLOC TOTAUX (droite) avec acompte si présent ——
-  const rightEndY = drawTotals(doc, {
-    ht: data.montant_ht,
-    ttc: data.montant_ttc,
-    tvaGroups,
-    tvaBases,
-    netLabel: 'NET À PAYER',
-    netAmount: hasAcompte ? netAPayerTTC : undefined,
-    acomptePct: hasAcompte
-      ? (data.acompte_pourcent ?? Math.round((acompteTTC / Math.max(data.montant_ttc, 1)) * 100))
-      : undefined,
-    acompteMontant: hasAcompte ? acompteTTC : undefined,
-    resteMontant: hasAcompte ? netAPayerTTC : undefined,
-    resteAFacturerHT: hasReste ? data.reste_a_facturer_ht : undefined,
-    resteAFacturerTTC: hasReste ? data.reste_a_facturer_ttc : undefined,
-    isForfait: isForfaitFacture,
-  }, y)
-
-  // —— COLONNE GAUCHE : conditions + notes perso + mentions ——
-  let leftY = totalsStartY
-  const M = 14
-  const leftMaxW = 88
-
-  // Conditions de paiement (pré-remplies si absent)
-  const conditions = (data.conditions_paiement && data.conditions_paiement.trim())
-    || (data.notes && data.notes.trim()) // legacy fallback
-    || DEFAULT_CONDITIONS_PAIEMENT
-
-  // V2.7 — label 8.5 -> 8 (densification audit)
-  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-  doc.text('Conditions de paiement', M, leftY); leftY += 4
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-  const splitCond = doc.splitTextToSize(conditions, leftMaxW)
-  doc.text(splitCond, M, leftY); leftY += splitCond.length * 3.2 + 2
-
-  // Notes personnalisées (visibles client — ex: "Travaux du 11 au 13 mai")
-  if (data.notes_personnalisees && data.notes_personnalisees.trim()) {
-    leftY += 1.5
-    // V2.7 — label 8.5 -> 8 (densification audit)
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-    doc.text('Notes', M, leftY); leftY += 4
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); setText(doc, C.navy)
-    const splitNotes = doc.splitTextToSize(data.notes_personnalisees, leftMaxW)
-    doc.text(splitNotes, M, leftY); leftY += splitNotes.length * 3.2 + 2
-  }
-
-  // V2.4b — Mentions legales standardisees (facture) issues de la facade
-  // getLegalMentionsFacture (lib/legal-mentions.ts). Source UNIQUE de verite
-  // partagee avec : HTML dashboard facture, HTML signer client (V2.4c).
-  //
-  // Ordre visuel preserve (parite avec versions precedentes du PDF) :
-  //   1. Penalites L441-10 / Indemnite 40 EUR (B2B) / Escompte → bloc legal A
-  //   2. Mentions TVA (deja rendues plus bas via getTvaMentions)
-  //   3. Article L441-3 → bloc legal B
-  //   4. Mentions entreprise (decennale, forme jur., RCS/RM, mediateur, etc.)
-  //      → bloc legal C
-  //
-  // La facade renvoie l'ensemble dans son ordre canonique : on filtre pour
-  // recreer 3 sous-blocs visuels distincts via les keys.
-  const factureLegalCtx = buildLegalContext(
-    'facture',
-    ent,
+      conditions_paiement: data.conditions_paiement || data.notes,
+      notes_personnalisees: data.notes_personnalisees,
+      acompte_pourcent: data.acompte_pourcent,
+      acompte_montant_ht: data.acompte_montant_ht,
+      acompte_montant_ttc: data.acompte_montant_ttc,
+      acompte_label: data.acompte_label,
+      montant_ht: data.montant_ht,
+      montant_tva: data.montant_tva,
+      montant_ttc: data.montant_ttc,
+      entreprise: ent,
+      netLabel: hasAcompte ? 'Net à payer' : 'Net à payer',
+    },
     lignes,
-    { siret: data.clientSiret, type: data.clientType },
-    data.type,
+    true, // bloc IBAN actif pour facture
+    y,
   )
-  const factureLegalMentions = getLegalMentionsFacture(factureLegalCtx)
 
-  // Bloc A : penalites + indemnite + escompte (texte standard 7pt, NON italique)
-  const blocA = factureLegalMentions.filter(m =>
-    m.key === 'penalites' || m.key === 'indemnite-40' || m.key === 'escompte'
+  // 7. Mentions legales
+  y += 4
+  if (y > 250) { doc.addPage(); y = 25 }
+  y = drawLegal(
+    doc,
+    ent as LegalEntreprise,
+    { clientSiret: data.clientSiret, clientType: data.clientType },
+    lignes,
+    'facture',
+    y,
+    { factureType: data.type },
   )
-  leftY += 1
-  for (const m of blocA) {
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); setText(doc, C.muted)
-    const split = doc.splitTextToSize(m.text, leftMaxW)
-    doc.text(split, M, leftY)
-    // Espacement legacy : 5.5 pour penalites/indemnite, 4 pour escompte (=> dernier)
-    if (m.key === 'escompte') {
-      leftY += split.length * 3.2 + 0.8
-    } else {
-      leftY += split.length * 3.2 + 2.3
-    }
-  }
 
-  // Mentions TVA (293B auto ou 10%/5.5%) — emplacement visuel inchange
-  const tvaMentions = getTvaMentions(lignes)
-  if (tvaMentions.length > 0) {
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); setText(doc, C.muted)
-    for (const m of tvaMentions) {
-      const split = doc.splitTextToSize(m, leftMaxW)
-      doc.text(split, M, leftY); leftY += split.length * 2.6 + 1.5
-    }
-  }
+  // 8. Mini-header pages 2+ + footer toutes pages
+  drawMiniHeaderPages2Plus(doc, ent, title, data.numero, data.date_emission)
+  drawFooterAllPages(doc, ent, data.numero, 'Facture')
 
-  // Bloc B : Article L441-3 (italique 6.5pt)
-  const blocB = factureLegalMentions.filter(m => m.key === 'l441-3')
-  if (blocB.length > 0) {
-    leftY = drawLegalMentionsBlock(doc, blocB, leftY, M, leftMaxW)
-    leftY += 0.8
-  }
-
-  // Bloc C : mentions entreprise (decennale, autoliq, forme juridique,
-  // RCS/RM, qualif, mediateur, custom). On retire TVA + penalites + indemnite
-  // + escompte + L441-3 (deja rendus).
-  const renderedKeys = new Set<string>([
-    ...Array.from(TVA_KEYS),
-    'penalites', 'indemnite-40', 'escompte', 'l441-3',
-  ])
-  const blocC = factureLegalMentions.filter(m => !renderedKeys.has(m.key))
-  if (blocC.length > 0) {
-    leftY = drawLegalMentionsBlock(doc, blocC, leftY, M, leftMaxW)
-    leftY += 1
-  }
-
-  // V2.7.1 : suppression du bloc Ventilation TVA séparé sur la facture.
-  // Les bases HT par taux sont désormais intégrées au récapitulatif ci-dessus.
-
-  // -----------------------------------------------------------------
-  // BLOC IBAN/BIC - moitié gauche (88mm), juste APRÈS les mentions
-  // -----------------------------------------------------------------
-  if (hasIban) {
-    const ribW = leftMaxW
-    // V2.7 — 18 -> 16 (densification audit)
-    const ribH = 16
-    const ribY = leftY + 1
-
-    setFill(doc, C.skyVeryPale)
-    setDraw(doc, C.sky); doc.setLineWidth(0.3)
-    doc.roundedRect(M, ribY, ribW, ribH, 2, 2, 'FD')
-    setFill(doc, C.sky)
-    doc.rect(M, ribY, 1.6, ribH, 'F')
-
-    // V2.7 — label 7.5 -> 7 (densification audit)
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); setText(doc, C.netBlue)
-    doc.text('POUR RÉGLER PAR VIREMENT', M + 5, ribY + 4)
-
-    const ibanClean = (ent.iban as string).replace(/\s+/g, '').toUpperCase()
-    const ibanFormatted = ibanClean.match(/.{1,4}/g)?.join(' ') || ibanClean
-
-    // V2.7 — IBAN/BIC 8 -> 7.5 (densification audit) + label 7.5 -> 7
-    doc.setFontSize(7.5); doc.setFont('courier', 'bold'); setText(doc, C.navy)
-    doc.text(`IBAN : ${ibanFormatted}`, M + 5, ribY + 8)
-
-    if (ent.bic && ent.bic.trim()) {
-      doc.setFontSize(7.5); doc.setFont('courier', 'bold'); setText(doc, C.navy)
-      doc.text(`BIC : ${ent.bic.trim().toUpperCase()}`, M + 5, ribY + 11.6)
-    }
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); setText(doc, C.muted)
-    doc.text(`Bénéficiaire : ${ent.nom || ''}`, M + 5, ribY + 14.5, { maxWidth: ribW - 8 })
-  }
-
-  const miniTitle = isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
-  drawMiniHeaderAllPagesAfterFirst(doc, miniTitle, data.numero)
-  drawFooterAllPages(doc, ent, data.numero)
   return doc.output('datauristring').split(',')[1]
 }
