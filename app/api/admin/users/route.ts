@@ -110,6 +110,13 @@ export async function PATCH(request: Request) {
 
   const supabaseAdmin = adminSupabase()
 
+  // V3.0c.18 : recuperer l'etat AVANT update pour detecter une prolongation
+  const { data: avant } = await supabaseAdmin
+    .from('entreprises')
+    .select('abonnement_expire_at, abonnement_type, user_id, nom, prenom, email')
+    .eq('id', entreprise_id)
+    .single()
+
   const updates: Record<string, unknown> = { abonnement_type }
   if (notes_admin !== undefined) updates.notes_admin = notes_admin
   if (abonnement_expire_at !== undefined) updates.abonnement_expire_at = abonnement_expire_at
@@ -125,6 +132,39 @@ export async function PATCH(request: Request) {
     .eq('id', entreprise_id)
 
   if (error) return secureError(error.message, 500)
+
+  // V3.0c.18 : envoyer un mail automatique si l'abonnement a ete prolonge ou passe en lifetime.
+  // Non-bloquant : si l'email echoue, l'update reste valide.
+  try {
+    const passageLifetime = abonnement_type === 'lifetime' && avant?.abonnement_type !== 'lifetime'
+    const prolongation = abonnement_expire_at !== undefined
+      && abonnement_expire_at !== null
+      && (!avant?.abonnement_expire_at || new Date(abonnement_expire_at) > new Date(avant.abonnement_expire_at as string))
+
+    if (passageLifetime || prolongation) {
+      // Recuperer l'email auth en priorite (entreprises.email peut etre vide)
+      let destEmail = (avant?.email as string) || ''
+      if (!destEmail && avant?.user_id) {
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(avant.user_id as string)
+        destEmail = authUser?.user?.email || ''
+      }
+      const destName = `${(avant?.prenom as string) || ''} ${(avant?.nom as string) || ''}`.trim() || 'Cher utilisateur'
+
+      if (destEmail) {
+        const { sendSubscriptionExtendedEmail } = await import('@/lib/email')
+        await sendSubscriptionExtendedEmail({
+          email: destEmail,
+          name: destName,
+          newExpireAt: passageLifetime ? '' : (abonnement_expire_at as string),
+          abonnementType: abonnement_type,
+        }).catch((e) => {
+          console.error('sendSubscriptionExtendedEmail failed:', e)
+        })
+      }
+    }
+  } catch (e) {
+    console.error('Subscription email trigger error:', e)
+  }
 
   return secureJson({ success: true })
 }
