@@ -32,6 +32,11 @@ interface FactureRecord {
   id: string
   numero: string
   statut: string
+  // V3.0c.17 — Type de facture (standard / acompte / situation / avoir)
+  type?: 'standard' | 'acompte' | 'situation' | 'avoir' | null
+  devis_ref?: string | null
+  numero_situation?: number | null
+  pourcentage_situation?: number | null
   date_emission?: string
   date_echeance?: string
   objet?: string
@@ -94,6 +99,12 @@ export default function ModifierFacturePage() {
   // Dates
   const [dateFacture, setDateFacture] = useState('')
   const [dateEcheance, setDateEcheance] = useState('')
+
+  // V3.0c.17 — Type de facture
+  const [factureType, setFactureType] = useState<'standard' | 'acompte' | 'situation' | 'avoir'>('standard')
+  const [devisRef, setDevisRef] = useState('')
+  const [numeroSituation, setNumeroSituation] = useState<number>(1)
+  const [pourcentageSituation, setPourcentageSituation] = useState<number>(0)
 
   // Client
   const [clientNom, setClientNom] = useState('')
@@ -195,6 +206,14 @@ export default function ModifierFacturePage() {
     setDateEcheance(facture.date_echeance || '')
     setObjet(facture.objet || '')
     setChantierId(facture.chantier_id || null)
+
+    // V3.0c.17 — Type + champs situation
+    if (facture.type === 'standard' || facture.type === 'acompte' || facture.type === 'situation' || facture.type === 'avoir') {
+      setFactureType(facture.type)
+    }
+    if (facture.devis_ref) setDevisRef(facture.devis_ref)
+    if (facture.numero_situation && facture.numero_situation > 0) setNumeroSituation(facture.numero_situation)
+    if (facture.pourcentage_situation != null) setPourcentageSituation(facture.pourcentage_situation)
 
     // Conditions de paiement (fallback sur notes legacy si vide)
     setConditions(facture.conditions_paiement || facture.notes || DEFAULT_CONDITIONS_PAIEMENT)
@@ -404,6 +423,11 @@ export default function ModifierFacturePage() {
 
       const factureData: Record<string, unknown> = {
         statut: action === 'brouillon' ? 'brouillon' : (facture.statut === 'brouillon' ? 'brouillon' : facture.statut),
+        // V3.0c.17 — Type de facture + champs specifiques situation
+        type: factureType,
+        devis_ref: factureType === 'situation' ? (devisRef.trim() || null) : null,
+        numero_situation: factureType === 'situation' ? numeroSituation : null,
+        pourcentage_situation: factureType === 'situation' ? pourcentageSituation : null,
         date_emission: dateFacture || null,
         date_echeance: dateEcheance || null,
         objet: objet || null,
@@ -518,7 +542,7 @@ export default function ModifierFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [facture, clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router])
+  }, [facture, clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation])
 
   if (loadingFacture || loadingLignes) return <div className="p-6"><LoadingSkeleton rows={8} /></div>
   if (!facture) return <div className="p-6"><p className="text-sm text-gray-500">Facture introuvable.</p></div>
@@ -633,6 +657,70 @@ export default function ModifierFacturePage() {
               )}
               <p className="text-[11px] font-manrope text-gray-400 mt-1">Tapez pour rechercher un chantier existant, ou saisissez librement.</p>
             </div>
+
+            {/* V3.0c.17 — Type de facture */}
+            <div>
+              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Type de facture</label>
+              <select
+                value={factureType}
+                onChange={e => setFactureType(e.target.value as 'standard' | 'acompte' | 'situation' | 'avoir')}
+                className={inputCls}
+              >
+                <option value="standard">Facture standard</option>
+                <option value="acompte">Facture d&apos;acompte</option>
+                <option value="situation">Facture de situation</option>
+                <option value="avoir">Avoir (facture negative)</option>
+              </select>
+              <p className="text-[11px] font-manrope text-gray-400 mt-1">
+                Une <strong>facture de situation</strong> facture une tranche d&apos;un chantier en cours (#1, #2, #3...).
+              </p>
+            </div>
+
+            {factureType === 'situation' && (
+              <div className="rounded-xl border-2 border-[#5ab4e0]/30 bg-[#f8fbfd] p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-syne font-bold text-[#1a6fb5] bg-[#e8f4fb] px-2 py-0.5 rounded uppercase tracking-wider">Facture de situation</span>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Reference du devis</label>
+                  <input
+                    type="text"
+                    value={devisRef}
+                    onChange={e => setDevisRef(e.target.value)}
+                    placeholder="Ex. : D-2026-12345"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">N&deg; de situation</label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={numeroSituation}
+                      onChange={e => setNumeroSituation(Math.max(1, Number(e.target.value) || 1))}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">% d&apos;avancement</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={pourcentageSituation}
+                      onChange={e => setPourcentageSituation(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] font-manrope text-gray-400">
+                  Indicatif pour cette version. Le calcul automatique du reste a facturer arrivera plus tard.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Client */}

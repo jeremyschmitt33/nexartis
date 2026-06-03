@@ -60,6 +60,14 @@ export default function NouvelleFacturePage() {
   const [dateFacture, setDateFacture] = useState(today)
   const [dateEcheance, setDateEcheance] = useState(inMonth)
 
+  // V3.0c.17 — Type de facture (standard / acompte / situation / avoir)
+  // Backend (DB col `type`, FactureData lib/pdf.ts) gere deja les 4 valeurs.
+  // Pour 'situation' on collecte en plus : devis_ref, numero_situation, pourcentage_situation.
+  const [factureType, setFactureType] = useState<'standard' | 'acompte' | 'situation' | 'avoir'>('standard')
+  const [devisRef, setDevisRef] = useState('')
+  const [numeroSituation, setNumeroSituation] = useState<number>(1)
+  const [pourcentageSituation, setPourcentageSituation] = useState<number>(0)
+
   // Client (texte libre ou sélection)
   const [clientNom, setClientNom] = useState('')
   const [clientPrenom, setClientPrenom] = useState('')
@@ -290,6 +298,11 @@ export default function NouvelleFacturePage() {
       const factureData: Record<string, unknown> = {
         numero,
         statut,
+        // V3.0c.17 — Type de facture + champs specifiques situation
+        type: factureType,
+        devis_ref: factureType === 'situation' ? (devisRef.trim() || null) : null,
+        numero_situation: factureType === 'situation' ? numeroSituation : null,
+        pourcentage_situation: factureType === 'situation' ? pourcentageSituation : null,
         date_emission: dateFacture,
         date_echeance: dateEcheance,
         objet: objet || null,
@@ -390,7 +403,7 @@ export default function NouvelleFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router])
+  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation])
 
   return (
     <div className="min-h-screen">
@@ -455,6 +468,70 @@ export default function NouvelleFacturePage() {
               )}
               <p className="text-[11px] font-manrope text-gray-400 mt-1">Tapez pour rechercher un chantier existant, ou saisissez librement.</p>
             </div>
+
+            {/* V3.0c.17 — Type de facture */}
+            <div>
+              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Type de facture</label>
+              <select
+                value={factureType}
+                onChange={e => setFactureType(e.target.value as 'standard' | 'acompte' | 'situation' | 'avoir')}
+                className={inputCls}
+              >
+                <option value="standard">Facture standard</option>
+                <option value="acompte">Facture d&apos;acompte</option>
+                <option value="situation">Facture de situation</option>
+                <option value="avoir">Avoir (facture negative)</option>
+              </select>
+              <p className="text-[11px] font-manrope text-gray-400 mt-1">
+                Une <strong>facture de situation</strong> facture une tranche d&apos;un chantier en cours (#1, #2, #3...).
+              </p>
+            </div>
+
+            {factureType === 'situation' && (
+              <div className="rounded-xl border-2 border-[#5ab4e0]/30 bg-[#f8fbfd] p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-syne font-bold text-[#1a6fb5] bg-[#e8f4fb] px-2 py-0.5 rounded uppercase tracking-wider">Facture de situation</span>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Reference du devis</label>
+                  <input
+                    type="text"
+                    value={devisRef}
+                    onChange={e => setDevisRef(e.target.value)}
+                    placeholder="Ex. : D-2026-12345"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">N&deg; de situation</label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={numeroSituation}
+                      onChange={e => setNumeroSituation(Math.max(1, Number(e.target.value) || 1))}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">% d&apos;avancement</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={pourcentageSituation}
+                      onChange={e => setPourcentageSituation(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] font-manrope text-gray-400">
+                  Indicatif pour cette version. Le calcul automatique du reste a facturer arrivera plus tard.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Client */}
