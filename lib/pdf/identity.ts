@@ -117,14 +117,14 @@ function drawEmetteurCard(
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
   drawBadge(doc, 'ÉMETTEUR', x + 10, y)
 
-  // Bloc HAUT
+  // Bloc HAUT — V3.0c.6 : texte en navy (au lieu de muted), adresse plus grosse (10pt)
   const top: ContentLine[] = []
   if (ent.nom) top.push({ text: ent.nom, size: 12, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
-  if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'normal', color: C.muted })
+  if (ent.adresse) top.push({ text: ent.adresse, size: 10, weight: 'medium', color: C.navy })
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
-  if (ville) top.push({ text: ville, size: 9, weight: 'normal', color: C.muted })
-  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 8.5, weight: 'normal', color: C.muted })
-  if (ent.email) top.push({ text: ent.email, size: 8.5, weight: 'normal', color: C.muted })
+  if (ville) top.push({ text: ville, size: 10, weight: 'medium', color: C.navy })
+  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'normal', color: C.navy })
+  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'normal', color: C.navy })
 
   // Bloc BAS (SIRET, TVA)
   const bottom: ContentLine[] = []

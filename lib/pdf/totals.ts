@@ -193,10 +193,13 @@ function drawRecap(
     .map(Number)
     .filter((r) => Number.isFinite(r) && r > 0 && (tvaGroupsPre[r] ?? 0) > 0.005).length
   const echelonH = acompteTTCpre > 0 ? 13 + GAP_AFTER_ECHELON : 0
-  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre + 1) + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
-  const recapPad = 4
+  // V3.0c.6 : +2mm pour la marge supplementaire avant Total TTC
+  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre + 1) + 2 + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
+  // V3.0c.6 : marges aerees (top=7, bottom=5) pour mieux repartir l'interieur
+  const recapPadTop = 7
+  const recapPadBottom = 5
   setFill(doc, C.skyVeryPale)
-  doc.roundedRect(RIGHT_X - 2, yStart - recapPad + 1, COL_W + 4, recapH + recapPad, 3, 3, 'F')
+  doc.roundedRect(RIGHT_X - 2, yStart - recapPadTop, COL_W + 4, recapH + recapPadTop + recapPadBottom, 3, 3, 'F')
 
   let y = yStart
   drawRecapRow(
@@ -229,10 +232,12 @@ function drawRecap(
     y += GAP_RECAP_ROW
   }
 
-  // Trait fin separateur (2mm avant Total TTC)
+  // V3.0c.6 Fix D : trait fin separateur, decale pour ne pas chevaucher Total TTC
+  // (le texte 9pt s'etend de y-3.2 a y, donc trait a y-4 laisse 0.8mm de marge)
+  y += 2 // marge supplementaire entre derniere TVA et Total TTC
   setDraw(doc, C.border)
   doc.setLineWidth(0.3)
-  doc.line(RIGHT_X, y - 2, RIGHT_VALUE_X, y - 2)
+  doc.line(RIGHT_X, y - 4, RIGHT_VALUE_X, y - 4)
 
   // Total TTC
   drawRecapRow(doc, 'Total TTC', fmt(data.montant_ttc), y, {

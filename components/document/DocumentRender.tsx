@@ -110,7 +110,7 @@ function CardTo({ client }: { client: DocumentClient }) {
 function Objet({ meta }: { meta: DocumentMeta }) {
   return (
     <div className="dv-objet">
-      <div><span className="dv-objet-k">Objet</span>{meta.objet || '—'}</div>
+      <div><span className="dv-objet-k">Objet</span><span className="dv-objet-v">{meta.objet || '—'}</span></div>
     </div>
   )
 }

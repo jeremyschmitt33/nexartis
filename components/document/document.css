@@ -60,7 +60,8 @@
 .dv-objet { background:#f0f7fc; border-left:3px solid #e87a2a; border-radius:4px;
   padding:12px 16px; margin:22px 0 20px; }
 .dv-objet > div { font-size:13px; color:var(--ink); display:flex; flex-direction:column; }
-.dv-objet-k { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--mute); font-weight:600; margin-bottom:5px; }
+.dv-objet-k { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--mute); font-weight:600; margin-bottom:6px; }
+.dv-objet-v { display:block; font-size:17px; font-weight:700; color:var(--ink); line-height:1.25; }
 .dv-table { width:100%; border-collapse:collapse; }
 .dv-table thead th { font-size:10px; text-transform:uppercase; letter-spacing:.1em;
   color:var(--mute); font-weight:600; text-align:left; padding:0 10px 9px; border-bottom:1.5px solid var(--ink); }
