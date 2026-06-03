@@ -96,6 +96,15 @@ export async function PATCH(request: Request) {
   if (!admin) return forbiddenError()
 
   const body = await request.json()
+  // V3.0c.21 DEBUG : trace ce que le serveur recoit exactement (a retirer apres diagnostic)
+  console.log('[ADMIN PATCH] body recu:', JSON.stringify({
+    entreprise_id: body.entreprise_id,
+    abonnement_type: body.abonnement_type,
+    has_geste_commercial_mois: 'geste_commercial_mois' in body,
+    geste_commercial_mois: body.geste_commercial_mois,
+    type_of_flag: typeof body.geste_commercial_mois,
+    has_expire: 'abonnement_expire_at' in body,
+  }))
   const { entreprise_id, abonnement_type, notes_admin, abonnement_expire_at, geste_commercial_mois } = body
 
   if (!entreprise_id || !abonnement_type) {
