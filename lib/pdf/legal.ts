@@ -9,7 +9,6 @@ import {
   font,
   setFill,
   setDraw,
-  getTvaMentions,
   type PdfLigne,
 } from './utils'
 import {
@@ -184,17 +183,9 @@ export function drawLegal(
 ): number {
   let y = yStart
 
-  // 1. Mentions TVA italiques (avant l'encadre)
-  const tvaTexts = getTvaMentions(lignes)
-  if (tvaTexts.length > 0) {
-    font(doc, 'Hanken Grotesk', 'normal', 6.5, C.muted)
-    for (const t of tvaTexts) {
-      const split = doc.splitTextToSize(t, W)
-      doc.text(split, M, y)
-      y += split.length * 2.6 + 1.4
-    }
-    y += 1.5
-  }
+  // 1. Mentions TVA italiques : V3.0c.4 Fix 10 — DEPLACEES dans drawTvaCertifications
+  //    cote totals.ts (colonne gauche, sous les conditions de paiement).
+  //    Bloc retire ici pour eviter le doublon.
 
   // 2. AGEC dechets (au-dessus de l'encadre 2x2)
   if (opts.dechets && (opts.dechets.nature || opts.dechets.collecte_nom)) {

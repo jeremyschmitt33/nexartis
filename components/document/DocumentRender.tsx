@@ -1,8 +1,18 @@
-// V3.0b.5 — DocumentRender : 1 section unique, signatures avant footer navy, net a payer simplifie
+// V3.0c.4 — DocumentRender : parite dashboard <-> PDF (7 fixes : metaline empile, adresse 2 lignes, formatPhone, objet sans chantier)
 import { Fragment } from 'react'
 import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentMeta, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
+
+function formatPhone(raw?: string): string {
+  if (!raw) return ''
+  const trimmed = raw.trim()
+  if (/[\s.\-]/.test(trimmed)) return trimmed
+  if (/^0\d{9}$/.test(trimmed)) {
+    return trimmed.replace(/(\d{2})(?=\d)/g, '$1 ').trim()
+  }
+  return trimmed
+}
 
 export default function DocumentRender({ data }: { data: DocumentData }) {
   const isDevis = data.docType === 'devis'
@@ -51,8 +61,8 @@ function HeaderD({ data }: { data: DocumentData }) {
           <div className="dv-d-doctype">{titre}</div>
           <div className="dv-d-num">{meta.numero}</div>
           <div className="dv-d-metaline">
-            {meta.dateEmission && (<span>Émis le <strong>{meta.dateEmission}</strong></span>)}
-            {meta.dateRight && (<span>{meta.dateRightLabel} <strong>{meta.dateRight}</strong></span>)}
+            {meta.dateEmission && (<div>Émis le <strong>{meta.dateEmission}</strong></div>)}
+            {meta.dateRight && (<div>{meta.dateRightLabel} <strong>{meta.dateRight}</strong></div>)}
           </div>
         </div>
       </div>
@@ -70,11 +80,12 @@ function CardFrom({ artisan }: { artisan: DocumentArtisan }) {
       <span className="dv-d-chip">Émetteur</span>
       <span className="dv-d-cardname">{artisan.nom}</span>
       <div className="dv-d-cardrows">
-        {artisan.adresseLine1 && <div>{artisan.adresseLine1}{artisan.adresseLine2 ? `, ${artisan.adresseLine2}` : ''}</div>}
-        {!artisan.adresseLine1 && artisan.adresseLine2 && <div>{artisan.adresseLine2}</div>}
+        {artisan.adresseLine1 && <div>{artisan.adresseLine1}</div>}
+        {artisan.adresseLine2 && <div>{artisan.adresseLine2}</div>}
         {artisan.siret && <div>SIRET {artisan.siret}</div>}
         {artisan.tvaIntra && <div>TVA {artisan.tvaIntra}</div>}
-        {(artisan.tel || artisan.email) && (<div>{artisan.tel}{artisan.tel && artisan.email && ' · '}{artisan.email}</div>)}
+        {artisan.tel && <div>{formatPhone(artisan.tel)}</div>}
+        {artisan.email && <div>{artisan.email}</div>}
       </div>
     </div>
   )
@@ -86,9 +97,9 @@ function CardTo({ client }: { client: DocumentClient }) {
       <span className="dv-d-chip dv-d-chip--accent">Adressé à</span>
       <span className="dv-d-cardname">{client.nom || '—'}</span>
       <div className="dv-d-cardrows">
-        {client.adresseLine1 && <div>{client.adresseLine1}{client.adresseLine2 ? `, ${client.adresseLine2}` : ''}</div>}
-        {!client.adresseLine1 && client.adresseLine2 && <div>{client.adresseLine2}</div>}
-        {client.tel && <div>{client.tel}</div>}
+        {client.adresseLine1 && <div>{client.adresseLine1}</div>}
+        {client.adresseLine2 && <div>{client.adresseLine2}</div>}
+        {client.tel && <div>{formatPhone(client.tel)}</div>}
         {client.email && <div>{client.email}</div>}
         {client.siret && <div>SIRET {client.siret}</div>}
       </div>
@@ -100,7 +111,6 @@ function Objet({ meta }: { meta: DocumentMeta }) {
   return (
     <div className="dv-objet">
       <div><span className="dv-objet-k">Objet</span>{meta.objet || '—'}</div>
-      <div><span className="dv-objet-k">Adresse du chantier</span>{meta.chantierAdresse || '—'}</div>
     </div>
   )
 }

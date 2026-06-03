@@ -1,7 +1,8 @@
-// lib/pdf/totals.ts - V3.0c
-// Bloc CONDITIONS DE PAIEMENT (gauche, + bloc IBAN encadre si facture)
+// lib/pdf/totals.ts - V3.0c.4
+// Bloc CONDITIONS DE PAIEMENT (gauche, + mentions TVA legales + bloc IBAN si facture)
 // + bloc RECAP (sous-total HT, lignes TVA, total TTC, acompte)
-// + bloc NET A PAYER orange plein + mention reste du.
+// + bloc NET A PAYER orange plein + encadre echelonnement (Fix 8)
+// Marges uniformes (Fix 9), mentions TVA deplacees a gauche (Fix 10).
 
 import type { jsPDF } from 'jspdf'
 import { C } from './palette'
@@ -15,6 +16,7 @@ import {
   computeTvaGroups,
   computeTvaBases,
   detectForfaitMode,
+  getTvaMentions,
   type PdfLigne,
 } from './utils'
 
@@ -51,11 +53,6 @@ const RIGHT_VALUE_X = 192
 /**
  * Dessine bloc CONDITIONS + RECAP + NET A PAYER + IBAN (si facture).
  *
- * @param data        Donnees devis ou facture (champs communs)
- * @param lignes      Lignes normalisees (pour TVA)
- * @param isFacture   true => bloc IBAN affiche dans la colonne gauche
- * @param yStart      y de demarrage
- *
  * @returns y absolu apres l'ensemble (max des 2 colonnes).
  */
 export function drawTotals(
@@ -68,8 +65,10 @@ export function drawTotals(
   const leftStartY = yStart
   const rightStartY = yStart
 
-  // --- Colonne gauche : CONDITIONS DE PAIEMENT (+ IBAN si facture) ---
+  // --- Colonne gauche : CONDITIONS DE PAIEMENT + mentions TVA + IBAN (si facture) ---
   let leftY = drawConditions(doc, data, leftStartY)
+  // Fix 10 : mentions TVA legales (Je certifie...) sous les conditions de paiement
+  leftY = drawTvaCertifications(doc, lignes, leftY)
   if (data.notes_personnalisees && data.notes_personnalisees.trim()) {
     leftY = drawNotes(doc, data.notes_personnalisees.trim(), leftY)
   }
@@ -98,6 +97,26 @@ function drawConditions(doc: jsPDF, data: TotalsData, yStart: number): number {
   return yStart + 5 + split.length * 3.6 + 4
 }
 
+// Fix 10 : Mentions TVA legales (Je certifie...) sous les conditions de paiement.
+// 7pt italique muted, splitTextToSize sur COL_W. Espacement entre mentions : 1.6mm.
+function drawTvaCertifications(
+  doc: jsPDF,
+  lignes: PdfLigne[],
+  yStart: number,
+): number {
+  const tvaTexts = getTvaMentions(lignes)
+  if (tvaTexts.length === 0) return yStart
+  // -1mm pour compenser le +4mm bake-in dans drawConditions (separation 3mm souhaitee)
+  let y = yStart - 1
+  font(doc, 'Hanken Grotesk', 'normal', 7, C.muted)
+  for (const t of tvaTexts) {
+    const split = doc.splitTextToSize(t, COL_W)
+    doc.text(split, LEFT_X, y)
+    y += split.length * 2.8 + 1.6
+  }
+  return y + 2
+}
+
 function drawNotes(doc: jsPDF, notes: string, yStart: number): number {
   font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
   doc.text('NOTES', LEFT_X, yStart, { charSpace: 0.6 })
@@ -110,11 +129,6 @@ function drawNotes(doc: jsPDF, notes: string, yStart: number): number {
 // ===========================================================================
 // IBAN (facture uniquement)
 // ===========================================================================
-/**
- * Bloc IBAN encadre `skyVeryPale` + trait gauche orange 1.6 mm.
- * Spline Sans Mono pour IBAN/BIC. A appeler dans la colonne gauche apres
- * les conditions de paiement (facture uniquement).
- */
 export function drawIbanBlock(
   doc: jsPDF,
   ent: TotalsEntreprise,
@@ -148,8 +162,17 @@ export function drawIbanBlock(
 }
 
 // ===========================================================================
-// RECAP + NET A PAYER (droite)
+// RECAP + NET A PAYER (droite) — Fix 9 : marges uniformes
 // ===========================================================================
+//   - Entre lignes de recap (sous-total HT, TVA, Total TTC) : 6 mm
+//   - Avant le bloc orange Net a payer                       : 4 mm
+//   - Entre le bloc orange et l'encadre echelonnement        : 2 mm
+//   - Apres l'encadre echelonnement (retour de la fonction)  : 2 mm
+const GAP_RECAP_ROW = 6
+const GAP_BEFORE_NET = 4
+const GAP_AFTER_NET = 2
+const GAP_AFTER_ECHELON = 2
+
 function drawRecap(
   doc: jsPDF,
   data: TotalsData,
@@ -167,9 +190,9 @@ function drawRecap(
     y,
     { boldValue: true },
   )
-  y += 6
+  y += GAP_RECAP_ROW
 
-  // Lignes TVA par taux (avec base entre parentheses si multi-taux)
+  // Lignes TVA par taux (base entre parentheses si multi-taux)
   let tvaGroups = computeTvaGroups(lignes)
   if (isForfait && data.montant_tva > 0 && data.montant_ht > 0) {
     const tauxBrut = (data.montant_tva / data.montant_ht) * 100
@@ -187,14 +210,13 @@ function drawRecap(
     const label = `TVA ${formatRate(r)}`
     const sub = isMulti && base !== undefined ? ` (base ${fmt(base)})` : ''
     drawTvaRow(doc, label, sub, fmt(tvaGroups[r]), y)
-    y += 6
+    y += GAP_RECAP_ROW
   }
 
-  // Trait fin border
+  // Trait fin separateur (2mm avant Total TTC)
   setDraw(doc, C.border)
   doc.setLineWidth(0.3)
-  doc.line(RIGHT_X, y, RIGHT_VALUE_X, y)
-  y += 4
+  doc.line(RIGHT_X, y - 2, RIGHT_VALUE_X, y - 2)
 
   // Total TTC
   drawRecapRow(doc, 'Total TTC', fmt(data.montant_ttc), y, {
@@ -202,13 +224,11 @@ function drawRecap(
     labelBold: true,
     sizeBoost: true,
   })
-  y += 6
+  y += GAP_BEFORE_NET
 
-  // Calcul acompte (pour info echelonnement sous le bloc orange)
   const acompteTTC = computeAcompteTTC(data)
 
   // Bloc NET A PAYER orange plein (montant = Total TTC complet, jamais l'acompte)
-  y += 2
   const netH = 13
   setFill(doc, C.orange)
   doc.roundedRect(RIGHT_X, y, COL_W, netH, 3, 3, 'F')
@@ -219,28 +239,63 @@ function drawRecap(
 
   font(doc, 'Hanken Grotesk', 'extrabold', 15, C.white)
   textRight(doc, fmt(data.montant_ttc), RIGHT_VALUE_X - 4, y + netH / 2 + 2.2)
-  y += netH + 3
+  y += netH + GAP_AFTER_NET
 
-  // Mention echelonnement (2 lignes : a verser commande + reste a livraison)
+  // Fix 8 : encadre commun pour les 2 lignes echelonnement (parite HTML dashboard)
   if (acompteTTC > 0) {
     const pct = data.acompte_pourcent && data.acompte_pourcent > 0
       ? ` (${data.acompte_pourcent} %)`
       : ''
-    drawSplitRow(doc, `À verser à la commande${pct}`, fmt(acompteTTC), y)
-    y += 4.5
     const reste = Math.max(data.montant_ttc - acompteTTC, 0)
-    drawSplitRow(doc, 'Reste dû à la livraison', fmt(reste), y)
-    y += 4.5
+
+    const boxX = RIGHT_X
+    const boxY = y
+    const boxW = COL_W
+    const padInner = 3
+    const lineGap = 4.5
+    const boxH = padInner * 2 + lineGap * 2 // 2 lignes + 2 paddings
+
+    setFill(doc, C.skyVeryPale)
+    doc.roundedRect(boxX, boxY, boxW, boxH, 2, 2, 'F')
+
+    const lineX = boxX + padInner
+    const valueX = boxX + boxW - padInner
+
+    drawSplitRow(
+      doc,
+      `À verser à la commande${pct}`,
+      fmt(acompteTTC),
+      boxY + padInner + 3,
+      lineX,
+      valueX,
+    )
+    drawSplitRow(
+      doc,
+      'Reste dû à la livraison',
+      fmt(reste),
+      boxY + padInner + 3 + lineGap,
+      lineX,
+      valueX,
+    )
+
+    y = boxY + boxH + GAP_AFTER_ECHELON
   }
 
   return y
 }
 
-function drawSplitRow(doc: jsPDF, label: string, value: string, y: number): void {
+function drawSplitRow(
+  doc: jsPDF,
+  label: string,
+  value: string,
+  y: number,
+  xLabel: number = RIGHT_X,
+  xValue: number = RIGHT_VALUE_X,
+): void {
   font(doc, 'Hanken Grotesk', 'normal', 8, C.muted)
-  doc.text(label, RIGHT_X, y)
+  doc.text(label, xLabel, y)
   font(doc, 'Hanken Grotesk', 'semibold', 8.5, C.navy)
-  textRight(doc, value, RIGHT_VALUE_X, y)
+  textRight(doc, value, xValue, y)
 }
 
 function computeAcompteTTC(data: TotalsData): number {
