@@ -120,11 +120,17 @@ export async function PATCH(request: Request) {
   const supabaseAdmin = adminSupabase()
 
   // V3.0c.18 : recuperer l'etat AVANT update pour detecter une prolongation
-  const { data: avant } = await supabaseAdmin
+  // V3.0c.23 : select * + log erreur explicite (le SELECT plantait silencieusement avant)
+  const { data: avant, error: avantError } = await supabaseAdmin
     .from('entreprises')
-    .select('abonnement_expire_at, abonnement_type, user_id, nom, prenom, email')
+    .select('*')
     .eq('id', entreprise_id)
     .single()
+
+  if (avantError) {
+    console.error('[MAIL TRIGGER] avant fetch error:', avantError.message, '| code:', avantError.code)
+  }
+  console.log('[MAIL TRIGGER] avant present?', !!avant, '| keys:', avant ? Object.keys(avant).join(',') : 'NULL')
 
   const updates: Record<string, unknown> = { abonnement_type }
   if (notes_admin !== undefined) updates.notes_admin = notes_admin
