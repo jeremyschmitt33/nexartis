@@ -203,13 +203,14 @@ function drawRecap(
     .map(Number)
     .filter((r) => Number.isFinite(r) && r > 0 && (tvaGroupsPre[r] ?? 0) > 0.005).length
   const echelonH = acompteTTCpre > 0 ? 13 + GAP_AFTER_ECHELON : 0
-  // V3.0c.6 : +2mm pour la marge supplementaire avant Total TTC
-  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre + 1) + 2 + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
-  // V3.0c.9 : cadre aligne avec la ligne "Conditions de paiement" a gauche
-  // (top a yStart, pas au-dessus). Marge interne 7mm en haut pour aerer.
+  // V3.0c.15 : estimation hauteur recap corrigee (le +1 pour Total TTC etait double-compte
+  // avec GAP_BEFORE_NET). Sous-total + N lignes TVA = 6 * (1 + nbTva), Total TTC bascule
+  // directement sur GAP_BEFORE_NET sans GAP_RECAP_ROW supplementaire.
+  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre) + 2 + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
+  // V3.0c.15 : marges symetriques top=bottom=5mm pour cadre "pile-poil" sur le contenu.
   const recapPadTop = 0
-  const recapPadInternalTop = 7
-  const recapPadBottom = 9
+  const recapPadInternalTop = 5
+  const recapPadBottom = 5
   setFill(doc, C.skyVeryPale)
   doc.roundedRect(
     RIGHT_X - 2,
