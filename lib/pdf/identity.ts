@@ -33,11 +33,11 @@ interface IdentityClient {
 }
 
 const CARD_W = 84
-const CARD_H = 50
+const CARD_H = 50 // parite stricte avec ADRESSE A (50mm)
 const CARD_R = 5
 const PAD_X = 6
-const PAD_TOP = 11
-const PAD_BOTTOM = 6
+const PAD_TOP = 10
+const PAD_BOTTOM = 6 // V3.0c.13 : +2mm pour remonter SIRET/TVA et reduire le gap mail-SIRET
 const BADGE_W = 28
 const BADGE_H = 5
 const BADGE_R = 2.5
@@ -117,22 +117,25 @@ function drawEmetteurCard(
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
   drawBadge(doc, 'ÉMETTEUR', x + 10, y)
 
-  // V3.0c.10 : un seul flux de lignes (le top et le bottom se chevauchaient avant).
-  // Nom 13pt extrabold, coordonnees 9pt BOLD, SIRET/TVA 9pt NORMAL,
-  // gap 8mm apres email pour creer la separation visuelle avec les mentions legales.
-  const lines: ContentLine[] = []
-  if (ent.nom) lines.push({ text: ent.nom, size: 13, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
-  if (ent.adresse) lines.push({ text: ent.adresse, size: 9, weight: 'bold', color: C.navy })
+  // V3.0c.11 : top (nom + coordonnees bold) ancre haut, bottom (SIRET/TVA 8pt normal)
+  // ancre bas. Carte agrandie a 58mm pour avoir un gap naturel ~4mm entre les deux.
+  const top: ContentLine[] = []
+  if (ent.nom) top.push({ text: ent.nom, size: 13, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
+  if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'bold', color: C.navy })
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
-  if (ville) lines.push({ text: ville, size: 9, weight: 'bold', color: C.navy })
-  if (ent.telephone) lines.push({ text: formatPhone(ent.telephone), size: 9, weight: 'bold', color: C.navy })
-  if (ent.email) lines.push({ text: ent.email, size: 9, weight: 'bold', color: C.navy, marginAfter: 8 })
-  if (ent.siret) lines.push({ text: `SIRET ${ent.siret}`, size: 9, weight: 'normal', color: C.navy })
+  if (ville) top.push({ text: ville, size: 9, weight: 'bold', color: C.navy })
+  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'bold', color: C.navy })
+  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'bold', color: C.navy })
+
+  // Bloc BAS (SIRET + TVA) ancre en bas, 8pt normal (mentions legales, plus discret)
+  const bottom: ContentLine[] = []
+  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 8, weight: 'normal', color: C.navy })
   if (ent.tva_intracommunautaire) {
-    lines.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 9, weight: 'normal', color: C.navy })
+    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 8, weight: 'normal', color: C.navy })
   }
 
-  renderLinesTop(doc, lines, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
+  renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
+  renderLinesBottom(doc, bottom, x + PAD_X, y + CARD_H - PAD_BOTTOM, CARD_W - PAD_X * 2)
 }
 
 // ===========================================================================
@@ -148,38 +151,29 @@ function drawAddresseCard(
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
   drawBadge(doc, 'ADRESSÉ À', x + 10, y)
 
-  // V3.0c.10 : un seul flux (parite avec EMETTEUR). Nom 13pt extrabold blanc,
-  // coordonnees 9pt BOLD whiteSoft (parite gras EMETTEUR), SIRET/TVA NORMAL avec gap 8mm.
-  const lines: ContentLine[] = []
-  lines.push({ text: client.clientNom || '—', size: 13, weight: 'extrabold', color: C.white, marginAfter: GAP_NAME_AFTER })
-
-  const adresseParts: string[] = []
+  // V3.0c.11 : top (nom + coordonnees) ancre haut, bottom (SIRET/TVA) ancre bas.
+  // Parite stricte avec EMETTEUR.
+  const top: ContentLine[] = []
+  top.push({ text: client.clientNom || '—', size: 13, weight: 'extrabold', color: C.white, marginAfter: GAP_NAME_AFTER })
   if (client.clientAdresse) {
     const parts = client.clientAdresse.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean)
     for (const p of parts) {
-      adresseParts.push(looksLikePhone(p) ? formatPhone(p) : p)
+      const text = looksLikePhone(p) ? formatPhone(p) : p
+      top.push({ text, size: 9, weight: 'bold', color: C.whiteSoft })
     }
   }
-  adresseParts.forEach((text, i) => {
-    const isLast = i === adresseParts.length - 1
-    const hasSiretOrTva = Boolean(client.clientSiret || client.clientTvaIntra)
-    lines.push({
-      text,
-      size: 9,
-      weight: 'bold',
-      color: C.whiteSoft,
-      marginAfter: isLast && hasSiretOrTva ? 8 : undefined,
-    })
-  })
 
+  // Bloc BAS (SIRET + TVA) 8pt normal whiteSoft
+  const bottom: ContentLine[] = []
   if (client.clientSiret) {
-    lines.push({ text: `SIRET ${client.clientSiret}`, size: 9, weight: 'normal', color: C.whiteSoft })
+    bottom.push({ text: `SIRET ${client.clientSiret}`, size: 8, weight: 'normal', color: C.whiteSoft })
   }
   if (client.clientTvaIntra) {
-    lines.push({ text: `TVA ${client.clientTvaIntra}`, size: 9, weight: 'normal', color: C.whiteSoft })
+    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 8, weight: 'normal', color: C.whiteSoft })
   }
 
-  renderLinesTop(doc, lines, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
+  renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
+  renderLinesBottom(doc, bottom, x + PAD_X, y + CARD_H - PAD_BOTTOM, CARD_W - PAD_X * 2)
 }
 
 // ===========================================================================
@@ -212,7 +206,9 @@ function renderLinesTop(
   }
 }
 
-/** Rendu des lignes ancrees en BAS du conteneur (yBottom = bord bas). */
+/** Rendu des lignes ancrees en BAS du conteneur (yBottom = bord bas).
+ *  V3.0c.12 : line gap reduit a 0.6mm (au lieu de 1.4mm) pour resserrer
+ *  SIRET et TVA proprement, sans agrandir la carte. */
 function renderLinesBottom(
   doc: jsPDF,
   lines: ContentLine[],
@@ -221,11 +217,12 @@ function renderLinesBottom(
   maxW: number,
 ): void {
   if (lines.length === 0) return
+  const TIGHT_LINE_GAP = 0.6
   let totalH = 0
   for (const l of lines) {
     font(doc, 'Hanken Grotesk', l.weight, l.size, l.color)
     const split = doc.splitTextToSize(l.text, maxW)
-    totalH += split.length * (l.size * 0.4 + 1.4)
+    totalH += split.length * (l.size * 0.4 + TIGHT_LINE_GAP)
   }
   let cursorY = yBottom - totalH + lines[0].size * 0.4 + 1
   for (const l of lines) {
@@ -233,7 +230,7 @@ function renderLinesBottom(
     const split = doc.splitTextToSize(l.text, maxW)
     for (const part of split) {
       doc.text(part, x, cursorY)
-      cursorY += l.size * 0.4 + 1.4
+      cursorY += l.size * 0.4 + TIGHT_LINE_GAP
     }
   }
 }
