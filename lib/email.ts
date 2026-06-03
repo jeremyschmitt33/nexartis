@@ -338,6 +338,103 @@ export async function sendSubscriptionExtendedEmail(user: {
 }
 
 // -------------------------------------------------------------------
+// 1ter. Geste commercial — mois offerts (V3.0c.20)
+// Envoye automatiquement quand l'admin clique sur "+1 mois" / "+3 mois offerts".
+// -------------------------------------------------------------------
+
+export async function sendGesteCommercialEmail(user: {
+  email: string
+  name: string
+  moisOfferts: number // 1 ou 3
+  newExpireAt: string // ISO date string
+}) {
+  const formattedDate = new Date(user.newExpireAt).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  })
+  const sMois = user.moisOfferts > 1 ? 's' : ''
+
+  const body = `
+    <h2 style="margin:0 0 16px;font-size:26px;color:#0f1a3a;font-weight:800;letter-spacing:-0.01em;line-height:1.25;">Un petit cadeau pour vous 🎁</h2>
+
+    <p style="font-size:15px;color:#475569;line-height:1.75;margin:0 0 14px;">
+      Bonjour ${user.name},
+    </p>
+
+    <p style="font-size:15px;color:#475569;line-height:1.75;margin:0 0 14px;">
+      Vous bénéficiez aujourd'hui d'un <strong>geste commercial</strong> de notre part. Considérez cela comme un merci pour votre confiance et votre engagement à nos côtés.
+    </p>
+
+    <!-- Encart mois offerts -->
+    <div style="background:linear-gradient(135deg,#fff7ed 0%,#ffedd5 100%);border:1px solid #fdba74;border-radius:12px;padding:24px 22px;margin:24px 0;text-align:center;">
+      <p style="margin:0 0 6px;font-size:12px;color:#9a3412;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Cadeau de bienvenue</p>
+      <p style="margin:0 0 8px;font-size:36px;color:#0f1a3a;font-weight:800;line-height:1;">+${user.moisOfferts} mois offert${sMois}</p>
+      <p style="margin:0;font-size:13px;color:#9a3412;line-height:1.6;">
+        Nouvelle validité de votre abonnement<br>
+        <strong style="font-size:15px;color:#0f1a3a;">jusqu'au ${formattedDate}</strong>
+      </p>
+    </div>
+
+    <!-- Encart nouveautés -->
+    <h3 style="margin:30px 0 12px;font-size:17px;color:#0f1a3a;font-weight:700;">✨ Profitez-en pour découvrir les nouveautés</h3>
+
+    <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 14px;">
+      Nous venons de pousser une grosse mise à jour qui change la donne sur le rendu de vos documents :
+    </p>
+
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin:12px 0;">
+      <p style="margin:0 0 8px;font-size:14px;color:#0f1a3a;font-weight:700;">📄 Vos devis et factures, version pro</p>
+      <p style="margin:0;font-size:13px;color:#64748b;line-height:1.65;">
+        Refonte visuelle complète : nouveau bandeau navy + orange, cartes émetteur / destinataire modernisées, tableau hiérarchisé avec pastilles, Net à payer en évidence, mentions légales automatiques. Vos clients verront tout de suite la différence.
+      </p>
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin:12px 0;">
+      <p style="margin:0 0 8px;font-size:14px;color:#0f1a3a;font-weight:700;">📊 Facturation de situation enfin disponible</p>
+      <p style="margin:0;font-size:13px;color:#64748b;line-height:1.65;">
+        Pour vos chantiers longs, vous pouvez désormais facturer en plusieurs tranches (Situation #1, #2, #3…) directement depuis le formulaire de nouvelle facture. Plus besoin de tout recopier.
+      </p>
+    </div>
+
+    <!-- CTA -->
+    <div style="text-align:center;margin:28px 0;">
+      <a href="https://nexartis.fr/dashboard/devis" style="display:inline-block;background:#e87a2a;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:10px;box-shadow:0 4px 14px rgba(232,122,42,0.35);">Découvrir les nouveautés →</a>
+    </div>
+
+    <!-- Encart traction -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:18px 22px;margin:28px 0;">
+      <p style="margin:0 0 8px;font-size:15px;color:#0c4a6e;font-weight:700;">🚀 De plus en plus d'artisans nous rejoignent</p>
+      <p style="margin:0;font-size:14px;color:#475569;line-height:1.7;">
+        Chaque semaine, de nouveaux artisans rejoignent Nexartis. Électriciens, plombiers, paysagistes, maçons, couvreurs… Tous trouvent enfin un outil <strong>simple, rapide et conforme</strong>, pensé par et pour des artisans français. Bonne nouvelle : vous y êtes déjà.
+      </p>
+    </div>
+
+    <p style="font-size:15px;color:#475569;line-height:1.7;margin:24px 0 8px;">
+      Profitez bien de votre cadeau, et continuez à nous faire vos retours — c'est grâce à vous que Nexartis devient meilleur chaque semaine.
+    </p>
+
+    <p style="font-size:14px;color:#0f1a3a;line-height:1.6;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:20px;">
+      <strong style="font-size:15px;">Jérémy Schmitt</strong><br/>
+      <span style="color:#64748b;font-size:13px;">Fondateur — Nexartis</span>
+    </p>
+
+    <!-- Encart contact discret -->
+    <div style="background:#fef9f3;border:1px solid #fde6c8;border-radius:8px;padding:14px 18px;margin:20px 0 0;">
+      <p style="margin:0;font-size:13px;color:#475569;line-height:1.6;">
+        Une question ? Un bug ? Répondez à cet email ou écrivez à <a href="mailto:contact.nexartis@gmail.com" style="color:#2563eb;text-decoration:underline;font-weight:600;">contact.nexartis@gmail.com</a> — je lis chaque message personnellement.
+      </p>
+    </div>`
+
+  return sendEmail({
+    to: { email: user.email, name: user.name },
+    subject: `🎁 ${user.moisOfferts} mois offert${sMois} sur Nexartis + nouveautés à découvrir`,
+    html: layout(body, {
+      entrepriseNom: 'Nexartis',
+      logoUrl: 'https://nexartis.fr/images/logo-nexartis.png',
+    }),
+  })
+}
+
+// -------------------------------------------------------------------
 // 2. Quote sent email
 // -------------------------------------------------------------------
 

@@ -96,7 +96,7 @@ export async function PATCH(request: Request) {
   if (!admin) return forbiddenError()
 
   const body = await request.json()
-  const { entreprise_id, abonnement_type, notes_admin, abonnement_expire_at } = body
+  const { entreprise_id, abonnement_type, notes_admin, abonnement_expire_at, geste_commercial_mois } = body
 
   if (!entreprise_id || !abonnement_type) {
     return secureError('Paramètres manquants')
@@ -133,15 +133,18 @@ export async function PATCH(request: Request) {
 
   if (error) return secureError(error.message, 500)
 
-  // V3.0c.18 : envoyer un mail automatique si l'abonnement a ete prolonge ou passe en lifetime.
+  // V3.0c.18 / V3.0c.20 : mail automatique selon le contexte
+  // - Geste commercial (+1 / +3 mois) → sendGesteCommercialEmail (mail valorisant + nouveautes)
+  // - Prolongation simple ou passage lifetime → sendSubscriptionExtendedEmail (mail neutre)
   // Non-bloquant : si l'email echoue, l'update reste valide.
   try {
     const passageLifetime = abonnement_type === 'lifetime' && avant?.abonnement_type !== 'lifetime'
     const prolongation = abonnement_expire_at !== undefined
       && abonnement_expire_at !== null
       && (!avant?.abonnement_expire_at || new Date(abonnement_expire_at) > new Date(avant.abonnement_expire_at as string))
+    const gesteCommercial = typeof geste_commercial_mois === 'number' && geste_commercial_mois > 0
 
-    if (passageLifetime || prolongation) {
+    if (passageLifetime || prolongation || gesteCommercial) {
       // Recuperer l'email auth en priorite (entreprises.email peut etre vide)
       let destEmail = (avant?.email as string) || ''
       if (!destEmail && avant?.user_id) {
@@ -151,15 +154,29 @@ export async function PATCH(request: Request) {
       const destName = `${(avant?.prenom as string) || ''} ${(avant?.nom as string) || ''}`.trim() || 'Cher utilisateur'
 
       if (destEmail) {
-        const { sendSubscriptionExtendedEmail } = await import('@/lib/email')
-        await sendSubscriptionExtendedEmail({
-          email: destEmail,
-          name: destName,
-          newExpireAt: passageLifetime ? '' : (abonnement_expire_at as string),
-          abonnementType: abonnement_type,
-        }).catch((e) => {
-          console.error('sendSubscriptionExtendedEmail failed:', e)
-        })
+        if (gesteCommercial && abonnement_expire_at) {
+          // V3.0c.20 : mail dedie geste commercial
+          const { sendGesteCommercialEmail } = await import('@/lib/email')
+          await sendGesteCommercialEmail({
+            email: destEmail,
+            name: destName,
+            moisOfferts: geste_commercial_mois as number,
+            newExpireAt: abonnement_expire_at as string,
+          }).catch((e) => {
+            console.error('sendGesteCommercialEmail failed:', e)
+          })
+        } else {
+          // V3.0c.18 : mail neutre prolongation / lifetime
+          const { sendSubscriptionExtendedEmail } = await import('@/lib/email')
+          await sendSubscriptionExtendedEmail({
+            email: destEmail,
+            name: destName,
+            newExpireAt: passageLifetime ? '' : (abonnement_expire_at as string),
+            abonnementType: abonnement_type,
+          }).catch((e) => {
+            console.error('sendSubscriptionExtendedEmail failed:', e)
+          })
+        }
       }
     }
   } catch (e) {

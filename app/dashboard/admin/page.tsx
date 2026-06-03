@@ -135,7 +135,7 @@ function UserDetailModal({
 }: {
   user: UserRecord
   onClose: () => void
-  onSave: (id: string, type: string, notes: string, expireAt?: string | null) => Promise<void>
+  onSave: (id: string, type: string, notes: string, expireAt?: string | null, gesteCommercialMois?: number) => Promise<void>
   onDelete: (userId: string) => Promise<void>
   onConfirm: (userId: string) => Promise<void>
 }) {
@@ -172,7 +172,8 @@ function UserDetailModal({
     const noteLine = `[${stamp}] +${months} mois offert${months > 1 ? 's' : ''} (expire le ${newExpire.toLocaleDateString('fr-FR')})`
     const newNotes = notes.trim() ? `${notes}\n${noteLine}` : noteLine
 
-    await onSave(user.id, 'actif', newNotes, newExpire.toISOString())
+    // V3.0c.20 : on signale le geste commercial pour declencher le mail dedie
+    await onSave(user.id, 'actif', newNotes, newExpire.toISOString(), months)
     setOffering(null)
     onClose()
   }
@@ -495,13 +496,15 @@ export default function AdminPage() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  async function handleSave(entrepriseId: string, abonnementType: string, notes: string, expireAt?: string | null) {
+  async function handleSave(entrepriseId: string, abonnementType: string, notes: string, expireAt?: string | null, gesteCommercialMois?: number) {
     const body: Record<string, unknown> = {
       entreprise_id: entrepriseId,
       abonnement_type: abonnementType,
       notes_admin: notes,
     }
     if (expireAt !== undefined) body.abonnement_expire_at = expireAt
+    // V3.0c.20 : flag pour declencher le mail geste commercial cote serveur
+    if (gesteCommercialMois) body.geste_commercial_mois = gesteCommercialMois
 
     const res = await fetch('/api/admin/users', {
       method: 'PATCH',
