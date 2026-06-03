@@ -290,10 +290,11 @@ function drawTvaRow(
 ): void {
   font(doc, 'Hanken Grotesk', 'normal', 8.5, C.muted)
   doc.text(label, RIGHT_X, y)
+  // V3.0c.2 fix : mesurer le label AVEC un espace pour eviter "%(base..."
+  const labelW = doc.getTextWidth(label + ' ')
   if (sub) {
     font(doc, 'Hanken Grotesk', 'normal', 7.5, C.muted)
-    const labelW = doc.getTextWidth(label)
-    doc.text(sub, RIGHT_X + labelW, y)
+    doc.text(sub.trimStart(), RIGHT_X + labelW, y)
   }
   font(doc, 'Hanken Grotesk', 'bold', 8.5, C.navy)
   textRight(doc, value, RIGHT_VALUE_X, y)

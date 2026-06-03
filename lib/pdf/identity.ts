@@ -1,7 +1,10 @@
-// lib/pdf/identity.ts - V3.0c
+// lib/pdf/identity.ts - V3.0c.2
 // Cartes EMETTEUR (gauche, fond blanc + ombre) et ADRESSE A (droite, fond
 // navyDeep). Badges orange pillules flottants chevauchant le haut de chaque
 // carte.
+//
+// V3.0c.2 : badges uniformises (BADGE_W=28), nom 12pt extrabold, marge +2.5mm
+// apres le nom pour mieux respirer dans la carte, hauteur carte 50mm.
 
 import type { jsPDF } from 'jspdf'
 import { C } from './palette'
@@ -26,18 +29,21 @@ interface IdentityClient {
 }
 
 const CARD_W = 84
-const CARD_H = 46
+const CARD_H = 50 // V3.0c.2 : +4mm pour absorber le nom plus gras + marge
 const CARD_R = 5
 const PAD_X = 6
-const PAD_TOP = 10
+const PAD_TOP = 11
+const BADGE_W = 28 // V3.0c.2 : badges uniformises EMETTEUR/ADRESSE A
 const BADGE_H = 5
 const BADGE_R = 2.5
+const GAP_NAME_AFTER = 2.5 // V3.0c.2 : marge supplementaire entre nom et adresse
 
 interface ContentLine {
   text: string
   size: number
   weight: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold'
   color: typeof C.white
+  marginAfter?: number // V3.0c.2 : marge supplementaire optionnelle apres la ligne (mm)
 }
 
 /**
@@ -45,7 +51,7 @@ interface ContentLine {
  *
  * @param yStart  y de demarrage des cartes (haut de la zone, badge inclus).
  *                Le badge orange chevauche 2.5 mm au-dessus du yStart.
- * @returns       y absolu apres les cartes (= yStart + 46 + marge).
+ * @returns       y absolu apres les cartes.
  */
 export function drawIdentityCards(
   doc: jsPDF,
@@ -55,19 +61,16 @@ export function drawIdentityCards(
 ): number {
   const leftX = 18
   const rightX = 108
-  const yCard = yStart + 2.5 // 2.5 mm de marge pour que le badge ne sorte pas du papier
+  const yCard = yStart + 2.5 // marge pour que le badge ne sorte pas du papier
 
-  // ============= CARTE EMETTEUR (gauche, fond blanc + ombre) =============
   drawEmetteurCard(doc, ent, leftX, yCard)
-
-  // ============= CARTE ADRESSE A (droite, fond navyDeep) =================
   drawAddresseCard(doc, client, rightX, yCard)
 
   return yCard + CARD_H + 8
 }
 
 // ===========================================================================
-// EMETTEUR
+// EMETTEUR (gauche, fond blanc + ombre subtile)
 // ===========================================================================
 function drawEmetteurCard(
   doc: jsPDF,
@@ -75,28 +78,27 @@ function drawEmetteurCard(
   x: number,
   y: number,
 ): void {
-  // Ombre subtile (offset +1mm vers le bas/droite)
+  // Ombre subtile (offset +1mm)
   setFill(doc, [230, 232, 235])
   doc.roundedRect(x + 1, y + 1, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
 
-  // Fond blanc + bordure border
+  // Fond blanc + bordure
   setFill(doc, C.white)
   setDraw(doc, C.border)
   doc.setLineWidth(0.3)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
 
-  // Badge orange "EMETTEUR" flottant (chevauche le haut)
-  const badgeW = 24
+  // Badge orange "EMETTEUR" flottant (uniformise 28mm)
   const badgeX = x + 10
   const badgeY = y - BADGE_H / 2
   setFill(doc, C.orange)
-  doc.roundedRect(badgeX, badgeY, badgeW, BADGE_H, BADGE_R, BADGE_R, 'F')
+  doc.roundedRect(badgeX, badgeY, BADGE_W, BADGE_H, BADGE_R, BADGE_R, 'F')
   font(doc, 'Hanken Grotesk', 'semibold', 6.5, C.navy)
-  textCentered(doc, 'ÉMETTEUR', badgeX + badgeW / 2, badgeY + BADGE_H / 2 + 1.1)
+  textCentered(doc, 'ÉMETTEUR', badgeX + BADGE_W / 2, badgeY + BADGE_H / 2 + 1.1)
 
-  // Contenu
+  // Contenu — nom 12pt extrabold + marge avant adresse
   const lines: ContentLine[] = []
-  if (ent.nom) lines.push({ text: ent.nom, size: 11, weight: 'bold', color: C.navy })
+  if (ent.nom) lines.push({ text: ent.nom, size: 12, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
   const adresseLines: string[] = []
   if (ent.adresse) adresseLines.push(ent.adresse)
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
@@ -112,14 +114,14 @@ function drawEmetteurCard(
   if (ent.telephone) contactParts.push(ent.telephone)
   if (ent.email) contactParts.push(ent.email)
   if (contactParts.length > 0) {
-    lines.push({ text: contactParts.join('   ·   '), size: 8, weight: 'normal', color: C.muted })
+    lines.push({ text: contactParts.join('  •  '), size: 8, weight: 'normal', color: C.muted })
   }
 
   renderLines(doc, lines, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
 }
 
 // ===========================================================================
-// ADRESSE A
+// ADRESSE A (droite, fond navyDeep, texte blanc)
 // ===========================================================================
 function drawAddresseCard(
   doc: jsPDF,
@@ -127,22 +129,20 @@ function drawAddresseCard(
   x: number,
   y: number,
 ): void {
-  // Fond navyDeep (pas d'ombre, fond fonce suffit)
   setFill(doc, C.navyDeep)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
 
-  // Badge orange "ADRESSE A"
-  const badgeW = 26
+  // Badge orange "ADRESSE A" (uniformise 28mm)
   const badgeX = x + 10
   const badgeY = y - BADGE_H / 2
   setFill(doc, C.orange)
-  doc.roundedRect(badgeX, badgeY, badgeW, BADGE_H, BADGE_R, BADGE_R, 'F')
+  doc.roundedRect(badgeX, badgeY, BADGE_W, BADGE_H, BADGE_R, BADGE_R, 'F')
   font(doc, 'Hanken Grotesk', 'semibold', 6.5, C.navy)
-  textCentered(doc, 'ADRESSÉ À', badgeX + badgeW / 2, badgeY + BADGE_H / 2 + 1.1)
+  textCentered(doc, 'ADRESSÉ À', badgeX + BADGE_W / 2, badgeY + BADGE_H / 2 + 1.1)
 
-  // Contenu
+  // Contenu — nom 12pt extrabold + marge avant adresse
   const lines: ContentLine[] = []
-  lines.push({ text: client.clientNom || '—', size: 11, weight: 'bold', color: C.white })
+  lines.push({ text: client.clientNom || '—', size: 12, weight: 'extrabold', color: C.white, marginAfter: GAP_NAME_AFTER })
   if (client.clientAdresse) {
     const parts = client.clientAdresse.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean)
     for (const p of parts) {
@@ -177,5 +177,6 @@ function renderLines(
       doc.text(part, x, cursorY)
       cursorY += l.size * 0.4 + 1.4
     }
+    if (l.marginAfter) cursorY += l.marginAfter
   }
 }
