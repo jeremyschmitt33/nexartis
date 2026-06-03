@@ -187,11 +187,18 @@ export function drawLegal(
   //    cote totals.ts (colonne gauche, sous les conditions de paiement).
   //    Bloc retire ici pour eviter le doublon.
 
-  // 2. AGEC dechets (au-dessus de l'encadre 2x2)
+  // 2. AGEC dechets — V3.0c.5 Fix C : section visuellement separee avec trait
+  // au-dessus + padding genereux (parite HTML dashboard).
   if (opts.dechets && (opts.dechets.nature || opts.dechets.collecte_nom)) {
+    y += 4 // marge avant la section
+    setDraw(doc, C.border)
+    doc.setLineWidth(0.3)
+    doc.line(M, y, M + W, y)
+    y += 5 // padding apres le trait
+
     font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
     doc.text('GESTION DES DÉCHETS (AGEC)', M, y, { charSpace: 0.6 })
-    y += 3.5
+    y += 4
     font(doc, 'Hanken Grotesk', 'normal', 8, C.navy)
     const parts: string[] = []
     if (opts.dechets.nature) parts.push(`Nature : ${opts.dechets.nature}`)
@@ -202,7 +209,7 @@ export function drawLegal(
     }
     const split = doc.splitTextToSize(parts.join('   ·   '), W)
     doc.text(split, M, y)
-    y += split.length * 3.2 + 3
+    y += split.length * 3.2 + 4 // padding apres
   }
 
   // 3. Encadre 2x2 mentions legales (Assurance / Statut / Mediateur / Retractation)

@@ -179,10 +179,26 @@ function drawRecap(
   lignes: PdfLigne[],
   yStart: number,
 ): number {
-  let y = yStart
-
-  // Sous-total HT
+  // V3.0c.5 Fix B — grand cadre fond skyVeryPale englobant tout le recap
+  // (sous-total + TVA + Total TTC + Net a payer + echelonnement)
   const isForfait = detectForfaitMode(lignes, data.montant_ht)
+  const acompteTTCpre = computeAcompteTTC(data)
+  let tvaGroupsPre = computeTvaGroups(lignes)
+  if (isForfait && data.montant_tva > 0 && data.montant_ht > 0) {
+    const tauxBrutPre = (data.montant_tva / data.montant_ht) * 100
+    const tauxPre = Math.round(tauxBrutPre * 10) / 10
+    tvaGroupsPre = { [tauxPre]: data.montant_tva }
+  }
+  const nbTvaPre = Object.keys(tvaGroupsPre)
+    .map(Number)
+    .filter((r) => Number.isFinite(r) && r > 0 && (tvaGroupsPre[r] ?? 0) > 0.005).length
+  const echelonH = acompteTTCpre > 0 ? 13 + GAP_AFTER_ECHELON : 0
+  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre + 1) + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
+  const recapPad = 4
+  setFill(doc, C.skyVeryPale)
+  doc.roundedRect(RIGHT_X - 2, yStart - recapPad + 1, COL_W + 4, recapH + recapPad, 3, 3, 'F')
+
+  let y = yStart
   drawRecapRow(
     doc,
     isForfait ? 'Forfait global HT' : 'Sous-total HT',
@@ -226,9 +242,8 @@ function drawRecap(
   })
   y += GAP_BEFORE_NET
 
-  const acompteTTC = computeAcompteTTC(data)
-
   // Bloc NET A PAYER orange plein (montant = Total TTC complet, jamais l'acompte)
+  const acompteTTC = acompteTTCpre
   const netH = 13
   setFill(doc, C.orange)
   doc.roundedRect(RIGHT_X, y, COL_W, netH, 3, 3, 'F')
@@ -255,8 +270,11 @@ function drawRecap(
     const lineGap = 4.5
     const boxH = padInner * 2 + lineGap * 2 // 2 lignes + 2 paddings
 
-    setFill(doc, C.skyVeryPale)
-    doc.roundedRect(boxX, boxY, boxW, boxH, 2, 2, 'F')
+    // V3.0c.5 Fix B : trait separateur fin au-dessus de l'echelonnement
+    // (le grand cadre skyVeryPale gere deja le fond, on evite le double-fill)
+    setDraw(doc, C.borderSky)
+    doc.setLineWidth(0.3)
+    doc.line(boxX + padInner, boxY, boxX + boxW - padInner, boxY)
 
     const lineX = boxX + padInner
     const valueX = boxX + boxW - padInner

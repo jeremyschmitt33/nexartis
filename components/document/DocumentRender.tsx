@@ -82,10 +82,10 @@ function CardFrom({ artisan }: { artisan: DocumentArtisan }) {
       <div className="dv-d-cardrows">
         {artisan.adresseLine1 && <div>{artisan.adresseLine1}</div>}
         {artisan.adresseLine2 && <div>{artisan.adresseLine2}</div>}
-        {artisan.siret && <div>SIRET {artisan.siret}</div>}
-        {artisan.tvaIntra && <div>TVA {artisan.tvaIntra}</div>}
         {artisan.tel && <div>{formatPhone(artisan.tel)}</div>}
         {artisan.email && <div>{artisan.email}</div>}
+        {artisan.siret && <div>SIRET {artisan.siret}</div>}
+        {artisan.tvaIntra && <div>TVA {artisan.tvaIntra}</div>}
       </div>
     </div>
   )
