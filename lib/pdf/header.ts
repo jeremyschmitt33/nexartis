@@ -41,19 +41,18 @@ export function drawHeader(
   setFill(doc, C.navy)
   doc.rect(0, 0, pageW, headerH, 'F')
 
-  // === 2. Accent orange diagonal a droite (parallelogramme incline) ===
-  // Points : (155, 0) -> (180, 0) -> (165, 58) -> (140, 58)
+  // === 2. Accent orange : bande diagonale etroite (4mm) qui SEPARE la zone
+  // gauche (logo + nom) de la zone droite (DEVIS + pastille + dates).
+  // Points : (135, 0) -> (139, 0) -> (119, 58) -> (115, 58)
   setFill(doc, C.orange)
-  // jsPDF n'a pas polygon natif fiable, on utilise lines() depuis un point de depart.
-  // lines([[dx,dy],...], x, y, scale, style, closed)
   doc.lines(
     [
-      [25, 0],    // (155,0) -> (180,0)
-      [-15, 58],  // (180,0) -> (165,58)
-      [-25, 0],   // (165,58) -> (140,58)
-      [15, -58],  // (140,58) -> (155,0)  retour
+      [4, 0],     // (135,0) -> (139,0)
+      [-20, 58],  // (139,0) -> (119,58)
+      [-4, 0],    // (119,58) -> (115,58)
+      [20, -58],  // (115,58) -> (135,0) retour
     ],
-    155, 0,
+    135, 0,
     [1, 1],
     'F',
     true,
@@ -99,53 +98,58 @@ export function drawHeader(
     doc.text(ent.metier.trim(), textLeftX, 29)
   }
 
-  // === 5. Titre + pastille numero (cote droit) ===
-  const rightAnchorX = 174
+  // === 5. Titre + pastille numero (cote droit, apres la bande orange a x>=139) ===
+  const rightAnchorX = 200
   // Auto-resize pour titres longs ("FACTURE DE SITUATION")
   const titleSize = title.length > 14 ? 22 : 32
   font(doc, 'Hanken Grotesk', 'extrabold', titleSize, C.white)
-  textRight(doc, title, rightAnchorX, 20)
+  textRight(doc, title, rightAnchorX, 24)
 
-  // Pastille orange numero
-  const pillW = 70
-  const pillX = rightAnchorX - pillW
-  const pillY = 26
-  roundedFill(doc, pillX, pillY, pillW, 8.5, 3, C.orange)
-  font(doc, 'Hanken Grotesk', 'bold', 11, C.navy)
-  textCentered(doc, numero, pillX + pillW / 2, pillY + 5.8)
+  // Pastille orange numero (centree dans la zone droite : x=143 -> x=198)
+  const pillX = 143
+  const pillY = 32
+  const pillW = 55
+  const pillH = 9
+  roundedFill(doc, pillX, pillY, pillW, pillH, 3, C.orange)
+  font(doc, 'Hanken Grotesk', 'bold', 10.5, C.navy)
+  textCentered(doc, numero, pillX + pillW / 2, pillY + 6.5)
 
-  // === 6. Dates (ligne y=47, right-aligned a x=174) ===
-  // Format compose : "Émis le 03/06/2026  ·  Valable jusqu'au 18/06/2026"
-  // On mesure pour positionner correctement chaque morceau a droite.
-  const datesY = 47
-
-  // Construction des morceaux avec leur style cible
+  // === 6. Dates sur 2 lignes (y=48 et y=53), right-aligned a x=200 ===
+  // Ligne 1 : "Émis le 03/06/2026"
+  // Ligne 2 : "Valable jusqu'au 18/06/2026"
   type DatePiece = { txt: string; size: number; weight: 'normal' | 'bold'; color: typeof C.white }
-  const pieces: DatePiece[] = []
+
+  function drawDateLine(pieces: DatePiece[], yLine: number): void {
+    let totalW = 0
+    for (const p of pieces) {
+      font(doc, 'Hanken Grotesk', p.weight, p.size, p.color)
+      totalW += doc.getTextWidth(p.txt)
+    }
+    let cursorX = rightAnchorX - totalW
+    for (const p of pieces) {
+      font(doc, 'Hanken Grotesk', p.weight, p.size, p.color)
+      doc.text(p.txt, cursorX, yLine)
+      cursorX += doc.getTextWidth(p.txt)
+    }
+  }
+
   if (dateGauche) {
-    pieces.push({ txt: labelGauche + ' ', size: 8, weight: 'normal', color: C.whiteSoft })
-    pieces.push({ txt: dateGauche, size: 8.5, weight: 'bold', color: C.white })
+    drawDateLine(
+      [
+        { txt: labelGauche + ' ', size: 8, weight: 'normal', color: C.whiteSoft },
+        { txt: dateGauche, size: 8.5, weight: 'bold', color: C.white },
+      ],
+      48,
+    )
   }
   if (dateDroite) {
-    if (pieces.length > 0) {
-      pieces.push({ txt: '   ·   ', size: 8, weight: 'normal', color: C.whiteSoft })
-    }
-    pieces.push({ txt: labelDroite + ' ', size: 8, weight: 'normal', color: C.whiteSoft })
-    pieces.push({ txt: dateDroite, size: 8.5, weight: 'bold', color: C.white })
-  }
-
-  // Mesure totale de la ligne (en se posant en NORMAL pour la mesure)
-  let totalW = 0
-  for (const p of pieces) {
-    font(doc, 'Hanken Grotesk', p.weight, p.size, p.color)
-    totalW += doc.getTextWidth(p.txt)
-  }
-
-  let cursorX = rightAnchorX - totalW
-  for (const p of pieces) {
-    font(doc, 'Hanken Grotesk', p.weight, p.size, p.color)
-    doc.text(p.txt, cursorX, datesY)
-    cursorX += doc.getTextWidth(p.txt)
+    drawDateLine(
+      [
+        { txt: labelDroite + ' ', size: 8, weight: 'normal', color: C.whiteSoft },
+        { txt: dateDroite, size: 8.5, weight: 'bold', color: C.white },
+      ],
+      53,
+    )
   }
 
   return headerH
@@ -184,19 +188,12 @@ export function drawMiniHeaderPages2Plus(
 ): void {
   const total = doc.getNumberOfPages()
   if (total < 2) return
-  const pageW = 210
-  const M = 18
   const dateStr = dateEmission ? fmtDate(dateEmission) : ''
 
   for (let i = 2; i <= total; i++) {
     doc.setPage(i)
-    // Trait border 0.3 mm a y=14
-    doc.setDrawColor(C.border[0], C.border[1], C.border[2])
-    doc.setLineWidth(0.3)
-    doc.line(M, 14, pageW - M, 14)
-
-    // Texte right-aligned x=192, y=10
-    font(doc, 'Hanken Grotesk', 'normal', 8, C.muted)
+    // Mini-header discret : pas de trait, texte 7pt muted right-aligned x=192, y=10
+    font(doc, 'Hanken Grotesk', 'normal', 7, C.muted)
     const parts: string[] = []
     if (ent.nom) parts.push(ent.nom)
     parts.push(`${title === 'DEVIS' ? 'Devis' : 'Facture'} ${numero}`)

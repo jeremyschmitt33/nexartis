@@ -1,20 +1,44 @@
-// lib/pdf/objet.ts - V3.0c
-// Bloc OBJET + ADRESSE DU CHANTIER en 2 colonnes a plat (sans cadre).
-// Labels uppercase muted, valeurs navy.
+// lib/pdf/objet.ts - V3.0c.1
+// Bandeau OBJET + ADRESSE DU CHANTIER (fond skyVeryPale + trait orange gauche).
 
 import type { jsPDF } from 'jspdf'
 import { C } from './palette'
-import { font } from './utils'
+import { font, setFill } from './utils'
 
-/**
- * Dessine le bloc Objet + Adresse chantier.
- *
- * @param objet            Objet du devis/facture.
- * @param chantierAdresse  Adresse du chantier (optionnelle).
- * @param yStart           y absolu pour demarrer (label en haut).
- *
- * @returns nouveau y apres le bloc.
- */
+const FULL_W = 174
+const COL_W = 84
+const GAP = 6
+const X = 18
+const LEFT_BAR_W = 2
+
+function drawBandeau(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  label: string,
+  valeur: string,
+): number {
+  const innerX = x + LEFT_BAR_W + 4
+  const innerW = w - LEFT_BAR_W - 8
+  const split = doc.splitTextToSize(valeur, innerW)
+  const lines = Math.max(split.length, 1)
+  const h = Math.max(14, 10 + lines * 4.5)
+
+  setFill(doc, C.skyVeryPale)
+  doc.roundedRect(x, y, w, h, 3, 3, 'F')
+  setFill(doc, C.orange)
+  doc.rect(x, y, LEFT_BAR_W, h, 'F')
+
+  font(doc, 'Hanken Grotesk', 'semibold', 7.5, C.muted)
+  doc.text(label, innerX, y + 5, { charSpace: 0.6 })
+
+  font(doc, 'Hanken Grotesk', 'bold', 12, C.navy)
+  doc.text(split, innerX, y + 10)
+
+  return h
+}
+
 export function drawObjet(
   doc: jsPDF,
   objet: string | undefined,
@@ -22,37 +46,18 @@ export function drawObjet(
   yStart: number,
 ): number {
   if (!objet && !chantierAdresse) return yStart
-
-  const leftX = 18
-  const rightX = 108
-  const colW = 84
-  const labelY = yStart
-  const valueY = yStart + 4
-
-  // Colonne gauche : OBJET
-  if (objet) {
-    font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
-    doc.text('OBJET', leftX, labelY, { charSpace: 0.6 })
-    font(doc, 'Hanken Grotesk', 'normal', 10, C.navy)
-    const split = doc.splitTextToSize(objet, colW)
-    doc.text(split, leftX, valueY)
+  const objetLen = (objet || '').length
+  const twoCols = !!objet && !!chantierAdresse && objetLen < 100
+  if (twoCols) {
+    const hL = drawBandeau(doc, X, yStart, COL_W, 'OBJET', objet!)
+    const hR = drawBandeau(doc, X + COL_W + GAP, yStart, COL_W, 'ADRESSE DU CHANTIER', chantierAdresse!)
+    return yStart + Math.max(hL, hR)
   }
-
-  // Colonne droite : ADRESSE DU CHANTIER
+  let y = yStart
+  if (objet) y += drawBandeau(doc, X, y, FULL_W, 'OBJET', objet)
   if (chantierAdresse) {
-    font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
-    doc.text('ADRESSE DU CHANTIER', rightX, labelY, { charSpace: 0.6 })
-    font(doc, 'Hanken Grotesk', 'normal', 10, C.navy)
-    const split = doc.splitTextToSize(chantierAdresse, colW)
-    doc.text(split, rightX, valueY)
+    if (objet) y += 4
+    y += drawBandeau(doc, X, y, FULL_W, 'ADRESSE DU CHANTIER', chantierAdresse)
   }
-
-  // Hauteur consommee : on prend 12 mm de base (label 4 + 2 lignes max)
-  // S'il y a beaucoup de texte, on calcule.
-  const leftLines = objet ? doc.splitTextToSize(objet, colW).length : 0
-  const rightLines = chantierAdresse ? doc.splitTextToSize(chantierAdresse, colW).length : 0
-  const maxLines = Math.max(leftLines, rightLines, 1)
-  const consumed = 4 + maxLines * 4 + 4
-
-  return yStart + Math.max(12, consumed)
+  return y
 }

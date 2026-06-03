@@ -185,7 +185,7 @@ function drawRecap(
   for (const r of sortedRates) {
     const base = tvaBases[r]
     const label = `TVA ${formatRate(r)}`
-    const sub = isMulti && base !== undefined ? `(base ${fmt(base)})` : ''
+    const sub = isMulti && base !== undefined ? ` (base ${fmt(base)})` : ''
     drawTvaRow(doc, label, sub, fmt(tvaGroups[r]), y)
     y += 6
   }
@@ -204,46 +204,43 @@ function drawRecap(
   })
   y += 6
 
-  // Acompte (si > 0)
+  // Calcul acompte (pour info echelonnement sous le bloc orange)
   const acompteTTC = computeAcompteTTC(data)
-  if (acompteTTC > 0) {
-    setDraw(doc, C.border)
-    doc.setLineWidth(0.3)
-    doc.line(RIGHT_X, y - 2, RIGHT_VALUE_X, y - 2)
-    const pct = data.acompte_pourcent && data.acompte_pourcent > 0
-      ? ` (${data.acompte_pourcent} %)`
-      : ''
-    const label = (data.acompte_label && data.acompte_label.trim()) || `Acompte${pct}`
-    drawRecapRow(doc, label, `- ${fmt(acompteTTC)}`, y, {})
-    y += 6
-  }
 
-  // Bloc NET A PAYER orange plein
+  // Bloc NET A PAYER orange plein (montant = Total TTC complet, jamais l'acompte)
   y += 2
   const netH = 13
   setFill(doc, C.orange)
   doc.roundedRect(RIGHT_X, y, COL_W, netH, 3, 3, 'F')
 
-  const netLabel = data.netLabel
-    || (acompteTTC > 0 ? 'Net à payer à la commande' : 'Net à payer')
+  const netLabel = data.netLabel || 'Net à payer'
   font(doc, 'Hanken Grotesk', 'semibold', 9, C.white)
   doc.text(netLabel, RIGHT_X + 4, y + netH / 2 + 1.2)
 
   font(doc, 'Hanken Grotesk', 'extrabold', 15, C.white)
-  const netAmount = acompteTTC > 0 ? acompteTTC : data.montant_ttc
-  textRight(doc, fmt(netAmount), RIGHT_VALUE_X - 4, y + netH / 2 + 2.2)
+  textRight(doc, fmt(data.montant_ttc), RIGHT_VALUE_X - 4, y + netH / 2 + 2.2)
   y += netH + 3
 
-  // Mention reste du
+  // Mention echelonnement (2 lignes : a verser commande + reste a livraison)
   if (acompteTTC > 0) {
+    const pct = data.acompte_pourcent && data.acompte_pourcent > 0
+      ? ` (${data.acompte_pourcent} %)`
+      : ''
+    drawSplitRow(doc, `À verser à la commande${pct}`, fmt(acompteTTC), y)
+    y += 4.5
     const reste = Math.max(data.montant_ttc - acompteTTC, 0)
-    font(doc, 'Hanken Grotesk', 'normal', 7, C.muted)
-    const txt = `Reste dû à la livraison : ${fmt(reste)}   ·   Total TTC : ${fmt(data.montant_ttc)}`
-    textRight(doc, txt, RIGHT_VALUE_X, y)
-    y += 4
+    drawSplitRow(doc, 'Reste dû à la livraison', fmt(reste), y)
+    y += 4.5
   }
 
   return y
+}
+
+function drawSplitRow(doc: jsPDF, label: string, value: string, y: number): void {
+  font(doc, 'Hanken Grotesk', 'normal', 8, C.muted)
+  doc.text(label, RIGHT_X, y)
+  font(doc, 'Hanken Grotesk', 'semibold', 8.5, C.navy)
+  textRight(doc, value, RIGHT_VALUE_X, y)
 }
 
 function computeAcompteTTC(data: TotalsData): number {
@@ -295,7 +292,7 @@ function drawTvaRow(
   doc.text(label, RIGHT_X, y)
   if (sub) {
     font(doc, 'Hanken Grotesk', 'normal', 7.5, C.muted)
-    const labelW = doc.getTextWidth(label + ' ')
+    const labelW = doc.getTextWidth(label)
     doc.text(sub, RIGHT_X + labelW, y)
   }
   font(doc, 'Hanken Grotesk', 'bold', 8.5, C.navy)

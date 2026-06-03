@@ -1,6 +1,5 @@
-// lib/pdf/signatures.ts - V3.0c
-// 2 encadres blancs traits PLEINS (pas pointilles) cote a cote.
-// Insertion signature client (gauche) et signature/tampon artisan (droite).
+// lib/pdf/signatures.ts - V3.0c.1
+// 2 encadres blancs traits PLEINS cote a cote. Saut de page auto si y > 230.
 
 import type { jsPDF } from 'jspdf'
 import { C } from './palette'
@@ -19,8 +18,8 @@ interface SigData {
 }
 
 /**
- * Dessine la zone signatures sur la page COURANTE (le caller decide si une
- * nouvelle page est necessaire). Retourne le nouveau y.
+ * Dessine la zone signatures. Si yStart > 230 (manque de place pour les 35mm
+ * + 20mm de marge basse), ajoute automatiquement une page et dessine a y=30.
  */
 export function drawSignatures(
   doc: jsPDF,
@@ -33,22 +32,25 @@ export function drawSignatures(
   const sigW = (W - 6) / 2
   const sigH = 35
 
+  let y = yStart
+  if (y > 230) {
+    doc.addPage()
+    y = 30
+  }
+
   const leftX = M
   const rightX = M + sigW + 6
-  const y = yStart
 
-  // === Cadre gauche : Bon pour accord — Le client ===
+  // Cadre gauche : Bon pour accord — Le client
   drawSignatureCard(
     doc,
     leftX, y, sigW, sigH,
     'Bon pour accord — Le client',
     'Date, mention "Bon pour accord" et signature',
   )
-  // Si signature client presente, l'inserer dans le cadre
   if (data.client_signature_base64) {
     insertImage(doc, data.client_signature_base64, leftX + 4, y + 10, sigW - 8, sigH - 16)
   }
-  // Si signe : on peut afficher la date de signature en bas
   const isAccepte = data.statut === 'signe' || data.statut === 'facture'
   if (isAccepte && !data.client_signature_base64) {
     font(doc, 'Hanken Grotesk', 'bold', 9, C.navy)
@@ -59,7 +61,7 @@ export function drawSignatures(
     textCentered(doc, `Le ${fmtDate(data.date_signature)}`, leftX + sigW / 2, y + sigH - 3)
   }
 
-  // === Cadre droit : Nom artisan + Signature & cachet ===
+  // Cadre droit : Nom artisan + Signature & cachet
   drawSignatureCard(
     doc,
     rightX, y, sigW, sigH,
@@ -83,17 +85,14 @@ function drawSignatureCard(
   title: string,
   subtitle: string,
 ): void {
-  // Fond blanc + traits PLEINS border
   setFill(doc, C.white)
   setDraw(doc, C.border)
   doc.setLineWidth(0.3)
   doc.roundedRect(x, y, w, h, 4, 4, 'FD')
 
-  // Titre
   font(doc, 'Hanken Grotesk', 'bold', 8.5, C.navy)
   doc.text(title, x + 4, y + 5)
 
-  // Sous-titre
   font(doc, 'Hanken Grotesk', 'normal', 7.5, C.muted)
   doc.text(subtitle, x + 4, y + 8.5, { maxWidth: w - 8 })
 }

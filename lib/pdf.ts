@@ -205,7 +205,6 @@ export function generateDevisPdf(data: DevisData): string {
   y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht)
 
   // 6. Bloc CONDITIONS + RECAP + NET A PAYER
-  const hasAcompte = !!(data.acompte_pourcent && data.acompte_pourcent > 0)
   y = drawTotals(
     doc,
     {
@@ -216,7 +215,7 @@ export function generateDevisPdf(data: DevisData): string {
       montant_tva: data.montant_tva,
       montant_ttc: data.montant_ttc,
       entreprise: ent,
-      netLabel: hasAcompte ? 'Net à payer à la commande' : 'Net à payer',
+      netLabel: 'Net à payer',
     },
     lignes,
     false, // pas de bloc IBAN pour les devis
@@ -236,13 +235,13 @@ export function generateDevisPdf(data: DevisData): string {
     { dechets: data.dechets },
   )
 
-  // 8. Signatures (toujours sur une nouvelle page pour avoir l'espace requis)
-  doc.addPage()
+  // 8. Signatures : enchainees apres les mentions legales sur la meme page
+  // (drawSignatures gere automatiquement le saut de page si y > 230)
   drawSignatures(doc, ent, {
     statut: data.statut,
     date_signature: data.date_signature,
     client_signature_base64: data.client_signature_base64,
-  }, 30)
+  }, y + 8)
 
   // 9. Mini-header pages 2+ + footer toutes pages
   drawMiniHeaderPages2Plus(doc, ent, 'DEVIS', data.numero, data.date_emission)
@@ -305,10 +304,6 @@ export function generateFacturePdf(data: FactureData): string {
   y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht)
 
   // 6. Bloc CONDITIONS (avec IBAN) + RECAP + NET A PAYER
-  const hasAcompte = !!(
-    (data.acompte_montant_ttc !== undefined && data.acompte_montant_ttc > 0) ||
-    (data.acompte_pourcent !== undefined && data.acompte_pourcent > 0)
-  )
   y = drawTotals(
     doc,
     {
@@ -323,7 +318,7 @@ export function generateFacturePdf(data: FactureData): string {
       montant_tva: data.montant_tva,
       montant_ttc: data.montant_ttc,
       entreprise: ent,
-      netLabel: hasAcompte ? 'Net à payer' : 'Net à payer',
+      netLabel: 'Net à payer',
     },
     lignes,
     true, // bloc IBAN actif pour facture
