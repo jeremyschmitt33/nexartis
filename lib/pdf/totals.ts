@@ -62,6 +62,16 @@ export function drawTotals(
   isFacture: boolean,
   yStart: number,
 ): number {
+  // V3.0c.14 : si pas assez de place avant le footer (282mm), saut de page automatique.
+  // Le bloc recap a besoin d'environ 75mm minimum (conditions + recap + Net + echelon).
+  // Sans cette protection, le grand cadre bleu deborde sur le bandeau navy du footer.
+  const FOOTER_TOP = 282
+  const RECAP_MIN_NEED = 80 // marge de securite
+  if (yStart + RECAP_MIN_NEED > FOOTER_TOP) {
+    doc.addPage()
+    yStart = 30
+  }
+
   const leftStartY = yStart
   const rightStartY = yStart
 

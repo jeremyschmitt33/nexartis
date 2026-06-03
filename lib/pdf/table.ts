@@ -38,13 +38,15 @@ interface RowMeta {
  * | N° | DESIGNATION | QTE | P.U. HT | TVA | TOTAL HT |
  * |  12|     90      |  14 |   22    | 14  |   22     |
  */
+// V3.0c.14 : largeurs ajustees pour supporter des montants jusqu'a "9 999 999,99 €"
+// (7 chiffres + decimales) sans wrapping. Designation reduite a 80mm pour compenser.
 const COL_W = {
   num: 12,
-  designation: 90,
+  designation: 80,
   qte: 14,
-  pu: 22,
+  pu: 26,
   tva: 14,
-  total: 22,
+  total: 28,
 } as const
 
 /**
