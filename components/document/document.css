@@ -32,6 +32,8 @@
 .dv-headD .dv-d-title { position:relative; z-index:2; text-align:right; }
 .dv-headD .dv-d-doctype { color:#fff; font-weight:800; font-size:var(--title-size); line-height:.85;
   letter-spacing:.01em; text-transform:uppercase; }
+/* V3.0c.16 : "FACTURE" et "FACTURE DE SITUATION" reduits d'un cran (7-19 lettres vs 5 pour DEVIS) */
+.dv-doctype-facture .dv-headD .dv-d-doctype { font-size:34px; }
 .dv-headD .dv-d-num { display:inline-block; margin-top:14px; background:var(--accent2);
   color:var(--accent2-ink); font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
   font-weight:600; font-size:14px; padding:6px 13px; border-radius:7px; letter-spacing:-.01em; }
