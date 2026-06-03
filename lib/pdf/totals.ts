@@ -195,9 +195,10 @@ function drawRecap(
   const echelonH = acompteTTCpre > 0 ? 13 + GAP_AFTER_ECHELON : 0
   // V3.0c.6 : +2mm pour la marge supplementaire avant Total TTC
   const recapH = GAP_RECAP_ROW * (1 + nbTvaPre + 1) + 2 + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
-  // V3.0c.6 : marges aerees (top=7, bottom=5) pour mieux repartir l'interieur
-  const recapPadTop = 7
-  const recapPadBottom = 5
+  // V3.0c.8 : marges equilibrees (top reduit a 4mm, bottom 9mm pour laisser
+  // respirer le bas et ne pas chevaucher le footer / trait).
+  const recapPadTop = 4
+  const recapPadBottom = 9
   setFill(doc, C.skyVeryPale)
   doc.roundedRect(RIGHT_X - 2, yStart - recapPadTop, COL_W + 4, recapH + recapPadTop + recapPadBottom, 3, 3, 'F')
 

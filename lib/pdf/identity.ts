@@ -117,15 +117,16 @@ function drawEmetteurCard(
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
   drawBadge(doc, 'ÉMETTEUR', x + 10, y)
 
-  // V3.0c.7 : uniformisation - tout en 9pt normal navy sauf nom (13pt extrabold)
-  // pour des marges entre lignes parfaitement constantes.
+  // V3.0c.8 : nom 13pt extrabold + lignes 9pt normal navy + GAP avant SIRET pour
+  // ne pas que mail et SIRET soient colles.
   const top: ContentLine[] = []
   if (ent.nom) top.push({ text: ent.nom, size: 13, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
   if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'normal', color: C.navy })
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
   if (ville) top.push({ text: ville, size: 9, weight: 'normal', color: C.navy })
   if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'normal', color: C.navy })
-  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'normal', color: C.navy })
+  // V3.0c.8 : marge generee APRES email pour separer du bloc SIRET/TVA en bas
+  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'normal', color: C.navy, marginAfter: 4 })
 
   // Bloc BAS (SIRET, TVA) — 9pt normal navy uniforme
   const bottom: ContentLine[] = []
