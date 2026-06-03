@@ -96,15 +96,6 @@ export async function PATCH(request: Request) {
   if (!admin) return forbiddenError()
 
   const body = await request.json()
-  // V3.0c.21 DEBUG : trace ce que le serveur recoit exactement (a retirer apres diagnostic)
-  console.log('[ADMIN PATCH] body recu:', JSON.stringify({
-    entreprise_id: body.entreprise_id,
-    abonnement_type: body.abonnement_type,
-    has_geste_commercial_mois: 'geste_commercial_mois' in body,
-    geste_commercial_mois: body.geste_commercial_mois,
-    type_of_flag: typeof body.geste_commercial_mois,
-    has_expire: 'abonnement_expire_at' in body,
-  }))
   const { entreprise_id, abonnement_type, notes_admin, abonnement_expire_at, geste_commercial_mois } = body
 
   if (!entreprise_id || !abonnement_type) {
@@ -119,8 +110,8 @@ export async function PATCH(request: Request) {
 
   const supabaseAdmin = adminSupabase()
 
-  // V3.0c.18 : recuperer l'etat AVANT update pour detecter une prolongation
-  // V3.0c.23 : select * + log erreur explicite (le SELECT plantait silencieusement avant)
+  // V3.0c.23 : SELECT * (un SELECT avec liste explicite plantait silencieusement sur certains
+  // comptes, probablement a cause d'un cache de schema Supabase). On garde * pour robustesse.
   const { data: avant, error: avantError } = await supabaseAdmin
     .from('entreprises')
     .select('*')
@@ -128,9 +119,8 @@ export async function PATCH(request: Request) {
     .single()
 
   if (avantError) {
-    console.error('[MAIL TRIGGER] avant fetch error:', avantError.message, '| code:', avantError.code)
+    console.error('[admin/users PATCH] fetch entreprise error:', avantError.message)
   }
-  console.log('[MAIL TRIGGER] avant present?', !!avant, '| keys:', avant ? Object.keys(avant).join(',') : 'NULL')
 
   const updates: Record<string, unknown> = { abonnement_type }
   if (notes_admin !== undefined) updates.notes_admin = notes_admin
@@ -149,6 +139,9 @@ export async function PATCH(request: Request) {
   if (error) return secureError(error.message, 500)
 
   // V3.0c.18 / V3.0c.20 : mail automatique selon le contexte
+  // - Geste commercial (+1 / +3 mois) → sendGesteCommercialEmail
+  // - Prolongation simple ou passage lifetime → sendSubscriptionExtendedEmail
+  // Non-bloquant : si l'email echoue, l'update reste valide.
   try {
     const passageLifetime = abonnement_type === 'lifetime' && avant?.abonnement_type !== 'lifetime'
     const prolongation = abonnement_expire_at !== undefined
@@ -156,62 +149,43 @@ export async function PATCH(request: Request) {
       && (!avant?.abonnement_expire_at || new Date(abonnement_expire_at) > new Date(avant.abonnement_expire_at as string))
     const gesteCommercial = typeof geste_commercial_mois === 'number' && geste_commercial_mois > 0
 
-    console.log('[MAIL TRIGGER] conditions:', JSON.stringify({
-      passageLifetime, prolongation, gesteCommercial,
-      avant_email: avant?.email,
-      avant_user_id: avant?.user_id,
-      brevo_key_present: !!process.env.BREVO_API_KEY,
-    }))
-
     if (passageLifetime || prolongation || gesteCommercial) {
+      // Recuperer l'email : entreprises.email en priorite, fallback auth
       let destEmail = (avant?.email as string) || ''
       if (!destEmail && avant?.user_id) {
         const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(avant.user_id as string)
         destEmail = authUser?.user?.email || ''
-        console.log('[MAIL TRIGGER] email fallback auth:', destEmail)
       }
       const destName = `${(avant?.prenom as string) || ''} ${(avant?.nom as string) || ''}`.trim() || 'Cher utilisateur'
 
-      console.log('[MAIL TRIGGER] destination:', { destEmail, destName, gesteCommercial })
-
       if (destEmail) {
         if (gesteCommercial && abonnement_expire_at) {
-          console.log('[MAIL TRIGGER] → sendGesteCommercialEmail')
-          try {
-            const { sendGesteCommercialEmail } = await import('@/lib/email')
-            const result = await sendGesteCommercialEmail({
-              email: destEmail,
-              name: destName,
-              moisOfferts: geste_commercial_mois as number,
-              newExpireAt: abonnement_expire_at as string,
-            })
-            console.log('[MAIL TRIGGER] sendGesteCommercialEmail SUCCESS:', JSON.stringify(result))
-          } catch (e) {
-            console.error('[MAIL TRIGGER] sendGesteCommercialEmail FAILED:', e instanceof Error ? `${e.message} | ${e.stack}` : String(e))
-          }
+          const { sendGesteCommercialEmail } = await import('@/lib/email')
+          await sendGesteCommercialEmail({
+            email: destEmail,
+            name: destName,
+            moisOfferts: geste_commercial_mois as number,
+            newExpireAt: abonnement_expire_at as string,
+          }).catch((e) => {
+            console.error('sendGesteCommercialEmail failed:', e instanceof Error ? e.message : String(e))
+          })
         } else {
-          console.log('[MAIL TRIGGER] → sendSubscriptionExtendedEmail')
-          try {
-            const { sendSubscriptionExtendedEmail } = await import('@/lib/email')
-            await sendSubscriptionExtendedEmail({
-              email: destEmail,
-              name: destName,
-              newExpireAt: passageLifetime ? '' : (abonnement_expire_at as string),
-              abonnementType: abonnement_type,
-            })
-            console.log('[MAIL TRIGGER] sendSubscriptionExtendedEmail SUCCESS')
-          } catch (e) {
-            console.error('[MAIL TRIGGER] sendSubscriptionExtendedEmail FAILED:', e instanceof Error ? `${e.message} | ${e.stack}` : String(e))
-          }
+          const { sendSubscriptionExtendedEmail } = await import('@/lib/email')
+          await sendSubscriptionExtendedEmail({
+            email: destEmail,
+            name: destName,
+            newExpireAt: passageLifetime ? '' : (abonnement_expire_at as string),
+            abonnementType: abonnement_type,
+          }).catch((e) => {
+            console.error('sendSubscriptionExtendedEmail failed:', e instanceof Error ? e.message : String(e))
+          })
         }
       } else {
-        console.warn('[MAIL TRIGGER] destEmail VIDE → aucun mail envoye')
+        console.warn('[admin/users PATCH] destEmail vide, aucun mail envoye pour entreprise_id', entreprise_id)
       }
-    } else {
-      console.log('[MAIL TRIGGER] aucune condition remplie, pas de mail')
     }
   } catch (e) {
-    console.error('[MAIL TRIGGER] outer error:', e instanceof Error ? `${e.message} | ${e.stack}` : String(e))
+    console.error('[admin/users PATCH] mail trigger error:', e instanceof Error ? e.message : String(e))
   }
 
   return secureJson({ success: true })
