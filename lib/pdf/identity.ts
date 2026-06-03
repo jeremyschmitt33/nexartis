@@ -117,20 +117,21 @@ function drawEmetteurCard(
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
   drawBadge(doc, 'ÉMETTEUR', x + 10, y)
 
-  // Bloc HAUT — V3.0c.6 : texte en navy (au lieu de muted), adresse plus grosse (10pt)
+  // V3.0c.7 : uniformisation - tout en 9pt normal navy sauf nom (13pt extrabold)
+  // pour des marges entre lignes parfaitement constantes.
   const top: ContentLine[] = []
-  if (ent.nom) top.push({ text: ent.nom, size: 12, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
-  if (ent.adresse) top.push({ text: ent.adresse, size: 10, weight: 'medium', color: C.navy })
+  if (ent.nom) top.push({ text: ent.nom, size: 13, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
+  if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'normal', color: C.navy })
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
-  if (ville) top.push({ text: ville, size: 10, weight: 'medium', color: C.navy })
+  if (ville) top.push({ text: ville, size: 9, weight: 'normal', color: C.navy })
   if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'normal', color: C.navy })
   if (ent.email) top.push({ text: ent.email, size: 9, weight: 'normal', color: C.navy })
 
-  // Bloc BAS (SIRET, TVA)
+  // Bloc BAS (SIRET, TVA) — 9pt normal navy uniforme
   const bottom: ContentLine[] = []
-  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 8, weight: 'normal', color: C.navyText })
+  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 9, weight: 'normal', color: C.navy })
   if (ent.tva_intracommunautaire) {
-    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 8, weight: 'normal', color: C.navyText })
+    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 9, weight: 'normal', color: C.navy })
   }
 
   renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
@@ -150,30 +151,25 @@ function drawAddresseCard(
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
   drawBadge(doc, 'ADRESSÉ À', x + 10, y)
 
-  // V3.0c.3 - Split de clientAdresse en parts, auto-detect tel/email
+  // V3.0c.7 : uniformisation - tout en 9pt normal whiteSoft sauf nom (13pt extrabold white)
   const top: ContentLine[] = []
-  top.push({ text: client.clientNom || '—', size: 12, weight: 'extrabold', color: C.white, marginAfter: GAP_NAME_AFTER })
+  top.push({ text: client.clientNom || '—', size: 13, weight: 'extrabold', color: C.white, marginAfter: GAP_NAME_AFTER })
 
   if (client.clientAdresse) {
     const parts = client.clientAdresse.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean)
     for (const p of parts) {
-      if (looksLikePhone(p)) {
-        top.push({ text: formatPhone(p), size: 8.5, weight: 'normal', color: C.whiteSoft })
-      } else if (looksLikeEmail(p)) {
-        top.push({ text: p, size: 8.5, weight: 'normal', color: C.whiteSoft })
-      } else {
-        top.push({ text: p, size: 9, weight: 'normal', color: C.whiteSoft })
-      }
+      const text = looksLikePhone(p) ? formatPhone(p) : p
+      top.push({ text, size: 9, weight: 'normal', color: C.whiteSoft })
     }
   }
 
-  // Bloc BAS (rare pour particulier)
+  // Bloc BAS (rare pour particulier) — 9pt normal whiteSoft uniforme
   const bottom: ContentLine[] = []
   if (client.clientSiret) {
-    bottom.push({ text: `SIRET ${client.clientSiret}`, size: 8, weight: 'normal', color: C.whiteSoft })
+    bottom.push({ text: `SIRET ${client.clientSiret}`, size: 9, weight: 'normal', color: C.whiteSoft })
   }
   if (client.clientTvaIntra) {
-    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 8, weight: 'normal', color: C.whiteSoft })
+    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 9, weight: 'normal', color: C.whiteSoft })
   }
 
   renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
