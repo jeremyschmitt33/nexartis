@@ -1,14 +1,11 @@
-// lib/pdf/footer.ts - V3.0c.2
+// lib/pdf/footer.ts - V3.0c.3
 // Footer pleine largeur sur TOUTES les pages : trait orange + bandeau navy
-// + texte centre blanc (ligne 1 entreprise) + ligne 2 numero & pagination.
+// + 2 lignes parfaitement CENTREES (V3.0c.3 - alignement vertical strict).
 // Anti-doublon prefixes SIRET / TVA / RM / APE.
-//
-// V3.0c.2 : separateur bullet U+2022 (baseline alignee Hanken Grotesk) + font
-// 7.5pt medium pour la ligne 1 (plus lisible + plus stable visuellement).
 
 import type { jsPDF } from 'jspdf'
 import { C } from './palette'
-import { font, setFill, setDraw, textCentered, textRight } from './utils'
+import { font, setFill, setDraw, textCentered } from './utils'
 
 interface FooterEntreprise {
   nom?: string
@@ -21,7 +18,7 @@ interface FooterEntreprise {
 /**
  * Dessine le footer sur toutes les pages du document.
  *
- * @param prefix "Devis" ou "Facture" pour l'identifiant en bas-gauche.
+ * @param prefix "Devis" ou "Facture" pour l'identifiant.
  */
 export function drawFooterAllPages(
   doc: jsPDF,
@@ -31,6 +28,7 @@ export function drawFooterAllPages(
 ): void {
   const total = doc.getNumberOfPages()
   const pageW = 210
+  const center = pageW / 2
 
   for (let i = 1; i <= total; i++) {
     doc.setPage(i)
@@ -44,6 +42,7 @@ export function drawFooterAllPages(
     setFill(doc, C.navy)
     doc.rect(0, 282.6, pageW, 14.4, 'F')
 
+    // === Ligne 1 — Identite legale, centree ===
     const ligne1Parts: string[] = []
     if (ent.nom) ligne1Parts.push(ent.nom)
     if (ent.siret) ligne1Parts.push(withPrefix('SIRET', ent.siret))
@@ -52,15 +51,14 @@ export function drawFooterAllPages(
     if (ent.code_naf) ligne1Parts.push(withPrefix('APE', ent.code_naf, ['APE', 'NAF']))
 
     if (ligne1Parts.length > 0) {
-      // V3.0c.2 : medium 7.5pt + separateur bullet (baseline propre)
       font(doc, 'Hanken Grotesk', 'medium', 7.5, C.white)
-      textCentered(doc, ligne1Parts.join('  •  '), pageW / 2, 288.5, { maxWidth: pageW - 24 })
+      textCentered(doc, ligne1Parts.join('  •  '), center, 288.5, { maxWidth: pageW - 24 })
     }
 
-    // Ligne 2 : prefixe + numero a gauche, pagination a droite
+    // === Ligne 2 — V3.0c.3 : tout centre (numero + pagination) ===
     font(doc, 'Hanken Grotesk', 'normal', 7, C.whiteSoft)
-    doc.text(`${prefix} ${numero}`, 12, 293.5)
-    textRight(doc, `Page ${i} / ${total}`, pageW - 12, 293.5)
+    const ligne2 = `${prefix} ${numero}  •  Page ${i} / ${total}`
+    textCentered(doc, ligne2, center, 293.5)
   }
 }
 
