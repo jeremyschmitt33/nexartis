@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   Search,
   FileText,
-  CheckCircle2,
   Send,
-  Clock,
   MoreHorizontal,
   Eye,
   Pencil,
@@ -17,6 +15,9 @@ import {
   Trash2,
   Plus,
   AlertTriangle,
+  Layers,
+  ShieldCheck,
+  FileEdit,
 } from "lucide-react"
 import {
   useDevis,
@@ -55,7 +56,10 @@ const STATUS_STYLES: Record<string, string> = {
   finalise: "bg-blue-50 text-blue-700",
 }
 
-const FILTER_OPTIONS = ["Tous", "Brouillon", "Envoyé", "Accepté", "Refusé", "Expiré", "Facturé"]
+// V3.0d.2 : FILTER_OPTIONS supprime (le dropdown HTML a ete remplace par les
+// StatCards cliquables). Seuls les 4 statuts principaux sont filtrables en un
+// clic (Brouillon/Envoyé/Accepté) — les autres (Refusé/Expiré/Facturé) restent
+// accessibles via setFilter en interne au besoin (ex: liens depuis email).
 const FILTER_TO_STATUS: Record<string, DevisStatus> = {
   Brouillon: "brouillon",
   "Envoyé": "envoye",
@@ -269,11 +273,49 @@ export default function DevisListPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={<FileText size={20} />} label="Tous" value={String(stats.all)} accent="#5ab4e0" />
-        <StatCard icon={<Send size={20} />} label="Envoyés" value={String(stats.envoyesCount)} sub={formatCurrency(stats.envoyesTTC)} accent="#5ab4e0" />
-        <StatCard icon={<CheckCircle2 size={20} />} label="Acceptés" value={String(stats.signesCount)} sub={formatCurrency(stats.signesTTC)} accent="#22c55e" />
-        <StatCard icon={<Clock size={20} />} label="Brouillons" value={String(stats.attenteCount)} sub={formatCurrency(stats.attenteTTC)} accent="#e87a2a" />
+      {/* V3.0d.2 : StatCards cliquables = filtres. Le dropdown filter HTML est
+          supprime (devenu redondant). Cliquer sur la card active la deselectionne
+          (retour a "Tous"). Police Hanken Grotesk sur les chiffres pour parite PDF. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          icon={<Layers size={22} />}
+          label="Tous"
+          value={String(stats.all)}
+          gradient="from-sky/20 to-sky/10"
+          color="#2d8bc9"
+          active={filter === "Tous"}
+          onClick={() => setFilter("Tous")}
+        />
+        <StatCard
+          icon={<Send size={22} />}
+          label="Envoyés"
+          value={String(stats.envoyesCount)}
+          sub={formatCurrency(stats.envoyesTTC)}
+          gradient="from-blue-200 to-blue-100"
+          color="#2563eb"
+          active={filter === "Envoyé"}
+          onClick={() => setFilter(filter === "Envoyé" ? "Tous" : "Envoyé")}
+        />
+        <StatCard
+          icon={<ShieldCheck size={22} />}
+          label="Acceptés"
+          value={String(stats.signesCount)}
+          sub={formatCurrency(stats.signesTTC)}
+          gradient="from-green-200 to-green-100"
+          color="#15803d"
+          active={filter === "Accepté"}
+          onClick={() => setFilter(filter === "Accepté" ? "Tous" : "Accepté")}
+        />
+        <StatCard
+          icon={<FileEdit size={22} />}
+          label="Brouillons"
+          value={String(stats.attenteCount)}
+          sub={formatCurrency(stats.attenteTTC)}
+          gradient="from-orange/30 to-orange/10"
+          color="#e87a2a"
+          active={filter === "Brouillon"}
+          onClick={() => setFilter(filter === "Brouillon" ? "Tous" : "Brouillon")}
+        />
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -287,13 +329,10 @@ export default function DevisListPage() {
             className="pl-9"
           />
         </div>
-        <Select value={filter} onChange={(e) => setFilter(e.target.value)} containerClassName="sm:w-auto">
-          {FILTER_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-        </Select>
         <Select value={sort} onChange={(e) => setSort(e.target.value)} containerClassName="sm:w-auto">
           {SORT_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
         </Select>
-        <Link href="/dashboard/devis/nouveau" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors shrink-0">
+        <Link href="/dashboard/devis/nouveau" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white text-sm font-syne font-bold transition-colors shrink-0">
           <Plus size={16} /> Nouveau devis
         </Link>
       </div>
@@ -322,24 +361,29 @@ export default function DevisListPage() {
                 onClick={() => router.push(`/dashboard/devis/${devis.id}`)}
                 className="bg-white rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
+                {/* V3.0d.2 : police Hanken sur montant (tabular-nums) + numero
+                    devis en pastille Spline Sans Mono (cohérence PDF) */}
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="min-w-0">
-                    <p className="text-sm font-manrope font-bold text-[#1a1a2e] truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-manrope font-bold text-navy truncate">
                       {(devis.notes_client as string)?.split(" | ")[0] || getClientName(devis.client_id as string | null) || String(devis.numero || '')}
                     </p>
-                    <p className="text-xs font-manrope text-gray-500 truncate">
+                    <p className="text-xs font-manrope text-gray-500 truncate mt-0.5">
                       {(devis.objet as string) || String(devis.numero || '')}
                     </p>
                   </div>
                   <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-manrope font-medium ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] font-manrope font-bold uppercase tracking-wider ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABELS[statut] || statut}
                     </span>
-                    <p className="text-sm font-manrope font-bold text-[#1a1a2e]">{formatCurrency(devis.montant_ttc as number)}</p>
+                    <p className="font-hanken font-extrabold text-[15px] text-navy tabular-nums">{formatCurrency(devis.montant_ttc as number)}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-2 gap-2">
-                  <p className="text-xs font-manrope text-gray-400 flex-shrink-0">{formatDate(devis.date_emission as string)}</p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-spline-mono text-[11px] text-navy bg-cream px-2 py-0.5 rounded">{String(devis.numero || '')}</span>
+                    <span className="text-xs font-manrope text-gray-400">{formatDate(devis.date_emission as string)}</span>
+                  </div>
                   <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleSend(devis) }}
@@ -421,15 +465,58 @@ export default function DevisListPage() {
   )
 }
 
-function StatCard({ icon, label, value, sub, accent }: { icon: React.ReactNode; label: string; value: string; sub?: string; accent: string }) {
+// V3.0d.2 — StatCard premium : cliquable (filtre la liste), icone 44x44 avec
+// gradient subtil + ombre interne, chiffres en Hanken Grotesk extrabold tabular-nums
+// pour parite avec le PDF devis/facture. Etat actif = bordure orange + fond cream
+// gradient + indicateur barre top + scale leger.
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  gradient,
+  color,
+  active = false,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub?: string
+  gradient: string
+  color: string
+  active?: boolean
+  onClick?: () => void
+}) {
+  const isClickable = typeof onClick === 'function'
+  const Wrapper = isClickable ? 'button' : 'div'
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent + "15", color: accent }}>{icon}</div>
-      <div>
-        <p className="text-xs font-manrope text-gray-500">{label}</p>
-        <p className="text-xl font-syne font-bold text-[#1a1a2e]">{value}</p>
-        {sub && <p className="text-xs font-manrope text-gray-500">{sub}</p>}
+    <Wrapper
+      type={isClickable ? 'button' : undefined}
+      onClick={onClick}
+      className={`relative w-full text-left bg-white rounded-2xl border-[1.5px] p-3 md:p-4 flex items-start gap-3 transition-all duration-200 overflow-hidden ${
+        active
+          ? 'border-orange bg-gradient-to-br from-orange/5 to-orange/10 shadow-[0_14px_30px_-14px_rgba(232,122,42,0.35)] -translate-y-px'
+          : 'border-gray-200 hover:border-orange/40 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-16px_rgba(15,26,58,0.25)]'
+      }`}
+    >
+      {active && (
+        <span
+          aria-hidden="true"
+          className="absolute top-0 left-4 w-9 h-[3px] bg-orange rounded-b"
+        />
+      )}
+      <div
+        className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${gradient} shadow-[inset_0_-2px_0_rgba(15,26,58,0.06),inset_0_1px_0_rgba(255,255,255,0.6)]`}
+        style={{ color }}
+      >
+        {icon}
       </div>
-    </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-[10.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">{label}</span>
+        <span className="font-hanken font-extrabold text-2xl text-navy leading-none mt-0.5 tabular-nums">{value}</span>
+        {sub && <span className="text-[11px] font-spline-mono text-gray-500 mt-1 tabular-nums">{sub}</span>}
+      </div>
+    </Wrapper>
   )
 }

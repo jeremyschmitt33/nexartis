@@ -513,37 +513,65 @@ function MobileBottomNav({
   pathname: string
   onMoreClick: () => void
 }) {
+  // V3.0d.2 — Bottom nav premium :
+  //   - Pill orange douce (gradient orange/20 -> orange/10) sous l'icone active
+  //   - Barre indicatrice orange au-dessus de l'item actif
+  //   - Backdrop-blur pour effet glassmorphisme leger
+  //   - Police Hanken Grotesk + label bold quand actif
+  //   - Touch target >= 56px (padding total), safe-area-inset-bottom pour iOS
+  //   - Animation tap (active:scale-95)
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 h-16 bg-white border-t border-gray-200 flex items-center justify-around md:hidden">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-gray-100 flex items-start justify-around md:hidden shadow-[0_-8px_24px_-12px_rgba(15,26,58,0.08)]"
+      style={{ paddingTop: 10, paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
+    >
       {BOTTOM_NAV.map((item) => {
         const Icon = item.icon
         const active = item.href !== '#more' && isActive(pathname, item.href)
         const isMore = item.href === '#more'
 
+        const inner = (
+          <>
+            <div
+              className={`w-[50px] h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                active
+                  ? 'bg-gradient-to-br from-orange/20 to-orange/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]'
+                  : ''
+              }`}
+            >
+              <Icon size={22} strokeWidth={active ? 2.25 : 2} />
+            </div>
+            <span
+              className={`text-[10.5px] font-hanken mt-0.5 leading-tight ${
+                active ? 'font-bold' : 'font-medium'
+              }`}
+            >
+              {item.label}
+            </span>
+          </>
+        )
+
+        const baseCls = `relative flex-1 flex flex-col items-center gap-0 py-1.5 transition-all duration-200 active:scale-95 ${
+          active ? 'text-orange' : 'text-gray-500'
+        }`
+
         if (isMore) {
           return (
-            <button
-              key="more"
-              onClick={onMoreClick}
-              className="flex flex-col items-center gap-0.5 text-[#6b7280]"
-            >
-              <Icon size={22} />
-              <span className="text-[10px] font-manrope">{item.label}</span>
+            <button key="more" onClick={onMoreClick} className={baseCls}>
+              {inner}
             </button>
           )
         }
 
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            style={active ? { color: 'var(--nexartis-accent, #e87a2a)' } : undefined}
-            className={`flex flex-col items-center gap-0.5 ${
-              active ? '' : 'text-[#6b7280]'
-            }`}
-          >
-            <Icon size={22} />
-            <span className="text-[10px] font-manrope">{item.label}</span>
+          <Link key={item.href} href={item.href} className={baseCls}>
+            {active && (
+              <span
+                aria-hidden="true"
+                className="absolute -top-[10px] left-1/2 -translate-x-1/2 w-[34px] h-[3px] bg-orange rounded-b"
+              />
+            )}
+            {inner}
           </Link>
         )
       })}

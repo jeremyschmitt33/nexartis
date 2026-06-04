@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import {
   Search,
   FileText,
-  CheckCircle2,
-  Clock,
   AlertTriangle,
   MoreHorizontal,
   Eye,
@@ -16,16 +14,19 @@ import {
   SendHorizonal,
   Trash2,
   Plus,
+  Layers,
+  BadgeCheck,
+  Hourglass,
 } from 'lucide-react'
 import { useFactures, useClients, softDeleteRow, insertRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
 
 type FactureFilter = 'Toutes' | 'Encaissées' | 'Partielles' | 'En attente' | 'En retard' | 'Archivées'
 
-const FILTER_OPTIONS: string[] = ['Toutes', 'Encaissées', 'Partielles', 'En attente', 'En retard', 'Archivées']
+// V3.0d.2 : FILTER_OPTIONS retire (dropdown HTML remplace par StatCards cliquables).
+// Le type FactureFilter reste pour la logique getFactureCategory.
 
 function getFactureCategory(f: Record<string, unknown>): FactureFilter {
   const statut = (f.statut as string) ?? ''
@@ -267,11 +268,49 @@ export default function FacturesListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={<FileText size={20} />} label="Toutes" value={String(totalCount)} sub={`${formatCurrency(totalHT)} HT`} accent="#5ab4e0" />
-        <StatCard icon={<CheckCircle2 size={20} />} label="Encaissées" value={String(encaissees.length)} sub={`${formatCurrency(encaisseesHT)} HT`} accent="#22c55e" />
-        <StatCard icon={<Clock size={20} />} label="Reste à encaisser" value={String(resteList.length)} sub={`${formatCurrency(resteHT)} HT`} accent="#e87a2a" />
-        <StatCard icon={<AlertTriangle size={20} />} label="En retard" value={String(retardList.length)} sub={`${formatCurrency(retardHT)} HT`} accent="#ef4444" bg="bg-red-50" />
+      {/* V3.0d.2 : StatCards cliquables = filtres (parité devis). Dropdown filter
+          HTML supprimé. Cliquer sur la card active la déselectionne (→ Toutes). */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          icon={<Layers size={22} />}
+          label="Toutes"
+          value={String(totalCount)}
+          sub={`${formatCurrency(totalHT)} HT`}
+          gradient="from-sky/20 to-sky/10"
+          color="#2d8bc9"
+          active={filter === 'Toutes'}
+          onClick={() => setFilter('Toutes')}
+        />
+        <StatCard
+          icon={<BadgeCheck size={22} />}
+          label="Encaissées"
+          value={String(encaissees.length)}
+          sub={`${formatCurrency(encaisseesHT)} HT`}
+          gradient="from-green-200 to-green-100"
+          color="#15803d"
+          active={filter === 'Encaissées'}
+          onClick={() => setFilter(filter === 'Encaissées' ? 'Toutes' : 'Encaissées')}
+        />
+        <StatCard
+          icon={<Hourglass size={22} />}
+          label="En attente"
+          value={String(resteList.length)}
+          sub={`${formatCurrency(resteHT)} HT`}
+          gradient="from-orange/30 to-orange/10"
+          color="#e87a2a"
+          active={filter === 'En attente'}
+          onClick={() => setFilter(filter === 'En attente' ? 'Toutes' : 'En attente')}
+        />
+        <StatCard
+          icon={<AlertTriangle size={22} />}
+          label="En retard"
+          value={String(retardList.length)}
+          sub={`${formatCurrency(retardHT)} HT`}
+          gradient="from-red-200 to-red-100"
+          color="#dc2626"
+          active={filter === 'En retard'}
+          onClick={() => setFilter(filter === 'En retard' ? 'Toutes' : 'En retard')}
+        />
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -279,10 +318,7 @@ export default function FacturesListPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
           <Input type="text" placeholder="Rechercher une facture..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={filter} onChange={(e) => setFilter(e.target.value)} containerClassName="sm:w-auto">
-          {FILTER_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-        </Select>
-        <Link href="/dashboard/factures/nouveau" className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors">
+        <Link href="/dashboard/factures/nouveau" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white text-sm font-syne font-bold transition-colors shrink-0">
           <Plus size={16} /> Nouvelle facture
         </Link>
       </div>
@@ -316,16 +352,18 @@ export default function FacturesListPage() {
                 onClick={() => router.push(`/dashboard/factures/${id}`)}
                 className="bg-white rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
+                {/* V3.0d.2 : police Hanken sur montant + numero facture en pastille
+                    Spline Sans Mono (cohérence PDF) */}
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-manrope font-bold text-[#1a1a2e] truncate">{facture.clientName || (facture.numero as string)}</p>
-                    <p className="text-xs font-manrope text-gray-500">{(facture.objet as string) || (facture.numero as string)}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-manrope font-bold text-navy truncate">{facture.clientName || (facture.numero as string)}</p>
+                    <p className="text-xs font-manrope text-gray-500 mt-0.5 truncate">{(facture.objet as string) || (facture.numero as string)}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-sm font-manrope font-bold text-[#1a1a2e]">{formatCurrency(facture.montantTtc)}</p>
-                    {retardLabel && <p className="text-xs font-manrope text-red-500 font-medium">{retardLabel}</p>}
+                    <p className="font-hanken font-extrabold text-[15px] text-navy tabular-nums">{formatCurrency(facture.montantTtc)}</p>
+                    {retardLabel && <p className="text-xs font-manrope text-red-500 font-medium mt-0.5">{retardLabel}</p>}
                     {!retardLabel && facture.paidPercent < 100 && facture.paidPercent > 0 && (
-                      <p className="text-xs font-manrope text-[#5ab4e0]">{formatCurrency(restant)} restants</p>
+                      <p className="text-xs font-manrope text-sky mt-0.5">{formatCurrency(restant)} restants</p>
                     )}
                   </div>
                 </div>
@@ -334,12 +372,15 @@ export default function FacturesListPage() {
                   <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{width: `${facture.paidPercent}%`, background: paidColor}} />
                   </div>
-                  <span className="text-xs font-manrope text-gray-500">{facture.paidPercent}%</span>
-                  <button onClick={(e) => { e.stopPropagation(); openMenu(e, id) }} className="p-1 rounded-md hover:bg-gray-100 ml-1">
+                  <span className="text-xs font-manrope text-gray-500 tabular-nums">{facture.paidPercent}%</span>
+                  <button onClick={(e) => { e.stopPropagation(); openMenu(e, id) }} className="p-1.5 rounded-md hover:bg-gray-100 ml-1">
                     <MoreHorizontal size={15} className="text-gray-500" />
                   </button>
                 </div>
-                <p className="text-xs font-manrope text-gray-400">{formatDate((facture.date_emission || facture.created_at) as string | null)}</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-spline-mono text-[11px] text-navy bg-cream px-2 py-0.5 rounded">{String(facture.numero || '')}</span>
+                  <span className="text-xs font-manrope text-gray-400">{formatDate((facture.date_emission || facture.created_at) as string | null)}</span>
+                </div>
               </div>
             )
           })
@@ -449,15 +490,57 @@ function PaymentBar({ percent, restant, retard }: { percent: number; restant?: s
   )
 }
 
-function StatCard({ icon, label, value, sub, accent, bg }: { icon: React.ReactNode; label: string; value: string; sub?: string; accent: string; bg?: string }) {
+// V3.0d.2 — StatCard premium parite devis : cliquable (filtre la liste), icone
+// 44x44 avec gradient + ombre interne, chiffres en Hanken Grotesk extrabold
+// tabular-nums, etat actif = bordure orange + fond cream gradient + indicateur barre.
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  gradient,
+  color,
+  active = false,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub?: string
+  gradient: string
+  color: string
+  active?: boolean
+  onClick?: () => void
+}) {
+  const isClickable = typeof onClick === 'function'
+  const Wrapper = isClickable ? 'button' : 'div'
   return (
-    <div className={`${bg || 'bg-white'} rounded-xl border border-gray-200 p-4 flex items-center gap-3`}>
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent + '15', color: accent }}>{icon}</div>
-      <div>
-        <p className="text-xs font-manrope text-gray-500">{label}</p>
-        <p className="text-lg font-syne font-bold text-[#1a1a2e]">{value}</p>
-        {sub && <p className="text-xs font-manrope text-gray-500">{sub}</p>}
+    <Wrapper
+      type={isClickable ? 'button' : undefined}
+      onClick={onClick}
+      className={`relative w-full text-left bg-white rounded-2xl border-[1.5px] p-3 md:p-4 flex items-start gap-3 transition-all duration-200 overflow-hidden ${
+        active
+          ? 'border-orange bg-gradient-to-br from-orange/5 to-orange/10 shadow-[0_14px_30px_-14px_rgba(232,122,42,0.35)] -translate-y-px'
+          : 'border-gray-200 hover:border-orange/40 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-16px_rgba(15,26,58,0.25)]'
+      }`}
+    >
+      {active && (
+        <span
+          aria-hidden="true"
+          className="absolute top-0 left-4 w-9 h-[3px] bg-orange rounded-b"
+        />
+      )}
+      <div
+        className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${gradient} shadow-[inset_0_-2px_0_rgba(15,26,58,0.06),inset_0_1px_0_rgba(255,255,255,0.6)]`}
+        style={{ color }}
+      >
+        {icon}
       </div>
-    </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-[10.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">{label}</span>
+        <span className="font-hanken font-extrabold text-2xl text-navy leading-none mt-0.5 tabular-nums">{value}</span>
+        {sub && <span className="text-[11px] font-spline-mono text-gray-500 mt-1 tabular-nums">{sub}</span>}
+      </div>
+    </Wrapper>
   )
 }
