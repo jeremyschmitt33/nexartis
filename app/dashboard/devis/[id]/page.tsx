@@ -22,6 +22,7 @@ import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildDevisDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { fetchAndDownloadPdf } from '@/lib/download-pdf'
 import {
   useSupabaseRecord,
   useDevisLignes,
@@ -330,35 +331,32 @@ export default function DevisDetailPage() {
     }
   }
 
-  // V2.4d : remplace l'ancien window.print() (rendu HTML divergent) par un
-  // appel a /api/download-devis qui renvoie exactement le meme PDF jsPDF
-  // que celui envoye par email — parite stricte entre les rendus.
+  // V3.0d : telechargement PDF cross-platform via helper lib/download-pdf.ts.
+  //   - iOS Safari : ouvre le PDF dans un nouvel onglet (impossible de "telecharger"
+  //     directement sur iOS sans intervention user). Toast : "Le PDF s'est ouvert
+  //     dans Safari, utilise Partager -> Enregistrer dans Fichiers".
+  //   - Android / desktop : <a download> + clic synthetique sur Blob URL.
+  //     Toast confirmation : "PDF telecharge".
   async function handleDownloadDevisPdf() {
     if (!devis) return
     try {
-      setToastMsg('Generation du PDF...')
-      const res = await fetch('/api/download-devis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ devisId: devis.id }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.pdfBase64) {
-        setToastMsg(json.error || 'Erreur generation PDF')
-        setTimeout(() => setToastMsg(null), 3000)
-        return
-      }
-      const link = document.createElement('a')
-      link.href = `data:application/pdf;base64,${json.pdfBase64}`
-      link.download = json.filename || `Devis-${devis.numero}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      setToastMsg(null)
+      setToastMsg('Génération du PDF...')
+      const result = await fetchAndDownloadPdf(
+        '/api/download-devis',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ devisId: devis.id }),
+        },
+        `Devis-${devis.numero}.pdf`,
+      )
+      // Toast adapte plateforme : long sur iOS (instructions), court ailleurs (confirmation).
+      setToastMsg(result.helpMessage)
+      setTimeout(() => setToastMsg(null), result.openedInNewTab ? 6000 : 2500)
     } catch (err) {
       console.error('Download devis error:', err)
-      setToastMsg('Erreur telechargement PDF')
-      setTimeout(() => setToastMsg(null), 3000)
+      setToastMsg(err instanceof Error ? err.message : 'Erreur téléchargement PDF')
+      setTimeout(() => setToastMsg(null), 4000)
     }
   }
 

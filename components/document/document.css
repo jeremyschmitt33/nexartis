@@ -132,12 +132,13 @@
   font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
   font-size:11.5px; word-break:break-all; }
 .dv-sign { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding-top:36px; }
-.dv-sign-box { border:1px solid var(--line); border-radius:10px; min-height:132px; padding:14px 16px;
+/* V3.0d : signatures agrandies (parite PDF) — min-height 132 -> 190px, max-height image 70 -> 145px */
+.dv-sign-box { border:1px solid var(--line); border-radius:10px; min-height:190px; padding:14px 16px;
   display:flex; flex-direction:column; justify-content:space-between; background:#fff; }
 .dv-sign-label { font-size:12px; font-weight:700; color:var(--ink); }
 .dv-sign-hint { font-size:11px; color:var(--mute); margin-top:3px; }
 .dv-sign-img-wrap { flex:1; display:flex; align-items:center; justify-content:center; margin-top:8px; }
-.dv-sign-img { max-height:70px; max-width:80%; object-fit:contain; }
+.dv-sign-img { max-height:145px; max-width:90%; object-fit:contain; }
 .dv-legal { margin-top:28px; background:var(--stone-bg); border:1px solid var(--stone-border); border-radius:6px; padding:18px 20px; }
 .dv-legal-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 28px; }
 .dv-legal-grid > div { font-size:10.5px; color:var(--stone-ink); line-height:1.45;
@@ -163,3 +164,107 @@
 .dv-page-foot-rich .dv-pf-rcs { font-size:9.5px; margin-top:4px; color:rgba(255,255,255,.62); }
 @media print { @page { size:A4; margin:0; }
   .dv-page { box-shadow:none !important; margin:0 !important; min-height:1123px; break-after:page; } }
+
+/* ───────────────────────────────────────────────────────────────────────
+ * V3.0d — Responsive mobile (< 640px)
+ * Le rendu HTML du devis/facture etait code en pixels absolus pour A4
+ * (max-width 794px, padding 54px). Sur iPhone (375px), il debordait et
+ * etait illisible. On compacte les paddings, on empile les cartes
+ * Emetteur/Adresse, on retasse le bandeau header, on rend les colonnes
+ * tableau elastiques.
+ * Le PDF lui reste a 794px car il est servi en jsPDF mm (lib/pdf.ts).
+ * ─────────────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .dv-doc { font-size:12px; }
+  .dv-page { max-width:100%; }
+  .dv-body { padding:0 16px 24px; }
+
+  /* HEADER : bandeau navy compact, brand et title empiles si tres etroit */
+  .dv-headD .dv-d-band { padding:20px 16px 64px; flex-wrap:wrap; gap:14px; }
+  .dv-headD .dv-d-geo { width:160px; }
+  .dv-headD .dv-d-geo2 { width:40px; right:120px; }
+  .dv-headD .dv-d-logomark { width:64px; height:64px; border-radius:14px; }
+  .dv-headD .dv-d-logomark svg { width:34px; height:34px; }
+  .dv-headD .dv-d-name { font-size:22px; line-height:1.1; }
+  .dv-headD .dv-d-base { font-size:12px; margin-top:3px; }
+  .dv-headD .dv-d-doctype { font-size:30px; }
+  .dv-doctype-facture .dv-headD .dv-d-doctype { font-size:24px; }
+  .dv-headD .dv-d-num { font-size:12px; padding:5px 10px; margin-top:10px; }
+  .dv-headD .dv-d-metaline { font-size:10.5px; gap:2px; margin-top:10px; }
+
+  /* CARTES Emetteur / Adresse a : empilees en mobile */
+  .dv-headD .dv-d-parties {
+    grid-template-columns:1fr;
+    padding:0 16px;
+    margin-top:-40px;
+    gap:14px;
+  }
+  .dv-headD .dv-d-card { padding:16px 18px; }
+  .dv-headD .dv-d-cardname { font-size:15px; }
+  .dv-headD .dv-d-cardrows { font-size:11.5px; }
+
+  /* OBJET : padding plus serre */
+  .dv-objet { padding:10px 12px; margin:18px 0 14px; }
+  .dv-objet-v { font-size:15px; }
+
+  /* TABLEAU LIGNES : colonnes elastiques + taille reduite.
+     Les colonnes Qte/PU/TVA sont scrollees-friendly mais avec wrapping doux. */
+  .dv-table { font-size:11.5px; }
+  .dv-table thead th { padding:0 6px 7px; letter-spacing:.06em; }
+  .dv-c-num { width:26px; }
+  .dv-c-qte { width:auto; min-width:48px; }
+  .dv-c-pu { width:auto; min-width:68px; }
+  .dv-c-tva { width:auto; min-width:38px; }
+  .dv-c-tot { width:auto; min-width:74px; }
+  .dv-row td { padding:7px 6px; }
+  .dv-row--item .dv-c-desg { max-width:none; padding-left:0; }
+  .dv-row--group .dv-c-desg { font-size:12.5px; }
+  .dv-row--sub .dv-c-desg { font-size:11.5px; }
+
+  /* RECAP : 1 colonne (notes au-dessus, totaux dessous) */
+  .dv-recap { grid-template-columns:1fr; gap:18px; padding-top:20px; }
+  .dv-recap-notes p { max-width:none; font-size:11.5px; }
+  .dv-recap-box { padding:12px 14px 0; }
+  .dv-recap-line { font-size:12px; padding:6px 0; }
+  .dv-recap-line--ttc { padding:8px 0; }
+  .dv-recap-net { padding:14px 16px; margin:12px -14px 0; }
+  .dv-recap-net span { font-size:13px; }
+  .dv-recap-net strong { font-size:22px; }
+  .dv-recap-foot { margin:0 -14px; padding:7px 14px 12px; }
+  .dv-recap-foot-line { font-size:11px; }
+
+  /* PAY IBAN/BIC : pas de coupure inutile */
+  .dv-pay { padding:12px; }
+  .dv-pay-row span { width:60px; }
+
+  /* SIGNATURES : empilees en mobile, hauteur reduite proportionnellement */
+  .dv-sign { grid-template-columns:1fr; gap:14px; padding-top:24px; }
+  .dv-sign-box { min-height:150px; padding:12px 14px; }
+  .dv-sign-img { max-height:115px; }
+
+  /* PAVE LEGAL : 2x2 -> 1 colonne, espacement plus dense */
+  .dv-legal { margin-top:20px; padding:14px 16px; }
+  .dv-legal-grid { grid-template-columns:1fr; gap:12px; }
+  .dv-legal-grid > div { padding-left:10px; font-size:11px; }
+  .dv-legal-k { font-size:9px; }
+
+  /* FOOTER pleine largeur : compact */
+  .dv-page-foot-rich { padding:14px 16px 18px; font-size:10px; }
+  .dv-page-foot-rich .dv-pf-rcs { font-size:9px; }
+
+  /* DECHETS */
+  .dv-dechets-text { font-size:10.5px; }
+}
+
+/* Tres petits ecrans (Galaxy Fold ferme, iPhone SE 1ere gen) */
+@media (max-width: 360px) {
+  .dv-body { padding:0 12px 20px; }
+  .dv-headD .dv-d-band { padding:16px 12px 56px; }
+  .dv-headD .dv-d-parties { padding:0 12px; }
+  .dv-headD .dv-d-name { font-size:19px; }
+  .dv-headD .dv-d-doctype { font-size:26px; }
+  .dv-doctype-facture .dv-headD .dv-d-doctype { font-size:21px; }
+  .dv-table { font-size:11px; }
+  .dv-row td { padding:6px 4px; }
+  .dv-recap-net strong { font-size:19px; }
+}

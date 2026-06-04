@@ -1,5 +1,8 @@
-// lib/pdf/signatures.ts - V3.0c.1
-// 2 encadres blancs traits PLEINS cote a cote. Saut de page auto si y > 230.
+// lib/pdf/signatures.ts - V3.0d
+// 2 encadres blancs traits PLEINS cote a cote. Saut de page auto si y > 215.
+// V3.0d : signatures AGRANDIES (35mm -> 50mm, image x2 surface visible).
+// Quand une image artisan est presente, le sous-titre disparait pour donner
+// toute la place au visuel (parite HTML : .dv-sign-img max-height augmente).
 
 import type { jsPDF } from 'jspdf'
 import { C, type Palette } from './palette'
@@ -18,8 +21,8 @@ interface SigData {
 }
 
 /**
- * Dessine la zone signatures. Si yStart > 230 (manque de place pour les 35mm
- * + 20mm de marge basse), ajoute automatiquement une page et dessine a y=30.
+ * Dessine la zone signatures. Si yStart > 215 (manque de place pour les 50mm
+ * + ~17mm de footer + marge basse), ajoute automatiquement une page.
  */
 export function drawSignatures(
   doc: jsPDF,
@@ -32,10 +35,11 @@ export function drawSignatures(
   const M = 18
   const W = 174
   const sigW = (W - 6) / 2
-  const sigH = 35
+  // V3.0d : 35mm -> 50mm. Garde-fou saut de page abaisse de 230 -> 215mm.
+  const sigH = 50
 
   let y = yStart
-  if (y > 230) {
+  if (y > 215) {
     doc.addPage()
     y = 30
   }
@@ -50,13 +54,15 @@ export function drawSignatures(
     'Bon pour accord — Le client',
     'Date, mention "Bon pour accord" et signature',
     P,
+    !!data.client_signature_base64,
   )
   if (data.client_signature_base64) {
-    insertImage(doc, data.client_signature_base64, leftX + 4, y + 10, sigW - 8, sigH - 16)
+    // V3.0d : zone image agrandie (passe de 19mm a 38mm de hauteur).
+    insertImage(doc, data.client_signature_base64, leftX + 4, y + 8, sigW - 8, sigH - 12)
   }
   const isAccepte = data.statut === 'signe' || data.statut === 'facture'
   if (isAccepte && !data.client_signature_base64) {
-    font(doc, 'Hanken Grotesk', 'bold', 9, P.navy)
+    font(doc, 'Hanken Grotesk', 'bold', 11, P.navy)
     textCentered(doc, 'Bon pour accord', leftX + sigW / 2, y + sigH / 2 + 1)
   }
   if (isAccepte && data.date_signature) {
@@ -65,16 +71,18 @@ export function drawSignatures(
   }
 
   // Cadre droit : Nom artisan + Signature & cachet
+  const artisanVisual = ent.signature_base64 || ent.tampon_base64
   drawSignatureCard(
     doc,
     rightX, y, sigW, sigH,
     ent.nom || '',
     'Signature & cachet de l\'entreprise',
     P,
+    !!artisanVisual,
   )
-  const artisanVisual = ent.signature_base64 || ent.tampon_base64
   if (artisanVisual) {
-    insertImage(doc, artisanVisual, rightX + 4, y + 10, sigW - 8, sigH - 16)
+    // V3.0d : zone image agrandie (passe de 19mm a 38mm de hauteur).
+    insertImage(doc, artisanVisual, rightX + 4, y + 8, sigW - 8, sigH - 12)
   }
 
   return y + sigH + 4
@@ -89,6 +97,10 @@ function drawSignatureCard(
   title: string,
   subtitle: string,
   P: Palette,
+  // V3.0d : si une image est dessinee dans le cadre, on cache le sous-titre pour
+  // donner toute la zone visuelle a la signature (sinon elle se retrouve coincee
+  // entre le titre et le sous-titre, donc rapetissee).
+  hasImage: boolean = false,
 ): void {
   setFill(doc, P.white)
   setDraw(doc, P.border)
@@ -98,8 +110,10 @@ function drawSignatureCard(
   font(doc, 'Hanken Grotesk', 'bold', 8.5, P.navy)
   doc.text(title, x + 4, y + 5)
 
-  font(doc, 'Hanken Grotesk', 'normal', 7.5, P.muted)
-  doc.text(subtitle, x + 4, y + 8.5, { maxWidth: w - 8 })
+  if (!hasImage) {
+    font(doc, 'Hanken Grotesk', 'normal', 7.5, P.muted)
+    doc.text(subtitle, x + 4, y + 8.5, { maxWidth: w - 8 })
+  }
 }
 
 function insertImage(

@@ -252,6 +252,16 @@ export function drawLegal(
   const row2H = Math.max(heights[2], heights[3])
   const boxH = padCell + row1H + 4 + row2H + padCell
 
+  // V3.0d Fix : empeche l'encadre 2x2 de chevaucher le footer (qui demarre a y=282).
+  // Si la grille ne tient pas dans la page courante (y + boxH > 280mm), saut de page propre.
+  // Le footer est ajoute sur toutes les pages a la fin par drawFooterAllPages, donc apres
+  // addPage() le contenu reste safe.
+  const PAGE_BOTTOM_SAFE = 280
+  if (y + boxH > PAGE_BOTTOM_SAFE) {
+    doc.addPage()
+    y = 25
+  }
+
   setFill(doc, P.skyVeryPale)
   doc.roundedRect(M, y, W, boxH, 4, 4, 'F')
 

@@ -16,6 +16,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { createFactureFromDevis } from '@/lib/services/devis-automatisms'
 import { generatePacteTemplate } from '@/lib/pacte-chantier'
+import { fetchAndDownloadPdf } from '@/lib/download-pdf'
 
 // -------------------------------------------------------------------
 // Types & helpers
@@ -528,23 +529,19 @@ export default function ChantierDetailPage() {
     setShowExportModal(true)
   }
 
-  // Téléchargement du PDF "Récap pour client" — document de suivi 2 pages
-  // (récap travaux + financier + timeline notes + garanties + SAV).
-  // Pas de modal : on télécharge directement.
+  // V3.0d : telechargement PDF "Recap pour client" cross-platform via helper.
+  //   - iOS Safari : ouvre dans nouvel onglet + toast d'aide.
+  //   - Android / desktop : <a download> + toast confirmation.
   const handleExportRecap = async () => {
     if (!chantier) return
     setExportingRecap(true)
     try {
-      const res = await fetch(`/api/export-recap-chantier-pdf?id=${id}`, { method: 'GET' })
-      if (!res.ok) throw new Error('Erreur export récap')
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `recap-${String(chantier?.titre ?? 'chantier').replace(/\s+/g, '-').toLowerCase()}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-      showToast('Récap pour client téléchargé ✓')
+      const result = await fetchAndDownloadPdf(
+        `/api/export-recap-chantier-pdf?id=${id}`,
+        { method: 'GET' },
+        `recap-${String(chantier?.titre ?? 'chantier').replace(/\s+/g, '-').toLowerCase()}.pdf`,
+      )
+      showToast(result.openedInNewTab ? result.helpMessage : 'Récap pour client téléchargé ✓')
     } catch (_err) {
       showToast('Erreur lors de la génération du récap')
     } finally {
@@ -552,30 +549,30 @@ export default function ChantierDetailPage() {
     }
   }
 
-  // Lancement effectif de l'export après validation de la modal.
+  // V3.0d : export PDF chantier cross-platform via helper (idem).
   const handleExportPDF = async () => {
     if (!chantier) return
     setExportingPdf(true)
     try {
-      const res = await fetch('/api/export-chantier-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          withPacte: exportWithPacte,
-          pacteTexte: exportWithPacte ? exportPacteTexte : '',
-        }),
-      })
-      if (!res.ok) throw new Error('Erreur export')
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `chantier-${String(chantier?.titre ?? 'export').replace(/\s+/g, '-').toLowerCase()}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      const result = await fetchAndDownloadPdf(
+        '/api/export-chantier-pdf',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            withPacte: exportWithPacte,
+            pacteTexte: exportWithPacte ? exportPacteTexte : '',
+          }),
+        },
+        `chantier-${String(chantier?.titre ?? 'export').replace(/\s+/g, '-').toLowerCase()}.pdf`,
+      )
       setShowExportModal(false)
-      showToast(exportWithPacte ? 'PDF avec Pacte téléchargé ✓' : 'PDF téléchargé ✓')
+      if (result.openedInNewTab) {
+        showToast(result.helpMessage)
+      } else {
+        showToast(exportWithPacte ? 'PDF avec Pacte téléchargé ✓' : 'PDF téléchargé ✓')
+      }
     } catch (_err) {
       showToast('Erreur lors de l\'export PDF')
     } finally {

@@ -24,6 +24,7 @@ import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildFactureDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { fetchAndDownloadPdf } from '@/lib/download-pdf'
 import {
   useSupabaseRecord,
   useFactureLignes,
@@ -133,38 +134,29 @@ export default function FactureDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
+  // V3.0d : telechargement PDF cross-platform via helper lib/download-pdf.ts.
+  //   - iOS Safari : ouvre dans nouvel onglet + toast d'aide (Partager -> Fichiers).
+  //   - Android / desktop : <a download> + toast confirmation "PDF telecharge".
   async function handleDownloadPdf() {
     if (!facture || downloading) return
     setDownloading(true)
+    setToastMsg('Génération du PDF...')
     try {
-      const res = await fetch('/api/download-facture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ factureId: facture.id }),
-      })
-      const data = await res.json()
-      if (!res.ok || data.error) {
-        alert('Erreur : ' + (data.error || 'Échec du téléchargement'))
-        return
-      }
-      // Convert base64 to blob and download
-      const byteCharacters = atob(data.pdfBase64)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'application/pdf' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = data.filename || `Facture-${facture.numero}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const result = await fetchAndDownloadPdf(
+        '/api/download-facture',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ factureId: facture.id }),
+        },
+        `Facture-${facture.numero}.pdf`,
+      )
+      setToastMsg(result.helpMessage)
+      setTimeout(() => setToastMsg(null), result.openedInNewTab ? 6000 : 2500)
     } catch (err) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      console.error('Download facture error:', err)
+      setToastMsg(err instanceof Error ? err.message : 'Erreur téléchargement PDF')
+      setTimeout(() => setToastMsg(null), 4000)
     } finally {
       setDownloading(false)
     }
