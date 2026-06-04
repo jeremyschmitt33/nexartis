@@ -1,32 +1,36 @@
 'use client'
 
 // ---------------------------------------------------------------------------
-// DocumentThemePicker
+// DocumentThemePicker (V3.0d.1)
 //
-// Section "Apparence des devis & factures" : mockup WYSIWYG + liste des 6
-// zones de couleur. Persiste les choix de l'utilisateur via l'API
-// /api/parametres/document-theme (GET au mount, PATCH au changement debouncé).
+// Section "Apparence des devis & factures" :
+//   - Galerie de 13 templates prédéfinis (Nexartis + 12 palettes Claude Design)
+//   - Mockup WYSIWYG cliquable
+//   - Liste des 6 zones de couleur personnalisables individuellement
 //
-// Architecture :
-//   - DocumentMockup (aperçu cliquable)
-//   - ColorZoneRow x6 (panneau de droite)
-//   - bouton global "Réinitialiser toutes les couleurs"
-//   - toast de confirmation/erreur (auto-close 2s)
+// Persiste les choix via /api/parametres/document-theme (GET au mount,
+// PATCH debouncé 500ms à chaque changement, ou PATCH unique à l'application
+// d'un preset).
+//
+// Le retour aux couleurs Nexartis se fait via le 1er template de la galerie
+// ("Nexartis (par défaut)"), pas via un bouton séparé.
 //
 // Aucune dépendance externe : color picker = <input type="color"> natif.
 // Pas de localStorage : la persistence est uniquement DB.
 // ---------------------------------------------------------------------------
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DEFAULT_DOCUMENT_THEME,
   isValidHex,
 } from '@/lib/document-theme'
 import type { DocumentTheme } from '@/lib/document-theme'
+import { findActivePresetId, type ThemePreset } from '@/lib/document-theme-presets'
 import DocumentMockup from './DocumentMockup'
 import type { ThemeZone } from './DocumentMockup'
 import ColorZoneRow from './ColorZoneRow'
 import type { ZoneMeta } from './ColorZoneRow'
+import ThemeTemplateGallery from './ThemeTemplateGallery'
 
 // Ordre d'affichage : top→bottom du document (cohérence WYSIWYG avec le mockup)
 const ZONES: ZoneMeta[] = [
@@ -82,8 +86,10 @@ export default function DocumentThemePicker() {
   const [theme, setTheme] = useState<DocumentTheme>(DEFAULT_DOCUMENT_THEME)
   const [isLoading, setIsLoading] = useState(true)
   const [activeZone, setActiveZone] = useState<ThemeZone | null>(null)
-  const [confirmReset, setConfirmReset] = useState(false)
   const [toast, setToast] = useState<ToastState>({ kind: null, message: '' })
+
+  // Id du preset actuellement appliqué (null si l'utilisateur a personnalisé)
+  const activePresetId = useMemo(() => findActivePresetId(theme), [theme])
 
   // Refs pour le debounce : un timer par zone + le payload accumulé
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -126,8 +132,6 @@ export default function DocumentThemePicker() {
             : DEFAULT_DOCUMENT_THEME.footer,
         })
       } catch {
-        // Fallback silencieux aux defaults : l'utilisateur peut quand même
-        // configurer son thème, le PATCH créera la ligne au premier changement.
         if (!cancelled) setTheme(DEFAULT_DOCUMENT_THEME)
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -183,22 +187,26 @@ export default function DocumentThemePicker() {
     handleZoneChange(zone, DEFAULT_DOCUMENT_THEME[zone])
   }
 
-  const handleResetAll = async () => {
-    setTheme(DEFAULT_DOCUMENT_THEME)
-    // Annule tout patch en cours et envoie un patch unique avec tous les defaults
+  // Applique un preset (Nexartis par défaut OU palette Claude Design)
+  // = 1 seul PATCH API pour les 6 couleurs, annule tout patch en cours.
+  const handleApplyPreset = async (preset: ThemePreset) => {
+    setTheme(preset.theme)
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
     pendingPatch.current = {}
-    setConfirmReset(false)
     try {
       const res = await fetch('/api/parametres/document-theme', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(DEFAULT_DOCUMENT_THEME),
+        body: JSON.stringify(preset.theme),
       })
       if (!res.ok) throw new Error('http')
-      showToast('success', 'Couleurs réinitialisées')
+      const successMsg =
+        preset.id === 'nexartis-defaut'
+          ? 'Couleurs réinitialisées'
+          : `Style « ${preset.nom} » appliqué`
+      showToast('success', successMsg)
     } catch {
-      showToast('error', 'Échec de réinitialisation')
+      showToast('error', "Échec de l'application du style")
     }
   }
 
@@ -237,11 +245,18 @@ export default function DocumentThemePicker() {
           Apparence des devis &amp; factures
         </h3>
         <p className="mt-1 text-xs text-slate-500 font-manrope">
-          Personnalise les 6 zones de couleur de tes documents. Le contraste du
-          texte est calculé automatiquement pour rester lisible. Tes
-          modifications sont enregistrées en temps réel.
+          Choisis un style prédéfini OU personnalise chaque zone individuellement.
+          Le contraste du texte est calculé automatiquement pour rester lisible.
+          Tes modifications sont enregistrées en temps réel.
         </p>
       </div>
+
+      {/* Galerie de templates prédéfinis (Nexartis + 12 palettes Claude Design) */}
+      <ThemeTemplateGallery
+        currentTheme={theme}
+        activePresetId={activePresetId}
+        onApply={handleApplyPreset}
+      />
 
       {/* Layout responsive : 2 colonnes desktop, empilé mobile */}
       <div className="grid gap-5 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -270,38 +285,16 @@ export default function DocumentThemePicker() {
         </div>
       </div>
 
-      {/* Footer : bouton réinitialiser global */}
-      <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+      {/* Note de bas de section */}
+      <div className="mt-5 border-t border-slate-100 pt-4">
         <p className="text-[11px] italic text-slate-400 font-manrope">
-          Les changements s&apos;appliquent à tous tes nouveaux documents.
+          Les changements s&apos;appliquent à tous tes nouveaux documents. Pour
+          revenir aux couleurs Nexartis, clique sur le style{' '}
+          <strong className="font-semibold not-italic text-slate-500">
+            Nexartis (par défaut)
+          </strong>{' '}
+          en haut.
         </p>
-        {!confirmReset ? (
-          <button
-            type="button"
-            onClick={() => setConfirmReset(true)}
-            className="text-xs font-medium text-slate-500 underline-offset-2 transition-colors hover:text-orange hover:underline focus:outline-none focus:ring-2 focus:ring-orange focus:ring-offset-1 rounded"
-          >
-            Réinitialiser toutes les couleurs
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-600 font-manrope">Confirmer ?</span>
-            <button
-              type="button"
-              onClick={handleResetAll}
-              className="rounded-md bg-orange px-3 py-1 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-orange-hover focus:outline-none focus:ring-2 focus:ring-orange focus:ring-offset-1"
-            >
-              Oui, réinitialiser
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmReset(false)}
-              className="rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange focus:ring-offset-1"
-            >
-              Annuler
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Toast */}
