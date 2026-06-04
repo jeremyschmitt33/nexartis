@@ -168,14 +168,16 @@ function VoiceModal({ open, onClose, onResult }: {
     setError(null)
     resetState()
     try {
-      // Audio constraints optimisees pour la voix (vs musique) + suppression bruit native
+      // V3.0e.1 fix : contraintes audio en mode "ideal" (non-strict). Certains
+      // Chrome Android refusent sampleRate/channelCount stricts et throw
+      // OverconstrainedError AVANT de demander la permission — d'ou les rapports
+      // utilisateur "Acces au micro refuse" sans aucun popup natif. On laisse
+      // le navigateur choisir les meilleurs reglages dispos.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 16000, // 16kHz suffisant pour la voix (et reduit la taille)
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
         },
       })
       streamRef.current = stream
@@ -216,12 +218,23 @@ function VoiceModal({ open, onClose, onResult }: {
       }, 1000)
     } catch (err) {
       const e = err as Error & { name?: string }
+      // V3.0e.1 : logs detailles cote console pour debug — n'expose pas le user
+      // a la stacktrace mais on a l'info en F12 si on doit investiguer.
+      console.error('[voice] getUserMedia error:', e.name, '|', e.message, '|', err)
       if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-        setError('Accès au micro refusé. Touchez le cadenas dans la barre d\'adresse (ou Réglages > Safari > Microphone) pour autoriser, puis rechargez la page.')
+        setError('Accès au micro refusé. Touche les 3 points ⋮ Chrome → Infos du site → Microphone → Autoriser, puis recharge la page.')
       } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
         setError('Aucun microphone détecté sur cet appareil.')
+      } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+        setError('Le microphone est utilisé par une autre application. Ferme les autres apps qui pourraient l\'utiliser et réessaie.')
+      } else if (e.name === 'OverconstrainedError' || e.name === 'ConstraintNotSatisfiedError') {
+        setError('Ton micro ne supporte pas les réglages demandés. Recharge la page (ce bug devrait être corrigé après le prochain déploiement).')
+      } else if (e.name === 'AbortError') {
+        setError('Démarrage du micro interrompu. Réessaie.')
+      } else if (e.name === 'SecurityError') {
+        setError('Erreur de sécurité : assure-toi d\'être sur https://nexartis.fr (et pas http).')
       } else {
-        setError('Erreur micro : ' + (e.message || 'inconnue'))
+        setError(`Erreur micro (${e.name || 'inconnue'}) : ${e.message || 'pas de détail'}`)
       }
     }
   }
