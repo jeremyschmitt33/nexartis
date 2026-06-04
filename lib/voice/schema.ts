@@ -78,7 +78,10 @@ export const geminiResponseSchema = {
         required: ['designation', 'quantite', 'unite', 'prix_unitaire'],
       },
     },
-    tva_taux: { type: 'number', enum: TVA_RATES as unknown as number[], nullable: true, description: 'Taux TVA FR' },
+    // V3.0e.3 : pas d'enum ici car Gemini API ne supporte enum QUE sur type STRING
+    // (rejette TYPE_STRING vs number en mode response_schema).
+    // La validation Zod cote serveur fait le check des valeurs autorisees (0, 2.1, 5.5, 8.5, 10, 20).
+    tva_taux: { type: 'number', nullable: true, description: 'Taux TVA FR (0 franchise/auto-entrepreneur, 5.5 ou 10 reduit renovation, 20 normal, 2.1 ou 8.5 Corse)' },
     conditions_paiement: { type: 'string', nullable: true },
     notes: { type: 'string', nullable: true },
     dechets_nature: { type: 'string', nullable: true, description: 'Nature des dechets BTP a evacuer (AGEC)' },
