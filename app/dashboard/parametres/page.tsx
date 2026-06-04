@@ -20,6 +20,7 @@ import {
   LoadingSkeleton,
 } from '@/lib/hooks'
 import ThemeSelector from '@/components/ThemeSelector'
+import DocumentThemePicker from '@/components/parametres/DocumentThemePicker'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -837,23 +838,22 @@ function FacturationSection({
   )
 }
 
-// Section "Apparence" : juste le sélecteur de thème de couleur sidebar.
-// Garde le scope volontairement réduit : on ne touche PAS aux devis/factures
-// (risque de rendre les documents illisibles avec certaines couleurs).
+// Section "Apparence" : couleur sidebar + thème des devis/factures.
+// Le DocumentThemePicker gère sa propre persistence via /api/parametres/document-theme.
 function ApparenceSection() {
   return (
     <div className="space-y-5">
       <div>
         <h2 className="font-syne font-bold text-xl text-[#1a1a2e]">Apparence</h2>
         <p className="text-sm text-[#6b7280] font-manrope mt-1">
-          Personnalise l&apos;apparence visuelle de ton tableau de bord.
+          Personnalise l&apos;apparence visuelle de ton tableau de bord et de tes documents.
         </p>
       </div>
       <ThemeSelector />
       <p className="text-xs text-[#9ca3af] font-manrope italic">
-        Astuce : la couleur ne s&apos;applique qu&apos;à la barre latérale et aux éléments actifs.
-        Les devis et factures gardent leur palette pour rester lisibles côté client.
+        Astuce : la couleur de la sidebar ne s&apos;applique qu&apos;à la barre latérale et aux éléments actifs de ton tableau de bord.
       </p>
+      <DocumentThemePicker />
     </div>
   )
 }

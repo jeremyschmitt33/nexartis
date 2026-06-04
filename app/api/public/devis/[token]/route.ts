@@ -70,9 +70,12 @@ export async function GET(
     // V2.4c : ajout des mentions légales obligatoires manquantes (décennale n°,
     // qualification pro, médiateur structuré, mentions custom). Les champs sensibles
     // (signature/tampon base64, IBAN, BIC) RESTENT volontairement exclus.
+    // V3.0d : on ajoute les 6 colonnes doc_color_* pour que la page publique
+    // /signer/[token] applique le theme custom artisan. Aucune donnee sensible :
+    // ce sont juste des couleurs hex destinees a l affichage du devis.
     const { data: entreprise } = await supabase
       .from('entreprises')
-      .select('nom, adresse, code_postal, ville, telephone, email, siret, tva_intracommunautaire, assurance_nom, assurance_zone, forme_juridique, capital_social, rcs_rm, franchise_tva, logo_url, decennale_numero, qualification_pro, mediateur, mediateur_nom, mediateur_adresse, mediateur_code_postal, mediateur_ville, mentions_legales_custom')
+      .select('nom, adresse, code_postal, ville, telephone, email, siret, tva_intracommunautaire, assurance_nom, assurance_zone, forme_juridique, capital_social, rcs_rm, franchise_tva, logo_url, decennale_numero, qualification_pro, mediateur, mediateur_nom, mediateur_adresse, mediateur_code_postal, mediateur_ville, mentions_legales_custom, doc_color_bandeau_haut, doc_color_accent, doc_color_cadre_emetteur, doc_color_cadre_adresse, doc_color_net_payer, doc_color_footer')
       .eq('user_id', devis.user_id)
       .single()
 

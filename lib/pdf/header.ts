@@ -6,7 +6,7 @@
 // DEVIS centre sur l'axe de la pastille.
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import { font, setFill, textRight, textCentered, roundedFill, fmtDate } from './utils'
 
 interface HeaderEntreprise {
@@ -36,18 +36,20 @@ export function drawHeader(
   labelGauche: string,
   dateDroite: string,
   labelDroite: string,
+  palette: Palette = C,
 ): number {
+  const P = palette
   const pageW = 210
   const headerH = 58
 
   // === 1. Bandeau navy plein largeur ===
-  setFill(doc, C.navy)
+  setFill(doc, P.navy)
   doc.rect(0, 0, pageW, headerH, 'F')
 
   // === 2. Accent orange : bande diagonale etroite (4mm) qui SEPARE la zone
   // gauche (logo + nom) de la zone droite (DEVIS + pastille + dates).
   // Points : (135, 0) -> (139, 0) -> (119, 58) -> (115, 58)
-  setFill(doc, C.orange)
+  setFill(doc, P.orange)
   doc.lines(
     [
       [4, 0],     // (135,0) -> (139,0)
@@ -65,7 +67,7 @@ export function drawHeader(
   const logoCardX = 12
   const logoCardY = 12
   const logoCardSize = 28
-  roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, 5, C.white)
+  roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, 5, P.white)
 
   // Logo entreprise (data:image base64 seulement, sinon placeholder discret)
   if (ent.logo_url && ent.logo_url.startsWith('data:image')) {
@@ -84,27 +86,27 @@ export function drawHeader(
       const ly = logoCardY + (logoCardSize - lh) / 2
       doc.addImage(ent.logo_url, logoFormat, lx, ly, lw, lh)
     } catch {
-      drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize)
+      drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize, P)
     }
   } else {
-    drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize)
+    drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize, P)
   }
 
   // === 4. Nom artisan + baseline (a droite de la carte logo) — V3.0c.2 ===
   // Logo 28mm + 6mm de gap = nom commence a x=46
   const textLeftX = 46
-  font(doc, 'Hanken Grotesk', 'extrabold', 20, C.white)
+  font(doc, 'Hanken Grotesk', 'extrabold', 20, P.white)
   doc.text(ent.nom || 'Votre entreprise', textLeftX, 24)
 
   if (ent.metier && ent.metier.trim()) {
-    font(doc, 'Hanken Grotesk', 'normal', 11, C.whiteSoft)
+    font(doc, 'Hanken Grotesk', 'normal', 11, P.whiteSoft)
     doc.text(ent.metier.trim(), textLeftX, 32)
   }
 
   // === 5. Titre + pastille numero (zone droite x=139→210) — V3.0c.2 ===
   // Pastille compacte adaptative + DEVIS centre sur l'axe de la pastille.
   const rightAnchorX = 200
-  font(doc, 'Hanken Grotesk', 'bold', 10.5, C.navy)
+  font(doc, 'Hanken Grotesk', 'bold', 10.5, P.navy)
   const numeroW = doc.getTextWidth(numero)
   const pillW = Math.max(numeroW + 10, 32) // padding 5mm chaque cote, min 32mm
   const pillH = 9
@@ -112,17 +114,17 @@ export function drawHeader(
   const zoneRightCenter = 169.5
   const pillX = zoneRightCenter - pillW / 2
   const pillY = 32
-  roundedFill(doc, pillX, pillY, pillW, pillH, 3, C.orange)
+  roundedFill(doc, pillX, pillY, pillW, pillH, 3, P.orange)
   textCentered(doc, numero, zoneRightCenter, pillY + 6.5)
 
   // Titre DEVIS / FACTURE centre sur le meme axe vertical que la pastille
   // (au-dessus). Auto-resize pour "FACTURE DE SITUATION".
   const titleSize = title.length > 14 ? 20 : 30
-  font(doc, 'Hanken Grotesk', 'extrabold', titleSize, C.white)
+  font(doc, 'Hanken Grotesk', 'extrabold', titleSize, P.white)
   textCentered(doc, title, zoneRightCenter, 24)
 
   // === 6. Dates sur 2 lignes (y=48.5 et y=53.5), right-aligned a x=200 ===
-  type DatePiece = { txt: string; size: number; weight: 'normal' | 'bold'; color: typeof C.white }
+  type DatePiece = { txt: string; size: number; weight: 'normal' | 'bold'; color: typeof P.white }
 
   function drawDateLine(pieces: DatePiece[], yLine: number): void {
     let totalW = 0
@@ -141,8 +143,8 @@ export function drawHeader(
   if (dateGauche) {
     drawDateLine(
       [
-        { txt: labelGauche + ' ', size: 8, weight: 'normal', color: C.whiteSoft },
-        { txt: dateGauche, size: 8.5, weight: 'bold', color: C.white },
+        { txt: labelGauche + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
+        { txt: dateGauche, size: 8.5, weight: 'bold', color: P.white },
       ],
       48.5,
     )
@@ -150,8 +152,8 @@ export function drawHeader(
   if (dateDroite) {
     drawDateLine(
       [
-        { txt: labelDroite + ' ', size: 8, weight: 'normal', color: C.whiteSoft },
-        { txt: dateDroite, size: 8.5, weight: 'bold', color: C.white },
+        { txt: labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
+        { txt: dateDroite, size: 8.5, weight: 'bold', color: P.white },
       ],
       53.5,
     )
@@ -171,14 +173,16 @@ function drawLogoPlaceholder(
   x: number,
   y: number,
   size: number,
+  palette: Palette = C,
 ): void {
-  setFill(doc, C.placeholder)
+  setFill(doc, palette.placeholder)
   doc.roundedRect(x + 2, y + 2, size - 4, size - 4, 2, 2, 'F')
 
   const initiale = (nomEntreprise || 'A').trim().charAt(0).toUpperCase() || 'A'
   // V3.0c.2 : 14pt etait dimensionne pour size=22, on extrapole.
   const fontSize = Math.round((size / 22) * 14)
-  font(doc, 'Hanken Grotesk', 'extrabold', fontSize, C.navy)
+  // V3.0d : initiale en couleur principale (= bandeauHaut du theme).
+  font(doc, 'Hanken Grotesk', 'extrabold', fontSize, palette.navy)
   textCentered(doc, initiale, x + size / 2, y + size / 2 + fontSize * 0.3)
 }
 

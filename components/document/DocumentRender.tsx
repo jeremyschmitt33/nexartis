@@ -1,8 +1,11 @@
 // V3.0c.4 — DocumentRender : parite dashboard <-> PDF (7 fixes : metaline empile, adresse 2 lignes, formatPhone, objet sans chantier)
+// V3.0d — Theme custom optionnel : prop `theme` injectee en CSS variables sur la racine .dv-doc.
+//         Quand omise, on applique DEFAULT_DOCUMENT_THEME (charte Nexartis historique) -> rendu identique a avant.
 import { Fragment } from 'react'
 import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentMeta, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
+import { DEFAULT_DOCUMENT_THEME, themeToCssVars, type DocumentTheme } from '@/lib/document-theme'
 
 function formatPhone(raw?: string): string {
   if (!raw) return ''
@@ -14,10 +17,11 @@ function formatPhone(raw?: string): string {
   return trimmed
 }
 
-export default function DocumentRender({ data }: { data: DocumentData }) {
+export default function DocumentRender({ data, theme }: { data: DocumentData; theme?: DocumentTheme }) {
   const isDevis = data.docType === 'devis'
+  const themeStyle = themeToCssVars(theme ?? DEFAULT_DOCUMENT_THEME)
   return (
-    <div className={`dv-doc dv-dir-D dv-density-compact dv-doctype-${data.docType}`}>
+    <div className={`dv-doc dv-dir-D dv-density-compact dv-doctype-${data.docType}`} style={themeStyle}>
       <section className="dv-page">
         <HeaderD data={data} />
         <div className="dv-body">

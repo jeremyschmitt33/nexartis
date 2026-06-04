@@ -5,7 +5,7 @@
 
 import type { jsPDF } from 'jspdf'
 import autoTable, { type CellHookData, type Styles } from 'jspdf-autotable'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import {
   fmt,
   fmtTvaCell,
@@ -69,13 +69,15 @@ export function drawTable(
   ent: TableEntreprise,
   objet: string | undefined,
   montantHt: number,
+  palette: Palette = C,
 ): number {
+  const P = palette
   const M = 18
   const subtotals = computeSubtotals(lignes)
 
   // En mode forfait : une seule ligne, plein largeur designation
   if (isForfait) {
-    return drawForfaitTable(doc, ent, objet, montantHt, yStart, M)
+    return drawForfaitTable(doc, ent, objet, montantHt, yStart, M, P)
   }
 
   const body: (string | { content: string; styles?: Partial<Styles> })[][] = []
@@ -127,15 +129,15 @@ export function drawTable(
       fontStyle: 'normal',
       fontSize: 8.5,
       cellPadding: { top: 2.5, right: 2, bottom: 2.5, left: 2 },
-      lineColor: mut(C.border),
+      lineColor: mut(P.border),
       lineWidth: 0,
-      textColor: mut(C.navyText),
+      textColor: mut(P.navyText),
       overflow: 'linebreak',
       valign: 'middle',
     },
     headStyles: {
-      fillColor: mut(C.white),
-      textColor: mut(C.muted),
+      fillColor: mut(P.white),
+      textColor: mut(P.muted),
       fontStyle: 'bold',
       fontSize: 7,
       halign: 'left',
@@ -154,7 +156,7 @@ export function drawTable(
       if (data.section === 'head') return
       const m = meta[data.row.index]
       if (!m) return
-      applyRowStyles(data, m)
+      applyRowStyles(data, m, P)
     },
     didDrawCell: (data: CellHookData) => {
       // Trait fin sous-header (border-sky 0.4 mm)
@@ -162,7 +164,7 @@ export function drawTable(
         const startX = data.cell.x
         const endX = startX + 174
         const y = data.cell.y + data.cell.height
-        doc.setDrawColor(C.borderSky[0], C.borderSky[1], C.borderSky[2])
+        doc.setDrawColor(P.borderSky[0], P.borderSky[1], P.borderSky[2])
         doc.setLineWidth(0.4)
         doc.line(startX, y, endX, y)
       }
@@ -174,12 +176,12 @@ export function drawTable(
         if (m.kind === 'section') {
           const cx = data.cell.x + data.cell.width / 2
           const cy = data.cell.y + data.cell.height / 2
-          setFill(doc, C.orange)
+          setFill(doc, P.orange)
           doc.circle(cx, cy, 2.8, 'F')
           // Numero centre dans la pastille
           doc.setFont('Hanken Grotesk', 'semibold')
           doc.setFontSize(8.5)
-          setText(doc, C.navy)
+          setText(doc, P.navy)
           const num = String(lignes[m.ligneIdx]?.numero ?? '')
           const tw = doc.getTextWidth(num)
           doc.text(num, cx - tw / 2, cy + 1.1)
@@ -191,7 +193,7 @@ export function drawTable(
         const m = meta[data.row.index]
         if (m?.kind === 'prestation') {
           const y = data.cell.y + data.cell.height
-          doc.setDrawColor(C.border[0], C.border[1], C.border[2])
+          doc.setDrawColor(P.border[0], P.border[1], P.border[2])
           doc.setLineWidth(0.2)
           doc.line(18, y, 192, y)
         }
@@ -206,14 +208,14 @@ export function drawTable(
 /**
  * Applique les styles par niveau a une cellule.
  */
-function applyRowStyles(data: CellHookData, m: RowMeta): void {
+function applyRowStyles(data: CellHookData, m: RowMeta, P: Palette): void {
   const col = data.column.index
 
   if (m.kind === 'section') {
-    data.cell.styles.fillColor = mut(C.cream)
+    data.cell.styles.fillColor = mut(P.cream)
     data.cell.styles.cellPadding = { top: 4, right: 2, bottom: 4, left: 2 } as Styles['cellPadding']
     data.cell.styles.fontStyle = 'bold'
-    data.cell.styles.textColor = mut(C.navy)
+    data.cell.styles.textColor = mut(P.navy)
     if (col === 0) {
       // Le numero est dessine en pastille via didDrawCell : on masque le texte
       data.cell.text = ['']
@@ -225,42 +227,42 @@ function applyRowStyles(data: CellHookData, m: RowMeta): void {
       data.cell.text = ['']
     }
   } else if (m.kind === 'sous_section') {
-    data.cell.styles.fillColor = mut(C.grayPale)
+    data.cell.styles.fillColor = mut(P.grayPale)
     data.cell.styles.cellPadding = { top: 3, right: 2, bottom: 3, left: 2 } as Styles['cellPadding']
     data.cell.styles.fontStyle = 'bold'
     if (col === 0) {
-      data.cell.styles.textColor = mut(C.orange)
+      data.cell.styles.textColor = mut(P.orange)
       data.cell.styles.fontSize = 9
     } else if (col === 1) {
-      data.cell.styles.textColor = mut(C.navy)
+      data.cell.styles.textColor = mut(P.navy)
       data.cell.styles.fontSize = 9
     } else if (col === 5) {
-      data.cell.styles.textColor = mut(C.navy)
+      data.cell.styles.textColor = mut(P.navy)
       data.cell.styles.fontSize = 9
     } else {
       data.cell.text = ['']
     }
   } else if (m.kind === 'commentaire') {
-    data.cell.styles.fillColor = mut(C.white)
-    data.cell.styles.textColor = mut(C.muted)
+    data.cell.styles.fillColor = mut(P.white)
+    data.cell.styles.textColor = mut(P.muted)
     data.cell.styles.fontStyle = 'normal'
     data.cell.styles.fontSize = 8
   } else {
     // prestation
-    data.cell.styles.fillColor = mut(C.white)
+    data.cell.styles.fillColor = mut(P.white)
     data.cell.styles.cellPadding = { top: 2.5, right: 2, bottom: 2.5, left: 2 } as Styles['cellPadding']
     if (col === 0) {
-      data.cell.styles.textColor = mut(C.muted)
+      data.cell.styles.textColor = mut(P.muted)
       data.cell.styles.fontSize = 8
     } else if (col === 1) {
-      data.cell.styles.textColor = mut(C.navy)
+      data.cell.styles.textColor = mut(P.navy)
       data.cell.styles.fontSize = 8.5
     } else if (col === 5) {
-      data.cell.styles.textColor = mut(C.navy)
+      data.cell.styles.textColor = mut(P.navy)
       data.cell.styles.fontStyle = 'bold'
       data.cell.styles.fontSize = 8.5
     } else {
-      data.cell.styles.textColor = mut(C.navy)
+      data.cell.styles.textColor = mut(P.navy)
       data.cell.styles.fontSize = 8.5
     }
   }
@@ -276,6 +278,7 @@ function drawForfaitTable(
   montantHt: number,
   yStart: number,
   M: number,
+  P: Palette,
 ): number {
   const label = buildForfaitLabel(ent, objet)
   autoTable(doc, {
@@ -290,15 +293,15 @@ function drawForfaitTable(
       fontStyle: 'normal',
       fontSize: 9,
       cellPadding: { top: 4, right: 3, bottom: 4, left: 3 },
-      textColor: mut(C.navy),
-      lineColor: mut(C.border),
+      textColor: mut(P.navy),
+      lineColor: mut(P.border),
       lineWidth: 0,
       overflow: 'linebreak',
       valign: 'middle',
     },
     headStyles: {
-      fillColor: mut(C.white),
-      textColor: mut(C.muted),
+      fillColor: mut(P.white),
+      textColor: mut(P.muted),
       fontStyle: 'bold',
       fontSize: 7,
       halign: 'left',
@@ -312,7 +315,7 @@ function drawForfaitTable(
       // Trait fin sous le header
       if (data.section === 'head' && data.column.index === 0) {
         const y = data.cell.y + data.cell.height
-        doc.setDrawColor(C.borderSky[0], C.borderSky[1], C.borderSky[2])
+        doc.setDrawColor(P.borderSky[0], P.borderSky[1], P.borderSky[2])
         doc.setLineWidth(0.4)
         doc.line(18, y, 192, y)
       }
@@ -323,7 +326,7 @@ function drawForfaitTable(
     },
     didParseCell: (data: CellHookData) => {
       if (data.section === 'body') {
-        data.cell.styles.fillColor = mut(C.cream)
+        data.cell.styles.fillColor = mut(P.cream)
         data.cell.styles.fontStyle = 'bold'
       }
     },

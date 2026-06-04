@@ -24,6 +24,8 @@ import {
 } from './pdf/legal'
 import { drawSignatures } from './pdf/signatures'
 import { drawFooterAllPages } from './pdf/footer'
+import { buildPalette } from './pdf/palette'
+import type { DocumentTheme } from './document-theme'
 
 // ---------------------------------------------------------------------------
 // Interfaces publiques (conservation stricte des champs vs ancien lib/pdf.ts)
@@ -157,11 +159,16 @@ export const DEFAULT_CONDITIONS_PAIEMENT =
 // ===========================================================================
 // DEVIS
 // ===========================================================================
-export function generateDevisPdf(data: DevisData): string {
+// V3.0d : `theme` est optionnel. Quand omis (ou null), la palette retombe
+// sur la charte Nexartis historique → aucun changement visuel pour les devis
+// existants. Quand fourni, toutes les couleurs thematables sont injectees
+// dans la palette puis propagees a chaque module dessinateur.
+export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null): string {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   registerPdfFonts(doc)
   const ent = data.entreprise
   const lignes = normalizeLignes(data.lignes as PdfLigne[])
+  const palette = buildPalette(theme ?? null)
 
   // 1. HEADER bandeau navy
   const headerBottomY = drawHeader(
@@ -173,6 +180,7 @@ export function generateDevisPdf(data: DevisData): string {
     'Émis le',
     fmtDate(data.date_validite),
     "Valable jusqu'au",
+    palette,
   )
 
   // 2. Filet securite mentions incompletes (juste sous le bandeau)
@@ -193,16 +201,17 @@ export function generateDevisPdf(data: DevisData): string {
       clientTvaIntra: data.clientTvaIntra,
     },
     y,
+    palette,
   )
 
   // 4. Objet + adresse chantier
   if (data.objet || data.chantier_adresse) {
-    y = drawObjet(doc, data.objet, data.chantier_adresse, y) + 4
+    y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
   }
 
   // 5. Tableau
   const isForfait = detectForfaitMode(lignes, data.montant_ht)
-  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht)
+  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht, palette)
 
   // 6. Bloc CONDITIONS + RECAP + NET A PAYER
   y = drawTotals(
@@ -220,6 +229,7 @@ export function generateDevisPdf(data: DevisData): string {
     lignes,
     false, // pas de bloc IBAN pour les devis
     y,
+    palette,
   )
 
   // 7. Mentions legales (encadre 2x2 + AGEC + TVA)
@@ -233,6 +243,7 @@ export function generateDevisPdf(data: DevisData): string {
     'devis',
     y,
     { dechets: data.dechets },
+    palette,
   )
 
   // 8. Signatures : enchainees apres les mentions legales sur la meme page
@@ -241,11 +252,11 @@ export function generateDevisPdf(data: DevisData): string {
     statut: data.statut,
     date_signature: data.date_signature,
     client_signature_base64: data.client_signature_base64,
-  }, y + 8)
+  }, y + 8, palette)
 
   // 9. Mini-header pages 2+ + footer toutes pages
   drawMiniHeaderPages2Plus(doc, ent, 'DEVIS', data.numero, data.date_emission)
-  drawFooterAllPages(doc, ent, data.numero, 'Devis')
+  drawFooterAllPages(doc, ent, data.numero, 'Devis', palette)
 
   return doc.output('datauristring').split(',')[1]
 }
@@ -253,12 +264,14 @@ export function generateDevisPdf(data: DevisData): string {
 // ===========================================================================
 // FACTURE
 // ===========================================================================
-export function generateFacturePdf(data: FactureData): string {
+// V3.0d : meme contrat que generateDevisPdf — theme optionnel, palette propagee.
+export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | null): string {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   registerPdfFonts(doc)
   const ent = data.entreprise
   const lignes = normalizeLignes(data.lignes as PdfLigne[])
   const isSituation = data.type === 'situation'
+  const palette = buildPalette(theme ?? null)
 
   const title = isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
 
@@ -272,6 +285,7 @@ export function generateFacturePdf(data: FactureData): string {
     'Émis le',
     fmtDate(data.date_echeance),
     'Échéance',
+    palette,
   )
 
   // 2. Filet securite mentions incompletes
@@ -292,16 +306,17 @@ export function generateFacturePdf(data: FactureData): string {
       clientTvaIntra: data.clientTvaIntra,
     },
     y,
+    palette,
   )
 
   // 4. Objet + adresse chantier
   if (data.objet || data.chantier_adresse) {
-    y = drawObjet(doc, data.objet, data.chantier_adresse, y) + 4
+    y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
   }
 
   // 5. Tableau
   const isForfait = detectForfaitMode(lignes, data.montant_ht)
-  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht)
+  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht, palette)
 
   // 6. Bloc CONDITIONS (avec IBAN) + RECAP + NET A PAYER
   y = drawTotals(
@@ -323,6 +338,7 @@ export function generateFacturePdf(data: FactureData): string {
     lignes,
     true, // bloc IBAN actif pour facture
     y,
+    palette,
   )
 
   // 7. Mentions legales
@@ -336,11 +352,12 @@ export function generateFacturePdf(data: FactureData): string {
     'facture',
     y,
     { factureType: data.type },
+    palette,
   )
 
   // 8. Mini-header pages 2+ + footer toutes pages
   drawMiniHeaderPages2Plus(doc, ent, title, data.numero, data.date_emission)
-  drawFooterAllPages(doc, ent, data.numero, 'Facture')
+  drawFooterAllPages(doc, ent, data.numero, 'Facture', palette)
 
   return doc.output('datauristring').split(',')[1]
 }

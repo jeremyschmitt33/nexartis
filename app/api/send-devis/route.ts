@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateDevisPdf } from '@/lib/pdf'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { buildDocumentEmailHtml } from '@/lib/email'
+import { themeFromEntreprise } from '@/lib/document-theme'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, isValidEmail,
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
         cout: devis.dechets_cout ?? undefined,
         inclure_cout: devis.dechets_inclure_cout ?? false,
       } : undefined,
-    })
+    }, themeFromEntreprise(entreprise))
 
     // Générer un token de signature s'il n'en a pas encore
     let signatureToken = devis.signature_token

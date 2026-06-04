@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateFacturePdf } from '@/lib/pdf'
+import { themeFromEntreprise } from '@/lib/document-theme'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID,
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
       acompte_label: facture.acompte_label || undefined,
       // Legacy : ancien champ `notes` conservé pour rétrocompat
       notes: facture.notes || undefined,
-    })
+    }, themeFromEntreprise(entreprise))
 
     // Return the base64 PDF
     return NextResponse.json({ pdfBase64, filename: `Facture-${facture.numero}.pdf` })

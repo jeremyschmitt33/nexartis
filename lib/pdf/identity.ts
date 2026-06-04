@@ -11,7 +11,7 @@
 //    le tel et l'email dans les parts pour les formater proprement.
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import { font, setFill, setDraw, textCentered } from './utils'
 
 interface IdentityEntreprise {
@@ -60,13 +60,14 @@ export function drawIdentityCards(
   ent: IdentityEntreprise,
   client: IdentityClient,
   yStart: number,
+  palette: Palette = C,
 ): number {
   const leftX = 18
   const rightX = 108
   const yCard = yStart + 2.5
 
-  drawEmetteurCard(doc, ent, leftX, yCard)
-  drawAddresseCard(doc, client, rightX, yCard)
+  drawEmetteurCard(doc, ent, leftX, yCard, palette)
+  drawAddresseCard(doc, client, rightX, yCard, palette)
 
   return yCard + CARD_H + 8
 }
@@ -101,37 +102,40 @@ function looksLikeEmail(s: string): boolean {
 }
 
 // ===========================================================================
-// EMETTEUR (gauche, fond blanc + ombre)
+// EMETTEUR (gauche, fond P.emetteur + ombre) — par defaut blanc (charte historique)
 // ===========================================================================
 function drawEmetteurCard(
   doc: jsPDF,
   ent: IdentityEntreprise,
   x: number,
   y: number,
+  P: Palette,
 ): void {
   setFill(doc, [230, 232, 235])
   doc.roundedRect(x + 1, y + 1, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
-  setFill(doc, C.white)
-  setDraw(doc, C.border)
+  setFill(doc, P.emetteur)
+  setDraw(doc, P.border)
   doc.setLineWidth(0.3)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
-  drawBadge(doc, 'ÉMETTEUR', x + 10, y)
+  drawBadge(doc, 'ÉMETTEUR', x + 10, y, P)
 
   // V3.0c.11 : top (nom + coordonnees bold) ancre haut, bottom (SIRET/TVA 8pt normal)
   // ancre bas. Carte agrandie a 58mm pour avoir un gap naturel ~4mm entre les deux.
+  // V3.0d : couleur de texte = P.emetteurInk (auto blanc/navy selon luminance fond).
+  const ink = P.emetteurInk
   const top: ContentLine[] = []
-  if (ent.nom) top.push({ text: ent.nom, size: 13, weight: 'extrabold', color: C.navy, marginAfter: GAP_NAME_AFTER })
-  if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'bold', color: C.navy })
+  if (ent.nom) top.push({ text: ent.nom, size: 13, weight: 'extrabold', color: ink, marginAfter: GAP_NAME_AFTER })
+  if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'bold', color: ink })
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
-  if (ville) top.push({ text: ville, size: 9, weight: 'bold', color: C.navy })
-  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'bold', color: C.navy })
-  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'bold', color: C.navy })
+  if (ville) top.push({ text: ville, size: 9, weight: 'bold', color: ink })
+  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'bold', color: ink })
+  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'bold', color: ink })
 
   // Bloc BAS (SIRET + TVA) ancre en bas, 8pt normal (mentions legales, plus discret)
   const bottom: ContentLine[] = []
-  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 8, weight: 'normal', color: C.navy })
+  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 8, weight: 'normal', color: ink })
   if (ent.tva_intracommunautaire) {
-    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 8, weight: 'normal', color: C.navy })
+    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 8, weight: 'normal', color: ink })
   }
 
   renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
@@ -139,37 +143,47 @@ function drawEmetteurCard(
 }
 
 // ===========================================================================
-// ADRESSE A (droite, fond navyDeep, texte blanc)
+// ADRESSE A (droite, fond P.adresse, texte P.adresseInk)
 // ===========================================================================
 function drawAddresseCard(
   doc: jsPDF,
   client: IdentityClient,
   x: number,
   y: number,
+  P: Palette,
 ): void {
-  setFill(doc, C.navyDeep)
+  // V3.0d : on garde navyDeep (legerement plus sombre que navy) comme couleur
+  // visuelle quand pas de theme custom, sinon on utilise la couleur du theme.
+  // P.navyDeep est calcule via cadreAdresse hex, donc deja correct.
+  setFill(doc, P.adresse)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
-  drawBadge(doc, 'ADRESSÉ À', x + 10, y)
+  drawBadge(doc, 'ADRESSÉ À', x + 10, y, P)
 
   // V3.0c.11 : top (nom + coordonnees) ancre haut, bottom (SIRET/TVA) ancre bas.
   // Parite stricte avec EMETTEUR.
+  // V3.0d : si P.adresseInk est blanc (fond fonce) on conserve l'effet "softWhite"
+  // historique sur les lignes secondaires ; sinon on passe tout en ink calcule.
+  // Cela preserve un rendu pixel-identique a la charte Nexartis (whiteSoft sur secondaires).
+  const isDarkBg = P.adresseInk[0] === 255 && P.adresseInk[1] === 255 && P.adresseInk[2] === 255
+  const inkMain = P.adresseInk
+  const inkSecondary = isDarkBg ? P.whiteSoft : P.adresseInk
   const top: ContentLine[] = []
-  top.push({ text: client.clientNom || '—', size: 13, weight: 'extrabold', color: C.white, marginAfter: GAP_NAME_AFTER })
+  top.push({ text: client.clientNom || '—', size: 13, weight: 'extrabold', color: inkMain, marginAfter: GAP_NAME_AFTER })
   if (client.clientAdresse) {
     const parts = client.clientAdresse.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean)
     for (const p of parts) {
       const text = looksLikePhone(p) ? formatPhone(p) : p
-      top.push({ text, size: 9, weight: 'bold', color: C.whiteSoft })
+      top.push({ text, size: 9, weight: 'bold', color: inkSecondary })
     }
   }
 
-  // Bloc BAS (SIRET + TVA) 8pt normal whiteSoft
+  // Bloc BAS (SIRET + TVA) 8pt normal
   const bottom: ContentLine[] = []
   if (client.clientSiret) {
-    bottom.push({ text: `SIRET ${client.clientSiret}`, size: 8, weight: 'normal', color: C.whiteSoft })
+    bottom.push({ text: `SIRET ${client.clientSiret}`, size: 8, weight: 'normal', color: inkSecondary })
   }
   if (client.clientTvaIntra) {
-    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 8, weight: 'normal', color: C.whiteSoft })
+    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 8, weight: 'normal', color: inkSecondary })
   }
 
   renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
@@ -179,11 +193,13 @@ function drawAddresseCard(
 // ===========================================================================
 // Helpers
 // ===========================================================================
-function drawBadge(doc: jsPDF, label: string, badgeX: number, cardY: number): void {
+function drawBadge(doc: jsPDF, label: string, badgeX: number, cardY: number, P: Palette): void {
   const badgeY = cardY - BADGE_H / 2
-  setFill(doc, C.orange)
+  setFill(doc, P.orange)
   doc.roundedRect(badgeX, badgeY, BADGE_W, BADGE_H, BADGE_R, BADGE_R, 'F')
-  font(doc, 'Hanken Grotesk', 'semibold', 6.5, C.navy)
+  // V3.0d : texte du badge = navy par defaut, ou couleur lisible sur l'accent custom.
+  // On garde P.navy (= bandeauHaut hex) qui restera contraste correct dans la majorite des cas.
+  font(doc, 'Hanken Grotesk', 'semibold', 6.5, P.navy)
   textCentered(doc, label, badgeX + BADGE_W / 2, badgeY + BADGE_H / 2 + 1.1)
 }
 

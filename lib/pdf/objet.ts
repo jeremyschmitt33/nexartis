@@ -2,7 +2,7 @@
 // Bandeau OBJET + ADRESSE DU CHANTIER (fond skyVeryPale + trait orange gauche).
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import { font, setFill } from './utils'
 
 const FULL_W = 174
@@ -18,6 +18,7 @@ function drawBandeau(
   w: number,
   label: string,
   valeur: string,
+  P: Palette,
 ): number {
   const innerX = x + LEFT_BAR_W + 4
   const innerW = w - LEFT_BAR_W - 8
@@ -25,15 +26,15 @@ function drawBandeau(
   const lines = Math.max(split.length, 1)
   const h = Math.max(14, 10 + lines * 4.5)
 
-  setFill(doc, C.skyVeryPale)
+  setFill(doc, P.skyVeryPale)
   doc.roundedRect(x, y, w, h, 3, 3, 'F')
-  setFill(doc, C.orange)
+  setFill(doc, P.orange)
   doc.rect(x, y, LEFT_BAR_W, h, 'F')
 
-  font(doc, 'Hanken Grotesk', 'semibold', 7.5, C.muted)
+  font(doc, 'Hanken Grotesk', 'semibold', 7.5, P.muted)
   doc.text(label, innerX, y + 5, { charSpace: 0.6 })
 
-  font(doc, 'Hanken Grotesk', 'bold', 12, C.navy)
+  font(doc, 'Hanken Grotesk', 'bold', 12, P.navy)
   doc.text(split, innerX, y + 10)
 
   return h
@@ -44,20 +45,22 @@ export function drawObjet(
   objet: string | undefined,
   chantierAdresse: string | undefined,
   yStart: number,
+  palette: Palette = C,
 ): number {
   if (!objet && !chantierAdresse) return yStart
+  const P = palette
   const objetLen = (objet || '').length
   const twoCols = !!objet && !!chantierAdresse && objetLen < 100
   if (twoCols) {
-    const hL = drawBandeau(doc, X, yStart, COL_W, 'OBJET', objet!)
-    const hR = drawBandeau(doc, X + COL_W + GAP, yStart, COL_W, 'ADRESSE DU CHANTIER', chantierAdresse!)
+    const hL = drawBandeau(doc, X, yStart, COL_W, 'OBJET', objet!, P)
+    const hR = drawBandeau(doc, X + COL_W + GAP, yStart, COL_W, 'ADRESSE DU CHANTIER', chantierAdresse!, P)
     return yStart + Math.max(hL, hR)
   }
   let y = yStart
-  if (objet) y += drawBandeau(doc, X, y, FULL_W, 'OBJET', objet)
+  if (objet) y += drawBandeau(doc, X, y, FULL_W, 'OBJET', objet, P)
   if (chantierAdresse) {
     if (objet) y += 4
-    y += drawBandeau(doc, X, y, FULL_W, 'ADRESSE DU CHANTIER', chantierAdresse)
+    y += drawBandeau(doc, X, y, FULL_W, 'ADRESSE DU CHANTIER', chantierAdresse, P)
   }
   return y
 }

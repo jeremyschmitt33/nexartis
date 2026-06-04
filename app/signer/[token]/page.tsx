@@ -6,6 +6,7 @@ import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import type { LegalContext } from '@/lib/legal-mentions'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildDevisDocument } from '@/lib/document-data'
+import { themeFromEntreprise } from '@/lib/document-theme'
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -84,6 +85,14 @@ interface Entreprise {
   logo_url?: string
   signature_base64?: string
   tampon_base64?: string
+  /** V3.0d — Theme personnalise documents (6 couleurs hex #RRGGBB).
+   *  Optionnel : si une colonne est absente/null, le fallback Nexartis s applique. */
+  doc_color_bandeau_haut?: string
+  doc_color_accent?: string
+  doc_color_cadre_emetteur?: string
+  doc_color_cadre_adresse?: string
+  doc_color_net_payer?: string
+  doc_color_footer?: string
 }
 
 interface ClientInfo {
@@ -466,7 +475,7 @@ export default function SignerDevisPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* ═══ DEVIS — composant partagé V3.0b+c (Édition Signature) ═══ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <DocumentRender data={documentData} />
+          <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} />
         </div>
 
         {/* ═══ SECTION SIGNATURE ═══ */}

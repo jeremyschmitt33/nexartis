@@ -23,6 +23,7 @@ import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildFactureDocument } from '@/lib/document-data'
+import { themeFromEntreprise } from '@/lib/document-theme'
 import {
   useSupabaseRecord,
   useFactureLignes,
@@ -459,7 +460,7 @@ export default function FactureDetailPage() {
         {/* Main: Invoice preview */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-8 print-zone">
-            <DocumentRender data={documentData} />
+            <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} />
           </div>
         </div>
 

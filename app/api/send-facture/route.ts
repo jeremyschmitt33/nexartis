@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateFacturePdf } from '@/lib/pdf'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
+import { themeFromEntreprise } from '@/lib/document-theme'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, isValidEmail,
@@ -143,7 +144,7 @@ export async function POST(req: NextRequest) {
       numero_situation: facture.numero_situation ?? undefined,
       // Legacy : ancien champ notes conservé pour rétrocompat
       notes: facture.notes,
-    })
+    }, themeFromEntreprise(entreprise))
 
     // Build email body
     const entNom = String(ent.nom || 'Nexartis')

@@ -4,7 +4,7 @@
 // Anti-doublon prefixes SIRET / TVA / RM / APE.
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import { font, setFill, setDraw, textCentered } from './utils'
 
 interface FooterEntreprise {
@@ -25,7 +25,12 @@ export function drawFooterAllPages(
   ent: FooterEntreprise,
   numero: string,
   prefix: string,
+  palette: Palette = C,
 ): void {
+  const P = palette
+  // V3.0d : on utilise la couleur "footer" du theme pour le fond du bandeau
+  // (= bandeauHaut par defaut Nexartis, identique a P.navy). Le footer peut
+  // diverger du bandeau si l'utilisateur configure une couleur distincte.
   const total = doc.getNumberOfPages()
   const pageW = 210
   const center = pageW / 2
@@ -33,13 +38,13 @@ export function drawFooterAllPages(
   for (let i = 1; i <= total; i++) {
     doc.setPage(i)
 
-    // Trait orange de separation
-    setDraw(doc, C.orange)
+    // Trait accent de separation
+    setDraw(doc, P.orange)
     doc.setLineWidth(0.6)
     doc.line(0, 282, pageW, 282)
 
-    // Bandeau navy plein largeur (14.4mm de haut)
-    setFill(doc, C.navy)
+    // Bandeau footer plein largeur (14.4mm de haut)
+    setFill(doc, P.footer)
     doc.rect(0, 282.6, pageW, 14.4, 'F')
 
     // === Ligne 1 — Identite legale, centree ===
@@ -51,12 +56,12 @@ export function drawFooterAllPages(
     if (ent.code_naf) ligne1Parts.push(withPrefix('APE', ent.code_naf, ['APE', 'NAF']))
 
     if (ligne1Parts.length > 0) {
-      font(doc, 'Hanken Grotesk', 'medium', 7.5, C.white)
+      font(doc, 'Hanken Grotesk', 'medium', 7.5, P.white)
       textCentered(doc, ligne1Parts.join('  •  '), center, 288.5, { maxWidth: pageW - 24 })
     }
 
     // === Ligne 2 — V3.0c.3 : tout centre (numero + pagination) ===
-    font(doc, 'Hanken Grotesk', 'normal', 7, C.whiteSoft)
+    font(doc, 'Hanken Grotesk', 'normal', 7, P.whiteSoft)
     const ligne2 = `${prefix} ${numero}  •  Page ${i} / ${total}`
     textCentered(doc, ligne2, center, 293.5)
   }

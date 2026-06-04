@@ -5,7 +5,7 @@
 // Marges uniformes (Fix 9), mentions TVA deplacees a gauche (Fix 10).
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import {
   fmt,
   font,
@@ -61,7 +61,9 @@ export function drawTotals(
   lignes: PdfLigne[],
   isFacture: boolean,
   yStart: number,
+  palette: Palette = C,
 ): number {
+  const P = palette
   // V3.0c.14 : si pas assez de place avant le footer (282mm), saut de page automatique.
   // Le bloc recap a besoin d'environ 75mm minimum (conditions + recap + Net + echelon).
   // Sans cette protection, le grand cadre bleu deborde sur le bandeau navy du footer.
@@ -76,18 +78,18 @@ export function drawTotals(
   const rightStartY = yStart
 
   // --- Colonne gauche : CONDITIONS DE PAIEMENT + mentions TVA + IBAN (si facture) ---
-  let leftY = drawConditions(doc, data, leftStartY)
+  let leftY = drawConditions(doc, data, leftStartY, P)
   // Fix 10 : mentions TVA legales (Je certifie...) sous les conditions de paiement
-  leftY = drawTvaCertifications(doc, lignes, leftY)
+  leftY = drawTvaCertifications(doc, lignes, leftY, P)
   if (data.notes_personnalisees && data.notes_personnalisees.trim()) {
-    leftY = drawNotes(doc, data.notes_personnalisees.trim(), leftY)
+    leftY = drawNotes(doc, data.notes_personnalisees.trim(), leftY, P)
   }
   if (isFacture) {
-    leftY = drawIbanBlock(doc, data.entreprise, LEFT_X, leftY, COL_W)
+    leftY = drawIbanBlock(doc, data.entreprise, LEFT_X, leftY, COL_W, P)
   }
 
   // --- Colonne droite : RECAP + NET A PAYER ---
-  const rightY = drawRecap(doc, data, lignes, rightStartY)
+  const rightY = drawRecap(doc, data, lignes, rightStartY, P)
 
   return Math.max(leftY, rightY) + 4
 }
@@ -95,13 +97,13 @@ export function drawTotals(
 // ===========================================================================
 // CONDITIONS DE PAIEMENT (gauche)
 // ===========================================================================
-function drawConditions(doc: jsPDF, data: TotalsData, yStart: number): number {
+function drawConditions(doc: jsPDF, data: TotalsData, yStart: number, P: Palette): number {
   const txt = (data.conditions_paiement && data.conditions_paiement.trim())
     || DEFAULT_CONDITIONS_PAIEMENT
-  font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
+  font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
   doc.text('CONDITIONS DE PAIEMENT', LEFT_X, yStart, { charSpace: 0.6 })
 
-  font(doc, 'Hanken Grotesk', 'normal', 8.5, C.navy)
+  font(doc, 'Hanken Grotesk', 'normal', 8.5, P.navy)
   const split = doc.splitTextToSize(txt, COL_W)
   doc.text(split, LEFT_X, yStart + 5)
   return yStart + 5 + split.length * 3.6 + 4
@@ -113,12 +115,13 @@ function drawTvaCertifications(
   doc: jsPDF,
   lignes: PdfLigne[],
   yStart: number,
+  P: Palette,
 ): number {
   const tvaTexts = getTvaMentions(lignes)
   if (tvaTexts.length === 0) return yStart
   // -1mm pour compenser le +4mm bake-in dans drawConditions (separation 3mm souhaitee)
   let y = yStart - 1
-  font(doc, 'Hanken Grotesk', 'normal', 7, C.muted)
+  font(doc, 'Hanken Grotesk', 'normal', 7, P.muted)
   for (const t of tvaTexts) {
     const split = doc.splitTextToSize(t, COL_W)
     doc.text(split, LEFT_X, y)
@@ -127,10 +130,10 @@ function drawTvaCertifications(
   return y + 2
 }
 
-function drawNotes(doc: jsPDF, notes: string, yStart: number): number {
-  font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
+function drawNotes(doc: jsPDF, notes: string, yStart: number, P: Palette): number {
+  font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
   doc.text('NOTES', LEFT_X, yStart, { charSpace: 0.6 })
-  font(doc, 'Hanken Grotesk', 'normal', 8.5, C.navy)
+  font(doc, 'Hanken Grotesk', 'normal', 8.5, P.navy)
   const split = doc.splitTextToSize(notes, COL_W)
   doc.text(split, LEFT_X, yStart + 5)
   return yStart + 5 + split.length * 3.6 + 4
@@ -145,27 +148,29 @@ export function drawIbanBlock(
   x: number,
   y: number,
   w: number,
+  palette: Palette = C,
 ): number {
   if (!ent.iban || !ent.iban.trim()) return y
+  const P = palette
   const h = 18
 
-  setFill(doc, C.skyVeryPale)
+  setFill(doc, P.skyVeryPale)
   doc.roundedRect(x, y, w, h, 2, 2, 'F')
-  setFill(doc, C.orange)
+  setFill(doc, P.orange)
   doc.rect(x, y, 1.6, h, 'F')
 
-  font(doc, 'Hanken Grotesk', 'semibold', 7, C.orange)
+  font(doc, 'Hanken Grotesk', 'semibold', 7, P.orange)
   doc.text('POUR RÉGLER PAR VIREMENT', x + 5, y + 4.5, { charSpace: 0.6 })
 
   const ibanClean = ent.iban.replace(/\s+/g, '').toUpperCase()
   const ibanFormatted = ibanClean.match(/.{1,4}/g)?.join(' ') || ibanClean
-  font(doc, 'Spline Sans Mono', 'semibold', 7.5, C.navy)
+  font(doc, 'Spline Sans Mono', 'semibold', 7.5, P.navy)
   doc.text(`IBAN  ${ibanFormatted}`, x + 5, y + 8.8)
   if (ent.bic && ent.bic.trim()) {
     doc.text(`BIC   ${ent.bic.trim().toUpperCase()}`, x + 5, y + 12.4)
   }
 
-  font(doc, 'Hanken Grotesk', 'normal', 6.5, C.muted)
+  font(doc, 'Hanken Grotesk', 'normal', 6.5, P.muted)
   doc.text(`Bénéficiaire : ${ent.nom || ''}`, x + 5, y + 16, { maxWidth: w - 7 })
 
   return y + h + 4
@@ -188,6 +193,7 @@ function drawRecap(
   data: TotalsData,
   lignes: PdfLigne[],
   yStart: number,
+  P: Palette,
 ): number {
   // V3.0c.5 Fix B — grand cadre fond skyVeryPale englobant tout le recap
   // (sous-total + TVA + Total TTC + Net a payer + echelonnement)
@@ -211,7 +217,7 @@ function drawRecap(
   const recapPadTop = 0
   const recapPadInternalTop = 5
   const recapPadBottom = 5
-  setFill(doc, C.skyVeryPale)
+  setFill(doc, P.skyVeryPale)
   doc.roundedRect(
     RIGHT_X - 2,
     yStart - recapPadTop,
@@ -230,6 +236,7 @@ function drawRecap(
     fmt(data.montant_ht),
     y,
     { boldValue: true },
+    P,
   )
   y += GAP_RECAP_ROW
 
@@ -250,14 +257,14 @@ function drawRecap(
     const base = tvaBases[r]
     const label = `TVA ${formatRate(r)}`
     const sub = isMulti && base !== undefined ? ` (base ${fmt(base)})` : ''
-    drawTvaRow(doc, label, sub, fmt(tvaGroups[r]), y)
+    drawTvaRow(doc, label, sub, fmt(tvaGroups[r]), y, P)
     y += GAP_RECAP_ROW
   }
 
   // V3.0c.6 Fix D : trait fin separateur, decale pour ne pas chevaucher Total TTC
   // (le texte 9pt s'etend de y-3.2 a y, donc trait a y-4 laisse 0.8mm de marge)
   y += 2 // marge supplementaire entre derniere TVA et Total TTC
-  setDraw(doc, C.border)
+  setDraw(doc, P.border)
   doc.setLineWidth(0.3)
   doc.line(RIGHT_X, y - 4, RIGHT_VALUE_X, y - 4)
 
@@ -266,20 +273,23 @@ function drawRecap(
     boldValue: true,
     labelBold: true,
     sizeBoost: true,
-  })
+  }, P)
   y += GAP_BEFORE_NET
 
   // Bloc NET A PAYER orange plein (montant = Total TTC complet, jamais l'acompte)
+  // V3.0d : fond = P.netPayer (configurable), texte = P.netPayerInk (auto contraste).
+  // Note : en mode default Nexartis (P.netPayer = #e87a2a orange clair), l'ink calcule
+  // est sombre #1c1304 (calque exact du rendu HTML --accent2-ink), donc parite HTML/PDF.
   const acompteTTC = acompteTTCpre
   const netH = 13
-  setFill(doc, C.orange)
+  setFill(doc, P.netPayer)
   doc.roundedRect(RIGHT_X, y, COL_W, netH, 3, 3, 'F')
 
   const netLabel = data.netLabel || 'Net à payer'
-  font(doc, 'Hanken Grotesk', 'semibold', 9, C.white)
+  font(doc, 'Hanken Grotesk', 'semibold', 9, P.netPayerInk)
   doc.text(netLabel, RIGHT_X + 4, y + netH / 2 + 1.2)
 
-  font(doc, 'Hanken Grotesk', 'extrabold', 15, C.white)
+  font(doc, 'Hanken Grotesk', 'extrabold', 15, P.netPayerInk)
   textRight(doc, fmt(data.montant_ttc), RIGHT_VALUE_X - 4, y + netH / 2 + 2.2)
   y += netH + GAP_AFTER_NET
 
@@ -299,7 +309,7 @@ function drawRecap(
 
     // V3.0c.5 Fix B : trait separateur fin au-dessus de l'echelonnement
     // (le grand cadre skyVeryPale gere deja le fond, on evite le double-fill)
-    setDraw(doc, C.borderSky)
+    setDraw(doc, P.borderSky)
     doc.setLineWidth(0.3)
     doc.line(boxX + padInner, boxY, boxX + boxW - padInner, boxY)
 
@@ -313,6 +323,7 @@ function drawRecap(
       boxY + padInner + 3,
       lineX,
       valueX,
+      P,
     )
     drawSplitRow(
       doc,
@@ -321,6 +332,7 @@ function drawRecap(
       boxY + padInner + 3 + lineGap,
       lineX,
       valueX,
+      P,
     )
 
     y = boxY + boxH + GAP_AFTER_ECHELON
@@ -336,10 +348,11 @@ function drawSplitRow(
   y: number,
   xLabel: number = RIGHT_X,
   xValue: number = RIGHT_VALUE_X,
+  P: Palette = C,
 ): void {
-  font(doc, 'Hanken Grotesk', 'normal', 8, C.muted)
+  font(doc, 'Hanken Grotesk', 'normal', 8, P.muted)
   doc.text(label, xLabel, y)
-  font(doc, 'Hanken Grotesk', 'semibold', 8.5, C.navy)
+  font(doc, 'Hanken Grotesk', 'semibold', 8.5, P.navy)
   textRight(doc, value, xValue, y)
 }
 
@@ -359,6 +372,7 @@ function drawRecapRow(
   value: string,
   y: number,
   opts: { boldValue?: boolean; labelBold?: boolean; sizeBoost?: boolean },
+  P: Palette = C,
 ): void {
   const labelSize = opts.sizeBoost ? 9 : 8.5
   const valueSize = opts.sizeBoost ? 9 : 8.5
@@ -367,7 +381,7 @@ function drawRecapRow(
     'Hanken Grotesk',
     opts.labelBold ? 'semibold' : 'normal',
     labelSize,
-    opts.labelBold ? C.navy : C.muted,
+    opts.labelBold ? P.navy : P.muted,
   )
   doc.text(label, RIGHT_X, y)
 
@@ -376,7 +390,7 @@ function drawRecapRow(
     'Hanken Grotesk',
     opts.boldValue ? 'bold' : 'normal',
     valueSize,
-    C.navy,
+    P.navy,
   )
   textRight(doc, value, RIGHT_VALUE_X, y)
 }
@@ -387,16 +401,17 @@ function drawTvaRow(
   sub: string,
   value: string,
   y: number,
+  P: Palette = C,
 ): void {
-  font(doc, 'Hanken Grotesk', 'normal', 8.5, C.muted)
+  font(doc, 'Hanken Grotesk', 'normal', 8.5, P.muted)
   doc.text(label, RIGHT_X, y)
   // V3.0c.2 fix : mesurer le label AVEC un espace pour eviter "%(base..."
   const labelW = doc.getTextWidth(label + ' ')
   if (sub) {
-    font(doc, 'Hanken Grotesk', 'normal', 7.5, C.muted)
+    font(doc, 'Hanken Grotesk', 'normal', 7.5, P.muted)
     doc.text(sub.trimStart(), RIGHT_X + labelW, y)
   }
-  font(doc, 'Hanken Grotesk', 'bold', 8.5, C.navy)
+  font(doc, 'Hanken Grotesk', 'bold', 8.5, P.navy)
   textRight(doc, value, RIGHT_VALUE_X, y)
 }
 

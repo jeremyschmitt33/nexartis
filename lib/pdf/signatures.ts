@@ -2,7 +2,7 @@
 // 2 encadres blancs traits PLEINS cote a cote. Saut de page auto si y > 230.
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import { font, setDraw, setFill, textCentered, fmtDate } from './utils'
 
 interface SigEntreprise {
@@ -26,7 +26,9 @@ export function drawSignatures(
   ent: SigEntreprise,
   data: SigData,
   yStart: number,
+  palette: Palette = C,
 ): number {
+  const P = palette
   const M = 18
   const W = 174
   const sigW = (W - 6) / 2
@@ -47,17 +49,18 @@ export function drawSignatures(
     leftX, y, sigW, sigH,
     'Bon pour accord — Le client',
     'Date, mention "Bon pour accord" et signature',
+    P,
   )
   if (data.client_signature_base64) {
     insertImage(doc, data.client_signature_base64, leftX + 4, y + 10, sigW - 8, sigH - 16)
   }
   const isAccepte = data.statut === 'signe' || data.statut === 'facture'
   if (isAccepte && !data.client_signature_base64) {
-    font(doc, 'Hanken Grotesk', 'bold', 9, C.navy)
+    font(doc, 'Hanken Grotesk', 'bold', 9, P.navy)
     textCentered(doc, 'Bon pour accord', leftX + sigW / 2, y + sigH / 2 + 1)
   }
   if (isAccepte && data.date_signature) {
-    font(doc, 'Hanken Grotesk', 'normal', 7, C.muted)
+    font(doc, 'Hanken Grotesk', 'normal', 7, P.muted)
     textCentered(doc, `Le ${fmtDate(data.date_signature)}`, leftX + sigW / 2, y + sigH - 3)
   }
 
@@ -67,6 +70,7 @@ export function drawSignatures(
     rightX, y, sigW, sigH,
     ent.nom || '',
     'Signature & cachet de l\'entreprise',
+    P,
   )
   const artisanVisual = ent.signature_base64 || ent.tampon_base64
   if (artisanVisual) {
@@ -84,16 +88,17 @@ function drawSignatureCard(
   h: number,
   title: string,
   subtitle: string,
+  P: Palette,
 ): void {
-  setFill(doc, C.white)
-  setDraw(doc, C.border)
+  setFill(doc, P.white)
+  setDraw(doc, P.border)
   doc.setLineWidth(0.3)
   doc.roundedRect(x, y, w, h, 4, 4, 'FD')
 
-  font(doc, 'Hanken Grotesk', 'bold', 8.5, C.navy)
+  font(doc, 'Hanken Grotesk', 'bold', 8.5, P.navy)
   doc.text(title, x + 4, y + 5)
 
-  font(doc, 'Hanken Grotesk', 'normal', 7.5, C.muted)
+  font(doc, 'Hanken Grotesk', 'normal', 7.5, P.muted)
   doc.text(subtitle, x + 4, y + 8.5, { maxWidth: w - 8 })
 }
 

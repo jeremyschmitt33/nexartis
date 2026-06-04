@@ -4,7 +4,7 @@
 // + banniere amber profil incomplet.
 
 import type { jsPDF } from 'jspdf'
-import { C } from './palette'
+import { C, type Palette } from './palette'
 import {
   font,
   setFill,
@@ -180,7 +180,9 @@ export function drawLegal(
   kind: 'devis' | 'facture',
   yStart: number,
   opts: DrawLegalOpts = {},
+  palette: Palette = C,
 ): number {
+  const P = palette
   let y = yStart
 
   // 1. Mentions TVA italiques : V3.0c.4 Fix 10 — DEPLACEES dans drawTvaCertifications
@@ -191,15 +193,15 @@ export function drawLegal(
   // au-dessus + padding genereux (parite HTML dashboard).
   if (opts.dechets && (opts.dechets.nature || opts.dechets.collecte_nom)) {
     y += 4 // marge avant la section
-    setDraw(doc, C.border)
+    setDraw(doc, P.border)
     doc.setLineWidth(0.3)
     doc.line(M, y, M + W, y)
     y += 5 // padding apres le trait
 
-    font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
+    font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
     doc.text('GESTION DES DÉCHETS (AGEC)', M, y, { charSpace: 0.6 })
     y += 4
-    font(doc, 'Hanken Grotesk', 'normal', 8, C.navy)
+    font(doc, 'Hanken Grotesk', 'normal', 8, P.navy)
     const parts: string[] = []
     if (opts.dechets.nature) parts.push(`Nature : ${opts.dechets.nature}`)
     if (opts.dechets.responsable) parts.push(opts.dechets.responsable)
@@ -242,7 +244,7 @@ export function drawLegal(
   const padCell = 5
   // Mesure de hauteur dynamique (max des 2 lignes de la grille)
   const heights: number[] = cells.map(c => {
-    font(doc, 'Hanken Grotesk', 'normal', 8, C.navy)
+    font(doc, 'Hanken Grotesk', 'normal', 8, P.navy)
     const lines = doc.splitTextToSize(c.value, cellW - padCell * 2).length
     return 3.5 + lines * 3.4 + padCell
   })
@@ -250,7 +252,7 @@ export function drawLegal(
   const row2H = Math.max(heights[2], heights[3])
   const boxH = padCell + row1H + 4 + row2H + padCell
 
-  setFill(doc, C.skyVeryPale)
+  setFill(doc, P.skyVeryPale)
   doc.roundedRect(M, y, W, boxH, 4, 4, 'F')
 
   // Positions des 4 cellules
@@ -262,9 +264,9 @@ export function drawLegal(
   ]
 
   for (const p of positions) {
-    font(doc, 'Hanken Grotesk', 'semibold', 7, C.muted)
+    font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
     doc.text(p.cell.label, p.x, p.y + 2.5, { charSpace: 0.6 })
-    font(doc, 'Hanken Grotesk', 'normal', 8, C.navy)
+    font(doc, 'Hanken Grotesk', 'normal', 8, P.navy)
     const split = doc.splitTextToSize(p.cell.value, cellW - padCell * 2)
     doc.text(split, p.x, p.y + 6.5)
   }

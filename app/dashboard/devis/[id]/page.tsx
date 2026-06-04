@@ -21,6 +21,7 @@ import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildDevisDocument } from '@/lib/document-data'
+import { themeFromEntreprise } from '@/lib/document-theme'
 import {
   useSupabaseRecord,
   useDevisLignes,
@@ -604,7 +605,7 @@ export default function DevisDetailPage() {
         {/* Main -- preview card */}
         <div className="flex-1 min-w-0">
           <div className="bg-white shadow-xl rounded-xl p-3 sm:p-8 lg:p-12 print-zone">
-            <DocumentRender data={documentData} />
+            <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} />
           </div>
         </div>
 

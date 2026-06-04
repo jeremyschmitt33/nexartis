@@ -1,5 +1,12 @@
 /* V3.0b.6 — Edition Signature : marge body 36px, sections colorees, net = total TTC, stone */
-.dv-doc { --paper:#ffffff; --accent:#0f1a3a; --accent-ink:#ffffff; --accent2:#e87a2a;
+/* V3.0d — Theme personnalisable : --accent / --accent2 (et leurs --*-ink) tirent leur
+   couleur des variables --dv-c-* injectees par DocumentRender via themeToCssVars().
+   Les fallbacks (#0f1a3a, #e87a2a, etc.) reproduisent EXACTEMENT le rendu historique
+   Nexartis quand aucun theme custom n'est applique. */
+.dv-doc { --paper:#ffffff;
+  --accent:var(--dv-c-bandeau, #0f1a3a);
+  --accent-ink:var(--dv-c-bandeau-ink, #ffffff);
+  --accent2:var(--dv-c-accent, #e87a2a);
   --accent2-ink:#1c1304; --accent-soft:#f1f3f7; --ink:#19202b; --mute:#6b7480;
   --line:#e7e9ee; --title-size:41px; --card-radius:24px;
   --stone-bg:#f5f3ee; --stone-border:#e2ddd1; --stone-ink:#3a3329; --stone-mute:#857a68; --stone-rule:#d6cfc0;
@@ -44,20 +51,20 @@
   padding:0 54px; margin-top:-46px; position:relative; z-index:3; }
 .dv-headD .dv-d-card { border-radius:var(--card-radius); padding:20px 22px;
   position:relative; overflow:hidden; box-shadow:0 14px 34px rgba(18,28,46,.18); }
-.dv-headD .dv-d-card--from { background:#fff; border:1px solid var(--line); }
-.dv-headD .dv-d-card--from::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent2); }
-.dv-headD .dv-d-card--to { background:var(--accent); color:#fff; }
+.dv-headD .dv-d-card--from { background:var(--dv-c-emetteur, #fff); color:var(--dv-c-emetteur-ink, var(--ink)); border:1px solid var(--line); }
+.dv-headD .dv-d-card--from::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--dv-c-accent, #e87a2a); }
+.dv-headD .dv-d-card--to { background:var(--dv-c-adresse, #0f1a3a); color:var(--dv-c-adresse-ink, #fff); }
 .dv-headD .dv-d-chip { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.14em;
   text-transform:uppercase; padding:4px 11px; border-radius:6px; white-space:nowrap;
-  background:var(--accent); color:#fff; margin-bottom:13px; }
-.dv-headD .dv-d-chip--accent { background:var(--accent2); color:var(--accent2-ink); }
+  background:var(--dv-c-bandeau, #0f1a3a); color:var(--dv-c-bandeau-ink, #fff); margin-bottom:13px; }
+.dv-headD .dv-d-chip--accent { background:var(--dv-c-accent, #e87a2a); color:var(--accent2-ink); }
 .dv-headD .dv-d-cardname { display:block; font-size:17px; font-weight:700; letter-spacing:-.01em; }
 .dv-headD .dv-d-card--from .dv-d-cardname { color:var(--ink); }
 .dv-headD .dv-d-cardrows { display:flex; flex-direction:column; gap:2px; margin-top:8px; font-size:12px; }
 .dv-headD .dv-d-card--from .dv-d-cardrows { color:var(--mute); }
 .dv-headD .dv-d-card--to .dv-d-cardrows { color:rgba(255,255,255,.72); }
 .dv-dir-D .dv-objet { margin-top:30px; }
-.dv-dir-D .dv-recap-net { background:var(--accent2); color:var(--accent2-ink); }
+.dv-dir-D .dv-recap-net { background:var(--dv-c-netpayer, #e87a2a); color:var(--dv-c-netpayer-ink, var(--accent2-ink)); }
 .dv-dir-D .dv-row--group .dv-c-num { color:var(--accent2); }
 .dv-objet { background:#f0f7fc; border-left:3px solid #e87a2a; border-radius:4px;
   padding:12px 16px; margin:22px 0 20px; }
@@ -105,7 +112,7 @@
 .dv-recap-line--ttc { font-weight:700; color:#2a2218;
   border-top:1px solid var(--stone-rule); border-bottom:2px solid var(--stone-rule); padding:9px 0; margin-top:4px; }
 .dv-recap-net { display:flex; justify-content:space-between; align-items:baseline;
-  background:var(--accent2); color:var(--accent2-ink);
+  background:var(--dv-c-netpayer, #e87a2a); color:var(--dv-c-netpayer-ink, var(--accent2-ink));
   padding:18px 20px; margin:14px -18px 0; }
 .dv-recap-net span { font-size:15px; font-weight:700; letter-spacing:.01em; }
 .dv-recap-net strong { font-size:28px; font-weight:800; white-space:nowrap;
@@ -149,10 +156,10 @@
 .dv-dechets-k { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); margin-bottom:4px; }
 .dv-dechets-text { font-size:11px; color:var(--mute); line-height:1.5; }
 .dv-page-foot-rich { display:flex; flex-direction:column; align-items:center;
-  padding:18px 54px 22px; background:var(--accent); color:rgba(255,255,255,.78);
+  padding:18px 54px 22px; background:var(--dv-c-footer, #0f1a3a); color:rgba(255,255,255,.78);
   font-size:10.5px; line-height:1.55; text-align:center; gap:3px;
-  border-top:3px solid var(--accent2); }
-.dv-page-foot-rich strong { color:#fff; font-weight:600; }
+  border-top:3px solid var(--dv-c-accent, #e87a2a); }
+.dv-page-foot-rich strong { color:var(--dv-c-footer-ink, #fff); font-weight:600; }
 .dv-page-foot-rich .dv-pf-rcs { font-size:9.5px; margin-top:4px; color:rgba(255,255,255,.62); }
 @media print { @page { size:A4; margin:0; }
   .dv-page { box-shadow:none !important; margin:0 !important; min-height:1123px; break-after:page; } }
