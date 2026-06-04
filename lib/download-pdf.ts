@@ -34,19 +34,20 @@ export type PdfDownloadResult = {
 }
 
 /**
- * Convertit une chaine base64 en Blob PDF (memoire-safe, pas de string geante).
+ * Convertit une chaine base64 en Blob PDF.
+ * V3.0d.1 : reecrit pour satisfaire TS 5.7+ qui distingue ArrayBuffer / ArrayBufferLike.
+ * On alloue explicitement un ArrayBuffer puis on remplit via Uint8Array, et on passe
+ * le ArrayBuffer (pas le Uint8Array) au constructor Blob — typage strict garanti.
  */
 export function base64ToBlob(base64: string, mimeType = 'application/pdf'): Blob {
-  const byteCharacters = atob(base64)
-  const byteArrays: Uint8Array[] = []
-  const sliceSize = 1024
-  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-    const slice = byteCharacters.slice(offset, offset + sliceSize)
-    const byteNumbers = new Array(slice.length)
-    for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i)
-    byteArrays.push(new Uint8Array(byteNumbers))
+  const binaryString = atob(base64)
+  const len = binaryString.length
+  const buffer = new ArrayBuffer(len)
+  const bytes = new Uint8Array(buffer)
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
   }
-  return new Blob(byteArrays, { type: mimeType })
+  return new Blob([buffer], { type: mimeType })
 }
 
 /**
