@@ -73,8 +73,11 @@ const nextConfig = {
             value: 'strict-origin-when-cross-origin',
           },
           {
+            // V3.0e.2 : microphone=(self) car la feature "Devis vocal" l'utilise.
+            // Les autres permissions restent bloquees par defaut (hardening secu).
+            // self = autorise pour notre domaine + ses sous-domaines, refuse pour les iframes tiers.
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
+            value: 'camera=(), microphone=(self), geolocation=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
           },
         ],
       },

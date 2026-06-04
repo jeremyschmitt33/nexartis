@@ -665,19 +665,21 @@ export default function DashboardPage() {
               }}>{entrepriseNom}</span>
             </h1>
           </div>
-          <div className="flex gap-2.5">
+          {/* V3.0e.2 : grandes cartes pleine largeur sur mobile (acces direct depuis
+              l'accueil sans passer par le menu), layout compact sur desktop. */}
+          <div className="grid grid-cols-2 gap-2.5 w-full sm:flex sm:w-auto sm:gap-2.5">
             <Link href="/dashboard/devis/nouveau"
               aria-label="Créer un nouveau devis"
-              className="inline-flex items-center justify-center gap-2 rounded-[14px] text-white text-sm font-jakarta font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97]"
-              style={{minHeight: '48px', width: '170px', background: '#0f1a3a'}}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-jakarta font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
+              style={{background: '#0f1a3a', boxShadow: '0 8px 24px -10px rgba(15,26,58,0.35)'}}>
+              <svg width="22" height="22" className="sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Nouveau devis
             </Link>
             <Link href="/dashboard/factures/nouveau"
               aria-label="Créer une nouvelle facture"
-              className="inline-flex items-center justify-center gap-2 rounded-[14px] text-white text-sm font-jakarta font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97]"
-              style={{minHeight: '48px', width: '170px', background: 'linear-gradient(135deg, #e87a2a, #f09050)'}}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-jakarta font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
+              style={{background: 'linear-gradient(135deg, #e87a2a, #f09050)', boxShadow: '0 8px 24px -10px rgba(232,122,42,0.45)'}}>
+              <svg width="22" height="22" className="sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Nouvelle facture
             </Link>
           </div>
