@@ -33,3 +33,17 @@ tsconfig.tsbuildinfo
 
 # Artefacts Linux/FUSE
 .fuse_hidden*
+
+# Fichiers de travail Cowork / livrables clients (jamais versionnes)
+*.pdf
+*.docx
+design_handoff_devis_facture/
+Logo moderne pour NEXARTIS.png
+post-facebook-nexartis.png
+AUDIT_SEO_GEO_NETLINKING.md
+DEPLOIEMENT_V3.0d_THEME_COULEURS.md
+MAIL_BIENVENUE_TEMPLATE.md
+PAGE_A_PROPOS_CONTENU.md
+SPECS_FEATURE_CONTACT.md
+post-facebook-textes.md
+veille-concurrentielle-2026-05-28.md
