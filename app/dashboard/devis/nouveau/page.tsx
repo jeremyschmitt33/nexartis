@@ -80,7 +80,14 @@ function formatCurrency(n: number): string {
 const inputCls = 'w-full h-11 rounded-xl border-2 border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/20 transition-all bg-white placeholder:text-gray-400'
 
 // -------------------------------------------------------------------
-// Voice Modal
+// Voice Modal — V3.0e Vague 1
+// Refonte : MediaRecorder + /api/voice-devis-v2 (Gemini 2.5 Flash).
+// Pourquoi MediaRecorder vs Web Speech API :
+//   - Web Speech API ne fonctionne pas sur iPhone Safari (bug Apple connu).
+//   - Web Speech API est limitee a Chrome desktop + Android Chrome.
+//   - MediaRecorder est supporte partout (iOS 14.5+, Android, desktop).
+//   - L'audio est ensuite traite cote serveur par Gemini multimodal qui fait
+//     transcription + extraction structuree en UN seul appel API.
 // -------------------------------------------------------------------
 
 function VoiceModal({ open, onClose, onResult }: {
@@ -88,147 +95,300 @@ function VoiceModal({ open, onClose, onResult }: {
   onClose: () => void
   onResult: (data: Record<string, unknown>) => void
 }) {
-  const [listening, setListening] = useState(false)
-  const [transcript, setTranscript] = useState('')
+  const [recording, setRecording] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null)
+  const [elapsedSec, setElapsedSec] = useState(0)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
 
-  const supported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const startListening = async () => {
+  // Limite de duree d enregistrement (cote client) — au-dela on coupe automatiquement.
+  // 2 minutes suffisent largement pour dicter un devis BTP courant.
+  const MAX_RECORDING_SEC = 120
+
+  // Verifier le support MediaRecorder (devrait etre dispo partout en 2026, mais filet
+  // de securite si l artisan a un vieux navigateur).
+  const supported = typeof window !== 'undefined'
+    && typeof window.MediaRecorder !== 'undefined'
+    && typeof navigator !== 'undefined'
+    && typeof navigator.mediaDevices?.getUserMedia === 'function'
+
+  // Cleanup : si le composant ferme pendant un enregistrement, on stoppe tout.
+  useEffect(() => {
+    if (!open) {
+      cleanup()
+      resetState()
+    }
+    return () => cleanup()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  function cleanup() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop() } catch { /* deja stoppe */ }
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+  }
+
+  function resetState() {
+    setRecording(false)
+    setProcessing(false)
     setError(null)
+    setElapsedSec(0)
+    setAudioBlob(null)
+    audioChunksRef.current = []
+  }
 
-    // 1. Demander explicitement la permission micro — affiche le prompt Chrome
-    //    (sans ça, recognition.start() peut échouer silencieusement)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      // On libère immédiatement le stream — SpeechRecognition gère son propre flux
-      stream.getTracks().forEach(t => t.stop())
-    } catch {
-      setError('Accès au micro refusé. Cliquez sur le cadenas 🔒 dans la barre d\'adresse pour autoriser le micro, puis rechargez la page.')
-      return
+  // Choisit le meilleur format audio supporte par le navigateur (Safari = mp4/aac,
+  // Chrome/Firefox = webm/opus). Gemini accepte les deux via inlineData.
+  function pickMimeType(): string {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ]
+    for (const t of candidates) {
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t
     }
+    return '' // laisse le browser choisir
+  }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any
-    const SR = w.SpeechRecognition || w.webkitSpeechRecognition
-    if (!SR) {
-      setError('Votre navigateur ne supporte pas la dictée vocale. Utilisez Chrome, Edge ou Safari.')
-      return
-    }
-
+  async function startRecording() {
+    setError(null)
+    resetState()
     try {
-      const recognition = new SR()
-      recognition.lang = 'fr-FR'
-      recognition.continuous = true
-      recognition.interimResults = true
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (e: any) => {
-        let text = ''
-        for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript
-        setTranscript(text)
+      // Audio constraints optimisees pour la voix (vs musique) + suppression bruit native
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 16000, // 16kHz suffisant pour la voix (et reduit la taille)
+        },
+      })
+      streamRef.current = stream
+
+      const mimeType = pickMimeType()
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 32_000 })
+        : new MediaRecorder(stream, { audioBitsPerSecond: 32_000 })
+      mediaRecorderRef.current = recorder
+      audioChunksRef.current = []
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data)
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onerror = (e: any) => {
-        const errorMessages: Record<string, string> = {
-          'not-allowed': 'Accès au micro refusé. Autorisez le micro dans les réglages du navigateur.',
-          'no-speech': 'Aucune voix détectée. Parlez plus fort ou rapprochez-vous du micro.',
-          'audio-capture': 'Aucun micro détecté. Vérifiez que votre micro est branché.',
-          'network': 'Erreur réseau. Vérifiez votre connexion internet.',
-          'aborted': '', // silencieux, l'utilisateur a annulé volontairement
+
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
+        setAudioBlob(blob)
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(t => t.stop())
+          streamRef.current = null
         }
-        const code = e?.error || 'unknown'
-        const msg = errorMessages[code] !== undefined ? errorMessages[code] : `Erreur dictée vocale (${code})`
-        if (msg) setError(msg)
-        setListening(false)
       }
-      recognition.onend = () => setListening(false)
-      recognitionRef.current = recognition
-      recognition.start()
-      setListening(true)
-      setTranscript('')
+
+      recorder.start(250) // collecte des chunks toutes les 250ms (smooth)
+      setRecording(true)
+
+      // Timer + auto-stop a 2 minutes
+      timerRef.current = setInterval(() => {
+        setElapsedSec(prev => {
+          const next = prev + 1
+          if (next >= MAX_RECORDING_SEC) {
+            stopRecording()
+            return MAX_RECORDING_SEC
+          }
+          return next
+        })
+      }, 1000)
     } catch (err) {
-      setError('Erreur lors du démarrage de la dictée : ' + (err instanceof Error ? err.message : 'inconnue'))
-      setListening(false)
+      const e = err as Error & { name?: string }
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        setError('Accès au micro refusé. Touchez le cadenas dans la barre d\'adresse (ou Réglages > Safari > Microphone) pour autoriser, puis rechargez la page.')
+      } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+        setError('Aucun microphone détecté sur cet appareil.')
+      } else {
+        setError('Erreur micro : ' + (e.message || 'inconnue'))
+      }
     }
   }
 
-  const stopListening = () => {
-    recognitionRef.current?.stop()
-    setListening(false)
+  function stopRecording() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try { mediaRecorderRef.current.stop() } catch { /* ignore */ }
+    }
+    setRecording(false)
   }
 
-  const handleSubmit = async () => {
-    if (!transcript.trim()) return
+  async function handleSubmit() {
+    if (!audioBlob) return
     setProcessing(true)
     setError(null)
     try {
-      const res = await fetch('/api/voice-devis', {
+      const formData = new FormData()
+      // Suffixe en fonction du mimeType pour aider le serveur a deviner
+      const ext = audioBlob.type.includes('mp4') ? 'm4a' : audioBlob.type.includes('ogg') ? 'ogg' : 'webm'
+      formData.append('audio', audioBlob, `devis-vocal.${ext}`)
+
+      const res = await fetch('/api/voice-devis-v2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript }),
+        body: formData,
       })
-      const data = await res.json()
-      if (data.error) {
-        setError("L'IA n'a pas pu analyser la dictée. Vérifiez les informations pré-remplies et corrigez si nécessaire.")
+
+      if (!res.ok) {
+        let msg = `Erreur serveur (${res.status})`
+        try {
+          const errJson = await res.json()
+          if (errJson?.error) msg = errJson.error
+        } catch { /* pas de JSON */ }
+        setError(msg)
+        setProcessing(false)
+        return
       }
-      // Show partial data even on error
+
+      const data = await res.json()
+      if (data._warnings && Array.isArray(data._warnings) && data._warnings.length > 0) {
+        // L'IA a renvoye du JSON partiellement invalide — on pré-remplit quand meme
+        // mais on previent l'artisan que certains champs sont a verifier.
+        console.warn('[voice] champs avec avertissement:', data._warnings)
+      }
       onResult(data)
       onClose()
     } catch {
-      setError("L'IA n'a pas pu analyser la dictée. Vérifiez les informations pré-remplies et corrigez si nécessaire.")
+      setError('Erreur reseau. Vérifie ta connexion et réessaie.')
     }
     setProcessing(false)
+  }
+
+  function formatTime(sec: number) {
+    const m = Math.floor(sec / 60)
+    const s = sec % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
   }
 
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl w-full max-w-lg mx-4 p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-syne font-bold text-xl text-[#1a1a2e]">Dictée vocale</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl w-full max-w-lg mx-4 p-6 sm:p-8 shadow-2xl">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h3 className="font-syne font-bold text-xl text-navy">Dictée vocale</h3>
+            <p className="text-xs font-manrope text-gray-500 mt-1">Décris ton devis à voix haute, l&apos;IA pré-remplit les champs.</p>
+          </div>
+          <button onClick={onClose} className="p-2 -m-2 hover:bg-gray-100 rounded-lg" aria-label="Fermer"><X size={20} /></button>
         </div>
 
         {!supported ? (
-          <p className="text-sm font-manrope text-red-500">La dictée vocale nécessite Chrome ou Safari.</p>
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            <p className="text-sm font-manrope text-red-700">Ton navigateur ne supporte pas l&apos;enregistrement audio. Mets-le à jour ou utilise Chrome/Safari récent.</p>
+          </div>
         ) : (
           <>
-            <div className="flex justify-center mb-6">
+            {/* Gros bouton micro central — taille gants-friendly 88px */}
+            <div className="flex flex-col items-center mb-6">
               <button
-                onClick={listening ? stopListening : startListening}
-                className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors ${listening ? 'bg-red-500 animate-pulse' : 'bg-gray-200 hover:bg-gray-300'}`}
+                onClick={recording ? stopRecording : startRecording}
+                disabled={processing}
+                aria-label={recording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
+                className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                  recording
+                    ? 'bg-red-500 shadow-[0_0_0_8px_rgba(239,68,68,0.2)] animate-pulse'
+                    : processing
+                      ? 'bg-gray-300 cursor-wait'
+                      : 'bg-gradient-to-br from-orange to-orange-hover shadow-[0_10px_24px_-6px_rgba(232,122,42,0.5)] hover:scale-105'
+                }`}
               >
-                {listening ? <MicOff size={32} className="text-white" /> : <Mic size={32} className="text-[#1a1a2e]" />}
+                {recording ? (
+                  <MicOff size={36} className="text-white" />
+                ) : (
+                  <Mic size={36} className="text-white" />
+                )}
               </button>
+
+              <div className="mt-4 text-center min-h-[48px]">
+                {recording ? (
+                  <>
+                    <p className="font-hanken font-bold text-2xl text-red-500 tabular-nums">{formatTime(elapsedSec)}</p>
+                    <p className="text-xs font-manrope text-gray-500 mt-0.5">Parle maintenant — touche le micro pour stopper</p>
+                  </>
+                ) : audioBlob ? (
+                  <>
+                    <p className="font-hanken font-bold text-lg text-navy">Enregistrement prêt ({formatTime(elapsedSec)})</p>
+                    <p className="text-xs font-manrope text-gray-500 mt-0.5">Clique sur « Analyser » ou ré-enregistre</p>
+                  </>
+                ) : (
+                  <p className="text-sm font-manrope text-gray-500">Touche le micro pour commencer</p>
+                )}
+              </div>
             </div>
-            <p className="text-center text-xs font-manrope text-gray-400 mb-4">{listening ? 'Parlez maintenant...' : 'Cliquez sur le micro pour commencer'}</p>
-            {transcript && (
-              <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
-                <p className="text-sm font-manrope text-[#1a1a2e]">{transcript}</p>
+
+            {/* Conseil */}
+            {!recording && !audioBlob && !error && (
+              <div className="bg-sky/10 border border-sky/30 rounded-xl px-4 py-3 mb-4">
+                <p className="text-xs font-manrope text-navy leading-relaxed">
+                  <strong className="font-bold">Exemple : </strong>
+                  « Devis pour Madame Aude Rouyer, 230 allée des merles, 33480 Sainte-Hélène. Pose de 25 mètres linéaires de clôture rigide gris anthracite à 195 euros le mètre. Acompte 30 pour cent. »
+                </p>
               </div>
             )}
+
+            {/* Etat traitement Gemini */}
+            {processing && (
+              <div className="bg-sky/10 border border-sky/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-sky border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-manrope text-navy">L&apos;IA analyse ta dictée et pré-remplit les champs...</p>
+              </div>
+            )}
+
+            {/* Erreur */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
                 <p className="text-sm font-manrope text-red-700 flex items-start gap-2">
                   <span aria-hidden>⚠</span>
                   <span>{error}</span>
                 </p>
               </div>
             )}
-            <div className="flex gap-3 justify-end">
-              <button onClick={onClose} className="h-10 px-6 rounded-lg border border-gray-200 text-sm font-manrope hover:bg-gray-50">Annuler</button>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-between items-center">
               <button
-                onClick={handleSubmit}
-                disabled={!transcript.trim() || processing}
-                className="h-10 px-6 rounded-lg bg-[#e87a2a] text-white text-sm font-syne font-bold hover:bg-[#f09050] disabled:opacity-50"
+                onClick={onClose}
+                disabled={processing}
+                className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-manrope font-medium hover:bg-gray-50 disabled:opacity-50"
               >
-                {processing ? 'Traitement...' : 'Terminer et pré-remplir'}
+                Annuler
               </button>
+              {audioBlob && !recording && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={processing}
+                  className="h-11 px-6 rounded-xl bg-gradient-to-br from-orange to-orange-hover text-white text-sm font-syne font-bold shadow-[0_6px_16px_-4px_rgba(232,122,42,0.45)] disabled:opacity-50 active:scale-95 transition-transform"
+                >
+                  {processing ? 'Analyse...' : 'Analyser et pré-remplir'}
+                </button>
+              )}
             </div>
+
+            {/* Mention RGPD discrete */}
+            <p className="text-[10.5px] font-manrope text-gray-400 mt-4 text-center leading-relaxed">
+              Audio traité par Google Gemini pour transcription et extraction, puis supprimé. Pas de stockage permanent.
+            </p>
           </>
         )}
       </div>
