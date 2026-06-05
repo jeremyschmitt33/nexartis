@@ -27,7 +27,7 @@ import {
 } from '@/lib/voice/schema'
 import { buildVoiceCommandSystemPrompt, type VoiceArtisanContext } from '@/lib/voice/prompt'
 import { callGeminiResilient } from '@/lib/voice/gemini-call'
-import { extractCiviliteFromTranscription, extractObjetFromTranscription } from '@/lib/voice/fallback-extraction'
+import { extractCiviliteFromTranscription, extractCiviliteFromAnyField, extractObjetFromTranscription } from '@/lib/voice/fallback-extraction'
 import type { VoiceCommandSuccessResponse } from '@/lib/voice/types'
 
 // Multipart binaire = runtime Node obligatoire (pas Edge)
@@ -236,20 +236,38 @@ export async function POST(req: NextRequest) {
     // ré-extrait depuis raw_transcription (filet de securite robuste).
     // ============================================================
     const rawTrans = validation.data.raw_transcription
-    if (rawTrans && rawTrans.length > 0) {
-      if (!validation.data.client_civilite) {
-        const civ = extractCiviliteFromTranscription(rawTrans)
-        if (civ) {
-          validation.data.client_civilite = civ
-          console.log(`[voice-command] fallback civilite: ${civ}`)
+    console.log(`[voice-command] raw_transcription="${rawTrans?.slice(0, 200) ?? ''}"`)
+
+    // Fallback civilite : on scrute la transcription PUIS client_nom et client_prenom
+    // (cas ou Gemini a colle 'Monsieur Dupont' dans client_nom directement)
+    if (!validation.data.client_civilite) {
+      const civ = extractCiviliteFromAnyField(
+        rawTrans,
+        validation.data.client_nom,
+        validation.data.client_prenom,
+      )
+      if (civ) {
+        validation.data.client_civilite = civ
+        console.log(`[voice-command] fallback civilite applique: ${civ}`)
+        // Nettoyer client_nom si la civilite y etait collee
+        const cleanRegex = /^(monsieur|mr|madame|mme|mademoiselle|mlle|m\.|société|societe|sarl|sas|sasu|sci|eurl)\s+/i
+        if (validation.data.client_nom && cleanRegex.test(validation.data.client_nom)) {
+          validation.data.client_nom = validation.data.client_nom.replace(cleanRegex, '').trim()
         }
+        if (validation.data.client_prenom && cleanRegex.test(validation.data.client_prenom)) {
+          validation.data.client_prenom = validation.data.client_prenom.replace(cleanRegex, '').trim()
+        }
+      } else {
+        console.log(`[voice-command] aucune civilite detectee (raw vide ou aucune correspondance)`)
       }
-      if (!validation.data.objet) {
-        const obj = extractObjetFromTranscription(rawTrans)
-        if (obj) {
-          validation.data.objet = obj
-          console.log(`[voice-command] fallback objet: ${obj}`)
-        }
+    }
+
+    // Fallback objet : depuis raw_transcription seulement (pas applicable ailleurs)
+    if (!validation.data.objet && rawTrans && rawTrans.length > 0) {
+      const obj = extractObjetFromTranscription(rawTrans)
+      if (obj) {
+        validation.data.objet = obj
+        console.log(`[voice-command] fallback objet applique: ${obj}`)
       }
     }
 

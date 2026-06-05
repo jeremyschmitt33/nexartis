@@ -9,11 +9,15 @@
 type Civilite = 'Monsieur' | 'Madame' | 'Mademoiselle' | 'Société'
 
 const CIVILITE_PATTERNS: Array<{ regex: RegExp; value: Civilite }> = [
-  // Formes pleines (case insensitive)
-  { regex: /\b(monsieur|m\s*\.|mr\.?)\s+[A-ZÀ-ÿ]/i, value: 'Monsieur' },
-  { regex: /\b(madame|mme\.?)\s+[A-ZÀ-ÿ]/i, value: 'Madame' },
-  { regex: /\b(mademoiselle|mlle\.?)\s+[A-ZÀ-ÿ]/i, value: 'Mademoiselle' },
-  { regex: /\b(société|societe|sarl|sas|sasu|sci|eurl|sa)\s+/i, value: 'Société' },
+  // Formes pleines - on accepte n'importe quel caractere apres (majuscule, minuscule, accent)
+  // Gemini Flash transcrit souvent en minuscules, donc on relache l'exigence.
+  { regex: /\b(monsieur|mr)\b\s+\S/i, value: 'Monsieur' },
+  { regex: /\b(madame|mme)\b\s+\S/i, value: 'Madame' },
+  { regex: /\b(mademoiselle|mlle)\b\s+\S/i, value: 'Mademoiselle' },
+  // Forme "M. Dupont" avec le point - on prend le contexte autour
+  { regex: /(?:^|[\s,])m\.\s+\S/i, value: 'Monsieur' },
+  // Société uniquement si en debut ou apres ponctuation (eviter "sa maison")
+  { regex: /(?:^|[\s,])(société|societe|sarl|sas|sasu|sci|eurl)\b/i, value: 'Société' },
 ]
 
 /**
@@ -27,6 +31,21 @@ export function extractCiviliteFromTranscription(raw: string | null | undefined)
   const sample = raw.slice(0, 300)
   for (const { regex, value } of CIVILITE_PATTERNS) {
     if (regex.test(sample)) return value
+  }
+  return null
+}
+
+
+
+/**
+ * Tente d'extraire la civilite depuis n'importe quelle string (raw_transcription,
+ * client_nom, etc). Utile si Gemini a colle 'Monsieur Dupont' dans client_nom au lieu
+ * de splitter civilite/nom proprement.
+ */
+export function extractCiviliteFromAnyField(...fields: Array<string | null | undefined>): Civilite | null {
+  for (const field of fields) {
+    const found = extractCiviliteFromTranscription(field)
+    if (found) return found
   }
   return null
 }
