@@ -92,10 +92,14 @@ export default function NouvelleFacturePage() {
   const [lines, setLines] = useState<LineItem[]>([])
   const [globalTvaRate, setGlobalTvaRate] = useState(10)
 
+  // V3.1 : indique si la facture provient de la commande vocale (force brouillon)
+  const [fromVoice, setFromVoice] = useState(false)
+
   // V3.1 : Pre-remplissage depuis la commande vocale universelle (?voicePayload=...)
   useEffect(() => {
     const encoded = searchParams.get('voicePayload')
     if (!encoded) return
+    setFromVoice(true)
     try {
       let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
       while (b64.length % 4) b64 += '='
@@ -461,15 +465,29 @@ export default function NouvelleFacturePage() {
             className="h-9 px-4 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all disabled:opacity-50">
             Brouillon
           </button>
-          <button onClick={() => handleSave('envoyee')} disabled={saving}
-            className="h-9 px-5 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] transition-all disabled:opacity-50">
-            {saving ? 'Enregistrement...' : 'Enregistrer'}
-          </button>
+          {!fromVoice && (
+            <button onClick={() => handleSave('envoyee')} disabled={saving}
+              className="h-9 px-5 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] transition-all disabled:opacity-50">
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          )}
         </div>
       </div>
 
       <div className="p-6 space-y-6">
         {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-manrope">{error}</p></div>}
+        {fromVoice && (
+          <div className="bg-sky/10 border-2 border-sky/30 rounded-xl px-4 py-3 flex items-start gap-3">
+            <span className="text-xl" aria-hidden>🎤</span>
+            <div>
+              <p className="font-syne font-bold text-sm text-navy mb-1">Facture générée par la voix</p>
+              <p className="text-xs font-manrope text-navy/80 leading-relaxed">
+                Cette facture sera enregistrée <strong>modifiable</strong> pour que tu puisses corriger les erreurs vocales et compléter les infos manquantes.
+                Tu pourras l'émettre définitivement depuis la page détail après vérification (l'émission verrouille la facture, obligation légale art. L441-9 C. comm.).
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Dates + Objet */}
@@ -870,13 +888,15 @@ export default function NouvelleFacturePage() {
         {/* Boutons bas */}
         <div className="flex flex-wrap items-center gap-3 justify-end pb-8">
           <button onClick={() => handleSave('brouillon')} disabled={saving}
-            className="h-12 px-6 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all disabled:opacity-50">
-            Sauvegarder en brouillon
+            className="h-12 px-6 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] shadow-md hover:shadow-lg transition-all disabled:opacity-50">
+            {fromVoice ? (saving ? 'Enregistrement...' : 'Enregistrer (modifiable)') : 'Sauvegarder en brouillon'}
           </button>
-          <button onClick={() => handleSave('envoyee')} disabled={saving}
-            className="h-12 px-8 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] shadow-md hover:shadow-lg transition-all disabled:opacity-50">
-            {saving ? 'Enregistrement...' : 'Enregistrer la facture'}
-          </button>
+          {!fromVoice && (
+            <button onClick={() => handleSave('envoyee')} disabled={saving}
+              className="h-12 px-8 rounded-xl border-2 border-[#e87a2a] text-[#e87a2a] font-syne font-bold text-sm hover:bg-[#fef5ee] transition-all disabled:opacity-50">
+              {saving ? 'Enregistrement...' : 'Emettre la facture (verrouillee)'}
+            </button>
+          )}
         </div>
       </div>
 
