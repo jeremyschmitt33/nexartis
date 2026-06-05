@@ -21,6 +21,7 @@ import {
 } from '@/lib/hooks'
 import ThemeSelector from '@/components/ThemeSelector'
 import DocumentThemePicker from '@/components/parametres/DocumentThemePicker'
+import LogoThemeProposals from '@/components/parametres/LogoThemeProposals'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -853,6 +854,8 @@ function ApparenceSection() {
       <p className="text-xs text-[#9ca3af] font-manrope italic">
         Astuce : la couleur de la sidebar ne s&apos;applique qu&apos;à la barre latérale et aux éléments actifs de ton tableau de bord.
       </p>
+      {/* V3.1 : Themes auto-generes a partir des couleurs du logo */}
+      <LogoThemeProposals />
       <DocumentThemePicker />
     </div>
   )
