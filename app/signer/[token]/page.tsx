@@ -7,6 +7,7 @@ import type { LegalContext } from '@/lib/legal-mentions'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildDevisDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { logoConfigFromEntreprise } from '@/lib/logo-config'
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -475,7 +476,7 @@ export default function SignerDevisPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* ═══ DEVIS — composant partagé V3.0b+c (Édition Signature) ═══ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} />
+          <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} logoConfig={logoConfigFromEntreprise(entreprise)} />
         </div>
 
         {/* ═══ SECTION SIGNATURE ═══ */}

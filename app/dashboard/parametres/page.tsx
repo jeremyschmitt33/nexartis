@@ -22,6 +22,7 @@ import {
 import ThemeSelector from '@/components/ThemeSelector'
 import DocumentThemePicker from '@/components/parametres/DocumentThemePicker'
 import LogoThemeProposals from '@/components/parametres/LogoThemeProposals'
+import LogoCustomization from '@/components/parametres/LogoCustomization'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -856,6 +857,8 @@ function ApparenceSection() {
       </p>
       {/* V3.1 : Themes auto-generes a partir des couleurs du logo */}
       <LogoThemeProposals />
+      {/* V3.1 : Personnalisation de l'incrustation du logo (style + tailles) */}
+      <LogoCustomization />
       <DocumentThemePicker />
     </div>
   )

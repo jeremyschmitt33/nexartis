@@ -24,6 +24,7 @@ import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import { buildFactureDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import { fetchAndDownloadPdf } from '@/lib/download-pdf'
 import {
   useSupabaseRecord,
@@ -452,7 +453,7 @@ export default function FactureDetailPage() {
         {/* Main: Invoice preview */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-8 print-zone">
-            <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} />
+            <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} logoConfig={logoConfigFromEntreprise(entreprise)} />
           </div>
         </div>
 

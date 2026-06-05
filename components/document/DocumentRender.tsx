@@ -6,6 +6,7 @@ import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentMeta, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
 import { DEFAULT_DOCUMENT_THEME, themeToCssVars, type DocumentTheme } from '@/lib/document-theme'
+import { DEFAULT_LOGO_CONFIG, logoConfigToCssVars, type LogoConfig } from '@/lib/logo-config'
 
 function formatPhone(raw?: string): string {
   if (!raw) return ''
@@ -17,11 +18,13 @@ function formatPhone(raw?: string): string {
   return trimmed
 }
 
-export default function DocumentRender({ data, theme }: { data: DocumentData; theme?: DocumentTheme }) {
+export default function DocumentRender({ data, theme, logoConfig }: { data: DocumentData; theme?: DocumentTheme; logoConfig?: LogoConfig }) {
   const isDevis = data.docType === 'devis'
   const themeStyle = themeToCssVars(theme ?? DEFAULT_DOCUMENT_THEME)
+  const logoStyle = logoConfigToCssVars(logoConfig ?? DEFAULT_LOGO_CONFIG)
+  const mergedStyle = { ...themeStyle, ...logoStyle }
   return (
-    <div className={`dv-doc dv-dir-D dv-density-compact dv-doctype-${data.docType}`} style={themeStyle}>
+    <div className={`dv-doc dv-dir-D dv-density-compact dv-doctype-${data.docType}`} style={mergedStyle}>
       <section className="dv-page">
         <HeaderD data={data} />
         <div className="dv-body">

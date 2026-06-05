@@ -62,6 +62,10 @@ export interface Entreprise {
   mediateur_ville?: string
   iban?: string
   bic?: string
+  // V3.1 : personnalisation de l'incrustation du logo
+  doc_logo_style?: 'carte-classique' | 'carte-minimaliste' | 'sans-carte' | null
+  doc_logo_size?: number | null
+  doc_nom_size?: number | null
 }
 
 export interface Ligne {

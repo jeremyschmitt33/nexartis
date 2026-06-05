@@ -13,6 +13,10 @@ interface HeaderEntreprise {
   nom?: string
   metier?: string
   logo_url?: string
+  // V3.1 : personnalisation logo (alignes avec colonnes DB)
+  doc_logo_style?: 'carte-classique' | 'carte-minimaliste' | 'sans-carte' | null
+  doc_logo_size?: number | null  // 60-140
+  doc_nom_size?: number | null   // 60-140
 }
 
 /**
@@ -91,11 +95,17 @@ export function drawHeader(
     true,
   )
 
-  // === 3. Carte blanche logo (28x28 mm) — V3.0c.2 agrandie ===
+  // === 3. Carte logo : taille et style pilotes par config artisan V3.1 ===
+  const logoStyle = ent.doc_logo_style ?? 'carte-classique'
+  const logoScale = (ent.doc_logo_size && ent.doc_logo_size >= 60 && ent.doc_logo_size <= 140) ? ent.doc_logo_size / 100 : 1
+  const baseSize = logoStyle === 'carte-minimaliste' ? 20 : 28
+  const logoCardSize = baseSize * logoScale
   const logoCardX = 12
-  const logoCardY = 12
-  const logoCardSize = 28
-  roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, 5, P.white)
+  const logoCardY = 12 + (28 - logoCardSize) / 2  // recentrer verticalement si carte plus petite
+  if (logoStyle !== 'sans-carte') {
+    const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
+    roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, radius, P.white)
+  }
 
   // Logo entreprise (data:image base64 seulement, sinon placeholder discret)
   if (ent.logo_url && ent.logo_url.startsWith('data:image')) {
@@ -122,8 +132,9 @@ export function drawHeader(
 
   // === 4. Nom artisan + baseline (a droite de la carte logo) — V3.0c.2 ===
   // Logo 28mm + 6mm de gap = nom commence a x=46
-  const textLeftX = 46
-  font(doc, 'Hanken Grotesk', 'extrabold', 20, P.white)
+  const textLeftX = 12 + logoCardSize + 6  // V3.1 : s'adapte a la taille de carte
+  const nomScale = (ent.doc_nom_size && ent.doc_nom_size >= 60 && ent.doc_nom_size <= 140) ? ent.doc_nom_size / 100 : 1
+  font(doc, 'Hanken Grotesk', 'extrabold', 20 * nomScale, P.white)
   doc.text(ent.nom || 'Votre entreprise', textLeftX, 24)
 
   if (ent.metier && ent.metier.trim()) {
