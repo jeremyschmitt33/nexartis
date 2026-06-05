@@ -36,6 +36,12 @@ import ThemeTemplateGallery from './ThemeTemplateGallery'
 const ZONES: ZoneMeta[] = [
   {
     id: 'bandeauHaut',
+    label: 'Bandeau d\'en-tete (zone gauche)',
+    description: 'La zone gauche du bandeau (cote logo + nom artisan), separee de la zone droite par la barre doree.',
+    defaultColor: DEFAULT_DOCUMENT_THEME.bandeauHaut,
+  },
+  {
+    id: 'bandeauHautDroite',
     label: "Bandeau d'en-tête",
     description: 'Le grand bandeau coloré en haut du devis qui contient le titre DEVIS, le numéro et la date.',
     defaultColor: DEFAULT_DOCUMENT_THEME.bandeauHaut,
@@ -115,6 +121,9 @@ export default function DocumentThemePicker() {
           bandeauHaut: isValidHex(data.bandeauHaut ?? '')
             ? (data.bandeauHaut as string)
             : DEFAULT_DOCUMENT_THEME.bandeauHaut,
+          bandeauHautDroite: isValidHex(data.bandeauHautDroite ?? '')
+            ? (data.bandeauHautDroite as string)
+            : (isValidHex(data.bandeauHaut ?? '') ? (data.bandeauHaut as string) : DEFAULT_DOCUMENT_THEME.bandeauHautDroite),
           accent: isValidHex(data.accent ?? '')
             ? (data.accent as string)
             : DEFAULT_DOCUMENT_THEME.accent,

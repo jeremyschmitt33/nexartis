@@ -6,6 +6,8 @@
 .dv-doc { --paper:#ffffff;
   --accent:var(--dv-c-bandeau, #0f1a3a);
   --accent-ink:var(--dv-c-bandeau-ink, #ffffff);
+  --accent-droite:var(--dv-c-bandeau-droite, #0f1a3a);
+  --accent-droite-ink:var(--dv-c-bandeau-droite-ink, #ffffff);
   --accent2:var(--dv-c-accent, #e87a2a);
   --accent2-ink:#1c1304; --accent-soft:#f1f3f7; --ink:#19202b; --mute:#6b7480;
   --line:#e7e9ee; --title-size:41px; --card-radius:24px;
@@ -23,6 +25,10 @@
 .dv-headD { position:relative; }
 .dv-headD .dv-d-band { position:relative; background:var(--accent); padding:40px 54px 76px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
+/* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
+   par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
+.dv-headD .dv-d-band::before { content:""; position:absolute; top:0; right:0; bottom:0; left:0;
+  background:var(--accent-droite); clip-path:polygon(54% 0, 100% 0, 100% 100%, 46% 100%); z-index:0; }
 /* V3.1 : retire .dv-d-geo (voile dore 10% qui creait un effet de "couleur qui deborde"
    incoherent avec le PDF qui n'a pas ce voile). Seule la barre dorée nette .dv-d-geo2 reste,
    identique au PDF. Resultat : dashboard et PDF utilisent EXACTEMENT le meme rendu. */

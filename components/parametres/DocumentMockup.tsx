@@ -17,6 +17,7 @@ import type { DocumentTheme } from '@/lib/document-theme'
 
 export type ThemeZone =
   | 'bandeauHaut'
+  | 'bandeauHautDroite'
   | 'accent'
   | 'cadreEmetteur'
   | 'cadreAdresse'
@@ -31,7 +32,8 @@ interface Props {
 
 // Label en français pour aria-label des zones cliquables (accessibilité).
 const ZONE_LABELS: Record<ThemeZone, string> = {
-  bandeauHaut: "Modifier la couleur du bandeau d'en-tête",
+  bandeauHaut: "Modifier la couleur de la zone GAUCHE du bandeau (logo + nom)",
+  bandeauHautDroite: "Modifier la couleur de la zone DROITE du bandeau (DEVIS + numero)",
   accent: 'Modifier la couleur d\'accent',
   cadreEmetteur: 'Modifier la couleur de la carte Émetteur',
   cadreAdresse: 'Modifier la couleur de la carte Adressé à',
@@ -79,26 +81,28 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
     <div className="relative mx-auto w-full max-w-[340px] select-none">
       {/* Mini ombre + bordure pour donner l'illusion d'une feuille A4 */}
       <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-md">
-        {/* ===== BANDEAU D'EN-TÊTE (zone 1) ===== */}
+        {/* ===== BANDEAU D'EN-TÊTE - V3.1 : 2 zones distinctes ===== */}
+        {/* Zone GAUCHE (background) - sert aussi de fallback en cas de bug */}
         <div
-          className="relative px-3 pt-3 pb-7"
+          className="relative px-3 pt-3 pb-7 overflow-hidden"
           style={{ background: theme.bandeauHaut, color: bandeauInk }}
         >
-          {/* Diagonale accent (zone 2 — partie 1) */}
+          {/* Zone DROITE : autre couleur, clip diagonal qui suit la barre doree */}
           <div
-            className="absolute right-0 top-0 h-full w-[34%] opacity-90"
+            className="absolute right-0 top-0 h-full w-full"
             style={{
-              background: theme.accent,
-              clipPath: 'polygon(58% 0, 100% 0, 42% 100%, 0% 100%)',
+              background: theme.bandeauHautDroite,
+              clipPath: 'polygon(54% 0, 100% 0, 100% 100%, 42% 100%)',
             }}
             aria-hidden="true"
           />
-          {/* Aplat accent diffus en arrière (zone 2 — partie 2) */}
+          {/* Barre doree (accent) - separateur visuel net entre les 2 couleurs */}
           <div
-            className="absolute right-0 top-0 h-full w-[55%] opacity-10"
+            className="absolute top-0 h-full w-[5%]"
             style={{
               background: theme.accent,
-              clipPath: 'polygon(38% 0, 100% 0, 100% 100%, 8% 100%)',
+              clipPath: 'polygon(54% 0, 100% 0, 46% 100%, 0% 100%)',
+              left: '47%',
             }}
             aria-hidden="true"
           />
@@ -278,21 +282,29 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
         {/* OVERLAYS CLIQUABLES — positionnés en absolute sur les zones    */}
         {/* ============================================================ */}
 
-        {/* Zone 1 — Bandeau haut (occupe le top jusqu'aux cartes) */}
+        {/* V3.1 - Zone bandeau GAUCHE (logo + nom) jusqu'a la barre doree */}
         <ZoneOverlay
           zone="bandeauHaut"
           isActive={activeZone === 'bandeauHaut'}
           onZoneClick={onZoneClick}
           className=""
-          style={{ top: 0, left: 0, right: 0, height: '64px' }}
+          style={{ top: 0, left: 0, width: '46%', height: '64px' }}
         />
 
-        {/* Zone 2 — Accent (la diagonale orange en haut à droite) */}
+        {/* V3.1 - Zone ACCENT : la barre doree au milieu (separateur) */}
         <ZoneOverlay
           zone="accent"
           isActive={activeZone === 'accent'}
           onZoneClick={onZoneClick}
-          style={{ top: 0, right: 0, width: '32%', height: '64px' }}
+          style={{ top: 0, left: '46%', width: '8%', height: '64px' }}
+        />
+
+        {/* V3.1 - Zone bandeau DROITE (DEVIS + numero) apres la barre doree */}
+        <ZoneOverlay
+          zone="bandeauHautDroite"
+          isActive={activeZone === 'bandeauHautDroite'}
+          onZoneClick={onZoneClick}
+          style={{ top: 0, right: 0, width: '46%', height: '64px' }}
         />
 
         {/* Zone 3 — Carte Émetteur (gauche, chevauche le bandeau) */}

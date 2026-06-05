@@ -38,6 +38,7 @@ import {
 // dans le body PATCH (tout autre champ est ignore).
 const FIELD_MAP: Record<keyof DocumentTheme, string> = {
   bandeauHaut: 'doc_color_bandeau_haut',
+  bandeauHautDroite: 'doc_color_bandeau_haut_droite',
   accent: 'doc_color_accent',
   cadreEmetteur: 'doc_color_cadre_emetteur',
   cadreAdresse: 'doc_color_cadre_adresse',
@@ -81,6 +82,8 @@ export async function GET(_req: NextRequest) {
     const theme: DocumentTheme = {
       bandeauHaut:
         row?.doc_color_bandeau_haut || DEFAULT_DOCUMENT_THEME.bandeauHaut,
+      bandeauHautDroite:
+        row?.doc_color_bandeau_haut_droite || row?.doc_color_bandeau_haut || DEFAULT_DOCUMENT_THEME.bandeauHautDroite,
       accent:
         row?.doc_color_accent || DEFAULT_DOCUMENT_THEME.accent,
       cadreEmetteur:

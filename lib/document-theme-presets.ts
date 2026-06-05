@@ -33,6 +33,7 @@ export interface ThemePreset {
 function buildPresetTheme(accent: string, accent2: string): DocumentTheme {
   return {
     bandeauHaut: accent,
+    bandeauHautDroite: accent,  // V3.1 : meme couleur que la zone gauche par defaut pour preserver le rendu historique
     accent: accent2,
     cadreEmetteur: '#ffffff',
     cadreAdresse: accent,

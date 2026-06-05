@@ -54,6 +54,7 @@ export function buildPalette(theme: DocumentTheme | null) {
 
   // Couleurs thematables converties en RGB
   const bandeau:  RGB = hexToRgb(t.bandeauHaut)
+  const bandeauDroite: RGB = hexToRgb(t.bandeauHautDroite || t.bandeauHaut)
   const accent:   RGB = hexToRgb(t.accent)
   const adresse:  RGB = hexToRgb(t.cadreAdresse)
   const netPayer: RGB = hexToRgb(t.netPayer)
@@ -75,6 +76,7 @@ export function buildPalette(theme: DocumentTheme | null) {
     // ===== Couleurs thematables (alias rétro-compat) =====
     // "navy" reste le nom historique pour la couleur principale (bandeau/footer/adresse)
     navy:        bandeau,
+    navyDroite:  bandeauDroite,  // V3.1 : couleur de la zone droite du bandeau
     navyDeep:    adresse,                 // carte ADRESSE A
     navyMid:     [26, 45, 90] as RGB,     // accents secondaires (non themable)
     navyText:    navyText,                // texte body

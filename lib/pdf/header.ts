@@ -42,13 +42,41 @@ export function drawHeader(
   const pageW = 210
   const headerH = 58
 
-  // === 1. Bandeau navy plein largeur ===
+  // === V3.1 : bandeau a 2 zones distinctes separees par la barre doree ===
+  // Zone GAUCHE : polygone qui couvre tout a gauche de la barre doree
+  // Points : (0,0) -> (137,0) -> (117,58) -> (0,58)
   setFill(doc, P.navy)
-  doc.rect(0, 0, pageW, headerH, 'F')
+  doc.lines(
+    [
+      [137, 0],    // (0,0) -> (137,0)
+      [-20, 58],   // (137,0) -> (117,58)
+      [-117, 0],   // (117,58) -> (0,58)
+      [0, -58],    // retour (0,58) -> (0,0)
+    ],
+    0, 0,
+    [1, 1],
+    'F',
+    true,
+  )
 
-  // === 2. Accent orange : bande diagonale etroite (4mm) qui SEPARE la zone
-  // gauche (logo + nom) de la zone droite (DEVIS + pastille + dates).
-  // Points : (135, 0) -> (139, 0) -> (119, 58) -> (115, 58)
+  // Zone DROITE : polygone qui couvre tout a droite de la barre doree, avec bandeauHautDroite
+  // Points : (137,0) -> (pageW,0) -> (pageW,58) -> (117,58)
+  setFill(doc, P.navyDroite)
+  doc.lines(
+    [
+      [pageW - 137, 0],     // (137,0) -> (pageW,0)
+      [0, 58],              // (pageW,0) -> (pageW,58)
+      [-(pageW - 117), 0],  // (pageW,58) -> (117,58)
+      [20, -58],            // retour (117,58) -> (137,0)
+    ],
+    137, 0,
+    [1, 1],
+    'F',
+    true,
+  )
+
+  // === Barre doree (accent) - separateur diagonal net entre les 2 zones ===
+  // Points : (135,0) -> (139,0) -> (119,58) -> (115,58)
   setFill(doc, P.orange)
   doc.lines(
     [

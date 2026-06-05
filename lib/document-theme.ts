@@ -25,9 +25,11 @@ import type { CSSProperties } from 'react'
  * Toutes les valeurs sont des chaines au format hex #RRGGBB (minuscules).
  */
 export interface DocumentTheme {
-  /** Bandeau d en-tete contenant DEVIS + numero + dates */
+  /** Bandeau d en-tete (zone GAUCHE : logo + nom artisan) */
   bandeauHaut: string
-  /** Couleur d accent (diagonales + bordure gauche cadre emetteur) */
+  /** Bandeau d en-tete (zone DROITE : DEVIS + numero + dates), separe par la barre doree */
+  bandeauHautDroite: string
+  /** Couleur d accent (la barre doree oblique qui separe gauche et droite) */
   accent: string
   /** Fond de la carte Emetteur (bloc entreprise) */
   cadreEmetteur: string
@@ -50,6 +52,7 @@ export interface DocumentTheme {
  */
 export const DEFAULT_DOCUMENT_THEME: DocumentTheme = {
   bandeauHaut: '#0f1a3a',
+  bandeauHautDroite: '#0f1a3a',
   accent: '#e87a2a',
   cadreEmetteur: '#ffffff',
   cadreAdresse: '#0f1a3a',
@@ -74,6 +77,8 @@ export function themeFromEntreprise(entreprise: any | null): DocumentTheme {
   return {
     bandeauHaut:
       entreprise.doc_color_bandeau_haut || DEFAULT_DOCUMENT_THEME.bandeauHaut,
+    bandeauHautDroite:
+      entreprise.doc_color_bandeau_haut_droite || entreprise.doc_color_bandeau_haut || DEFAULT_DOCUMENT_THEME.bandeauHautDroite,
     accent:
       entreprise.doc_color_accent || DEFAULT_DOCUMENT_THEME.accent,
     cadreEmetteur:
@@ -104,6 +109,7 @@ export function themeToCssVars(theme: DocumentTheme): CSSProperties {
   return {
     // Couleurs de fond (parametrables)
     '--dv-c-bandeau': theme.bandeauHaut,
+    '--dv-c-bandeau-droite': theme.bandeauHautDroite,
     '--dv-c-accent': theme.accent,
     '--dv-c-emetteur': theme.cadreEmetteur,
     '--dv-c-adresse': theme.cadreAdresse,
@@ -111,6 +117,7 @@ export function themeToCssVars(theme: DocumentTheme): CSSProperties {
     '--dv-c-footer': theme.footer,
     // Couleurs de texte calculees (blanc/sombre selon luminance)
     '--dv-c-bandeau-ink': isLight(theme.bandeauHaut) ? '#1c1304' : '#ffffff',
+    '--dv-c-bandeau-droite-ink': isLight(theme.bandeauHautDroite) ? '#1c1304' : '#ffffff',
     '--dv-c-emetteur-ink': isLight(theme.cadreEmetteur) ? '#0f1a3a' : '#ffffff',
     '--dv-c-adresse-ink': isLight(theme.cadreAdresse) ? '#0f1a3a' : '#ffffff',
     '--dv-c-netpayer-ink': isLight(theme.netPayer) ? '#1c1304' : '#ffffff',
