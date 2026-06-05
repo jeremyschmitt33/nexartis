@@ -279,9 +279,3 @@ export default function LogoCustomization() {
     </div>
   )
 }
-    </div>
-  )
-}
-
-  )
-}
