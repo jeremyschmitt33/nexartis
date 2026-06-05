@@ -500,6 +500,25 @@ function NouveauDevisPage() {
     if (searchParams.get('voice') === '1') setVoiceOpen(true)
   }, [searchParams])
 
+  // --- V3.1 : Lecture du payload de la commande vocale universelle ---
+  // L'utilisateur a dicte depuis n'importe ou via UniversalVoiceButton, l'API
+  // /api/voice-command a detecte intent=devis, le VoiceResultScreen a redirige
+  // ici avec ?voicePayload=base64(JSON). On decode et on pre-remplit.
+  useEffect(() => {
+    const encoded = searchParams.get('voicePayload')
+    if (!encoded) return
+    try {
+      let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+      while (b64.length % 4) b64 += '='
+      const json = decodeURIComponent(escape(atob(b64)))
+      const data = JSON.parse(json) as Record<string, unknown>
+      handleVoiceResult(data)
+    } catch (e) {
+      console.warn('[devis/nouveau] voicePayload decode error:', e)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // --- Chargement des déchetteries proches (API ADEME) ---
   useEffect(() => {
     if (!entreprise) return

@@ -8,6 +8,8 @@ import { useUser, useEntreprise } from '@/lib/hooks'
 import { applySidebarTheme } from '@/components/ThemeSelector'
 import OnboardingTour from '@/components/OnboardingTour'
 import ContactFloatingButton from '@/components/dashboard/ContactFloatingButton'
+import { VoiceProvider } from '@/components/voice/VoiceProvider'
+import UniversalVoiceButton from '@/components/voice/UniversalVoiceButton'
 import {
   Home,
   LayoutGrid,
@@ -493,11 +495,14 @@ function DashboardHeader({
   userLoading: boolean
 }) {
   return (
-    <header className="sticky top-0 z-30 h-[60px] bg-white border-b border-gray-200 flex items-center px-4 lg:px-6">
-      <button onClick={onMenuClick} className="p-1.5 rounded-md hover:bg-gray-100 md:hidden transition-colors mr-3">
+    <header className="sticky top-0 z-30 h-[60px] bg-white border-b border-gray-200 flex items-center px-4 lg:px-6 gap-3">
+      <button onClick={onMenuClick} className="p-1.5 rounded-md hover:bg-gray-100 md:hidden transition-colors">
         <Menu size={22} className="text-[#1a1a2e]" />
       </button>
-      <h1 className="font-syne font-bold text-base sm:text-xl text-[#1a1a2e] truncate">{title}</h1>
+      <h1 className="font-syne font-bold text-base sm:text-xl text-[#1a1a2e] truncate flex-1">{title}</h1>
+      {/* Commande vocale universelle V3.1 — icone sur mobile, pilule "Dicter" sur desktop */}
+      <UniversalVoiceButton variant="icon" className="md:hidden" />
+      <UniversalVoiceButton variant="pill" className="hidden md:inline-flex" />
     </header>
   )
 }
@@ -718,6 +723,7 @@ export default function DashboardLayout({
   const pageTitle = getPageTitle(pathname)
 
   return (
+    <VoiceProvider>
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar hover zone for tablet expand */}
       <div
@@ -811,6 +817,12 @@ export default function DashboardLayout({
             userLoading={isLoading}
           />
         )}
+        {/* Planning n'a pas de DashboardHeader : on ajoute un bouton vocal flottant en haut a droite. */}
+        {pathname === '/dashboard/planning' && (
+          <div className="fixed top-3 right-3 z-40">
+            <UniversalVoiceButton variant="icon" />
+          </div>
+        )}
 
         {/* Bandeau profil incomplet retiré : on laisse uniquement
             la carte d'alerte sur le tableau de bord (UX moins agressive) */}
@@ -826,15 +838,12 @@ export default function DashboardLayout({
         onMoreClick={() => setMobileOpen(true)}
       />
 
-      {/* Tutoriel onboarding (spotlight + infobulles) — invisible
-          tant que l'utilisateur n'est pas concerné. Voir
-          components/OnboardingTour.tsx pour la logique complète. */}
+      {/* Tutoriel onboarding */}
       <OnboardingTour />
 
-      {/* Bouton flottant "Nous contacter" — visible sur toutes les pages
-          du dashboard. Ouvre une modal avec 3 types : bug, suggestion,
-          question. Cf. components/dashboard/ContactFloatingButton.tsx. */}
+      {/* Bouton flottant Nous contacter */}
       <ContactFloatingButton />
     </div>
+    </VoiceProvider>
   )
 }

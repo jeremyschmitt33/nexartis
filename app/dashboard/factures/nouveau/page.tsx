@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useClients, useEntreprise, useChantiers, insertRow } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
@@ -47,6 +47,7 @@ const inputCls = 'w-full h-11 rounded-xl border-2 border-[#5ab4e0]/40 px-3 text-
 
 export default function NouvelleFacturePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: clientsRaw } = useClients()
   const { data: chantiersRaw } = useChantiers()
   // entreprise — utilisée pour auto-détection franchise TVA (micro / EI / auto-entrepreneur)
@@ -90,6 +91,45 @@ export default function NouvelleFacturePage() {
   // sa premiere ligne / section via les boutons "+ Ligne" / "+ Section". Parite devis.
   const [lines, setLines] = useState<LineItem[]>([])
   const [globalTvaRate, setGlobalTvaRate] = useState(10)
+
+  // V3.1 : Pre-remplissage depuis la commande vocale universelle (?voicePayload=...)
+  useEffect(() => {
+    const encoded = searchParams.get('voicePayload')
+    if (!encoded) return
+    try {
+      let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+      while (b64.length % 4) b64 += '='
+      const json = decodeURIComponent(escape(atob(b64)))
+      const data = JSON.parse(json) as Record<string, unknown>
+      if (data.client_civilite) setClientCivilite(data.client_civilite as string)
+      if (data.client_nom) setClientNom(data.client_nom as string)
+      if (data.client_prenom) setClientPrenom(data.client_prenom as string)
+      if (data.client_adresse) setClientAdresse(data.client_adresse as string)
+      if (data.client_code_postal) setClientCodePostal(data.client_code_postal as string)
+      if (data.client_ville) setClientVille(data.client_ville as string)
+      if (data.client_telephone) setClientTelephone(data.client_telephone as string)
+      if (data.client_email) setClientEmail(data.client_email as string)
+      if (data.facture_type) setFactureType(data.facture_type as 'standard' | 'acompte' | 'situation' | 'avoir')
+      if (data.devis_ref) setDevisRef(data.devis_ref as string)
+      if (data.tva_taux != null) setGlobalTvaRate(data.tva_taux as number)
+      const voiceLines = data.lignes as Array<{ designation: string; quantite: number; unite: string; prix_unitaire: number }> | null
+      if (voiceLines && voiceLines.length > 0) {
+        let baseId = 1
+        setLines(voiceLines.map((vl) => ({
+          id: baseId++,
+          designation: vl.designation,
+          qty: vl.quantite || 1,
+          unit: vl.unite || 'U',
+          priceHT: vl.prix_unitaire || 0,
+          tva: (data.tva_taux as number) ?? 10,
+          type: 'line' as const,
+        })))
+      }
+    } catch (e) {
+      console.warn('[factures/nouveau] voicePayload decode error:', e)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Bottom sheet mobile (saisie/édition d'une ligne) ──
   const [sheetOpen, setSheetOpen] = useState(false)
