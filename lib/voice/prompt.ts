@@ -70,7 +70,12 @@ REPONDS UNIQUEMENT EN JSON VALIDE. Pas de markdown, pas de texte autour.`
 /**
  * Construit le prompt systeme universel en injectant la date courante.
  */
-export function buildVoiceCommandSystemPrompt(now: Date = new Date()): string {
+export interface VoiceArtisanContext {
+  metier: string | null
+  prestations: Array<{ titre: string; unite: string | null; prix: number | null }>
+}
+
+export function buildVoiceCommandSystemPrompt(now: Date = new Date(), context?: VoiceArtisanContext): string {
   const dateFr = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long',
     day: 'numeric',
@@ -87,6 +92,7 @@ export function buildVoiceCommandSystemPrompt(now: Date = new Date()): string {
 Ton role : ecouter l'audio fourni (en francais) et detecter ce que l'artisan veut faire parmi 3 actions, puis extraire les informations dans un JSON strict.
 
 DATE COURANTE : ${dateFr} (${isoDate}).
+${context ? buildContextSection(context) : ''}
 
 =============================================================================
 ETAPE 1 — DETECTION D'INTENT (champs intent + confidence OBLIGATOIRES)
@@ -207,6 +213,10 @@ ETAPE 3 — REGLES METIER COMMUNES
    - "c'est un X" / "c'est une X"
    - "pour un X" / "pour une X" (en debut de phrase)
    - "travaux de X" / "chantier de X" / "intervention de X"
+   - "le chantier est X" / "le chantier c'est X" / "le chantier sera X"
+   - "le chantier etait X" (pour facture apres travaux)
+   - "le chantier porte sur X" / "le chantier concerne X"
+   - "un chantier de X" / "chantier X" (sans article)
 
    FORMULES VERBALES (action principale) :
    - "refaire X" / "refection X" / "renover X" / "renovation X"
@@ -218,6 +228,9 @@ ETAPE 3 — REGLES METIER COMMUNES
    - "agrandir X" / "extension X" / "surelever X"
 
    EXEMPLES CONCRETS :
+   - "le chantier est un terrassement" -> objet="Terrassement"
+   - "le chantier etait une renovation de cuisine" -> objet="Renovation de cuisine"
+   - "chantier de pose carrelage salle de bain" -> objet="Pose carrelage salle de bain"
    - "c'est pour un terrassement" -> objet="Terrassement"
    - "c'est pour un changement de robinet" -> objet="Changement de robinet"
    - "objet renovation salle de bain" -> objet="Renovation salle de bain"
@@ -251,6 +264,174 @@ ETAPE 3 — REGLES METIER COMMUNES
    - Civilite : "Monsieur", "Madame", "Mademoiselle", "Société" uniquement
 
 =============================================================================
+ETAPE 0 — TRANSCRIPTION BRUTE OBLIGATOIRE (champ raw_transcription)
+=============================================================================
+
+AVANT de remplir tout autre champ, tu DOIS transcrire l'audio mot a mot
+dans le champ "raw_transcription". Cette transcription :
+- contient TOUS les mots prononces, sans rien omettre
+- respecte l'ordre exact des mots
+- inclut les hesitations ("euh", "alors") et les chiffres en toutes lettres
+- ne resume PAS, ne reformule PAS, ne corrige PAS
+
+Cette etape est CRUCIALE : sans elle, tu risques d'oublier des prestations.
+
+=============================================================================
+ETAPE 1.5 — EXTRACTION EXHAUSTIVE DES PRESTATIONS (champ lignes)
+=============================================================================
+
+REGLE ABSOLUE : tu DOIS identifier CHAQUE prestation distincte dans la
+raw_transcription. NE T'ARRETE JAMAIS apres la premiere ligne.
+
+PROCESSUS OBLIGATOIRE :
+1. Relis MENTALEMENT ta raw_transcription du debut a la fin.
+2. Souligne chaque VERBE D'ACTION : pose, depose, evacuation, fourniture,
+   installation, demolition, terrassement, construction, raccordement, etc.
+3. Souligne chaque QUANTITE chiffree : "12 metres cubes", "25 ml", "3 unites".
+4. Souligne chaque NATURE DE TRAVAIL : carrelage, cloison, robinet, etc.
+5. Compte le nombre de prestations distinctes (1, 2, 3, ...) et NOTE-LE.
+6. Cree autant de lignes que de prestations comptees.
+
+MARQUEURS D'ENUMERATION FRANCAIS A DETECTER (chacun signale une NOUVELLE
+prestation, donc une NOUVELLE ligne) :
+- "et" / "et aussi" / "et puis" / "et ensuite"
+- "puis" / "ensuite" / "apres" / "pour finir"
+- "j'ai aussi" / "j'aurai" / "il y a aussi" / "il faudra aussi"
+- "egalement" / "de plus" / "en plus" / "on rajoute"
+- "premierement / deuxiemement / troisiemement"
+- Toute nouvelle phrase commencant par un verbe d'action
+
+EN CAS DE DOUTE : INCLUS l'element en ligne separee. Mieux vaut une ligne en
+trop (l'artisan peut la supprimer en 1 clic) qu'une ligne oubliee (perdue).
+
+EXEMPLE CRUCIAL MULTI-LIGNES :
+Audio : "Devis pour Monsieur Jacques-Henri Bertrand. C'est pour un terrassement
+         et construction de piscine. J'aurai evacuation de 12 metres cubes de
+         terre. Et pose de la coque en plastique."
+
+JSON attendu :
+{
+  "raw_transcription": "Devis pour Monsieur Jacques-Henri Bertrand. C'est pour un terrassement et construction de piscine. J'aurai evacuation de 12 metres cubes de terre. Et pose de la coque en plastique.",
+  "intent": "devis",
+  "confidence": 0.95,
+  "client_civilite": "Monsieur",
+  "client_prenom": "Jacques-Henri",
+  "client_nom": "Bertrand",
+  "objet": "Terrassement et construction piscine",
+  "lignes": [
+    {"designation": "Terrassement et evacuation de terre", "quantite": 12, "unite": "m3", "prix_unitaire": 0},
+    {"designation": "Pose coque piscine plastique", "quantite": 1, "unite": "U", "prix_unitaire": 0}
+  ]
+}
+
+=============================================================================
+REGLE SPECIALE — CIVILITE + PRENOM COMPOSE (BUG CONNU A EVITER)
+=============================================================================
+
+IMPORTANT : la CIVILITE et le PRENOM sont TOTALEMENT INDEPENDANTS.
+Meme si le prenom est COMPOSE (avec tiret), la civilite DOIT etre extraite.
+
+PATTERNS A RECONNAITRE OBLIGATOIREMENT :
+- "Monsieur Jacques-Henri Bertrand"
+  -> civilite="Monsieur", prenom="Jacques-Henri", nom="Bertrand"
+- "Madame Marie-Claire Dupont"
+  -> civilite="Madame", prenom="Marie-Claire", nom="Dupont"
+- "Monsieur Jean-Pierre Dubois-Martin"
+  -> civilite="Monsieur", prenom="Jean-Pierre", nom="Dubois-Martin"
+- "Madame Anne-Sophie de la Tour"
+  -> civilite="Madame", prenom="Anne-Sophie", nom="de la Tour"
+
+REGLE : la civilite est TOUJOURS le PREMIER mot s'il appartient a la liste
+{Monsieur, Madame, Mademoiselle, Société, Mr, Mme, Mlle, M.}. Si oui :
+1. Extrais ce mot dans client_civilite (normalise en Monsieur/Madame/Mademoiselle/Société).
+2. Le RESTE est prenom + nom (jamais inclus dans civilite).
+
+NE JAMAIS laisser client_civilite=null si le mot "Monsieur" ou "Madame" est
+prononce, MEME si le prenom qui suit contient un tiret.
+
+=============================================================================
+DICTIONNAIRE METIER BTP (vocabulaire a reconnaitre tous metiers)
+=============================================================================
+
+VERBES D'ACTION UNIVERSELS (chacun = signal d'une prestation) :
+poser, deposer, fournir, installer, monter, demonter, raccorder, brancher,
+fixer, faire, refaire, remplacer, changer, renover, creer, ajouter,
+supprimer, evacuer, livrer, couler, scier, percer, souder, serrer, visser,
+coller, jointer, peindre, enduire, talocher, lisser, poncer, decoller,
+decaper, terrasser, fouiller, decaisser, batir, construire, edifier,
+isoler, etancheifier, vegetaliser, abattre, planter, tailler, elaguer
+
+UNITES BTP RECONNUES :
+- "m" / "metres" / "metre lineaire" / "ml" -> ml
+- "m2" / "metres carres" / "carres" -> m2
+- "m3" / "metres cubes" / "cubes" -> m3
+- "U" / "unites" / "pieces" / "points" -> U
+- "h" / "heures" -> h, "j" / "jours" -> j, "forfait" -> forfait
+- "kg" / "kilos" / "t" / "tonnes" -> kg/t
+
+ABREVIATIONS METIER A RECONNAITRE :
+TGBT, BAES, BT, NFC, PAC, RT2020, RE2020, ITE, ITI, RGE, VMC, VRD, EU, EP,
+TPC, BA13, BA18, BA25, PER, PB, PVC, PE, EPDM, SBS, OSB, MDF, MOB, IRVE,
+DTU, NF, ROC, TVA, AGEC, A2P
+
+VOCABULAIRE METIER (par specialite) :
+- MACON : terrassement, fondations, ferraillage, dalle, parpaing, brique,
+  beton, mortier, ravalement, enduit, fouille, dechaussement, regard
+- PLOMBIER : tuyau, raccord, vanne, robinet, chasse d'eau, siphon, WC,
+  lavabo, baignoire, douche, mitigeur, ballon, chauffe-eau, PAC, chaudiere,
+  radiateur, plancher chauffant, PER, cuivre, multicouche
+- ELECTRICIEN : tableau electrique, disjoncteur, differentiel, interrupteur,
+  prise, gaine, cable, RJ45, point lumineux, IRVE, borne de recharge,
+  domotique, alarme, BAES, Consuel
+- PEINTRE : peinture, sous-couche, primaire, fixateur, glycero, acrylique,
+  enduit, ratissage, pose toile de verre, papier peint, sols souples
+- CARRELEUR : carrelage, faience, mosaique, joint, colle, plinthe, seuil,
+  receveur, SPEC, etancheite douche, plot, dalle exterieure
+- MENUISIER : porte, fenetre, volet, baie vitree, persienne, store, Velux,
+  parquet, escalier, placard, dressing, pergola, terrasse bois
+- COUVREUR : tuile, ardoise, zinc, faitage, arretier, noue, lucarne,
+  gouttiere, descente, velux, ecran sous toiture, sarking
+- PLAQUISTE : Placo, BA13, BA18, hydro, phonique, feu, plafond,
+  cloison, doublage, faux-plafond, suspente, rail, montant
+- FACADIER / ITE : enduit, monocouche, multicouche, bardage, vetage,
+  isolant exterieur, polystyrene, laine, fixation, finition
+- ISOLATEUR : combles perdus, combles amenages, soufflage, laine de verre,
+  laine de roche, ouate, polyurethane, sarking, plancher
+- SERRURIER : serrure, cylindre, A2P, blindage, porte blindee, grille,
+  garde-corps, portail, motorisation, gond
+- FRIGORISTE/PAC : climatisation, monosplit, multisplit, gainable, console,
+  cassette, R32, R410A, PAC air/eau, PAC air/air, geothermie
+- VITRIER : double vitrage, triple vitrage, verre trempe, securit,
+  feuillete, miroir, verriere, douche italienne
+- PAYSAGISTE : abattage, dessouchage, elagage, tonte, taille, plantation,
+  arrosage automatique, terre vegetale, geotextile, gazon en rouleau,
+  cloture rigide, panneau, grillage, portail
+- PISCINISTE : terrassement, coque polyester, beton arme, gunite, liner,
+  margelle, plage, skimmer, local technique, pompe, filtre a sable,
+  chlore, electrolyse au sel, pompe a chaleur, traitement, abri
+- ETANCHEUR : etancheite, terrasse, balcon, EPDM, SBS, bitumineux, drainage
+- NETTOYAGE : evacuation gravats, debarras, nettoyage fin de chantier,
+  desamiantage, depollution, CREP plomb
+
+MOTS-FLOUS QUANTITATIFS (interpretation estimee) :
+- "une quinzaine" -> 15, "une dizaine" -> 10, "une vingtaine" -> 20
+- "une trentaine" -> 30, "une cinquantaine" -> 50, "une centaine" -> 100
+- "environ X" / "a peu pres X" / "dans les X" -> X
+- "deux a trois" -> 2.5 ou 3 (arrondir au superieur)
+
+PIECES / LOCALISATIONS pour designation contextuelle :
+salle de bain, cuisine, WC, salon, sejour, chambre, buanderie, cellier,
+garage, cave, grenier, comble, RDC, etage, couloir, palier, entree,
+veranda, terrasse, balcon, jardin, cour, facade, pignon, long pan
+
+MARQUES FREQUENTES (signal de produit installe) :
+Velux, Placoplatre, Placo, Knauf, Gyproc, Daikin, Mitsubishi, Atlantic,
+De Dietrich, Bosch, Saunier Duval, Geberit, Grohe, Hansgrohe, Schluter,
+Wedi, Tollens, Zolpan, Dulux, Somfy, Bubendorff, Bel'M, K-Line, Internorm,
+Hayward, Pentair, Zodiac, BWT, Desjoyaux, Coverline, Magiline, AstralPool
+
+
+=============================================================================
 EXEMPLES (3 intents)
 =============================================================================
 
@@ -270,6 +451,30 @@ Audio : "Ajoute un rendez-vous mardi prochain a 14h chez Monsieur Dupont, 12 rue
 JSON : intent="planning", confidence=0.95, client_civilite="Monsieur", client_nom="Dupont", client_adresse="12 rue de la Paix", client_ville="Bordeaux", chantier="12 rue de la Paix, Bordeaux", duree="1 heure", evenement_type="rdv", titre="RDV devis terrasse chez M. Dupont", date_debut="2026-06-09T14:00", lignes=[], autres null.
 
 REPONDS UNIQUEMENT EN JSON VALIDE. Pas de markdown, pas de texte autour. TOUS les champs ci-dessus doivent etre presents (avec null si non rempli) sauf "lignes" qui est un tableau (vide si pas de prestations).`
+}
+
+function buildContextSection(ctx: VoiceArtisanContext): string {
+  const lines: string[] = []
+  lines.push('')
+  lines.push('=============================================================================')
+  lines.push("CONTEXTE METIER DE L'ARTISAN CONNECTE (priming)")
+  lines.push('=============================================================================')
+  if (ctx.metier) {
+    lines.push(`Metier declare : ${ctx.metier}.`)
+  }
+  if (ctx.prestations && ctx.prestations.length > 0) {
+    lines.push('')
+    lines.push(`Voici les ${ctx.prestations.length} prestations qu'il a deja creees dans Nexartis.`)
+    lines.push("Si l'audio mentionne une prestation similaire ou approchante, REUTILISE le libelle exact :")
+    for (const p of ctx.prestations.slice(0, 40)) {
+      const unite = p.unite ? ` (${p.unite})` : ''
+      const prix = p.prix !== null && p.prix !== undefined ? ` ~${p.prix} EUR` : ''
+      lines.push(`- "${p.titre}"${unite}${prix}`)
+    }
+  } else {
+    lines.push("Aucune prestation enregistree pour l'instant : fie-toi uniquement au dictionnaire metier ci-dessous.")
+  }
+  return lines.join('\n')
 }
 
 export const VOICE_COMMAND_SYSTEM_PROMPT = buildVoiceCommandSystemPrompt(new Date())
