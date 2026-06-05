@@ -109,6 +109,7 @@ export default function NouvelleFacturePage() {
       if (data.client_ville) setClientVille(data.client_ville as string)
       if (data.client_telephone) setClientTelephone(data.client_telephone as string)
       if (data.client_email) setClientEmail(data.client_email as string)
+      if (data.objet) setObjet(data.objet as string)
       if (data.facture_type) setFactureType(data.facture_type as 'standard' | 'acompte' | 'situation' | 'avoir')
       if (data.devis_ref) setDevisRef(data.devis_ref as string)
       if (data.tva_taux != null) setGlobalTvaRate(data.tva_taux as number)

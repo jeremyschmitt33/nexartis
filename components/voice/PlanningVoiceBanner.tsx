@@ -115,7 +115,7 @@ export default function PlanningVoiceBanner() {
         heure_debut: startTime,
         heure_fin: endTime,
         creneau: 'creneau',
-        statut: 'a_venir',
+        statut: 'planifie',
         type_intervention: payload.evenement_type || 'rdv',
         client_libre: payload.client_nom || null,
         client_libre_telephone: payload.client_telephone || null,

@@ -889,6 +889,7 @@ function NouveauDevisPage() {
     if (data.client_telephone) setClientTelephone(data.client_telephone as string)
     if (data.client_email) setClientEmail(data.client_email as string)
     if (data.chantier) setChantierDesc(data.chantier as string)
+    if (data.objet) setChantierDesc(data.objet as string)
     if (data.conditions_paiement) setConditionsLibres(data.conditions_paiement as string)
     if (data.notes) setNotes(data.notes as string)
     if (data.tva_taux != null) setGlobalTvaRate(data.tva_taux as number)

@@ -94,6 +94,7 @@ export const geminiResponseSchema = {
     client_telephone: { type: 'string', nullable: true, description: 'Telephone FR au format 0X XX XX XX XX' },
     client_email: { type: 'string', nullable: true },
     chantier: { type: 'string', nullable: true, description: 'Adresse du chantier si differente du client' },
+    objet: { type: 'string', nullable: true, description: 'Objet du devis ou de la facture : description courte de la prestation (ex: Terrassement terrain, Renovation salle de bain, Pose carrelage). Tu DOIS le remplir des que l artisan dit "pour un X", "objet X", "prestation X" ou decrit la nature du chantier.' },
     lignes: {
       type: 'array',
       items: {
@@ -127,6 +128,7 @@ export const voiceCommandRawSchema = z.object({
   confidence: z.coerce.number().min(0).max(1),
   ...clientFieldsSchema,
   chantier: z.string().max(500).nullable().optional(),
+  objet: z.string().max(500).nullable().optional(),
   lignes: z.array(ligneSchema).max(50).default([]),
   tva_taux: tvaSchema,
   conditions_paiement: z.string().max(500).nullable().optional(),
@@ -234,6 +236,7 @@ export function projectVoiceCommand(raw: VoiceCommandRaw): ProjectedResult {
       confidence: raw.confidence,
       payload: {
         ...common,
+        objet: raw.objet ?? null,
         lignes: raw.lignes ?? [],
         tva_taux: raw.tva_taux ?? null,
         conditions_paiement: raw.conditions_paiement ?? null,
@@ -252,6 +255,7 @@ export function projectVoiceCommand(raw: VoiceCommandRaw): ProjectedResult {
       confidence: raw.confidence,
       payload: {
         ...common,
+        objet: raw.objet ?? null,
         lignes: raw.lignes ?? [],
         tva_taux: raw.tva_taux ?? null,
         conditions_paiement: raw.conditions_paiement ?? null,

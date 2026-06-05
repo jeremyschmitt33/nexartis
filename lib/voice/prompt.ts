@@ -142,7 +142,9 @@ restent null. Le serveur fera le tri.
 
 --- POUR intent = "devis" ---
 client_civilite, client_prenom, client_nom, client_adresse, client_code_postal,
-client_ville, client_telephone, client_email, chantier, lignes (designation/quantite/unite/prix_unitaire),
+client_ville, client_telephone, client_email, chantier,
+objet (description courte de la prestation, OBLIGATOIRE des que mentionne : "pour un terrassement", "refection toiture", "renovation salle de bain", etc.),
+lignes (designation/quantite/unite/prix_unitaire),
 tva_taux, conditions_paiement, notes, dechets_nature, date_travaux, duree, acompte_pourcentage
 
 --- POUR intent = "facture" ---
@@ -191,12 +193,23 @@ ETAPE 3 — REGLES METIER COMMUNES
    - Telephone FR : 10 chiffres
    - Pas clair : null
 
-5. NE PAS INVENTER :
+5. OBJET DU DEVIS OU FACTURE (champ "objet") :
+   - Capture systematiquement la nature du chantier ou de la prestation principale
+   - Phrases-trigger : "pour un X", "il s'agit d'un X", "objet X", "prestation X",
+     "travaux de X", "refaire X", "renover X", "poser X", "installer X"
+   - Exemples : "pour un terrassement" -> objet="Terrassement"
+   - "renovation salle de bain" -> objet="Renovation salle de bain"
+   - "pose de carrelage" -> objet="Pose de carrelage"
+   - "refection toiture" -> objet="Refection toiture"
+   - Si pas d'objet identifiable mais une seule ligne dans le devis : reprends la designation principale comme objet
+   - Si pas d'info du tout : laisse null
+
+6. NE PAS INVENTER :
    - Pas d'info -> null
    - Pas de code postal, telephone, email, nom invente
    - Lignes : quantite ET prix explicites obligatoires
 
-6. NORMALISATION :
+7. NORMALISATION :
    - Noms propres capitalises ("rouyer" -> "Rouyer")
    - Accents francais conserves
    - Civilite : "Monsieur", "Madame", "Mademoiselle", "Société" uniquement
