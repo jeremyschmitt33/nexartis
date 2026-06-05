@@ -25,20 +25,21 @@ export interface ThemePreset {
 }
 
 /**
- * Construit un thème à 6 zones depuis 2 couleurs principales.
- *  - accent (foncé)   → bandeau haut + carte client + footer
- *  - accent2 (vif)    → accent diagonal + encadré Net à payer
+ * Construit un thème à 7 zones depuis 3 couleurs principales (V3.1).
+ *  - left   (foncé)   → bandeau GAUCHE + carte client + footer
+ *  - right  (variante) → bandeau DROITE (zone DEVIS + numero, separee par la barre doree)
+ *  - accent (vif)     → barre doree + encadré Net à payer
  *  - cadre Émetteur reste blanc (lisibilité maximale)
  */
-function buildPresetTheme(accent: string, accent2: string): DocumentTheme {
+function buildPresetTheme(left: string, right: string, accent: string): DocumentTheme {
   return {
-    bandeauHaut: accent,
-    bandeauHautDroite: accent,  // V3.1 : meme couleur que la zone gauche par defaut pour preserver le rendu historique
-    accent: accent2,
+    bandeauHaut: left,
+    bandeauHautDroite: right,
+    accent: accent,
     cadreEmetteur: '#ffffff',
-    cadreAdresse: accent,
-    netPayer: accent2,
-    footer: accent,
+    cadreAdresse: left,
+    netPayer: accent,
+    footer: left,
   }
 }
 
@@ -56,62 +57,62 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'bleu-nuit-ambre',
     nom: 'Bleu nuit · Ambre',
-    theme: buildPresetTheme('#15233b', '#dd9138'),
+    theme: buildPresetTheme('#15233b', '#1f3556', '#dd9138'),
   },
   {
     id: 'vert-sapin-cuivre',
     nom: 'Vert sapin · Cuivre',
-    theme: buildPresetTheme('#1c3d31', '#c17a4b'),
+    theme: buildPresetTheme('#1c3d31', '#2a5a48', '#c17a4b'),
   },
   {
     id: 'anthracite-or',
     nom: 'Anthracite · Or',
-    theme: buildPresetTheme('#26292e', '#c9a227'),
+    theme: buildPresetTheme('#26292e', '#3e424a', '#c9a227'),
   },
   {
     id: 'bordeaux-sable',
     nom: 'Bordeaux · Sable',
-    theme: buildPresetTheme('#45202a', '#d39a6b'),
+    theme: buildPresetTheme('#45202a', '#6b3540', '#d39a6b'),
   },
   {
     id: 'encre-laiton',
     nom: 'Encre · Laiton',
-    theme: buildPresetTheme('#1a1d24', '#b9954e'),
+    theme: buildPresetTheme('#1a1d24', '#2e333d', '#b9954e'),
   },
   {
     id: 'bleu-petrole-corail',
     nom: 'Bleu pétrole · Corail',
-    theme: buildPresetTheme('#123b42', '#e07856'),
+    theme: buildPresetTheme('#123b42', '#1d5961', '#e07856'),
   },
   {
     id: 'marine-turquoise',
     nom: 'Marine · Turquoise',
-    theme: buildPresetTheme('#102a43', '#2c9c9c'),
+    theme: buildPresetTheme('#102a43', '#1c4368', '#2c9c9c'),
   },
   {
     id: 'foret-moutarde',
     nom: 'Forêt · Moutarde',
-    theme: buildPresetTheme('#1f3324', '#cba135'),
+    theme: buildPresetTheme('#1f3324', '#324f3a', '#cba135'),
   },
   {
     id: 'ardoise-bleu-ciel',
     nom: 'Ardoise · Bleu ciel',
-    theme: buildPresetTheme('#2b3440', '#6592b8'),
+    theme: buildPresetTheme('#2b3440', '#404e5d', '#6592b8'),
   },
   {
     id: 'aubergine-champagne',
     nom: 'Aubergine · Champagne',
-    theme: buildPresetTheme('#2e2138', '#cbb279'),
+    theme: buildPresetTheme('#2e2138', '#473253', '#cbb279'),
   },
   {
     id: 'graphite-bleu-vif',
     nom: 'Graphite · Bleu vif',
-    theme: buildPresetTheme('#25282d', '#4a76d4'),
+    theme: buildPresetTheme('#25282d', '#3a3e46', '#4a76d4'),
   },
   {
     id: 'brique-creme',
     nom: 'Brique · Crème',
-    theme: buildPresetTheme('#5b2f22', '#e2b488'),
+    theme: buildPresetTheme('#5b2f22', '#7d4233', '#e2b488'),
   },
 ]
 
@@ -122,6 +123,7 @@ export const THEME_PRESETS: ThemePreset[] = [
 export function themesEqual(a: DocumentTheme, b: DocumentTheme): boolean {
   const keys: (keyof DocumentTheme)[] = [
     'bandeauHaut',
+    'bandeauHautDroite',
     'accent',
     'cadreEmetteur',
     'cadreAdresse',
