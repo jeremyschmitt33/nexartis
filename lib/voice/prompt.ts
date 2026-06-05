@@ -193,16 +193,52 @@ ETAPE 3 — REGLES METIER COMMUNES
    - Telephone FR : 10 chiffres
    - Pas clair : null
 
-5. OBJET DU DEVIS OU FACTURE (champ "objet") :
-   - Capture systematiquement la nature du chantier ou de la prestation principale
-   - Phrases-trigger : "pour un X", "il s'agit d'un X", "objet X", "prestation X",
-     "travaux de X", "refaire X", "renover X", "poser X", "installer X"
-   - Exemples : "pour un terrassement" -> objet="Terrassement"
-   - "renovation salle de bain" -> objet="Renovation salle de bain"
-   - "pose de carrelage" -> objet="Pose de carrelage"
+5. OBJET DU DEVIS OU FACTURE (champ "objet") — TRES IMPORTANT :
+   Tu DOIS capturer la nature du chantier/prestation principale des qu'elle est mentionnee,
+   meme de maniere informelle. Voici TOUTES les formulations a reconnaitre :
+
+   FORMULES INTRODUCTIVES (l'artisan annonce l'objet) :
+   - "objet X" / "objet du devis X" / "objet du chantier X" / "objet de la facture X"
+   - "l'objet c'est X" / "l'objet est X"
+   - "prestation X" / "prestation de service X"
+   - "il s'agit d'un X" / "il s'agit de X"
+   - "c'est pour X" / "c'est pour un X" / "c'est pour une X"
+   - "c'est pour faire X" / "c'est pour realiser X"
+   - "c'est un X" / "c'est une X"
+   - "pour un X" / "pour une X" (en debut de phrase)
+   - "travaux de X" / "chantier de X" / "intervention de X"
+
+   FORMULES VERBALES (action principale) :
+   - "refaire X" / "refection X" / "renover X" / "renovation X"
+   - "changement de X" / "remplacement de X" / "changer la X" / "remplacer la X"
+   - "poser X" / "pose de X" / "installer X" / "installation X"
+   - "construire X" / "construction X" / "creer X" / "realiser X"
+   - "reparer X" / "reparation de X" / "depanner X"
+   - "demolir X" / "demolition X" / "deposer X" / "depose X"
+   - "agrandir X" / "extension X" / "surelever X"
+
+   EXEMPLES CONCRETS :
+   - "c'est pour un terrassement" -> objet="Terrassement"
+   - "c'est pour un changement de robinet" -> objet="Changement de robinet"
+   - "objet renovation salle de bain" -> objet="Renovation salle de bain"
+   - "l'objet c'est la pose de carrelage" -> objet="Pose de carrelage"
    - "refection toiture" -> objet="Refection toiture"
-   - Si pas d'objet identifiable mais une seule ligne dans le devis : reprends la designation principale comme objet
-   - Si pas d'info du tout : laisse null
+   - "prestation de service" + lignes electricite -> objet="Prestation de service - Electricite"
+   - "il s'agit d'une renovation complete" -> objet="Renovation complete"
+   - "c'est pour reparer la chaudiere" -> objet="Reparation chaudiere"
+   - "changement des fenetres" -> objet="Changement des fenetres"
+   - "installer une climatisation" -> objet="Installation climatisation"
+
+   FALLBACKS (si l'artisan n'annonce pas explicitement l'objet) :
+   - Si une seule prestation dans les lignes : reprends la designation principale (ex: "Pose de cloture rigide")
+   - Si plusieurs prestations sur un meme theme : resume-les (ex: "Travaux salle de bain", "Renovation cuisine")
+   - Sinon, vraiment aucun indice : laisse null
+
+   NORMALISATION :
+   - Capitalise la premiere lettre ("terrassement" -> "Terrassement")
+   - Concis : 2 a 8 mots max, pas une phrase complete
+   - Pas de point final
+   - Conserve les accents francais
 
 6. NE PAS INVENTER :
    - Pas d'info -> null
