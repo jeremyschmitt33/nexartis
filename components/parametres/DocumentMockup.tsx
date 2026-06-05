@@ -87,22 +87,21 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
           className="relative px-3 pt-3 pb-7 overflow-hidden"
           style={{ background: theme.bandeauHaut, color: bandeauInk }}
         >
-          {/* Zone DROITE : autre couleur, clip diagonal qui suit la barre doree */}
+          {/* Zone DROITE : commence APRES la barre doree (identique au CSS reel document.css) */}
           <div
-            className="absolute right-0 top-0 h-full w-full"
+            className="absolute inset-0"
             style={{
               background: theme.bandeauHautDroite,
-              clipPath: 'polygon(54% 0, 100% 0, 100% 100%, 42% 100%)',
+              clipPath: 'polygon(54% 0, 100% 0, 100% 100%, 46% 100%)',
             }}
             aria-hidden="true"
           />
-          {/* Barre doree (accent) - separateur visuel net entre les 2 couleurs */}
+          {/* Barre doree (accent) - fine, centree sur 50% du bandeau (identique au CSS reel) */}
           <div
-            className="absolute top-0 h-full w-[5%]"
+            className="absolute inset-0"
             style={{
               background: theme.accent,
-              clipPath: 'polygon(54% 0, 100% 0, 46% 100%, 0% 100%)',
-              left: '47%',
+              clipPath: 'polygon(50% 0, 54% 0, 46% 100%, 42% 100%)',
             }}
             aria-hidden="true"
           />
@@ -282,29 +281,29 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
         {/* OVERLAYS CLIQUABLES — positionnés en absolute sur les zones    */}
         {/* ============================================================ */}
 
-        {/* V3.1 - Zone bandeau GAUCHE (logo + nom) jusqu'a la barre doree */}
+        {/* V3.1 - Zone bandeau GAUCHE (logo + nom) - aligne sur le clip-path reel */}
         <ZoneOverlay
           zone="bandeauHaut"
           isActive={activeZone === 'bandeauHaut'}
           onZoneClick={onZoneClick}
           className=""
-          style={{ top: 0, left: 0, width: '46%', height: '64px' }}
+          style={{ top: 0, left: 0, width: '44%', height: '64px' }}
         />
 
-        {/* V3.1 - Zone ACCENT : la barre doree au milieu (separateur) */}
+        {/* V3.1 - Zone ACCENT : la barre doree fine centree (identique geometrie reelle) */}
         <ZoneOverlay
           zone="accent"
           isActive={activeZone === 'accent'}
           onZoneClick={onZoneClick}
-          style={{ top: 0, left: '46%', width: '8%', height: '64px' }}
+          style={{ top: 0, left: '44%', width: '12%', height: '64px' }}
         />
 
-        {/* V3.1 - Zone bandeau DROITE (DEVIS + numero) apres la barre doree */}
+        {/* V3.1 - Zone bandeau DROITE (DEVIS + numero) - aligne sur le clip-path reel */}
         <ZoneOverlay
           zone="bandeauHautDroite"
           isActive={activeZone === 'bandeauHautDroite'}
           onZoneClick={onZoneClick}
-          style={{ top: 0, right: 0, width: '46%', height: '64px' }}
+          style={{ top: 0, right: 0, width: '44%', height: '64px' }}
         />
 
         {/* Zone 3 — Carte Émetteur (gauche, chevauche le bandeau) */}
