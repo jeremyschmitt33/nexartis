@@ -124,6 +124,7 @@ export const geminiResponseSchema = {
 // ---------------------------------------------------------------
 
 export const voiceCommandRawSchema = z.object({
+  raw_transcription: z.string().max(8000).default(''),
   intent: z.enum(['devis', 'facture', 'planning', 'unknown']),
   confidence: z.coerce.number().min(0).max(1),
   ...clientFieldsSchema,
@@ -155,6 +156,10 @@ export type VoiceCommandRaw = z.infer<typeof voiceCommandRawSchema>
 export const geminiCommandResponseSchema = {
   type: 'object',
   properties: {
+    raw_transcription: {
+      type: 'string',
+      description: 'Transcription brute mot a mot de l audio, sans omission ni reformulation. OBLIGATOIRE pour forcer l ecoute complete avant extraction.',
+    },
     intent: {
       type: 'string',
       enum: INTENTS,
@@ -204,7 +209,7 @@ export const geminiCommandResponseSchema = {
     date_debut: { type: 'string', nullable: true, description: 'Date debut, ex 2026-06-08T14:00 ou JJ/MM/AAAA HH:MM' },
     date_fin: { type: 'string', nullable: true, description: 'Date fin si mentionnee' },
   },
-  required: ['intent', 'confidence', 'lignes'],
+  required: ['raw_transcription', 'intent', 'confidence', 'lignes'],
 }
 
 // ---------------------------------------------------------------
