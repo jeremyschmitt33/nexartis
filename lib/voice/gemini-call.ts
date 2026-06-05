@@ -11,8 +11,10 @@
 
 import { GoogleGenAI } from '@google/genai'
 
-export const PRIMARY_MODEL = 'gemini-2.5-flash'
-export const FALLBACK_MODEL = 'gemini-2.0-flash'
+// V3.1 Vague C : on bascule en 2.0 par defaut (plus stable, moins de 503 Google)
+// 2.5 reste en fallback pour les cas qui requierent plus de finesse.
+export const PRIMARY_MODEL = 'gemini-2.0-flash'
+export const FALLBACK_MODEL = 'gemini-2.5-flash'
 
 interface GeminiCallInput {
   apiKey: string
@@ -76,11 +78,15 @@ export async function callGeminiResilient(input: GeminiCallInput): Promise<Gemin
   let attempts = 0
   let lastErr: unknown = null
 
-  // Plan d'attaque : 2 tentatives sur modele primaire, puis 1 sur fallback
+  // Plan d'attaque : 3 tentatives sur modele primaire avec backoff,
+  // puis 2 sur fallback. Couvre les pics de surcharge Google.
+  // Total max ~6s (3 * 250 + 3 * 1500ms model latency) — reste sous Vercel 60s.
   const attemptPlan: Array<{ model: string; delayMs: number }> = [
     { model: PRIMARY_MODEL,  delayMs: 0 },
-    { model: PRIMARY_MODEL,  delayMs: 250 },
+    { model: PRIMARY_MODEL,  delayMs: 300 },
+    { model: PRIMARY_MODEL,  delayMs: 800 },
     { model: FALLBACK_MODEL, delayMs: 0 },
+    { model: FALLBACK_MODEL, delayMs: 500 },
   ]
 
   for (const step of attemptPlan) {
