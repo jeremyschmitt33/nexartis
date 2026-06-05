@@ -231,5 +231,3 @@ export async function POST(req: NextRequest) {
     return secureError('Erreur de traitement vocal', 500)
   }
 }
-}
-}
