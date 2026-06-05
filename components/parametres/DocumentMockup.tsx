@@ -118,12 +118,7 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
               <span className="font-syne text-[11px] font-bold" style={{ color: bandeauInk }}>
                 Mon Entreprise
               </span>
-              <span
-                className="text-[8px] font-medium opacity-70"
-                style={{ color: bandeauInk }}
-              >
-                Artisan électricien
-              </span>
+              {/* V3.1.4 : metier retire du bandeau (idem rendu reel) */}
             </div>
           </div>
 

@@ -1,8 +1,10 @@
 'use client'
-// components/parametres/LogoCustomization.tsx — V3.1
+// components/parametres/LogoCustomization.tsx - V3.1.4
 // Section "Personnalisation du logo" dans Apparence.
-// Permet a l'artisan de configurer : style d'incrustation + taille logo + taille nom.
-// Preview live a cote des controles.
+// V3.1.4 : RESTAURATION fondations origine (b9455df) :
+//   - sliders bornees a 70-130% (au lieu de 60-140 qui cassait le bandeau)
+//   - preview cardBase=104 et nomBase=34 (= EXACTES valeurs origine)
+//   - preview avec auto-height (padding-based) au lieu de hauteur fixe 170px
 
 import { useState, useEffect, useCallback } from 'react'
 import { useEntreprise } from '@/lib/hooks'
@@ -26,16 +28,13 @@ export default function LogoCustomization() {
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<number | null>(null)
 
-  // Resync si l'entreprise est rechargée
   useEffect(() => {
     if (entreprise) setConfig(logoConfigFromEntreprise(entreprise))
   }, [entreprise])
 
   const logoUrl = (entreprise as { logo_url?: string } | null)?.logo_url
   const nomEntreprise = (entreprise as { nom_entreprise?: string } | null)?.nom_entreprise || 'Mon Entreprise'
-  const metier = (entreprise as { metier?: string } | null)?.metier || 'Artisan'
 
-  // Auto-save apres 600ms d'inactivite
   const saveConfig = useCallback(async (newConfig: LogoConfig) => {
     setSaving(true)
     try {
@@ -67,10 +66,10 @@ export default function LogoCustomization() {
 
   const reset = () => setConfig(DEFAULT_LOGO_CONFIG)
 
-  // === Calcul du preview en fonction de la config ===
-  const previewCardBase = config.style === 'carte-minimaliste' ? 70 : 100  // V3.1.3 : aligne avec base reelle
+  // === Preview aligne EXACTEMENT sur logoConfigToCssVars ===
+  const previewCardBase = config.style === 'carte-minimaliste' ? 72 : 104
   const previewCardSize = Math.round((previewCardBase * config.logoSize) / 100)
-  const previewNomSize = Math.round((41 * config.nomSize) / 100)  // V3.1.3 : base 41px = taille DEVIS (preview matche le reel)
+  const previewNomSize = Math.round((34 * config.nomSize) / 100)
   const previewCardBg = config.style === 'sans-carte' ? 'transparent' : '#ffffff'
   const previewCardShadow = config.style === 'sans-carte' ? 'none' : config.style === 'carte-minimaliste' ? '0 1px 3px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.18)'
   const previewCardPadding = config.style === 'sans-carte' ? 0 : config.style === 'carte-minimaliste' ? 4 : 6
@@ -103,9 +102,7 @@ export default function LogoCustomization() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* === COLONNE GAUCHE : controles === */}
         <div className="space-y-5">
-          {/* Selecteur de style */}
           <div>
             <label className="block text-sm font-manrope font-semibold text-navy mb-2">
               Style d&apos;incrustation
@@ -114,11 +111,11 @@ export default function LogoCustomization() {
               {STYLES.map((s) => (
                 <label
                   key={s}
-                  className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                  className={'flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ' + (
                     config.style === s
                       ? 'border-orange bg-orange/5 shadow-sm'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  )}
                 >
                   <input
                     type="radio"
@@ -137,24 +134,22 @@ export default function LogoCustomization() {
             </div>
           </div>
 
-          {/* Slider taille logo */}
           <div>
             <label className="flex items-center justify-between text-sm font-manrope font-semibold text-navy mb-2">
               <span>Taille du logo</span>
               <span className="text-xs font-manrope text-navy/60 tabular-nums">{config.logoSize}%</span>
             </label>
-            {/* V3.1.3 : 3 presets rapides Petit / Moyen / Grand */}
             <div className="flex gap-2 mb-2">
-              {[{ label: 'Petit', value: 75 }, { label: 'Moyen', value: 100 }, { label: 'Grand', value: 130 }].map(p => (
+              {[{ label: 'Petit', value: 80 }, { label: 'Moyen', value: 100 }, { label: 'Grand', value: 120 }].map(p => (
                 <button
                   key={p.value}
                   type="button"
                   onClick={() => setConfig({ ...config, logoSize: p.value })}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-manrope font-semibold border transition ${
+                  className={'px-3 py-1.5 rounded-lg text-xs font-manrope font-semibold border transition ' + (
                     config.logoSize === p.value
                       ? 'bg-orange text-white border-orange'
                       : 'bg-white text-navy border-navy/20 hover:border-navy/40'
-                  }`}
+                  )}
                 >
                   {p.label}
                 </button>
@@ -162,8 +157,8 @@ export default function LogoCustomization() {
             </div>
             <input
               type="range"
-              min={60}
-              max={140}
+              min={70}
+              max={130}
               step={5}
               value={config.logoSize}
               onChange={(e) => setConfig({ ...config, logoSize: parseInt(e.target.value) })}
@@ -171,30 +166,28 @@ export default function LogoCustomization() {
               aria-label="Taille du logo en pourcentage"
             />
             <div className="flex justify-between text-[10px] font-manrope text-navy/40 mt-1">
-              <span>60% (petit)</span>
+              <span>70% (petit)</span>
               <span>100% (standard)</span>
-              <span>140% (max)</span>
+              <span>130% (max)</span>
             </div>
           </div>
 
-          {/* Slider taille nom entreprise */}
           <div>
             <label className="flex items-center justify-between text-sm font-manrope font-semibold text-navy mb-2">
               <span>Taille du nom d&apos;entreprise</span>
               <span className="text-xs font-manrope text-navy/60 tabular-nums">{config.nomSize}%</span>
             </label>
-            {/* V3.1.3 : 3 presets rapides */}
             <div className="flex gap-2 mb-2">
               {[{ label: 'Compact', value: 80 }, { label: 'Standard', value: 100 }, { label: 'Proeminent', value: 120 }].map(p => (
                 <button
                   key={p.value}
                   type="button"
                   onClick={() => setConfig({ ...config, nomSize: p.value })}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-manrope font-semibold border transition ${
+                  className={'px-3 py-1.5 rounded-lg text-xs font-manrope font-semibold border transition ' + (
                     config.nomSize === p.value
                       ? 'bg-orange text-white border-orange'
                       : 'bg-white text-navy border-navy/20 hover:border-navy/40'
-                  }`}
+                  )}
                 >
                   {p.label}
                 </button>
@@ -202,8 +195,8 @@ export default function LogoCustomization() {
             </div>
             <input
               type="range"
-              min={60}
-              max={140}
+              min={70}
+              max={130}
               step={5}
               value={config.nomSize}
               onChange={(e) => setConfig({ ...config, nomSize: parseInt(e.target.value) })}
@@ -211,14 +204,13 @@ export default function LogoCustomization() {
               aria-label="Taille du nom de l'entreprise en pourcentage"
             />
             <div className="flex justify-between text-[10px] font-manrope text-navy/40 mt-1">
-              <span>60% (compact)</span>
+              <span>70% (compact)</span>
               <span>100% (standard)</span>
-              <span>140% (max)</span>
+              <span>130% (max)</span>
             </div>
           </div>
         </div>
 
-        {/* === COLONNE DROITE : preview live === */}
         <div>
           <p className="text-xs font-manrope font-semibold text-navy/60 uppercase tracking-wide mb-2">Apercu en direct</p>
           <div className="rounded-xl overflow-hidden border-2 border-gray-200">
@@ -226,10 +218,10 @@ export default function LogoCustomization() {
               className="relative overflow-hidden"
               style={{
                 background: '#15233b',
-                height: '170px',
-                padding: '0 20px 0 16px',
+                padding: '24px 20px 24px 16px',
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
               }}
             >
               <div
@@ -246,14 +238,14 @@ export default function LogoCustomization() {
                   clipPath: 'polygon(50% 0, 54% 0, 46% 100%, 42% 100%)',
                 }}
               />
-              <div className="relative z-10 flex items-center gap-4">
+              <div className="relative z-10 flex items-center gap-4 min-w-0 max-w-[44%]">
                 <div
                   style={{
-                    width: `${previewCardSize}px`,
-                    height: `${previewCardSize}px`,
+                    width: previewCardSize + 'px',
+                    height: previewCardSize + 'px',
                     background: previewCardBg,
-                    borderRadius: `${previewCardRadius}px`,
-                    padding: `${previewCardPadding}px`,
+                    borderRadius: previewCardRadius + 'px',
+                    padding: previewCardPadding + 'px',
                     boxShadow: previewCardShadow,
                     display: 'flex',
                     alignItems: 'center',
@@ -268,14 +260,13 @@ export default function LogoCustomization() {
                     <div className="text-navy text-xs font-bold">LOGO</div>
                   )}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p
-                    className="font-syne font-extrabold text-white leading-tight"
-                    style={{ fontSize: `${previewNomSize}px` }}
+                    className="font-syne font-extrabold text-white leading-tight truncate"
+                    style={{ fontSize: previewNomSize + 'px' }}
                   >
                     {nomEntreprise}
                   </p>
-                  {/* V3.1.3 : metier retire du bandeau (visible dans la carte EMETTEUR plus bas) */}
                 </div>
               </div>
             </div>
