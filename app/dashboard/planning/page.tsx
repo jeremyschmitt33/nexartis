@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import NotesIntervention from '@/components/NotesIntervention'
 import Combobox, { ComboboxItem } from '@/components/Combobox'
+import PlanningVoiceBanner from '@/components/voice/PlanningVoiceBanner'
 import { Input } from '@/components/ui/Input'
 import SoloAgendaView from '@/components/planning/SoloAgendaView'
 import { useViewModeAuto } from '@/components/planning/hooks/useViewModeAuto'
@@ -2198,6 +2199,8 @@ function PlanningPageInner() {
 
   return (
     <div className="min-h-screen bg-[#f6f8fb]">
+      {/* V3.1 : banniere creation evenement depuis dictee vocale */}
+      <PlanningVoiceBanner />
       {/* ── HEADER ── */}
       <header className="bg-white border-b border-[#e6ecf2] px-3 sm:px-6 py-3 sm:py-3.5 sticky top-0 z-30">
         <div className="flex items-center justify-between gap-2">

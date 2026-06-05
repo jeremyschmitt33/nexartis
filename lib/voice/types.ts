@@ -114,9 +114,9 @@ export const VOICE_INTENT_CONFIDENCE_THRESHOLD = 0.7
  * Vercel Hobby coupe l'API a 10s : on garde une marge.
  * Audio webm/opus 32kbps de 18s = ~75 KB upload + 6-8s Gemini = ~9s total.
  */
-export const VOICE_MAX_RECORDING_SEC = 18
+export const VOICE_MAX_RECORDING_SEC = 45
 
 /**
  * Avertissement visuel a partir de cette duree (orange).
  */
-export const VOICE_WARN_RECORDING_SEC = 15
+export const VOICE_WARN_RECORDING_SEC = 42

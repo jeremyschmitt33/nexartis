@@ -218,7 +218,7 @@ export default function VoiceCommandModal({ open, onClose }: VoiceCommandModalPr
                     <li>&laquo; Ajoute un rdv mardi 14h chez Bernard pour un devis terrasse &raquo;</li>
                   </ul>
                   <p className="text-[11px] font-manrope text-navy/50 pt-1 border-t border-sky/20">
-                    Limite : 20 secondes max par dictee (offre gratuite).
+                    Limite : 45 secondes max par dictee (offre gratuite).
                   </p>
                 </div>
               )}

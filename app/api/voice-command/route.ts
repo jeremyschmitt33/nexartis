@@ -32,7 +32,7 @@ import type { VoiceCommandSuccessResponse } from '@/lib/voice/types'
 // Multipart binaire = runtime Node obligatoire (pas Edge)
 export const runtime = 'nodejs'
 // Vercel Hobby coupe a 10s. On reste prudent ici.
-export const maxDuration = 10
+export const maxDuration = 60
 
 // Limites de securite cote serveur (defense en profondeur)
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024 // 15 MB (Gemini Flash supporte 20 MB inline)
