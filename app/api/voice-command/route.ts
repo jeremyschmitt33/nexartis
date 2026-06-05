@@ -237,6 +237,8 @@ export async function POST(req: NextRequest) {
     // ============================================================
     const rawTrans = validation.data.raw_transcription
     console.log(`[voice-command] raw_transcription="${rawTrans?.slice(0, 200) ?? ''}"`)
+    // V3.1 debug : on logue ce que Gemini a effectivement extrait (avant fallback serveur)
+    console.log(`[voice-command] gemini extracted: intent=${validation.data.intent} civilite=${validation.data.client_civilite ?? 'NULL'} prenom=${validation.data.client_prenom ?? 'NULL'} nom=${validation.data.client_nom ?? 'NULL'} objet=${validation.data.objet ?? 'NULL'} lignes=${validation.data.lignes?.length ?? 0}`)
 
     // Fallback civilite : on scrute la transcription PUIS client_nom et client_prenom
     // (cas ou Gemini a colle 'Monsieur Dupont' dans client_nom directement)
@@ -270,6 +272,9 @@ export async function POST(req: NextRequest) {
         console.log(`[voice-command] fallback objet applique: ${obj}`)
       }
     }
+
+    // V3.1 debug : etat final apres fallbacks serveur
+    console.log(`[voice-command] final apres fallbacks: civilite=${validation.data.client_civilite ?? 'NULL'} objet=${validation.data.objet ?? 'NULL'}`)
 
     // ============================================================
     // 9. Projection raw -> payload typed selon l'intent
