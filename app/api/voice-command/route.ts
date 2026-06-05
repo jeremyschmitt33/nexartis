@@ -25,8 +25,9 @@ import {
   geminiCommandResponseSchema,
   projectVoiceCommand,
 } from '@/lib/voice/schema'
-import { buildVoiceCommandSystemPrompt } from '@/lib/voice/prompt'
+import { buildVoiceCommandSystemPrompt, type VoiceArtisanContext } from '@/lib/voice/prompt'
 import { callGeminiResilient } from '@/lib/voice/gemini-call'
+import { extractCiviliteFromTranscription, extractObjetFromTranscription } from '@/lib/voice/fallback-extraction'
 import type { VoiceCommandSuccessResponse } from '@/lib/voice/types'
 
 // Multipart binaire = runtime Node obligatoire (pas Edge)
@@ -91,6 +92,16 @@ export async function POST(req: NextRequest) {
     const audioFile = formData.get('audio')
     // Fallback texte : si le micro n'est pas dispo, l'artisan peut taper
     const textFallback = formData.get('text')
+    // V3.1 Vague C : contexte metier de l'artisan injecte dans le prompt
+    const contextRaw = formData.get('context')
+    let context: VoiceArtisanContext | undefined
+    if (typeof contextRaw === 'string' && contextRaw.length > 0 && contextRaw.length < 20_000) {
+      try {
+        context = JSON.parse(contextRaw)
+      } catch {
+        // contexte invalide : on continue sans, pas critique
+      }
+    }
 
     // ============================================================
     // 6a. Branche AUDIO (cas standard)
@@ -138,7 +149,7 @@ export async function POST(req: NextRequest) {
     // ============================================================
     // 7. Appel Gemini avec retry + fallback (gemini-2.5-flash -> gemini-2.0-flash)
     // ============================================================
-    const systemPrompt = buildVoiceCommandSystemPrompt(new Date())
+    const systemPrompt = buildVoiceCommandSystemPrompt(new Date(), context)
 
     const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
       { text: systemPrompt },
@@ -152,8 +163,8 @@ export async function POST(req: NextRequest) {
         apiKey,
         parts,
         responseSchema: geminiCommandResponseSchema,
-        temperature: 0.1,
-        maxOutputTokens: 2048,
+        temperature: 0,
+        maxOutputTokens: 4096,
         logTag: 'voice-command',
       })
       rawText = result.text
@@ -218,6 +229,28 @@ export async function POST(req: NextRequest) {
         _warnings: issues.map(i => `${i.path.join('.')} : ${i.message}`),
       } as VoiceCommandSuccessResponse
       return secureJson(tolerantResponse)
+    }
+
+    // ============================================================
+    // 8.5 Fallback serveur : si Gemini a rate civilite ou objet, on les
+    // ré-extrait depuis raw_transcription (filet de securite robuste).
+    // ============================================================
+    const rawTrans = validation.data.raw_transcription
+    if (rawTrans && rawTrans.length > 0) {
+      if (!validation.data.client_civilite) {
+        const civ = extractCiviliteFromTranscription(rawTrans)
+        if (civ) {
+          validation.data.client_civilite = civ
+          console.log(`[voice-command] fallback civilite: ${civ}`)
+        }
+      }
+      if (!validation.data.objet) {
+        const obj = extractObjetFromTranscription(rawTrans)
+        if (obj) {
+          validation.data.objet = obj
+          console.log(`[voice-command] fallback objet: ${obj}`)
+        }
+      }
     }
 
     // ============================================================
