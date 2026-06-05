@@ -66,10 +66,10 @@ export default function LogoCustomization() {
 
   const reset = () => setConfig(DEFAULT_LOGO_CONFIG)
 
-  // === Preview aligne EXACTEMENT sur logoConfigToCssVars ===
+  // === Preview aligne EXACTEMENT sur logoConfigToCssVars (V3.1.5 : nomBase = 41) ===
   const previewCardBase = config.style === 'carte-minimaliste' ? 72 : 104
   const previewCardSize = Math.round((previewCardBase * config.logoSize) / 100)
-  const previewNomSize = Math.round((34 * config.nomSize) / 100)
+  const previewNomSize = Math.round((41 * config.nomSize) / 100)
   const previewCardBg = config.style === 'sans-carte' ? 'transparent' : '#ffffff'
   const previewCardShadow = config.style === 'sans-carte' ? 'none' : config.style === 'carte-minimaliste' ? '0 1px 3px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.18)'
   const previewCardPadding = config.style === 'sans-carte' ? 0 : config.style === 'carte-minimaliste' ? 4 : 6
@@ -277,5 +277,11 @@ export default function LogoCustomization() {
         </div>
       </div>
     </div>
+  )
+}
+    </div>
+  )
+}
+
   )
 }

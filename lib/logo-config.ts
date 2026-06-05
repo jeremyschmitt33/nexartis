@@ -2,10 +2,11 @@
  * Configuration de l'incrustation du logo dans le bandeau des devis et factures.
  * Distinct de DocumentTheme (qui ne gere que les couleurs).
  *
- * V3.1.4 : RESTAURATION fondations d'origine (b9455df) qui marchaient.
- * Bases cardBase=104px et nomBase=34px sont les EXACTES valeurs de l'etat
- * stable avant les tentatives d'agrandissement ratees (V3.1.1 -> V3.1.3).
- * Le slider est borne a 70-130% pour ne JAMAIS casser le bandeau.
+ * V3.1.5 : Alignement nom artisan sur taille DEVIS (parite visuelle gauche/droite).
+ *   - cardBase 104px (inchange)
+ *   - nomBase = 41px (= --title-size de .dv-doc) : le nom de l'entreprise a la
+ *     MEME taille que "DEVIS" cote dashboard, equilibre visuel parfait.
+ *   - Slider borne a 70-130% : a 130% on a 41*1.3 = 53.3px, reste < 60px max.
  */
 
 export type LogoStyle = 'carte-classique' | 'carte-minimaliste' | 'sans-carte'
@@ -59,7 +60,9 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
 export function logoConfigToCssVars(cfg: LogoConfig): Record<string, string> {
   const cardBase = 104
   const cardMini = 72
-  const nomBase = 34
+  // V3.1.5 : nomBase = 41px = --title-size (= taille de "DEVIS" cote dashboard).
+  // A 100% le nom et le titre ont strictement la meme taille -> equilibre visuel.
+  const nomBase = 41
 
   const clampedLogoSize = Math.min(130, Math.max(70, cfg.logoSize))
   const clampedNomSize = Math.min(130, Math.max(70, cfg.nomSize))

@@ -1,12 +1,27 @@
-// lib/pdf/header.ts - V3.1.4
+// lib/pdf/header.ts - V3.1.5
 // Bandeau a 2 zones distinctes (gauche + droite) separees par la barre doree
 // + carte logo + nom artisan + titre + pastille numero + dates.
 //
-// V3.1.4 : RESTAURATION valeurs d'origine (b9455df) qui marchaient.
-//   - logoCardSize a 100% = 28mm (classique), 22mm (minimaliste)
-//   - logoCardX = 12, logoCardY = 12 (fixe, pas de calcul dynamique)
-//   - nomFontSize a 100% = 20pt, y = 24 (fixe)
-//   - sliders clampes a 70-130 pour ne JAMAIS deborder du bandeau de 58mm
+// V3.1.5 : Refonte des proportions du bandeau pour resoudre 3 bugs visuels :
+//   1. Bandeau trop epais (58mm) -> reduit a 50mm
+//   2. Nom artisan trop petit (20pt) -> passe a 30pt (= titleSize "DEVIS")
+//   3. Nom artisan pas centre verticalement avec le logo -> y dynamique sur
+//      logoCardCenterY + fontSize_pt * 0.124 (formule de centrage typographique).
+//
+// Nouvelles valeurs cles :
+//   - headerH = 50mm (au lieu de 58) : bandeau plus aere, ratio elegant
+//   - logoCardY = 7mm (au lieu de 12) : logo remonte de 5mm
+//   - baseSize classique = 30mm (au lieu de 28) : logo legerement plus present
+//   - baseSize minimaliste = 24mm (au lieu de 22) : coherence
+//   - nomBase = 30pt (au lieu de 20) : match strict avec "DEVIS" 30pt
+//   - Plancher auto-fit = 14pt (au lieu de 11) : evite que le nom devienne ridicule
+//   - nomMaxWidth = 133 - textLeftX (gagne 2mm de largeur utile)
+//   - y_nom = logoCardCenterY + nomFontSize_final * 0.124 (centrage VISUEL)
+//   - y_title = logoCardCenterY + titleSize * 0.124 (nom et DEVIS sur meme baseline)
+//   - pillY = y_title + 6 (pastille suit le titre)
+//   - Dates : adaptatif, bascule 1 ligne si chevauchement
+//
+// Sliders bornes a 70-130 (inchange) pour ne JAMAIS deborder du bandeau de 50mm.
 
 import type { jsPDF } from 'jspdf'
 import { C, type Palette } from './palette'
@@ -21,6 +36,12 @@ interface HeaderEntreprise {
   doc_nom_size?: number | null
 }
 
+// Formule de centrage typographique : pour qu'un texte de fontSize s (pt) soit
+// visuellement centre sur un point cy (mm), on positionne sa baseline a :
+//   y_baseline = cy + s * 0.124
+// (= cy + (s * 0.3528 * 0.70) / 2, ou 0.3528 = pt->mm et 0.70 = cap-height)
+const BASELINE_CENTER_FACTOR = 0.124
+
 export function drawHeader(
   doc: jsPDF,
   ent: HeaderEntreprise,
@@ -34,44 +55,46 @@ export function drawHeader(
 ): number {
   const P = palette
   const pageW = 210
-  const headerH = 58
+  const headerH = 50 // V3.1.5 : reduit de 58 a 50mm (bandeau plus aere)
 
-  // Zone GAUCHE (navy)
+  // === Zone GAUCHE (navy) - trapeze : largeur 137 en haut, oblique 20mm a droite ===
   setFill(doc, P.navy)
   doc.lines(
-    [[137, 0], [-20, 58], [-117, 0], [0, -58]],
+    [[137, 0], [-20, headerH], [-117, 0], [0, -headerH]],
     0, 0, [1, 1], 'F', true,
   )
 
-  // Zone DROITE (navyDroite)
+  // === Zone DROITE (navyDroite) - trapeze symetrique ===
   setFill(doc, P.navyDroite)
   doc.lines(
-    [[pageW - 137, 0], [0, 58], [-(pageW - 117), 0], [20, -58]],
+    [[pageW - 137, 0], [0, headerH], [-(pageW - 117), 0], [20, -headerH]],
     137, 0, [1, 1], 'F', true,
   )
 
-  // Barre doree (accent) - separateur diagonal
+  // === Barre doree (accent) - separateur diagonal de 4mm ===
   setFill(doc, P.orange)
   doc.lines(
-    [[4, 0], [-20, 58], [-4, 0], [20, -58]],
+    [[4, 0], [-20, headerH], [-4, 0], [20, -headerH]],
     135, 0, [1, 1], 'F', true,
   )
 
-  // === Carte logo : V3.1.4 RESTAURATION valeurs origine ===
+  // === Carte logo : V3.1.5 valeurs ajustees ===
   const logoStyle = ent.doc_logo_style ?? 'carte-classique'
   const rawLogoSize = ent.doc_logo_size ?? 100
   const clampedLogoSize = Math.min(130, Math.max(70, rawLogoSize))
   const logoScale = clampedLogoSize / 100
-  const baseSize = logoStyle === 'carte-minimaliste' ? 22 : 28
+  // V3.1.5 : baseSize classique 28->30, minimaliste 22->24 (logo plus present)
+  const baseSize = logoStyle === 'carte-minimaliste' ? 24 : 30
   const logoCardSize = baseSize * logoScale
   const logoCardX = 12
-  const logoCardY = 12
+  const logoCardY = 7 // V3.1.5 : remonte de 12 a 7 (gagne 5mm en haut)
+  const logoCardCenterY = logoCardY + logoCardSize / 2 // centre vertical du logo
   if (logoStyle !== 'sans-carte') {
     const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
     roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, radius, P.white)
   }
 
-  // Logo entreprise
+  // Logo entreprise (image dans la carte)
   if (ent.logo_url && ent.logo_url.startsWith('data:image')) {
     try {
       const logoFormat = ent.logo_url.includes('image/png') ? 'PNG' : 'JPEG'
@@ -94,38 +117,51 @@ export function drawHeader(
     drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize, P)
   }
 
-  // === Nom artisan — V3.1.4 RESTAURATION ===
+  // === Nom artisan - V3.1.5 : 30pt, centre verticalement sur le logo ===
   const textLeftX = 12 + logoCardSize + 6
   const rawNomSize = ent.doc_nom_size ?? 100
   const clampedNomSize = Math.min(130, Math.max(70, rawNomSize))
   const nomScale = clampedNomSize / 100
-  const nomBase = 20
-  const nomMaxWidth = 135 - textLeftX - 2
+  const nomBase = 30 // V3.1.5 : passe de 20 a 30pt (= titleSize "DEVIS")
+  const nomMaxWidth = 133 - textLeftX // V3.1.5 : gagne 2mm (etait 135 - textLeftX - 2)
   let nomFontSize = nomBase * nomScale
   font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
-  while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 11) {
+  // Auto-fit : reduit la police par paliers de 1pt jusqu'a tenir dans nomMaxWidth.
+  // Plancher 14pt (au lieu de 11) pour eviter qu'un nom long devienne ridicule
+  // en face d'un DEVIS a 30pt.
+  while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 14) {
     nomFontSize -= 1
     font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
   }
-  doc.text(ent.nom || 'Votre entreprise', textLeftX, 24)
+  // V3.1.5 : y_nom calcule APRES l'auto-fit (utilise la fontSize finale) pour
+  // que le centrage reste correct meme si le nom a ete reduit.
+  const yNom = logoCardCenterY + nomFontSize * BASELINE_CENTER_FACTOR
+  doc.text(ent.nom || 'Votre entreprise', textLeftX, yNom)
 
   // === Titre + pastille numero (zone droite) ===
   const rightAnchorX = 200
+  const zoneRightCenter = 169.5
+
+  // V3.1.5 : titleSize 30pt si court, 20pt si long (>14 car, ex "FACTURE DE SITUATION")
+  const titleSize = title.length > 14 ? 20 : 30
+  // V3.1.5 : titre DEVIS centre verticalement sur le MEME centre que le logo,
+  // donc strictement aligne avec le nom artisan (parite gauche/droite).
+  const yTitle = logoCardCenterY + titleSize * BASELINE_CENTER_FACTOR
+  font(doc, 'Hanken Grotesk', 'extrabold', titleSize, P.white)
+  textCentered(doc, title, zoneRightCenter, yTitle)
+
+  // V3.1.5 : pastille suit le titre (6mm sous la baseline)
   font(doc, 'Hanken Grotesk', 'bold', 10.5, P.navy)
   const numeroW = doc.getTextWidth(numero)
   const pillW = Math.max(numeroW + 10, 32)
   const pillH = 9
-  const zoneRightCenter = 169.5
   const pillX = zoneRightCenter - pillW / 2
-  const pillY = 32
+  const pillY = yTitle + 6
   roundedFill(doc, pillX, pillY, pillW, pillH, 3, P.orange)
+  font(doc, 'Hanken Grotesk', 'bold', 10.5, P.navy)
   textCentered(doc, numero, zoneRightCenter, pillY + 6.5)
 
-  const titleSize = title.length > 14 ? 20 : 30
-  font(doc, 'Hanken Grotesk', 'extrabold', titleSize, P.white)
-  textCentered(doc, title, zoneRightCenter, 24)
-
-  // === Dates sur 2 lignes ===
+  // === Dates : V3.1.5 mode adaptatif (single line si chevauchement) ===
   type DatePiece = { txt: string; size: number; weight: 'normal' | 'bold'; color: typeof P.white }
 
   function drawDateLine(pieces: DatePiece[], yLine: number): void {
@@ -142,23 +178,46 @@ export function drawHeader(
     }
   }
 
-  if (dateGauche) {
+  // Calcul des y des dates : on les place sous la pastille avec un gap de 4.5mm
+  // pour la 1ere, puis interligne 4.5mm pour la 2eme. Plancher sur headerH - 2.
+  const pillBottom = pillY + pillH // bas de la pastille
+  const yDate1 = Math.max(headerH - 6.5, pillBottom + 4.5)
+  const yDate2 = yDate1 + 4.5
+
+  // Si les 2 lignes dates depassent le bandeau (cas logo 130% + 2 dates), on
+  // fusionne en une seule ligne plus compacte pour eviter le debordement.
+  const overflow = yDate2 > headerH - 1 && Boolean(dateGauche) && Boolean(dateDroite)
+
+  if (overflow) {
+    // Mode fusionne : "[label1] [date1]   [label2] [date2]" sur une ligne unique
     drawDateLine(
       [
         { txt: labelGauche + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
         { txt: dateGauche, size: 8.5, weight: 'bold', color: P.white },
-      ],
-      48.5,
-    )
-  }
-  if (dateDroite) {
-    drawDateLine(
-      [
-        { txt: labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
+        { txt: '   ' + labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
         { txt: dateDroite, size: 8.5, weight: 'bold', color: P.white },
       ],
-      53.5,
+      headerH - 3,
     )
+  } else {
+    if (dateGauche) {
+      drawDateLine(
+        [
+          { txt: labelGauche + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
+          { txt: dateGauche, size: 8.5, weight: 'bold', color: P.white },
+        ],
+        yDate1,
+      )
+    }
+    if (dateDroite) {
+      drawDateLine(
+        [
+          { txt: labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
+          { txt: dateDroite, size: 8.5, weight: 'bold', color: P.white },
+        ],
+        yDate2,
+      )
+    }
   }
 
   return headerH
