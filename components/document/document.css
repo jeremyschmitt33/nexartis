@@ -23,8 +23,9 @@
 .dv-headD { position:relative; }
 .dv-headD .dv-d-band { position:relative; background:var(--accent); padding:40px 54px 76px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
-.dv-headD .dv-d-geo { position:absolute; top:0; right:0; height:100%; width:340px;
-  background:var(--accent2); opacity:.10; clip-path:polygon(38% 0,100% 0,100% 100%,8% 100%); }
+/* V3.1 : retire .dv-d-geo (voile dore 10% qui creait un effet de "couleur qui deborde"
+   incoherent avec le PDF qui n'a pas ce voile). Seule la barre dorée nette .dv-d-geo2 reste,
+   identique au PDF. Resultat : dashboard et PDF utilisent EXACTEMENT le meme rendu. */
 .dv-headD .dv-d-geo2 { position:absolute; top:0; right:232px; height:100%; width:70px;
   background:var(--accent2); opacity:.85; clip-path:polygon(58% 0,100% 0,42% 100%,0% 100%); }
 .dv-headD .dv-d-brand { display:flex; align-items:center; gap:18px; position:relative; z-index:2; }
