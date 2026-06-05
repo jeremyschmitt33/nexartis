@@ -52,7 +52,7 @@ export interface DocumentTheme {
  */
 export const DEFAULT_DOCUMENT_THEME: DocumentTheme = {
   bandeauHaut: '#0f1a3a',
-  bandeauHautDroite: '#0f1a3a',
+  bandeauHautDroite: '#1d4ed8',  // V3.1 : bleu royal vif distinct du navy, harmonieux avec l'accent orange
   accent: '#e87a2a',
   cadreEmetteur: '#ffffff',
   cadreAdresse: '#0f1a3a',

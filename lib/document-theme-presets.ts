@@ -57,62 +57,62 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'bleu-nuit-ambre',
     nom: 'Bleu nuit · Ambre',
-    theme: buildPresetTheme('#15233b', '#1f3556', '#dd9138'),
+    theme: buildPresetTheme('#15233b', '#3856a8', '#dd9138'),
   },
   {
     id: 'vert-sapin-cuivre',
     nom: 'Vert sapin · Cuivre',
-    theme: buildPresetTheme('#1c3d31', '#2a5a48', '#c17a4b'),
+    theme: buildPresetTheme('#1c3d31', '#5a8a6b', '#c17a4b'),
   },
   {
     id: 'anthracite-or',
     nom: 'Anthracite · Or',
-    theme: buildPresetTheme('#26292e', '#3e424a', '#c9a227'),
+    theme: buildPresetTheme('#26292e', '#4a5d70', '#c9a227'),
   },
   {
     id: 'bordeaux-sable',
     nom: 'Bordeaux · Sable',
-    theme: buildPresetTheme('#45202a', '#6b3540', '#d39a6b'),
+    theme: buildPresetTheme('#45202a', '#9a4530', '#d39a6b'),
   },
   {
     id: 'encre-laiton',
     nom: 'Encre · Laiton',
-    theme: buildPresetTheme('#1a1d24', '#2e333d', '#b9954e'),
+    theme: buildPresetTheme('#1a1d24', '#3b3a6a', '#b9954e'),
   },
   {
     id: 'bleu-petrole-corail',
     nom: 'Bleu pétrole · Corail',
-    theme: buildPresetTheme('#123b42', '#1d5961', '#e07856'),
+    theme: buildPresetTheme('#123b42', '#2e7a82', '#e07856'),
   },
   {
     id: 'marine-turquoise',
     nom: 'Marine · Turquoise',
-    theme: buildPresetTheme('#102a43', '#1c4368', '#2c9c9c'),
+    theme: buildPresetTheme('#102a43', '#2c5c8a', '#2c9c9c'),
   },
   {
     id: 'foret-moutarde',
     nom: 'Forêt · Moutarde',
-    theme: buildPresetTheme('#1f3324', '#324f3a', '#cba135'),
+    theme: buildPresetTheme('#1f3324', '#5a6f30', '#cba135'),
   },
   {
     id: 'ardoise-bleu-ciel',
     nom: 'Ardoise · Bleu ciel',
-    theme: buildPresetTheme('#2b3440', '#404e5d', '#6592b8'),
+    theme: buildPresetTheme('#2b3440', '#2e4e75', '#6592b8'),
   },
   {
     id: 'aubergine-champagne',
     nom: 'Aubergine · Champagne',
-    theme: buildPresetTheme('#2e2138', '#473253', '#cbb279'),
+    theme: buildPresetTheme('#2e2138', '#6a3e85', '#cbb279'),
   },
   {
     id: 'graphite-bleu-vif',
     nom: 'Graphite · Bleu vif',
-    theme: buildPresetTheme('#25282d', '#3a3e46', '#4a76d4'),
+    theme: buildPresetTheme('#25282d', '#2a3d5c', '#4a76d4'),
   },
   {
     id: 'brique-creme',
     nom: 'Brique · Crème',
-    theme: buildPresetTheme('#5b2f22', '#7d4233', '#e2b488'),
+    theme: buildPresetTheme('#5b2f22', '#a8553a', '#e2b488'),
   },
 ]
 
