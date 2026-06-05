@@ -16,7 +16,6 @@
 // L'enregistrement est limite cote client a 18s pour laisser ~2s a Gemini.
 
 import { NextRequest } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   secureJson, secureError, rateLimitError, unauthorizedError,
@@ -27,6 +26,7 @@ import {
   projectVoiceCommand,
 } from '@/lib/voice/schema'
 import { buildVoiceCommandSystemPrompt } from '@/lib/voice/prompt'
+import { callGeminiResilient } from '@/lib/voice/gemini-call'
 import type { VoiceCommandSuccessResponse } from '@/lib/voice/types'
 
 // Multipart binaire = runtime Node obligatoire (pas Edge)
@@ -136,11 +136,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================================
-    // 7. Appel Gemini 2.5 Flash multimodal
+    // 7. Appel Gemini avec retry + fallback (gemini-2.5-flash -> gemini-2.0-flash)
     // ============================================================
-    const ai = new GoogleGenAI({ apiKey })
     const systemPrompt = buildVoiceCommandSystemPrompt(new Date())
-    const t0 = Date.now()
 
     const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
       { text: systemPrompt },
@@ -148,27 +146,29 @@ export async function POST(req: NextRequest) {
     if (prompt) parts.push({ text: prompt })
     if (audioPart) parts.push(audioPart)
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts,
-        },
-      ],
-      config: {
-        responseMimeType: 'application/json',
+    let rawText = ''
+    try {
+      const result = await callGeminiResilient({
+        apiKey,
+        parts,
         responseSchema: geminiCommandResponseSchema,
-        temperature: 0.1, // basse pour limiter les hallucinations
+        temperature: 0.1,
         maxOutputTokens: 2048,
-      },
-    })
-
-    const latency = Date.now() - t0
-    const rawText = response.text ?? ''
-    console.log(
-      `[voice-command] Gemini latency=${latency}ms, output_length=${rawText.length}, mode=${audioPart ? 'audio' : 'text'}, audio_size=${audioFile instanceof Blob ? audioFile.size : 0}`,
-    )
+        logTag: 'voice-command',
+      })
+      rawText = result.text
+      console.log(
+        `[voice-command] OK model=${result.modelUsed} attempts=${result.attempts} latency=${result.totalLatencyMs}ms mode=${audioPart ? 'audio' : 'text'} audio_size=${audioFile instanceof Blob ? audioFile.size : 0}`,
+      )
+    } catch (geminiErr) {
+      const e = geminiErr as { status?: number; message?: string }
+      const code = e.status ?? 502
+      if (code === 503 || code === 429) {
+        return secureError('Le service vocal est temporairement surcharge. Reessaie dans 30 secondes.', 503)
+      }
+      console.error('[voice-command] Gemini error:', e.message)
+      return secureError('Erreur de communication avec l IA', 502)
+    }
 
     if (!rawText.trim()) {
       return secureError('Reponse Gemini vide', 502)

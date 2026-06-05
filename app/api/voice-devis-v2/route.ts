@@ -13,13 +13,13 @@
 //   7. Renvoie le JSON valide
 
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   secureJson, secureError, rateLimitError, unauthorizedError,
 } from '@/lib/api-security'
 import { voiceDevisResponseSchema, geminiResponseSchema } from '@/lib/voice/schema'
 import { VOICE_DEVIS_SYSTEM_PROMPT } from '@/lib/voice/prompt'
+import { callGeminiResilient } from '@/lib/voice/gemini-call'
 
 // Cette route a besoin du runtime Node (pas Edge) pour traiter du multipart binaire.
 export const runtime = 'nodejs'
@@ -93,39 +93,36 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await audioFile.arrayBuffer()
     const base64Audio = Buffer.from(arrayBuffer).toString('base64')
 
-    // 9. Appeler Gemini 2.5 Flash en mode multimodal
-    const ai = new GoogleGenAI({ apiKey })
-    const t0 = Date.now()
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: VOICE_DEVIS_SYSTEM_PROMPT },
-            {
-              inlineData: {
-                mimeType: mimeType.split(';')[0], // 'audio/webm' depuis 'audio/webm;codecs=opus'
-                data: base64Audio,
-              },
+    // 9. Appeler Gemini avec retry + fallback (resilience contre 503 UNAVAILABLE)
+    let rawText = ''
+    try {
+      const result = await callGeminiResilient({
+        apiKey,
+        parts: [
+          { text: VOICE_DEVIS_SYSTEM_PROMPT },
+          {
+            inlineData: {
+              mimeType: mimeType.split(';')[0],
+              data: base64Audio,
             },
-          ],
-        },
-      ],
-      config: {
-        // Force la sortie JSON structuree
-        responseMimeType: 'application/json',
+          },
+        ],
         responseSchema: geminiResponseSchema,
-        // Temperature basse pour limiter les hallucinations
         temperature: 0.1,
         maxOutputTokens: 2048,
-      },
-    })
-
-    const latency = Date.now() - t0
-    const rawText = response.text ?? ''
-    console.log(`[voice-devis-v2] Gemini latency=${latency}ms, output_length=${rawText.length}, audio_size=${audioFile.size}`)
+        logTag: 'voice-devis-v2',
+      })
+      rawText = result.text
+      console.log(`[voice-devis-v2] OK model=${result.modelUsed} attempts=${result.attempts} latency=${result.totalLatencyMs}ms audio_size=${audioFile.size}`)
+    } catch (geminiErr) {
+      const e = geminiErr as { status?: number; message?: string }
+      const code = e.status ?? 502
+      if (code === 503 || code === 429) {
+        return secureError('Le service vocal est temporairement surcharge. Reessaie dans 30 secondes.', 503)
+      }
+      console.error('[voice-devis-v2] Gemini error:', e.message)
+      return secureError('Erreur de communication avec l IA', 502)
+    }
 
     if (!rawText.trim()) {
       return secureError('Reponse Gemini vide', 502)
