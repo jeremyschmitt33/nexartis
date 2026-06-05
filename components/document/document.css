@@ -28,12 +28,19 @@
 /* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
    par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
 .dv-headD .dv-d-band::before { content:""; position:absolute; top:0; right:0; bottom:0; left:0;
-  background:var(--accent-droite); clip-path:polygon(54% 0, 100% 0, 100% 100%, 46% 100%); z-index:0; }
+  background:var(--accent-droite);
+  /* V3.1 : la zone droite commence pile au bord DROIT de la barre doree (alignee avec .dv-d-geo2) */
+  clip-path:polygon(54% 0, 100% 0, 100% 100%, 46% 100%); z-index:0; }
 /* V3.1 : retire .dv-d-geo (voile dore 10% qui creait un effet de "couleur qui deborde"
    incoherent avec le PDF qui n'a pas ce voile). Seule la barre dorée nette .dv-d-geo2 reste,
    identique au PDF. Resultat : dashboard et PDF utilisent EXACTEMENT le meme rendu. */
-.dv-headD .dv-d-geo2 { position:absolute; top:0; right:232px; height:100%; width:70px;
-  background:var(--accent2); opacity:.85; clip-path:polygon(58% 0,100% 0,42% 100%,0% 100%); }
+/* V3.1 : barre doree repositionnee en POURCENTAGES (plein bandeau) pour s'aligner
+   pixel-perfect avec le clip-path de la zone droite (::before). La barre est fine et
+   oblique, centree sur 50% du bandeau. */
+.dv-headD .dv-d-geo2 { position:absolute; top:0; left:0; right:0; bottom:0;
+  background:var(--accent2); opacity:1;
+  clip-path:polygon(50% 0, 54% 0, 46% 100%, 42% 100%);
+  z-index:1; }
 .dv-headD .dv-d-brand { display:flex; align-items:center; gap:18px; position:relative; z-index:2; }
 .dv-headD .dv-d-logomark { width:104px; height:104px; border-radius:20px; background:#fff;
   color:var(--accent); display:grid; place-items:center; flex:0 0 auto; overflow:hidden;
@@ -188,8 +195,8 @@
 
   /* HEADER : bandeau navy compact, brand et title empiles si tres etroit */
   .dv-headD .dv-d-band { padding:20px 16px 64px; flex-wrap:wrap; gap:14px; }
-  .dv-headD .dv-d-geo { width:160px; }
-  .dv-headD .dv-d-geo2 { width:40px; right:120px; }
+
+  /* V3.1 : barre doree en pourcentages, plus besoin de MQ */
   .dv-headD .dv-d-logomark { width:64px; height:64px; border-radius:14px; }
   .dv-headD .dv-d-logomark svg { width:34px; height:34px; }
   .dv-headD .dv-d-name { font-size:22px; line-height:1.1; }
