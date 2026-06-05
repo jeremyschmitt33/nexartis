@@ -97,11 +97,11 @@ export function drawHeader(
 
   // === 3. Carte logo : taille et style pilotes par config artisan V3.1 ===
   const logoStyle = ent.doc_logo_style ?? 'carte-classique'
-  const logoScale = (ent.doc_logo_size && ent.doc_logo_size >= 60 && ent.doc_logo_size <= 200) ? ent.doc_logo_size / 100 : 1
+  const logoScale = (ent.doc_logo_size && ent.doc_logo_size >= 60 && ent.doc_logo_size <= 140) ? ent.doc_logo_size / 100 : 1
   const baseSize = logoStyle === 'carte-minimaliste' ? 24 : 30  // V3.1.1 : agrandies
   const logoCardSize = baseSize * logoScale
   const logoCardX = 8  // V3.1.1 : reduit pour rapprocher du bord gauche
-  const logoCardY = 12 + (30 - logoCardSize) / 2  // V3.1.1 : recentre selon nouvelle base  // recentrer verticalement si carte plus petite
+  const logoCardY = (headerH - logoCardSize) / 2  // V3.1.3 : centre vertical absolu  // recentrer verticalement si carte plus petite
   if (logoStyle !== 'sans-carte') {
     const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
     roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, radius, P.white)
@@ -133,14 +133,20 @@ export function drawHeader(
   // === 4. Nom artisan + baseline (a droite de la carte logo) — V3.0c.2 ===
   // Logo 28mm + 6mm de gap = nom commence a x=46
   const textLeftX = 12 + logoCardSize + 6  // V3.1 : s'adapte a la taille de carte
-  const nomScale = (ent.doc_nom_size && ent.doc_nom_size >= 60 && ent.doc_nom_size <= 200) ? ent.doc_nom_size / 100 : 1
-  font(doc, 'Hanken Grotesk', 'extrabold', 22 * nomScale, P.white)  // V3.1.1 : base 22pt
-  doc.text(ent.nom || 'Votre entreprise', textLeftX, 24)
-
-  if (ent.metier && ent.metier.trim()) {
-    font(doc, 'Hanken Grotesk', 'normal', 11, P.whiteSoft)
-    doc.text(ent.metier.trim(), textLeftX, 32)
+  const nomScale = (ent.doc_nom_size && ent.doc_nom_size >= 60 && ent.doc_nom_size <= 140) ? ent.doc_nom_size / 100 : 1
+  // V3.1.3 : auto-fit du nom si trop large (la zone gauche va jusqu'a x=135, marge 2mm avant barre doree)
+  const nomMaxWidth = 135 - textLeftX - 2
+  let nomFontSize = 30 * nomScale  // base 30pt = taille DEVIS
+  font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
+  while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 14) {
+    nomFontSize -= 1.5
+    font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
   }
+  // Y : centre vertical du bandeau (baseline visuelle approximative)
+  const nomY = headerH / 2 + nomFontSize * 0.12
+  doc.text(ent.nom || 'Votre entreprise', textLeftX, nomY)
+
+  // V3.1.2 : metier retire du bandeau a la demande (toujours visible dans la carte EMETTEUR plus bas)
 
   // === 5. Titre + pastille numero (zone droite x=139→210) — V3.0c.2 ===
   // Pastille compacte adaptative + DEVIS centre sur l'axe de la pastille.

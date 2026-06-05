@@ -52,10 +52,10 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
     style: (style === 'carte-classique' || style === 'carte-minimaliste' || style === 'sans-carte')
       ? style
       : DEFAULT_LOGO_CONFIG.style,
-    logoSize: (typeof logoSize === 'number' && logoSize >= 60 && logoSize <= 200)
+    logoSize: (typeof logoSize === 'number' && logoSize >= 60 && logoSize <= 140)
       ? logoSize
       : DEFAULT_LOGO_CONFIG.logoSize,
-    nomSize: (typeof nomSize === 'number' && nomSize >= 60 && nomSize <= 200)
+    nomSize: (typeof nomSize === 'number' && nomSize >= 60 && nomSize <= 140)
       ? nomSize
       : DEFAULT_LOGO_CONFIG.nomSize,
   }
@@ -67,9 +67,10 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
  */
 export function logoConfigToCssVars(cfg: LogoConfig): Record<string, string> {
   // V3.1.1 : tailles de base AMPLIFIEES pour que 100% = standard reel, 200% = tres gros
-  const cardBase = 110  // px (carte-classique) - taille reelle dashboard
-  const cardMini = 80   // px (carte-minimaliste)
-  const nomBase = 38    // px (taille nom de base, +12% vs avant)
+  // V3.1.2 : nom base 41px = taille du mot DEVIS (--title-size). cardBase reduit pour eviter bandeau qui s'etire.
+  const cardBase = 100  // px (carte-classique)
+  const cardMini = 72   // px (carte-minimaliste)
+  const nomBase = 41    // px (= taille DEVIS)
 
   const cardSize = cfg.style === 'sans-carte'
     ? Math.round((cardBase * cfg.logoSize) / 100)  // pas de carte, on utilise quand meme la taille comme reference

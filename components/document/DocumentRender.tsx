@@ -61,7 +61,7 @@ function HeaderD({ data }: { data: DocumentData }) {
           </div>
           <div className="dv-d-brandtext">
             <span className="dv-d-name">{artisan.nom}</span>
-            {artisan.baseline && <span className="dv-d-base">{artisan.baseline}</span>}
+            {/* V3.1.2 : metier retire du bandeau a la demande (apparait dans la carte EMETTEUR plus bas) */}
           </div>
         </div>
         <div className="dv-d-title">
