@@ -35,7 +35,10 @@
 .dv-headD .dv-d-band::before { content:""; position:absolute; top:0; right:0; bottom:0; left:0;
   background:var(--accent-droite);
   /* V3.1 : la zone droite commence pile au bord DROIT de la barre doree (alignee avec .dv-d-geo2) */
-  clip-path:polygon(54% 0, 100% 0, 100% 100%, 46% 100%); z-index:0; }
+  /* V3.1.6 : barre alignee PIXEL-PERFECT sur le PDF.
+     PDF : barre centree a x=135/210 = 64.3% en haut, 117/210 = 55.7% en bas.
+     Zone droite demarre au bord DROIT de la barre = 67% en haut, 57% en bas. */
+  clip-path:polygon(67% 0, 100% 0, 100% 100%, 57% 100%); z-index:0; }
 /* V3.1 : retire .dv-d-geo (voile dore 10% qui creait un effet de "couleur qui deborde"
    incoherent avec le PDF qui n'a pas ce voile). Seule la barre dorée nette .dv-d-geo2 reste,
    identique au PDF. Resultat : dashboard et PDF utilisent EXACTEMENT le meme rendu. */
@@ -44,15 +47,16 @@
    oblique, centree sur 50% du bandeau. */
 .dv-headD .dv-d-geo2 { position:absolute; top:0; left:0; right:0; bottom:0;
   background:var(--accent2); opacity:1;
-  clip-path:polygon(50% 0, 54% 0, 46% 100%, 42% 100%);
+  /* V3.1.6 : barre doree alignee sur le PDF (centre a 64% haut / 56% bas, largeur 4%) */
+  clip-path:polygon(63% 0, 67% 0, 57% 100%, 53% 100%);
   z-index:1; }
-/* V3.1.5 : bloc brand strictement colle a gauche (apres padding 54px).
+/* V3.1.6 : bloc brand colle a gauche, plus large (barre doree poussee a droite a 64%/56%).
    - flex:0 1 auto -> le bloc occupe sa largeur naturelle (pas de grow vers le centre).
-   - max-width:38% -> plafond DUR a ~302px, BIEN AVANT la barre doree qui demarre a 42% (333px).
-     Buffer de 31px : le bord droit du brand ne touche JAMAIS la barre doree, meme avec un nom long.
+   - max-width:46% -> plafond DUR a ~365px, BIEN AVANT la barre doree qui demarre a 53% (421px).
+     Buffer de 56px : le bord droit du brand ne touche JAMAIS la barre doree, meme avec un nom long.
    - margin-right:auto -> securise le collage gauche si .dv-d-title est vide. */
 .dv-headD .dv-d-brand { display:flex; align-items:center; gap:18px; position:relative; z-index:2;
-  flex:0 1 auto; max-width:38%; min-width:0; margin-right:auto; }
+  flex:0 1 auto; max-width:46%; min-width:0; margin-right:auto; }
 /* V3.1 : carte logo pilotee par les variables --dv-logo-* (config personnalisable) */
 .dv-headD .dv-d-logomark {
   width:var(--dv-logo-card-size, 104px);
@@ -302,7 +306,6 @@
 
 /* Tres petits ecrans (Galaxy Fold ferme, iPhone SE 1ere gen) */
 @media (max-width: 360px) {
-  .dv-body { padding:0 12px 20px; }
   .dv-headD .dv-d-band { padding:16px 12px 56px; }
   .dv-headD .dv-d-parties { padding:0 12px; }
   .dv-headD .dv-d-name { font-size:19px; }

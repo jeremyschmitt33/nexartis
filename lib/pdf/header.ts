@@ -144,9 +144,14 @@ export function drawHeader(
 
   // V3.1.5 : titleSize 30pt si court, 20pt si long (>14 car, ex "FACTURE DE SITUATION")
   const titleSize = title.length > 14 ? 20 : 30
-  // V3.1.5 : titre DEVIS centre verticalement sur le MEME centre que le logo,
-  // donc strictement aligne avec le nom artisan (parite gauche/droite).
-  const yTitle = logoCardCenterY + titleSize * BASELINE_CENTER_FACTOR
+  // V3.1.6 : DEVIS centre sur cy=12mm (haut du bandeau) pour reduire la marge
+  // au-dessus du titre. Calcul : cy + titleSize * 0.124.
+  //   - 30pt -> yTitle = 12 + 3.72 = 15.72mm (top du caractere a ~8.3mm)
+  //   - 20pt -> yTitle = 12 + 2.48 = 14.48mm (top a ~9.6mm)
+  // Le titre n'est plus aligne avec le nom artisan (qui suit le centre du logo),
+  // mais c'est volontaire : les 2 zones sont separees par la barre doree.
+  const titleCenterY = 12
+  const yTitle = titleCenterY + titleSize * BASELINE_CENTER_FACTOR
   font(doc, 'Hanken Grotesk', 'extrabold', titleSize, P.white)
   textCentered(doc, title, zoneRightCenter, yTitle)
 
@@ -251,6 +256,7 @@ export function drawMiniHeaderPages2Plus(
   const dateStr = dateEmission ? fmtDate(dateEmission) : ''
 
   for (let i = 2; i <= total; i++) {
+
     doc.setPage(i)
     font(doc, 'Hanken Grotesk', 'normal', 7, C.muted)
     const parts: string[] = []
