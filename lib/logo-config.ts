@@ -52,10 +52,10 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
     style: (style === 'carte-classique' || style === 'carte-minimaliste' || style === 'sans-carte')
       ? style
       : DEFAULT_LOGO_CONFIG.style,
-    logoSize: (typeof logoSize === 'number' && logoSize >= 60 && logoSize <= 140)
+    logoSize: (typeof logoSize === 'number' && logoSize >= 60 && logoSize <= 200)
       ? logoSize
       : DEFAULT_LOGO_CONFIG.logoSize,
-    nomSize: (typeof nomSize === 'number' && nomSize >= 60 && nomSize <= 140)
+    nomSize: (typeof nomSize === 'number' && nomSize >= 60 && nomSize <= 200)
       ? nomSize
       : DEFAULT_LOGO_CONFIG.nomSize,
   }
@@ -66,10 +66,10 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
  * pour piloter le rendu du dashboard.
  */
 export function logoConfigToCssVars(cfg: LogoConfig): Record<string, string> {
-  // Tailles de base : carte 90x90 = 100%, logo image 100%, nom 34px = 100%
-  const cardBase = 90  // px (carte-classique)
-  const cardMini = 64  // px (carte-minimaliste)
-  const nomBase = 34   // px (taille nom de base)
+  // V3.1.1 : tailles de base AMPLIFIEES pour que 100% = standard reel, 200% = tres gros
+  const cardBase = 110  // px (carte-classique) - taille reelle dashboard
+  const cardMini = 80   // px (carte-minimaliste)
+  const nomBase = 38    // px (taille nom de base, +12% vs avant)
 
   const cardSize = cfg.style === 'sans-carte'
     ? Math.round((cardBase * cfg.logoSize) / 100)  // pas de carte, on utilise quand meme la taille comme reference

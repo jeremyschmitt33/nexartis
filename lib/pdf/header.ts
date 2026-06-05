@@ -97,11 +97,11 @@ export function drawHeader(
 
   // === 3. Carte logo : taille et style pilotes par config artisan V3.1 ===
   const logoStyle = ent.doc_logo_style ?? 'carte-classique'
-  const logoScale = (ent.doc_logo_size && ent.doc_logo_size >= 60 && ent.doc_logo_size <= 140) ? ent.doc_logo_size / 100 : 1
-  const baseSize = logoStyle === 'carte-minimaliste' ? 20 : 28
+  const logoScale = (ent.doc_logo_size && ent.doc_logo_size >= 60 && ent.doc_logo_size <= 200) ? ent.doc_logo_size / 100 : 1
+  const baseSize = logoStyle === 'carte-minimaliste' ? 24 : 30  // V3.1.1 : agrandies
   const logoCardSize = baseSize * logoScale
-  const logoCardX = 12
-  const logoCardY = 12 + (28 - logoCardSize) / 2  // recentrer verticalement si carte plus petite
+  const logoCardX = 8  // V3.1.1 : reduit pour rapprocher du bord gauche
+  const logoCardY = 12 + (30 - logoCardSize) / 2  // V3.1.1 : recentre selon nouvelle base  // recentrer verticalement si carte plus petite
   if (logoStyle !== 'sans-carte') {
     const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
     roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, radius, P.white)
@@ -133,8 +133,8 @@ export function drawHeader(
   // === 4. Nom artisan + baseline (a droite de la carte logo) — V3.0c.2 ===
   // Logo 28mm + 6mm de gap = nom commence a x=46
   const textLeftX = 12 + logoCardSize + 6  // V3.1 : s'adapte a la taille de carte
-  const nomScale = (ent.doc_nom_size && ent.doc_nom_size >= 60 && ent.doc_nom_size <= 140) ? ent.doc_nom_size / 100 : 1
-  font(doc, 'Hanken Grotesk', 'extrabold', 20 * nomScale, P.white)
+  const nomScale = (ent.doc_nom_size && ent.doc_nom_size >= 60 && ent.doc_nom_size <= 200) ? ent.doc_nom_size / 100 : 1
+  font(doc, 'Hanken Grotesk', 'extrabold', 22 * nomScale, P.white)  // V3.1.1 : base 22pt
   doc.text(ent.nom || 'Votre entreprise', textLeftX, 24)
 
   if (ent.metier && ent.metier.trim()) {

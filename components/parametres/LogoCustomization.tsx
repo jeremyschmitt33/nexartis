@@ -68,16 +68,16 @@ export default function LogoCustomization() {
   const reset = () => setConfig(DEFAULT_LOGO_CONFIG)
 
   // === Calcul du preview en fonction de la config ===
-  const previewCardBase = config.style === 'carte-minimaliste' ? 64 : 90
+  const previewCardBase = config.style === 'carte-minimaliste' ? 70 : 100
   const previewCardSize = Math.round((previewCardBase * config.logoSize) / 100)
-  const previewNomSize = Math.round((24 * config.nomSize) / 100)  // 24px = taille preview
+  const previewNomSize = Math.round((26 * config.nomSize) / 100)
   const previewCardBg = config.style === 'sans-carte' ? 'transparent' : '#ffffff'
   const previewCardShadow = config.style === 'sans-carte' ? 'none' : config.style === 'carte-minimaliste' ? '0 1px 3px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.18)'
   const previewCardPadding = config.style === 'sans-carte' ? 0 : config.style === 'carte-minimaliste' ? 4 : 6
   const previewCardRadius = config.style === 'carte-minimaliste' ? 12 : 20
 
   return (
-    <div className="rounded-xl border-2 border-gray-200 bg-white p-5">
+    <div className="rounded-xl border-2 border-navy/15 bg-slate-50 p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-start gap-3">
           <ImageIcon className="text-navy shrink-0 mt-0.5" size={22} aria-hidden />
@@ -146,7 +146,7 @@ export default function LogoCustomization() {
             <input
               type="range"
               min={60}
-              max={140}
+              max={200}
               step={5}
               value={config.logoSize}
               onChange={(e) => setConfig({ ...config, logoSize: parseInt(e.target.value) })}
@@ -156,7 +156,7 @@ export default function LogoCustomization() {
             <div className="flex justify-between text-[10px] font-manrope text-navy/40 mt-1">
               <span>60% (petit)</span>
               <span>100% (standard)</span>
-              <span>140% (grand)</span>
+              <span>200% (geant)</span>
             </div>
           </div>
 
@@ -169,7 +169,7 @@ export default function LogoCustomization() {
             <input
               type="range"
               min={60}
-              max={140}
+              max={200}
               step={5}
               value={config.nomSize}
               onChange={(e) => setConfig({ ...config, nomSize: parseInt(e.target.value) })}
@@ -179,7 +179,7 @@ export default function LogoCustomization() {
             <div className="flex justify-between text-[10px] font-manrope text-navy/40 mt-1">
               <span>60% (compact)</span>
               <span>100% (standard)</span>
-              <span>140% (proeminent)</span>
+              <span>200% (geant)</span>
             </div>
           </div>
         </div>

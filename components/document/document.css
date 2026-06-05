@@ -23,7 +23,7 @@
 .dv-body { flex:1; padding:0 54px 36px; }
 .dv-party { display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--mute); }
 .dv-headD { position:relative; }
-.dv-headD .dv-d-band { position:relative; background:var(--accent); padding:40px 54px 76px;
+.dv-headD .dv-d-band { position:relative; background:var(--accent); padding:40px 28px 76px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
 /* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
    par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
