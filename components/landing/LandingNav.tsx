@@ -70,8 +70,8 @@ export default function LandingNav() {
         'fixed top-0 left-0 right-0 z-[100]',
         'transition-[background-color,border-color,padding,backdrop-filter] duration-200 ease-out',
         scrolled
-          ? 'bg-bgdark/[0.78] backdrop-blur-[18px] border-b border-white/[0.06] py-3'
-          : 'bg-transparent border-b border-transparent py-[18px]',
+          ? 'bg-bgdark/[0.78] backdrop-blur-[18px] border-b border-white/[0.06] py-2.5'
+          : 'bg-transparent border-b border-transparent py-[14px]',
       ].join(' ')}
       aria-label="Navigation principale"
     >
@@ -85,11 +85,11 @@ export default function LandingNav() {
           <Image
             src="/images/logo-nexartis.png"
             alt="Nexartis"
-            width={40}
-            height={40}
+            width={48}
+            height={48}
             priority
             quality={100}
-            className="h-10 w-10 object-contain rounded-[10px]"
+            className="h-12 w-12 object-contain rounded-[10px]"
           />
           <span>Nexartis</span>
         </Link>
