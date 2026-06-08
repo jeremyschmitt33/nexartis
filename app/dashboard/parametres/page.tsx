@@ -1015,10 +1015,37 @@ function CompteSection({ userEmail }: { userEmail: string }) {
         </button>
       </div>
 
+      {/* Suppression de compte (RGPD art. 17 — droit à l'effacement).
+          Le bouton précédent était décoratif (aucun onClick). En attendant
+          l'implémentation d'un workflow de suppression automatisé (cascade
+          Supabase + confirmation forte + délai d'annulation 24h), on
+          fournit dès maintenant un canal humain conforme RGPD : email avec
+          accusé de réception, réponse sous 30 jours maximum (art. 12.3 RGPD). */}
       <div className="mt-12 pt-6 border-t border-gray-100">
-        <button className="font-manrope text-sm text-red-500 hover:text-red-700 hover:underline transition-colors">
+        <h3 className="font-syne font-bold text-base text-[#1a1a2e] mb-2">
           Supprimer mon compte
-        </button>
+        </h3>
+        <p className="font-manrope text-sm text-gray-600 leading-relaxed mb-3">
+          Conformément à l&apos;article 17 du RGPD, vous pouvez demander la
+          suppression définitive de votre compte et de toutes les données
+          associées (clients, devis, factures, équipe, paramètres). Pour cela,
+          envoyez un email depuis l&apos;adresse de votre compte à&nbsp;
+          <a
+            href="mailto:contact.nexartis@gmail.com?subject=Demande%20de%20suppression%20de%20mon%20compte%20Nexartis&body=Bonjour%2C%0A%0AJe%20souhaite%20supprimer%20d%C3%A9finitivement%20mon%20compte%20Nexartis%20ainsi%20que%20l%27ensemble%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AMerci%20de%20me%20confirmer%20la%20bonne%20prise%20en%20compte%20de%20cette%20demande.%0A%0ACordialement"
+            className="text-[#e87a2a] hover:underline font-semibold"
+          >
+            contact.nexartis@gmail.com
+          </a>.
+          Votre demande sera traitée sous 30 jours maximum. Avant la suppression,
+          pensez à exporter vos données (devis, factures) depuis vos pages
+          respectives (boutons « Télécharger PDF »).
+        </p>
+        <a
+          href="mailto:contact.nexartis@gmail.com?subject=Demande%20de%20suppression%20de%20mon%20compte%20Nexartis&body=Bonjour%2C%0A%0AJe%20souhaite%20supprimer%20d%C3%A9finitivement%20mon%20compte%20Nexartis%20ainsi%20que%20l%27ensemble%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AMerci%20de%20me%20confirmer%20la%20bonne%20prise%20en%20compte%20de%20cette%20demande.%0A%0ACordialement"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-red-300 bg-white text-red-600 font-manrope font-semibold text-sm hover:bg-red-50 transition-colors"
+        >
+          Demander la suppression par email
+        </a>
       </div>
     </div>
   )

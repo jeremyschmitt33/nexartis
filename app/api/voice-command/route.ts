@@ -236,9 +236,10 @@ export async function POST(req: NextRequest) {
     // ré-extrait depuis raw_transcription (filet de securite robuste).
     // ============================================================
     const rawTrans = validation.data.raw_transcription
-    console.log(`[voice-command] raw_transcription="${rawTrans?.slice(0, 200) ?? ''}"`)
-    // V3.1 debug : on logue ce que Gemini a effectivement extrait (avant fallback serveur)
-    console.log(`[voice-command] gemini extracted: intent=${validation.data.intent} civilite=${validation.data.client_civilite ?? 'NULL'} prenom=${validation.data.client_prenom ?? 'NULL'} nom=${validation.data.client_nom ?? 'NULL'} objet=${validation.data.objet ?? 'NULL'} lignes=${validation.data.lignes?.length ?? 0}`)
+    // RGPD (2026-06-08) : on ne log plus la transcription brute ni les noms/prenoms
+    // clients en clair. Ils etaient conserves 12 mois dans les logs Vercel = fuite
+    // passive de PII. On garde uniquement les metadonnees utiles au debug.
+    console.log(`[voice-command] gemini extracted: intent=${validation.data.intent} hasCivilite=${!!validation.data.client_civilite} hasPrenom=${!!validation.data.client_prenom} hasNom=${!!validation.data.client_nom} hasObjet=${!!validation.data.objet} lignesCount=${validation.data.lignes?.length ?? 0} rawLen=${rawTrans?.length ?? 0}`)
 
     // Fallback civilite : on scrute la transcription PUIS client_nom et client_prenom
     // (cas ou Gemini a colle 'Monsieur Dupont' dans client_nom directement)
@@ -250,7 +251,8 @@ export async function POST(req: NextRequest) {
       )
       if (civ) {
         validation.data.client_civilite = civ
-        console.log(`[voice-command] fallback civilite applique: ${civ}`)
+        // RGPD (2026-06-08) : on log le fait que le fallback a marche, pas la valeur
+        console.log(`[voice-command] fallback civilite applique`)
         // Nettoyer client_nom si la civilite y etait collee
         const cleanRegex = /^(monsieur|mr|madame|mme|mademoiselle|mlle|m\.|société|societe|sarl|sas|sasu|sci|eurl)\s+/i
         if (validation.data.client_nom && cleanRegex.test(validation.data.client_nom)) {
@@ -260,7 +262,7 @@ export async function POST(req: NextRequest) {
           validation.data.client_prenom = validation.data.client_prenom.replace(cleanRegex, '').trim()
         }
       } else {
-        console.log(`[voice-command] aucune civilite detectee (raw vide ou aucune correspondance)`)
+        console.log(`[voice-command] aucune civilite detectee`)
       }
     }
 
@@ -269,12 +271,14 @@ export async function POST(req: NextRequest) {
       const obj = extractObjetFromTranscription(rawTrans)
       if (obj) {
         validation.data.objet = obj
-        console.log(`[voice-command] fallback objet applique: ${obj}`)
+        // RGPD (2026-06-08) : on log juste le fait, pas la valeur de l'objet
+        // (qui peut contenir des references identifiantes : "renovation Dupont").
+        console.log(`[voice-command] fallback objet applique`)
       }
     }
 
-    // V3.1 debug : etat final apres fallbacks serveur
-    console.log(`[voice-command] final apres fallbacks: civilite=${validation.data.client_civilite ?? 'NULL'} objet=${validation.data.objet ?? 'NULL'}`)
+    // RGPD (2026-06-08) : etat final apres fallbacks (booleans uniquement)
+    console.log(`[voice-command] final apres fallbacks: hasCivilite=${!!validation.data.client_civilite} hasObjet=${!!validation.data.objet}`)
 
     // ============================================================
     // 9. Projection raw -> payload typed selon l'intent
