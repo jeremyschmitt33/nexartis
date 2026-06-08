@@ -746,6 +746,18 @@ function FacturationSection({
     if (entreprise) {
       setTvaDefaut(String(entreprise.tva_defaut ?? '20'))
       setDelaiPaiement(String(entreprise.delai_paiement_defaut ?? '30'))
+      // D5 (2026-06-08) : hydrater aussi les 3 mentions légales par défaut
+      // (avant : les valeurs étaient affichées mais non chargées depuis la DB,
+      //  donc l'utilisateur voyait toujours les défauts hardcodés).
+      if (entreprise.penalites_retard_defaut) {
+        setPenalites(String(entreprise.penalites_retard_defaut))
+      }
+      if (entreprise.indemnite_forfaitaire_defaut) {
+        setIndemnite(String(entreprise.indemnite_forfaitaire_defaut))
+      }
+      if (entreprise.escompte_defaut) {
+        setEscompte(String(entreprise.escompte_defaut))
+      }
     }
   }, [entreprise])
 
@@ -754,9 +766,16 @@ function FacturationSection({
     setSuccess(null)
     setErrorMsg(null)
     try {
+      // D5 (2026-06-08) : ajout des 3 mentions légales par défaut dans
+      // l'UPDATE. Sans ça, les saisies utilisateur de "Pénalités de retard",
+      // "Indemnité forfaitaire" et "Escompte" étaient silencieusement perdues.
+      // Nécessite migration SQL : lib/supabase/migration-2026-06-08-D5-penalites-indemnite-escompte.sql
       await update({
         tva_defaut: parseFloat(tvaDefaut),
         delai_paiement_defaut: parseInt(delaiPaiement, 10),
+        penalites_retard_defaut: penalites.trim() || null,
+        indemnite_forfaitaire_defaut: indemnite.trim() || null,
+        escompte_defaut: escompte.trim() || null,
       })
       setSuccess('Paramètres de facturation enregistrés avec succès.')
     } catch (err) {
