@@ -29,6 +29,29 @@ export interface UseVoiceCommandReturn {
   reset: () => void
 }
 
+// Cache module : on ne refetch pas le contexte a chaque dictee, on garde 10 minutes
+let cachedContext: string | null = null
+let cachedAt = 0
+const CONTEXT_TTL_MS = 10 * 60 * 1000
+
+async function fetchVoiceContext(): Promise<string | null> {
+  const now = Date.now()
+  if (cachedContext && (now - cachedAt) < CONTEXT_TTL_MS) {
+    return cachedContext
+  }
+  try {
+    const res = await fetch('/api/voice-context', { method: 'GET' })
+    if (!res.ok) return null
+    const json = await res.json()
+    const serialized = JSON.stringify(json)
+    cachedContext = serialized
+    cachedAt = now
+    return serialized
+  } catch {
+    return null
+  }
+}
+
 async function postToVoiceCommand(form: FormData): Promise<VoiceCommandSuccessResponse> {
   const res = await fetch('/api/voice-command', {
     method: 'POST',
@@ -57,6 +80,9 @@ export function useVoiceCommand(): UseVoiceCommandReturn {
       const form = new FormData()
       const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'
       form.append('audio', blob, `commande-vocale.${ext}`)
+      // V3.1 Vague C : inject context metier (50 prestations + metier)
+      const context = await fetchVoiceContext()
+      if (context) form.append('context', context)
       const data = await postToVoiceCommand(form)
       setResult(data)
       setStep('result')
@@ -97,6 +123,8 @@ export function useVoiceCommand(): UseVoiceCommandReturn {
     try {
       const form = new FormData()
       form.append('text', text.trim())
+      const context = await fetchVoiceContext()
+      if (context) form.append('context', context)
       const data = await postToVoiceCommand(form)
       setResult(data)
       setStep('result')
