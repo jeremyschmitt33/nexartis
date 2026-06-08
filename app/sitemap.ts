@@ -1,4 +1,6 @@
 import type { MetadataRoute } from 'next'
+import fs from 'node:fs'
+import path from 'node:path'
 
 /**
  * Sitemap dynamique pour nexartis.fr
@@ -11,6 +13,39 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Se met a jour automatiquement a chaque push sur Vercel, donc Google
   // detecte toujours du contenu "frais" sans risquer une date dans le futur.
   const lastModified = new Date()
+
+  // ════════════════════════════════════════════════════════════════════
+  // Articles de blog (route dynamique /blog/[slug])
+  // Scanne le dossier content/blog/ au build et genere une entree par
+  // fichier markdown. lastModified = champ "updated" du frontmatter si
+  // present, sinon date du build.
+  // ════════════════════════════════════════════════════════════════════
+  const blogContentDir = path.join(process.cwd(), 'content', 'blog')
+  const blogPages: MetadataRoute.Sitemap = []
+  if (fs.existsSync(blogContentDir)) {
+    const files = fs.readdirSync(blogContentDir).filter((f) => f.endsWith('.md'))
+    for (const file of files) {
+      const slug = file.replace(/\.md$/, '')
+      let articleLastMod: Date = lastModified
+      try {
+        const raw = fs.readFileSync(path.join(blogContentDir, file), 'utf8')
+        // Extrait la valeur "updated: 2026-06-08" du frontmatter YAML
+        const m = raw.match(/^updated:\s*["']?([0-9]{4}-[0-9]{2}-[0-9]{2})["']?$/m)
+        if (m && m[1]) {
+          const d = new Date(m[1])
+          if (!isNaN(d.getTime())) articleLastMod = d
+        }
+      } catch {
+        // fichier illisible : on garde lastModified du build
+      }
+      blogPages.push({
+        url: `${baseUrl}/blog/${slug}`,
+        changeFrequency: 'monthly' as const,
+        priority: 0.8,
+        lastModified: articleLastMod,
+      })
+    }
+  }
 
   // Pages publiques principales
   const mainPages = [
@@ -48,8 +83,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/cookies`, changeFrequency: 'yearly' as const, priority: 0.3 },
   ]
 
-  return [...mainPages, ...metierPages, ...villePages, ...legalPages].map(page => ({
-    ...page,
-    lastModified,
-  }))
+  // Pages statiques : on ajoute lastModified = date du build.
+  // Pages blog : lastModified deja calcule depuis le frontmatter "updated".
+  const staticPages = [...mainPages, ...metierPages, ...villePages, ...legalPages].map(
+    (page) => ({ ...page, lastModified })
+  )
+
+  return [...staticPages, ...blogPages]
 }
