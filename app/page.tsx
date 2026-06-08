@@ -5,6 +5,7 @@ import HeroOrbital from '@/components/landing/HeroOrbital'
 import TrustBar from '@/components/TrustBar'
 import ProblemSection from '@/components/ProblemSection'
 import FeaturesSection from '@/components/FeaturesSection'
+import ForcesSection from '@/components/ForcesSection'
 import PlanningDemoSection from '@/components/PlanningDemoSection'
 import PricingSection from '@/components/PricingSection'
 import FaqSection from '@/components/FaqSection'
@@ -40,6 +41,7 @@ export default function HomePage() {
         <TrustBar />
         <ProblemSection />
         <FeaturesSection />
+        <ForcesSection />
         <PlanningDemoSection />
         <PricingSection />
         <FaqSection />

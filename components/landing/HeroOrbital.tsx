@@ -31,10 +31,13 @@ const CHIPS: Chip[] = [
 
 function chipPositionClasses(corner: Chip['corner']): string {
   switch (corner) {
-    case 'tl': return 'top-[6%] left-[-4%]'
-    case 'tr': return 'top-[18%] right-[-4%]'
-    case 'bl': return 'bottom-[20%] left-[-6%]'
-    case 'br': return 'bottom-[6%] right-[-2%]'
+    // Positions ajustees 2026-06-08 : decalage des chips vers l'exterieur pour
+    // eviter tout chevauchement avec le telephone central (largeur 250px) sur
+    // toutes les tailles d'ecran. Les chips orbitent autour, jamais dessus.
+    case 'tl': return 'top-[2%] left-[-10%] sm:left-[-14%]'
+    case 'tr': return 'top-[14%] right-[-10%] sm:right-[-14%]'
+    case 'bl': return 'bottom-[24%] left-[-12%] sm:left-[-16%]'
+    case 'br': return 'bottom-[10%] right-[-10%] sm:right-[-14%]'
   }
 }
 
@@ -142,7 +145,7 @@ export default function HeroOrbital() {
         {/* COLONNE 2 - SCENE ORBITALE */}
         <div
           ref={stageRef}
-          className="reveal reveal-delay-3 relative w-full mx-auto h-[460px] sm:h-[520px] lg:h-[600px] max-w-[520px] [--mx:0] [--my:0]"
+          className="reveal reveal-delay-3 relative w-full mx-auto h-[460px] sm:h-[540px] lg:h-[620px] max-w-[560px] [--mx:0] [--my:0]"
           style={{ '--mx': 0, '--my': 0 } as React.CSSProperties}
           aria-hidden="true"
         >
