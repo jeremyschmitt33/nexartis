@@ -1,65 +1,34 @@
 'use client'
 
-/**
- * V5 (2026-06-08) — Refonte Hero "Scène orbitale split".
- *
- * Direction : dark premium SaaS fintech, fidele au design handoff.
- * Cf : Downloads/landing page nexartis/design_handoff_nexartis_home/ (Nexartis.html .hero, styles.css .hero-*/.orbital-*/.phone-*/.chip-*)
- *
- * Differences clefs vs V4 :
- *   - Layout split desktop (lg:grid-cols-[1.1fr_1fr]) : texte a gauche, scene a droite.
- *     Mobile : empile texte centre puis scene plus compacte.
- *   - 4 chips POSITIONNEES AUTOUR du telephone (haut-gauche, haut-droite,
- *     bas-gauche, bas-droite) plutot qu'empilees en colonne.
- *   - 2 anneaux pointilles concentriques 480 / 620 px, visibles
- *     (vs masques par le H1 dans la V4).
- *   - Hauteur Hero contenue dans le fold ~720-820px desktop 1440p.
- *
- * Parallaxe souris (>= 980px, sauf prefers-reduced-motion) :
- *   - useEffect pointermove -> --mx, --my sur le stage.
- *   - Chips bougent de 30px max, telephone de 10px max.
- *
- * Anti-mensonge : textes valides par jeremy (H1, sub, eyebrow, CTAs, note).
- */
+// V5 (2026-06-08) - Refonte Hero scene orbitale split (corrigee NULs).
+// Layout split desktop (texte gauche, scene droite). Mobile : empile.
+// 4 chips orbitales autour du telephone central + 2 anneaux rotatifs.
+// Parallaxe souris >= 980px, garde-fous prefers-reduced-motion.
+// Anti-mensonge : tous textes valides par jerem.
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 
-/* -------------------------------------------------------------------------- */
-/* CHIPS                                                                      */
-/* -------------------------------------------------------------------------- */
+// CHIPS
 
 interface Chip {
-  /** Cle React + label visible. */
   label: string
-  /** Sous-texte fin (font-spline-mono). */
   sublabel: string
-  /** Couleur de la pastille de gauche + de son halo. */
   dotColor: string
-  /** Coin du conteneur scene ou la chip se positionne. */
   corner: 'tl' | 'tr' | 'bl' | 'br'
-  /** Decalage horizontal final (px). Positif = vers l'interieur. */
   offsetX: number
-  /** Decalage vertical final (px). Positif = vers l'interieur. */
   offsetY: number
-  /** Delai d'apparition (s) — etale les 4 chips au reveal. */
   delay: number
-  /** Variante visuelle alerte (bordure orange + glow). */
   alert?: boolean
 }
 
 const CHIPS: Chip[] = [
-  // Haut-gauche : devis signe (mint)
-  { label: 'Devis signé',     sublabel: 'M. Dupont · 2 480 €',         dotColor: 'var(--mint)',    corner: 'tl', offsetX:   0, offsetY:  10, delay: 0.20 },
-  // Haut-droite : alerte conflit (orange + alert)
-  { label: 'Alerte conflit',  sublabel: 'Michel R. déjà affecté jeudi', dotColor: 'var(--accent)',  corner: 'tr', offsetX:   0, offsetY:  60, delay: 0.40, alert: true },
-  // Bas-gauche : CA facture (bleu electric)
-  { label: '6 620 € facturé', sublabel: 'Ce mois-ci · +18 %',          dotColor: 'var(--electric)', corner: 'bl', offsetX:   0, offsetY:  60, delay: 0.60 },
-  // Bas-droite : relance auto (violet)
-  { label: 'Relance auto',    sublabel: '3 rappels envoyés',           dotColor: 'var(--violet)',   corner: 'br', offsetX:   0, offsetY:  10, delay: 0.80 },
+  { label: 'Devis signe',     sublabel: 'M. Dupont - 2 480 EUR',         dotColor: 'var(--mint)',    corner: 'tl', offsetX: 0, offsetY: 10, delay: 0.20 },
+  { label: 'Alerte conflit',  sublabel: 'Michel R. deja affecte jeudi',  dotColor: 'var(--accent)',  corner: 'tr', offsetX: 0, offsetY: 60, delay: 0.40, alert: true },
+  { label: '6 620 EUR facture', sublabel: 'Ce mois-ci - +18%',           dotColor: 'var(--electric)', corner: 'bl', offsetX: 0, offsetY: 60, delay: 0.60 },
+  { label: 'Relance auto',    sublabel: '3 rappels envoyes',             dotColor: 'var(--violet)',   corner: 'br', offsetX: 0, offsetY: 10, delay: 0.80 },
 ]
 
-/** Calcule les classes Tailwind de positionnement absolu selon le coin. */
 function chipPositionClasses(corner: Chip['corner']): string {
   switch (corner) {
     case 'tl': return 'top-[6%] left-[-4%]'
@@ -69,7 +38,6 @@ function chipPositionClasses(corner: Chip['corner']): string {
   }
 }
 
-/** Signe du decalage parallaxe selon le coin (les chips opposees bougent en miroir). */
 function chipParallaxSign(corner: Chip['corner']): { sx: number; sy: number } {
   switch (corner) {
     case 'tl': return { sx: -1, sy: -1 }
@@ -79,18 +47,11 @@ function chipParallaxSign(corner: Chip['corner']): { sx: number; sy: number } {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* COMPONENT                                                                  */
-/* -------------------------------------------------------------------------- */
+// COMPONENT
 
 export default function HeroOrbital() {
   const stageRef = useRef<HTMLDivElement>(null)
 
-  /**
-   * Parallaxe souris desktop. Ecrit --mx / --my sur le stage,
-   * consommees par les chips (x30) et le telephone (x10).
-   * Garde-fous : prefers-reduced-motion ET viewport < 980px.
-   */
   useEffect(() => {
     const stage = stageRef.current
     if (!stage) return
@@ -103,7 +64,6 @@ export default function HeroOrbital() {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => {
         const { innerWidth, innerHeight } = window
-        // dx/dy varient entre -0.5 et +0.5 (centre = 0).
         const dx = (e.clientX - innerWidth / 2) / innerWidth
         const dy = (e.clientY - innerHeight / 2) / innerHeight
         stage.style.setProperty('--mx', String(dx))
@@ -120,15 +80,11 @@ export default function HeroOrbital() {
 
   return (
     <section className="landing-section relative pt-28 lg:pt-32 pb-16 lg:pb-20 px-5 sm:px-7 lg:px-10">
-      {/* Conteneur split : texte (gauche desktop) + scene orbitale (droite desktop) */}
       <div className="mx-auto max-w-container grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-[60px] items-center">
 
-        {/* =========================================================== */}
-        {/* COLONNE 1 — TEXTE (gauche desktop, centre mobile)            */}
-        {/* =========================================================== */}
+        {/* COLONNE 1 - TEXTE */}
         <div className="text-center lg:text-left relative z-10">
 
-          {/* Eyebrow pilule avec point pulsant orange */}
           <div className="reveal mb-6 lg:mb-7 inline-flex">
             <span className="landing-eyebrow landing-eyebrow--accent">
               <span
@@ -136,11 +92,10 @@ export default function HeroOrbital() {
                 style={{ boxShadow: '0 0 10px var(--accent)' }}
                 aria-hidden="true"
               />
-              Conçu en Gironde · Pour les artisans de toute la France
+              Concu en Gironde - Pour les artisans de toute la France
             </span>
           </div>
 
-          {/* H1 — clamp(36, 5vw, 64) — anti-mensonge texte verrouille */}
           <h1
             className="reveal reveal-delay-1 font-hanken font-extrabold tracking-[-0.035em] leading-[1.04] text-ink"
             style={{ fontSize: 'clamp(36px, 5vw, 64px)' }}
@@ -149,17 +104,15 @@ export default function HeroOrbital() {
             <br />
             <span className="landing-text-grad">Un seul prix.</span>{' '}
             <span className="text-accent-2 font-spline-mono tracking-tight whitespace-nowrap">
-              25€/mois.
+              25EUR/mois.
             </span>
           </h1>
 
-          {/* Sub */}
           <p className="reveal reveal-delay-2 mt-5 lg:mt-6 mx-auto lg:mx-0 max-w-[560px] text-[16px] sm:text-[17px] lg:text-[18px] text-ink-2 leading-[1.55]">
-            Devis, factures, planning et suivi financier — réunis dans une seule application,
-            pensée pour tous les artisans.
+            Devis, factures, planning et suivi financier - reunis dans une seule application,
+            pensee pour tous les artisans.
           </p>
 
-          {/* CTAs */}
           <div className="reveal reveal-delay-3 mt-7 lg:mt-8 flex flex-wrap gap-3 justify-center lg:justify-start items-center">
             <Link
               href="/register"
@@ -179,27 +132,21 @@ export default function HeroOrbital() {
             </Link>
           </div>
 
-          {/* Note rassurance */}
           <p className="reveal reveal-delay-4 mt-4 lg:mt-5 text-[13px] text-ink-3 font-medium">
-            Sans carte bancaire <span className="opacity-40 mx-1">·</span>
-            Sans engagement <span className="opacity-40 mx-1">·</span>
-            Prêt en 10 minutes
+            Sans carte bancaire <span className="opacity-40 mx-1">-</span>
+            Sans engagement <span className="opacity-40 mx-1">-</span>
+            Pret en 10 minutes
           </p>
         </div>
 
-        {/* =========================================================== */}
-        {/* COLONNE 2 — SCENE ORBITALE                                   */}
-        {/* =========================================================== */}
+        {/* COLONNE 2 - SCENE ORBITALE */}
         <div
           ref={stageRef}
-          // CSS custom props --mx / --my pilotees par useEffect parallaxe.
-          // h: desktop 600px ; tablette 520px ; mobile 460px (echelle reduite).
-          // overflow-visible pour laisser les chips deborder un peu sur les cotes.
           className="reveal reveal-delay-3 relative w-full mx-auto h-[460px] sm:h-[520px] lg:h-[600px] max-w-[520px] [--mx:0] [--my:0]"
           style={{ '--mx': 0, '--my': 0 } as React.CSSProperties}
           aria-hidden="true"
         >
-          {/* Plateforme elliptique lumineuse sous le telephone */}
+          {/* Plateforme elliptique */}
           <div
             className="absolute left-1/2 -translate-x-1/2 bottom-[8%] w-[420px] max-w-[90%] h-[140px] rounded-[50%] pointer-events-none"
             style={{
@@ -209,12 +156,12 @@ export default function HeroOrbital() {
             }}
           />
 
-          {/* Anneau pointille 1 — 480px, rotation lente horaire */}
+          {/* Anneau 1 */}
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[105%] aspect-square rounded-full border border-dashed border-white/[0.10] animate-spin-slow pointer-events-none"
             aria-hidden="true"
           />
-          {/* Anneau pointille 2 — 620px, rotation inverse plus lente */}
+          {/* Anneau 2 */}
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[620px] max-w-[130%] aspect-square rounded-full border border-dashed border-white/[0.06] animate-spin-slow-reverse pointer-events-none"
             aria-hidden="true"
@@ -224,7 +171,6 @@ export default function HeroOrbital() {
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[230px] sm:w-[240px] lg:w-[250px] h-[470px] sm:h-[490px] lg:h-[510px] animate-float-y will-change-transform"
             style={{
-              // Parallaxe douce du telephone (10px max).
               transform: 'translate(calc(-50% + var(--mx) * -10px), calc(-50% + var(--my) * -10px))',
               transition: 'transform 0.4s cubic-bezier(.22,.61,.36,1)',
             }}
@@ -237,18 +183,15 @@ export default function HeroOrbital() {
                   '0 40px 90px rgba(0,0,0,.6), 0 0 0 8px rgba(255,255,255,.02), 0 0 80px color-mix(in srgb, var(--electric) 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.05)',
               }}
             >
-              {/* Notch */}
               <div
                 className="absolute top-[10px] left-1/2 -translate-x-1/2 w-[78px] h-[20px] rounded-b-[12px] z-10"
                 style={{ background: 'var(--bgdark)' }}
               />
 
-              {/* Ecran interieur */}
               <div
                 className="w-full h-full rounded-[28px] overflow-hidden flex flex-col"
                 style={{ background: 'linear-gradient(180deg, #0b1020, #0a1326)' }}
               >
-                {/* Barre statut (9:41 + indicateurs) */}
                 <div className="flex items-center justify-between px-4 pt-5 pb-1">
                   <span className="text-[10px] text-ink-2 font-spline-mono font-semibold">9:41</span>
                   <div className="flex gap-1 items-center">
@@ -258,35 +201,31 @@ export default function HeroOrbital() {
                   </div>
                 </div>
 
-                {/* En-tete tableau de bord */}
                 <div className="px-4 pt-2 pb-2">
                   <div className="text-[9px] text-ink-3 font-bold uppercase tracking-[0.1em]">Tableau de bord</div>
                   <div className="text-[15px] font-hanken font-semibold text-ink mt-0.5">Bonjour, Michel</div>
                 </div>
 
-                {/* KPI cards (CA + Encaisse) */}
                 <div className="grid grid-cols-2 gap-2 px-4 pt-1">
                   <div className="rounded-[12px] bg-white/[0.04] border border-white/[0.08] p-2.5">
-                    <div className="text-[9px] text-ink-3 font-semibold">CA Facturé</div>
-                    <div className="text-[16px] font-hanken font-bold text-electric-2 mt-0.5 tabular-nums">6 620 €</div>
+                    <div className="text-[9px] text-ink-3 font-semibold">CA Facture</div>
+                    <div className="text-[16px] font-hanken font-bold text-electric-2 mt-0.5 tabular-nums">6 620 EUR</div>
                   </div>
                   <div className="rounded-[12px] bg-white/[0.04] border border-white/[0.08] p-2.5">
-                    <div className="text-[9px] text-ink-3 font-semibold">Encaissé</div>
-                    <div className="text-[16px] font-hanken font-bold mt-0.5 tabular-nums" style={{ color: 'var(--mint)' }}>2 110 €</div>
+                    <div className="text-[9px] text-ink-3 font-semibold">Encaisse</div>
+                    <div className="text-[16px] font-hanken font-bold mt-0.5 tabular-nums" style={{ color: 'var(--mint)' }}>2 110 EUR</div>
                   </div>
                 </div>
 
-                {/* Sous-titre planning */}
                 <div className="px-4 pt-3 pb-1 text-[9px] text-ink-3 font-bold uppercase tracking-[0.05em]">
                   Planning de la semaine
                 </div>
 
-                {/* 3 lignes planning */}
                 <div className="px-4 flex flex-col gap-1.5">
                   {[
-                    { col: 'var(--electric)', t: 'Installation tableau', s: 'M. Dupont · Lun 08:30', tick: false },
-                    { col: 'var(--accent)',   t: 'Rénovation cuisine',   s: 'M. Martin · Jeu 09:00', tick: true  },
-                    { col: 'var(--mint)',     t: 'Pose carrelage',       s: 'M. Bernard · Ven 14:00', tick: false },
+                    { col: 'var(--electric)', t: 'Installation tableau', s: 'M. Dupont - Lun 08:30', tick: false },
+                    { col: 'var(--accent)',   t: 'Renovation cuisine',   s: 'M. Martin - Jeu 09:00', tick: true  },
+                    { col: 'var(--mint)',     t: 'Pose carrelage',       s: 'M. Bernard - Ven 14:00', tick: false },
                   ].map((r) => (
                     <div
                       key={r.t}
@@ -297,12 +236,11 @@ export default function HeroOrbital() {
                         <div className="text-[10.5px] font-bold text-ink truncate">{r.t}</div>
                         <div className="text-[9px] text-ink-3 font-medium font-spline-mono mt-0.5">{r.s}</div>
                       </div>
-                      {r.tick && <span className="text-[11px]" style={{ color: 'var(--mint)' }}>✓</span>}
+                      {r.tick && <span className="text-[11px]" style={{ color: 'var(--mint)' }}>OK</span>}
                     </div>
                   ))}
                 </div>
 
-                {/* CTA Nouveau devis (sticky bas via mt-auto) */}
                 <div className="mt-auto px-4 pb-4 pt-3">
                   <div
                     className="w-full rounded-[10px] text-center font-hanken font-extrabold text-[11px] py-2.5"
@@ -319,11 +257,10 @@ export default function HeroOrbital() {
             </div>
           </div>
 
-          {/* 4 chips flottantes positionnees AUTOUR du telephone */}
+          {/* 4 chips flottantes */}
           {CHIPS.map((chip) => {
             const sign = chipParallaxSign(chip.corner)
             const posClasses = chipPositionClasses(chip.corner)
-            // Parallaxe : chaque chip bouge dans son cadran (max 30px).
             const transform = `translate(calc(${chip.offsetX}px + var(--mx) * ${sign.sx * 30}px), calc(${chip.offsetY}px + var(--my) * ${sign.sy * 30}px))`
 
             return (
