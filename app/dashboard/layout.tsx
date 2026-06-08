@@ -6,6 +6,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUser, useEntreprise } from '@/lib/hooks'
 import { applySidebarTheme } from '@/components/ThemeSelector'
+import {
+  isRouteBlockedForPlan,
+  getFeatureFromBlockedRoute,
+  type PlanId,
+} from '@/lib/plans'
 import OnboardingTour from '@/components/OnboardingTour'
 import ContactFloatingButton from '@/components/dashboard/ContactFloatingButton'
 import { VoiceProvider } from '@/components/voice/VoiceProvider'
@@ -645,6 +650,42 @@ export default function DashboardLayout({
     const joursEcoules = msEcoules / (1000 * 60 * 60 * 24)
     if (joursEcoules > 14) {
       redirectExpired()
+    }
+  }, [isLoading, entreprise, user, pathname, router])
+
+  // ─────────────────────────────────────────────────────────
+  // Garde feature gating (2 offres Essentiel/Complet) :
+  // Si l'utilisateur est sur le plan 'essential' et tente d'accéder à
+  // une route réservée au Complet (planning, équipe), on le redirige
+  // vers /dashboard/abonnement?upgrade=<feature> qui affiche le message
+  // d'upgrade adapté.
+  //
+  // Règles métier (cf. lib/plans.ts) :
+  //   - trial   → tout accessible (laisser tester)
+  //   - lifetime → tout accessible
+  //   - actif/suspendu + plan='complete' → tout accessible
+  //   - actif/suspendu + plan='essential' → routes bloquées redirigées
+  // ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isLoading || !entreprise || !user) return
+    if (user.email === ADMIN_EMAIL) return
+    // La page abonnement reste toujours accessible (pour upgrader)
+    if (pathname.startsWith('/dashboard/abonnement')) return
+
+    const abonnementType = (entreprise.abonnement_type as string) ?? 'trial'
+    // Pendant l'essai ou pour les comptes lifetime, on ne bloque rien
+    if (abonnementType === 'trial' || abonnementType === 'lifetime') return
+
+    // Plan par défaut 'complete' (rétrocompatibilité avec les anciens comptes
+    // qui n'auraient pas encore le champ après la migration)
+    const plan: PlanId =
+      ((entreprise.subscription_plan as PlanId | null | undefined) ?? 'complete')
+
+    if (isRouteBlockedForPlan(plan, pathname)) {
+      const feature = getFeatureFromBlockedRoute(pathname)
+      router.replace(
+        `/dashboard/abonnement?upgrade=${feature ?? 'planning_chantier'}`,
+      )
     }
   }, [isLoading, entreprise, user, pathname, router])
 
