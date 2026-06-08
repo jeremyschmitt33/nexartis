@@ -36,7 +36,7 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
       </svg>
     ),
-    title: "Envoi par email/SMS",
+    title: "Envoi par email",
     desc: "Envoyez vos devis et factures en un clic. Notification de lecture incluse.",
   },
   {
@@ -104,7 +104,7 @@ const faqItems = [
   },
   {
     q: "Qu\u2019est-ce que la facturation \u00e9lectronique Factur-X 2026\u00a0?",
-    a: "D\u00e8s septembre 2026, toutes les entreprises devront \u00e9mettre des factures au format \u00e9lectronique Factur-X. Nexartis g\u00e9n\u00e8re d\u00e9j\u00e0 vos factures dans ce format, vous \u00eates donc pr\u00eat d\u00e8s aujourd\u2019hui.",
+    a: "D\u00e8s septembre 2026, toutes les entreprises devront \u00e9mettre des factures au format \u00e9lectronique Factur-X. Nexartis est pr\u00eat pour la facturation \u00e9lectronique 2026.",
   },
 ];
 
@@ -386,19 +386,18 @@ export default function LogicielDevisFacturesPage() {
               </p>
               <p>
                 <strong className="text-sky">
-                  Nexartis g&eacute;n&egrave;re d&eacute;j&agrave; toutes vos factures au format
-                  Factur-X.
+                  Nexartis est pr&ecirc;t pour la facturation &eacute;lectronique 2026.
                 </strong>{" "}
-                Vous n&apos;avez rien &agrave; faire, rien &agrave; changer : vos
-                factures sont conformes d&egrave;s aujourd&apos;hui. Quand
-                l&apos;obligation entrera en vigueur, vous serez pr&ecirc;t.
+                Vos factures contiennent toutes les mentions l&eacute;gales BTP fran&ccedil;aises
+                requises et le format Factur-X sera d&eacute;ploy&eacute; avant l&apos;entr&eacute;e
+                en vigueur de l&apos;obligation, sans manipulation de votre part.
               </p>
             </div>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
                 { label: "Format", value: "Factur-X / EN 16931" },
-                { label: "Transmission", value: "PDP int\u00e9gr\u00e9e" },
-                { label: "Conformit\u00e9", value: "100% assur\u00e9e" },
+                { label: "Transmission", value: "PDP \u00e0 venir" },
+                { label: "Mentions BTP", value: "Compl\u00e8tes" },
               ].map((item) => (
                 <div
                   key={item.label}

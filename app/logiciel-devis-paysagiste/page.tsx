@@ -4,7 +4,7 @@ import MetierPageTemplate from "@/components/MetierPageTemplate";
 export const metadata: Metadata = {
   title: "Logiciel Devis Paysagiste — Nexartis | 25€/mois tout inclus",
   description:
-    "Créez vos devis paysagisme et entretien espaces verts en quelques minutes. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis paysagisme et entretien espaces verts en quelques minutes. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
     canonical: '/logiciel-devis-paysagiste',
   },
@@ -17,7 +17,7 @@ const data = {
   h1: "Logiciel devis et factures pour paysagistes",
   metaTitle: "Logiciel Devis Paysagiste — Nexartis | 25€/mois tout inclus",
   metaDescription:
-    "Créez vos devis paysagisme et entretien espaces verts en quelques minutes. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis paysagisme et entretien espaces verts en quelques minutes. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:
     "TVA 20% sur l'aménagement paysager et l'entretien. TVA 10% possible pour les travaux liés à l'habitation.",
   prestationsExemples: [

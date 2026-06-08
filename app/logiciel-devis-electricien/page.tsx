@@ -4,7 +4,7 @@ import MetierPageTemplate from "@/components/MetierPageTemplate";
 export const metadata: Metadata = {
   title: "Logiciel Devis Électricien — Nexartis | 25€/mois tout inclus",
   description:
-    "Créez vos devis électricité en quelques minutes. Normes NF C 15-100 intégrées. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis électricité en quelques minutes. Normes NF C 15-100 intégrées. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
     canonical: '/logiciel-devis-electricien',
   },
@@ -17,7 +17,7 @@ const data = {
   h1: "Logiciel devis et factures pour électriciens",
   metaTitle: "Logiciel Devis Électricien — Nexartis | 25€/mois tout inclus",
   metaDescription:
-    "Créez vos devis électricité en quelques minutes. Normes NF C 15-100 intégrées. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis électricité en quelques minutes. Normes NF C 15-100 intégrées. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:
     "TVA 10% sur la rénovation, 5.5% sur les travaux d'économie d'énergie (panneaux solaires, bornes de recharge), 20% sur le neuf",
   prestationsExemples: [

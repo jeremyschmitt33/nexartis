@@ -4,7 +4,7 @@ import MetierPageTemplate from "@/components/MetierPageTemplate";
 export const metadata: Metadata = {
   title: "Logiciel Devis Carreleur — Nexartis | 25€/mois tout inclus",
   description:
-    "Créez vos devis carrelage en quelques minutes. Fournitures et pose séparées. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis carrelage en quelques minutes. Fournitures et pose séparées. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
     canonical: '/logiciel-devis-carreleur',
   },
@@ -17,7 +17,7 @@ const data = {
   h1: "Logiciel devis et factures pour carreleurs",
   metaTitle: "Logiciel Devis Carreleur — Nexartis | 25€/mois tout inclus",
   metaDescription:
-    "Créez vos devis carrelage en quelques minutes. Fournitures et pose séparées. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis carrelage en quelques minutes. Fournitures et pose séparées. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:
     "TVA 10% sur la pose en rénovation, 20% sur les fournitures vendues seules",
   prestationsExemples: [

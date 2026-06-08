@@ -27,8 +27,8 @@ const features = [
   },
   {
     icon: "⚡",
-    title: "Conforme Factur-X 2026",
-    text: "La facture électronique est obligatoire depuis septembre 2026. Nexartis est certifié conforme — aucune amende à craindre.",
+    title: "Prêt pour Factur-X 2026",
+    text: "La facture électronique devient obligatoire pour le BTP. Nexartis est prêt pour la facturation électronique 2026.",
   },
   {
     icon: "📅",
@@ -37,8 +37,8 @@ const features = [
   },
   {
     icon: "🔔",
-    title: "Relances automatiques",
-    text: "Nexartis envoie des rappels polis aux clients qui n'ont pas payé. Réduisez vos délais de paiement sans démarche manuelle.",
+    title: "Suivi des impayés simplifié",
+    text: "Repérez d'un coup d'œil les factures en retard et relancez vos clients en quelques clics. Réduisez vos délais de paiement.",
   },
   {
     icon: "📱",

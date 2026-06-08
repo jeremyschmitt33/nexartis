@@ -15,14 +15,14 @@ const detailedComparison = [
   { label: "Sync mobile \u00e9quipe", nexartis: true, obat: false, tolteck: false, henrri: false },
   { label: "Tableau de bord CA", nexartis: true, obat: true, tolteck: "partial", henrri: false },
   { label: "TVA auto (5.5/10/20%)", nexartis: true, obat: true, tolteck: true, henrri: false },
-  { label: "Factur-X 2026", nexartis: true, obat: true, tolteck: false, henrri: false },
-  { label: "Relances impay\u00e9s auto", nexartis: true, obat: true, tolteck: false, henrri: false },
+  { label: "Pr\u00eat Factur-X 2026", nexartis: true, obat: true, tolteck: false, henrri: false },
+  { label: "Suivi des impay\u00e9s simplifi\u00e9", nexartis: true, obat: true, tolteck: false, henrri: false },
   { label: "Acomptes / situations", nexartis: true, obat: true, tolteck: "partial", henrri: false },
   { label: "Export comptable", nexartis: true, obat: true, tolteck: true, henrri: "partial" },
   { label: "Application mobile", nexartis: true, obat: "partial", tolteck: "partial", henrri: false },
   { label: "Biblioth\u00e8que prestations", nexartis: true, obat: true, tolteck: true, henrri: false },
-  { label: "Support email/chat", nexartis: true, obat: true, tolteck: false, henrri: false },
-  { label: "Donn\u00e9es h\u00e9berg\u00e9es en France", nexartis: true, obat: true, tolteck: true, henrri: false },
+  { label: "Support email Lun-Ven 9h-18h", nexartis: true, obat: true, tolteck: false, henrri: false },
+  { label: "Donn\u00e9es h\u00e9berg\u00e9es en Europe \u00b7 RGPD strict", nexartis: true, obat: true, tolteck: true, henrri: false },
   { label: "Sans engagement", nexartis: true, obat: false, tolteck: true, henrri: true },
 ];
 

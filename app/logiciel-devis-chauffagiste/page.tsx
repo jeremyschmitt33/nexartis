@@ -4,7 +4,7 @@ import MetierPageTemplate from "@/components/MetierPageTemplate";
 export const metadata: Metadata = {
   title: "Logiciel Devis Chauffagiste — Nexartis | 25€/mois tout inclus",
   description:
-    "Créez vos devis chauffage et climatisation en quelques minutes. TVA réduite automatique. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis chauffage et climatisation en quelques minutes. TVA réduite automatique. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
     canonical: '/logiciel-devis-chauffagiste',
   },
@@ -17,7 +17,7 @@ const data = {
   h1: "Logiciel devis et factures pour chauffagistes",
   metaTitle: "Logiciel Devis Chauffagiste — Nexartis | 25€/mois tout inclus",
   metaDescription:
-    "Créez vos devis chauffage et climatisation en quelques minutes. TVA réduite automatique. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis chauffage et climatisation en quelques minutes. TVA réduite automatique. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:
     "TVA 5.5% sur l'installation de pompe à chaleur et chaudière haute performance, 10% sur l'entretien, 20% sur le neuf",
   prestationsExemples: [

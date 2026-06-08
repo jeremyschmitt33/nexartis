@@ -31,28 +31,49 @@ const legalLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[var(--navy)] text-white/60 border-t border-white/[0.06]">
-      <div className="mx-auto max-w-[1200px] px-5 lg:px-10 py-[60px]">
+    <footer
+      aria-label="Pied de page"
+      className="relative bg-bgdark text-ink-2 font-hanken border-t border-white/[0.06] overflow-hidden"
+    >
+      {/* Halo radial decoratif (atmosphere landing V4) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[280px]"
+        style={{
+          background:
+            "radial-gradient(60% 100% at 50% 0%, rgba(63, 123, 255, 0.05) 0%, rgba(63, 123, 255, 0) 70%)",
+        }}
+      />
+
+      <div className="relative mx-auto max-w-[1200px] px-5 lg:px-10 py-[60px]">
         <div className="grid gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Column 1 — Logo & tagline */}
+          {/* Column 1 - Logo & tagline */}
           <div>
-            <span className="text-[22px] font-[800] text-white">Nexartis</span>
-            <p className="mt-3 text-[13px] leading-relaxed">
-              Solution de gestion pour tous les artisans — Développée à Bordeaux, Gironde.
+            <span className="landing-text-grad text-[22px] font-[800] tracking-tight">
+              Nexartis
+            </span>
+            <p className="mt-3 text-[13px] leading-relaxed text-ink-2 max-w-[30ch]">
+              Logiciel pensé pour les artisans. Conçu en Gironde &middot; Pour la France entière.
             </p>
           </div>
 
-          {/* Column 2 — Par métier */}
+          {/* Column 2 - Par metier */}
           <div>
-            <h4 className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/35 mb-4">
+            <h4
+              id="footer-heading-metier"
+              className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.08em] text-ink-3"
+            >
               Par métier
             </h4>
-            <ul className="flex flex-col gap-1">
+            <ul
+              aria-labelledby="footer-heading-metier"
+              className="flex flex-col gap-1"
+            >
               {metierLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="block text-[13px] text-white/55 py-1 transition-colors hover:text-[var(--orange)]"
+                    className="block py-1 text-[13px] text-ink-3 transition-colors hover:text-ink hover:underline underline-offset-4"
                   >
                     {link.label}
                   </Link>
@@ -61,17 +82,23 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 3 — Navigation */}
+          {/* Column 3 - Navigation */}
           <div>
-            <h4 className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/35 mb-4">
+            <h4
+              id="footer-heading-nav"
+              className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.08em] text-ink-3"
+            >
               Navigation
             </h4>
-            <ul className="flex flex-col gap-1">
+            <ul
+              aria-labelledby="footer-heading-nav"
+              className="flex flex-col gap-1"
+            >
               {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="block text-[13px] text-white/55 py-1 transition-colors hover:text-[var(--orange)]"
+                    className="block py-1 text-[13px] text-ink-3 transition-colors hover:text-ink hover:underline underline-offset-4"
                   >
                     {link.label}
                   </Link>
@@ -80,44 +107,64 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4 — Legal & support */}
+          {/* Column 4 - Legal & support */}
           <div>
-            <h4 className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/35 mb-4">
+            <h4
+              id="footer-heading-legal"
+              className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.08em] text-ink-3"
+            >
               Légal
             </h4>
-            <ul className="flex flex-col gap-1 mb-6">
+            <ul
+              aria-labelledby="footer-heading-legal"
+              className="flex flex-col gap-1 mb-6"
+            >
               {legalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="block text-[13px] text-white/55 py-1 transition-colors hover:text-[var(--orange)]"
+                    className="block py-1 text-[13px] text-ink-3 transition-colors hover:text-ink hover:underline underline-offset-4"
                   >
                     {link.label}
                   </Link>
                 </li>
               ))}
-              {/* Bouton CNIL : permettre à l'utilisateur de modifier ses choix
-                  cookies à tout moment, conformément à la recommandation 2020-091 */}
+              {/* Bouton CNIL : permettre a l'utilisateur de modifier ses choix
+                  cookies a tout moment, conformement a la recommandation 2020-091 */}
               <li>
                 <CookieSettingsButton />
               </li>
             </ul>
-            <h4 className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/35 mb-4">
+            <h4
+              id="footer-heading-support"
+              className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.08em] text-ink-3"
+            >
               Support
             </h4>
-            <ul className="flex flex-col gap-1 text-[13px] text-white/55">
-              <li>📧 contact.nexartis@gmail.com</li>
+            <ul
+              aria-labelledby="footer-heading-support"
+              className="flex flex-col gap-1 text-[13px] text-ink-3"
+            >
+              <li>
+                <a
+                  href="mailto:contact.nexartis@gmail.com"
+                  className="transition-colors hover:text-ink hover:underline underline-offset-4"
+                >
+                  contact.nexartis@gmail.com
+                </a>
+              </li>
               <li>Lun-Ven 9h-18h</li>
             </ul>
           </div>
         </div>
-      </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-white/[0.06]">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-10 py-6">
-          <p className="text-center text-[12px] text-white/30 leading-relaxed">
-            &copy; 2026 Nexartis &mdash; Bordeaux, France &middot; Logiciel certifié conforme Factur-X &middot; Données hébergées en France
+        {/* Bottom bar : copyright a gauche, contact a droite */}
+        <div className="mt-12 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p className="text-[12px] text-ink-3 leading-relaxed">
+            &copy; 2026 Nexartis &middot; Bordeaux, France &middot; Prêt pour Factur-X 2026 &middot; Données hébergées en Europe
+          </p>
+          <p className="text-[12px] text-ink-3 leading-relaxed">
+            contact.nexartis@gmail.com &middot; Lun-Ven 9h-18h
           </p>
         </div>
       </div>

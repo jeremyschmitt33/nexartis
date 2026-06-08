@@ -5,7 +5,7 @@ import PlanningDemoSection from "@/components/PlanningDemoSection";
 const avantPoints = [
   "Oublis de chantiers fr\u00e9quents",
   "Conflits de planning non d\u00e9tect\u00e9s",
-  "Appels et SMS pour pr\u00e9venir l\u2019\u00e9quipe",
+  "Appels r\u00e9p\u00e9t\u00e9s pour pr\u00e9venir l\u2019\u00e9quipe",
   "Aucune vision globale de la semaine",
   "D\u00e9calages \u2192 facturation fauss\u00e9e",
 ];

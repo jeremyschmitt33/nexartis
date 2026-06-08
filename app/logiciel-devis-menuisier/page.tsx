@@ -4,7 +4,7 @@ import MetierPageTemplate from "@/components/MetierPageTemplate";
 export const metadata: Metadata = {
   title: "Logiciel Devis Menuisier — Nexartis | 25€/mois tout inclus",
   description:
-    "Créez vos devis menuiserie en quelques minutes. Fournitures et pose détaillées. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis menuiserie en quelques minutes. Fournitures et pose détaillées. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
     canonical: '/logiciel-devis-menuisier',
   },
@@ -17,7 +17,7 @@ const data = {
   h1: "Logiciel devis et factures pour menuisiers",
   metaTitle: "Logiciel Devis Menuisier — Nexartis | 25€/mois tout inclus",
   metaDescription:
-    "Créez vos devis menuiserie en quelques minutes. Fournitures et pose détaillées. Conforme Factur-X 2026. Essai gratuit.",
+    "Créez vos devis menuiserie en quelques minutes. Fournitures et pose détaillées. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:
     "TVA 10% sur la pose en rénovation, 20% sur les fournitures seules et le neuf",
   prestationsExemples: [

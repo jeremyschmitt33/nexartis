@@ -33,7 +33,7 @@ const jsonLd = {
     url: 'https://nexartis.fr',
     logo: 'https://nexartis.fr/images/logo-nexartis.png',
     description:
-      "Logiciel de gestion devis, factures, planning et chantiers pour artisans du BTP français. Conforme Factur-X 2026.",
+      "Logiciel de gestion devis, factures, planning et chantiers pour artisans du BTP français. Prêt pour Factur-X 2026.",
     founder: {
       '@type': 'Person',
       name: 'Jeremy Schmitt',
@@ -186,7 +186,7 @@ export default function AProposPage() {
             <li className="flex gap-3">
               <span className="flex-shrink-0 font-syne text-orange font-bold">3.</span>
               <span>
-                <strong>Vos données hébergées en France</strong>, jamais vendues, exportables
+                <strong>Vos données hébergées en Europe · RGPD strict</strong>, jamais vendues, exportables
                 en CSV à tout moment.
               </span>
             </li>
