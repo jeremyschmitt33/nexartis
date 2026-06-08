@@ -17,6 +17,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { useEntreprise, useUser, LoadingSkeleton } from '@/lib/hooks'
+import { UPGRADE_MESSAGES, type FeatureKey } from '@/lib/plans'
 
 // -------------------------------------------------------------------
 // Constantes
@@ -190,6 +191,11 @@ function AbonnementPageContent() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const isExpiredFlow = searchParams.get('expired') === '1'
+  // ?upgrade=planning_chantier (ou autre feature) : on arrive ici depuis une
+  // page bloquée pour les utilisateurs Essentiel. Affichage d'un bandeau
+  // explicatif avec le message custom de UPGRADE_MESSAGES (cf. lib/plans.ts).
+  const upgradeFeatureParam = searchParams.get('upgrade') as FeatureKey | null
+  const upgradeInfo = upgradeFeatureParam ? UPGRADE_MESSAGES[upgradeFeatureParam] : null
 
   // Toast initial selon query params
   useEffect(() => {
@@ -346,6 +352,27 @@ function AbonnementPageContent() {
           message={toast.message}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {/* Bannière d'upgrade : utilisateur Essentiel qui a tenté d'accéder
+          à une fonctionnalité réservée à l'offre Complet. Le message exact
+          dépend de ?upgrade=<feature> dans l'URL. */}
+      {upgradeInfo && (
+        <div className="mb-6 rounded-2xl border-2 border-orange/40 bg-gradient-to-br from-orange/10 to-orange/5 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-orange to-orange-hover flex items-center justify-center shadow-lg">
+              <Sparkles size={24} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-syne font-bold text-lg sm:text-xl text-[#1a1a2e] mb-1.5">
+                {upgradeInfo.title}
+              </h2>
+              <p className="font-manrope text-sm text-gray-700 leading-relaxed">
+                {upgradeInfo.description}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bannière de blocage : UTILISATEUR EXPIRÉ */}

@@ -206,6 +206,74 @@ export function getFeatureFromBlockedRoute(pathname: string): FeatureKey | null 
 }
 
 /**
+ * Calcule le plan "effectif" d'un utilisateur, qui combine son abonnement_type
+ * (trial/actif/suspendu/lifetime) et son subscription_plan (essential/complete).
+ *
+ * Règle métier :
+ *   - trial    → toujours 'complete' (laisser tester tout pendant 14 jours)
+ *   - lifetime → toujours 'complete' (early adopters et compte admin)
+ *   - actif/suspendu → on respecte subscription_plan (défaut 'complete')
+ *
+ * Sortie :
+ *   - plan         : le plan effectif appliqué
+ *   - isTrial      : true si on est encore en période d'essai
+ *   - isPaying     : true si paiement actif ou compte lifetime
+ *   - hasFullAccess: alias de plan === 'complete' (commodité UI)
+ */
+export interface EffectivePlanInfo {
+  plan: PlanId
+  isTrial: boolean
+  isPaying: boolean
+  hasFullAccess: boolean
+}
+
+export function getEffectivePlan(
+  entreprise: {
+    abonnement_type?: string | null
+    subscription_plan?: string | null
+  } | null | undefined,
+): EffectivePlanInfo {
+  if (!entreprise) {
+    return {
+      plan: 'complete',
+      isTrial: false,
+      isPaying: false,
+      hasFullAccess: true,
+    }
+  }
+  const abonnementType = entreprise.abonnement_type ?? 'trial'
+  const subscriptionPlan = (entreprise.subscription_plan as PlanId | undefined) ?? 'complete'
+
+  if (abonnementType === 'trial') {
+    return { plan: 'complete', isTrial: true, isPaying: false, hasFullAccess: true }
+  }
+  if (abonnementType === 'lifetime') {
+    return { plan: 'complete', isTrial: false, isPaying: true, hasFullAccess: true }
+  }
+  // actif / suspendu : on applique le plan réel
+  return {
+    plan: subscriptionPlan,
+    isTrial: false,
+    isPaying: abonnementType === 'actif',
+    hasFullAccess: subscriptionPlan === 'complete',
+  }
+}
+
+/**
+ * Liste des routes du dashboard qui correspondent à une fonctionnalité Complet.
+ * Sert à badger visuellement les items de sidebar quand l'utilisateur est en
+ * Essentiel (pour qu'il sache où sont les fonctions premium).
+ */
+export const PREMIUM_DASHBOARD_ROUTES: ReadonlyArray<{ href: string; feature: FeatureKey }> = [
+  { href: '/dashboard/planning', feature: 'planning_chantier' },
+  { href: '/dashboard/equipe', feature: 'gestion_equipe' },
+] as const
+
+export function isPremiumNavItem(href: string): boolean {
+  return PREMIUM_DASHBOARD_ROUTES.some((r) => href === r.href || href.startsWith(r.href + '/'))
+}
+
+/**
  * Texte d'upgrade humain pour chaque feature réservée Complet.
  * Utilisé par le modal d'upgrade et la page /dashboard/abonnement?upgrade=...
  */

@@ -1,7 +1,14 @@
 'use client'
-// components/voice/UniversalVoiceButton.tsx — V3.1
+// components/voice/UniversalVoiceButton.tsx — V3.2 (2026-06-08)
+//
 // Bouton qui ouvre la commande vocale universelle. Place dans la topbar du
 // dashboard. Visible sur toutes les pages (mobile + desktop).
+//
+// Feature gating (V3.2) :
+//   Le devis vocal IA est une fonctionnalité réservée au plan Complet.
+//   - Trial   → bouton visible (laisser tester)
+//   - Complet → bouton visible
+//   - Essentiel → bouton MASQUÉ
 //
 // Variants :
 //   - 'icon'   : icone seule (mobile, dans la topbar a droite du titre)
@@ -10,6 +17,8 @@
 import React from 'react'
 import { Mic } from 'lucide-react'
 import { useVoiceModal } from './VoiceProvider'
+import { useEntreprise } from '@/lib/hooks'
+import { getEffectivePlan } from '@/lib/plans'
 
 interface UniversalVoiceButtonProps {
   variant?: 'icon' | 'pill'
@@ -18,6 +27,16 @@ interface UniversalVoiceButtonProps {
 
 export default function UniversalVoiceButton({ variant = 'icon', className = '' }: UniversalVoiceButtonProps) {
   const { openVoice } = useVoiceModal()
+  const { entreprise, loading } = useEntreprise()
+
+  // Tant que l'on charge l'entreprise, on n'affiche rien (évite un flash visuel)
+  if (loading) return null
+
+  // Feature gating : devis vocal IA réservé au plan Complet (et au trial pour test)
+  const { plan, isTrial } = getEffectivePlan(entreprise)
+  if (!isTrial && plan !== 'complete') {
+    return null
+  }
 
   if (variant === 'pill') {
     return (

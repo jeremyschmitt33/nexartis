@@ -9,6 +9,8 @@ import { applySidebarTheme } from '@/components/ThemeSelector'
 import {
   isRouteBlockedForPlan,
   getFeatureFromBlockedRoute,
+  getEffectivePlan,
+  isPremiumNavItem,
   type PlanId,
 } from '@/lib/plans'
 import OnboardingTour from '@/components/OnboardingTour'
@@ -183,6 +185,8 @@ function Sidebar({
   entrepriseMetier,
   entrepriseLogo,
   userLoading,
+  effectivePlan,
+  isTrial,
 }: {
   collapsed: boolean
   mobileOpen: boolean
@@ -195,6 +199,8 @@ function Sidebar({
   entrepriseMetier: string
   entrepriseLogo: string
   userLoading: boolean
+  effectivePlan: PlanId
+  isTrial: boolean
 }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
@@ -325,19 +331,26 @@ function Sidebar({
 
           {createOpen && (
             <div className="mt-1 rounded-lg bg-white shadow-xl border border-gray-200 overflow-hidden z-50 relative">
-              {CREATE_OPTIONS.map((opt) => (
-                <Link
-                  key={opt.href}
-                  href={opt.href}
-                  onClick={() => {
-                    setCreateOpen(false)
-                    onCloseMobile()
-                  }}
-                  className="block px-4 py-2.5 text-sm text-[#1a1a2e] font-manrope hover:bg-gray-50 transition-colors duration-100"
-                >
-                  {opt.label}
-                </Link>
-              ))}
+              {CREATE_OPTIONS
+                // Devis vocal réservé au plan Complet (et au trial pour test)
+                .filter((opt) => {
+                  const isVoiceOption = opt.href.includes('voice=')
+                  if (!isVoiceOption) return true
+                  return isTrial || effectivePlan === 'complete'
+                })
+                .map((opt) => (
+                  <Link
+                    key={opt.href}
+                    href={opt.href}
+                    onClick={() => {
+                      setCreateOpen(false)
+                      onCloseMobile()
+                    }}
+                    className="block px-4 py-2.5 text-sm text-[#1a1a2e] font-manrope hover:bg-gray-50 transition-colors duration-100"
+                  >
+                    {opt.label}
+                  </Link>
+                ))}
             </div>
           )}
         </div>
@@ -375,12 +388,17 @@ function Sidebar({
                   item.href === '/dashboard/aide' ? 'aide' :
                   item.href === '/dashboard/equipe' ? 'equipe' :
                   undefined
+                // Item réservé au plan Complet → on affiche un badge ★ pour
+                // les utilisateurs Essentiel hors période d'essai (incite à
+                // l'upgrade au lieu d'un blocage silencieux).
+                const isPremium = isPremiumNavItem(item.href)
+                const showPremiumBadge = isPremium && !isTrial && effectivePlan === 'essential'
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={onCloseMobile}
-                    title={collapsed ? item.label : undefined}
+                    title={collapsed ? `${item.label}${showPremiumBadge ? ' (offre Complet)' : ''}` : undefined}
                     data-tour={tourId}
                     className={`
                       group/nav relative flex items-center rounded-lg text-[14px] font-jakarta font-medium
@@ -389,7 +407,9 @@ function Sidebar({
                       ${
                         active
                           ? 'bg-[rgba(90,180,224,0.12)] text-white'
-                          : 'text-white/60 hover:bg-white/[0.05] hover:text-white/85'
+                          : showPremiumBadge
+                            ? 'text-white/50 hover:bg-white/[0.05] hover:text-white/75'
+                            : 'text-white/60 hover:bg-white/[0.05] hover:text-white/85'
                       }
                     `}
                   >
@@ -407,9 +427,30 @@ function Sidebar({
                       }`}
                     />
                     {!collapsed && (
-                      <span className={`truncate ${active ? 'font-semibold' : ''}`}>
+                      <span className={`truncate flex-1 ${active ? 'font-semibold' : ''}`}>
                         {item.label}
                       </span>
+                    )}
+                    {/* Badge ★ pour les items premium quand utilisateur Essentiel */}
+                    {showPremiumBadge && !collapsed && (
+                      <span
+                        className="ml-auto flex-none text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                        style={{
+                          color: '#ffc79a',
+                          background: 'color-mix(in srgb, #ff7a1a 14%, transparent)',
+                          borderColor: 'color-mix(in srgb, #ff7a1a 38%, transparent)',
+                        }}
+                        title="Disponible dans l'offre Complet"
+                      >
+                        ★
+                      </span>
+                    )}
+                    {showPremiumBadge && collapsed && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
+                        style={{ background: '#ff9d4d', boxShadow: '0 0 6px #ff7a1a' }}
+                      />
                     )}
                   </Link>
                 )
@@ -734,6 +775,15 @@ export default function DashboardLayout({
   const entrepriseMetier = (entreprise?.metier as string) || ''
   const entrepriseLogo = (entreprise?.logo_url as string) || ''
 
+  // Plan effectif (cf. lib/plans.ts) :
+  //   - trial    → 'complete' (laisser tester pendant 14 jours)
+  //   - lifetime → 'complete'
+  //   - actif    → subscription_plan réel (essential | complete)
+  //   - suspendu → idem
+  const { plan: effectivePlan, isTrial } = getEffectivePlan(
+    entreprise as { abonnement_type?: string | null; subscription_plan?: string | null } | null,
+  )
+
   // Determine responsive state
   // collapsed = true on tablet (768-1024), false on desktop
   useEffect(() => {
@@ -785,6 +835,8 @@ export default function DashboardLayout({
           entrepriseMetier={entrepriseMetier}
           entrepriseLogo={entrepriseLogo}
           userLoading={isLoading}
+          effectivePlan={effectivePlan}
+          isTrial={isTrial}
         />
       </div>
 
@@ -802,6 +854,8 @@ export default function DashboardLayout({
           entrepriseMetier={entrepriseMetier}
           entrepriseLogo={entrepriseLogo}
           userLoading={isLoading}
+          effectivePlan={effectivePlan}
+          isTrial={isTrial}
         />
       </div>
 
@@ -819,6 +873,8 @@ export default function DashboardLayout({
           entrepriseMetier={entrepriseMetier}
           entrepriseLogo={entrepriseLogo}
           userLoading={isLoading}
+          effectivePlan={effectivePlan}
+          isTrial={isTrial}
         />
       </div>
 
