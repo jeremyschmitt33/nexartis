@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Download,
@@ -121,6 +121,9 @@ const STATUT_LABELS: Record<string, string> = {
 
 export default function FactureDetailPage() {
   const params = useParams()
+  // D1 (2026-06-08) : useRouter pour remplacer les window.location.reload()
+  // qui cassent l'UX (perte scroll/state) par des router.refresh() ciblés.
+  const router = useRouter()
   const id = params.id as string
 
   const { data: facture, loading: loadingFacture } = useSupabaseRecord<FactureRecord>('factures', id)
@@ -174,7 +177,7 @@ export default function FactureDetailPage() {
       })
       setToastMsg('Facture marquée comme payée !')
       setTimeout(() => setToastMsg(null), 3000)
-      window.location.reload()
+      router.refresh()
     } catch (err) {
       alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
     } finally { setUpdating(false) }
@@ -187,7 +190,7 @@ export default function FactureDetailPage() {
       await updateRow('factures', facture.id, { statut: 'archivee', archivee: true })
       setToastMsg('Facture archivée !')
       setTimeout(() => setToastMsg(null), 3000)
-      window.location.reload()
+      router.refresh()
     } catch (err) {
       alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
     } finally { setUpdating(false) }
@@ -200,7 +203,7 @@ export default function FactureDetailPage() {
       await updateRow('factures', facture.id, { statut: 'payee', archivee: false })
       setToastMsg('Facture désarchivée !')
       setTimeout(() => setToastMsg(null), 3000)
-      window.location.reload()
+      router.refresh()
     } catch (err) {
       alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
     } finally { setUpdating(false) }
@@ -582,7 +585,7 @@ export default function FactureDetailPage() {
           montantTTC={fmt(totalTTC)}
           onSuccess={() => {
             setToastMsg('Facture envoyée avec succès !')
-            setTimeout(() => { setToastMsg(null); window.location.reload() }, 2000)
+            setTimeout(() => { setToastMsg(null); router.refresh() }, 2000)
           }}
         />
       )}
@@ -597,7 +600,7 @@ export default function FactureDetailPage() {
           onSuccess={() => {
             setToastMsg('Paiement enregistré !')
             setTimeout(() => setToastMsg(null), 3000)
-            window.location.reload()
+            router.refresh()
           }}
         />
       )}

@@ -479,7 +479,8 @@ export default function ChantierDetailPage() {
       })
       setEditMode(false)
       showToast('Chantier mis à jour ✓')
-      window.location.reload()
+      // D1 (2026-06-08) : router.refresh() préserve l'état React (preview, scroll)
+      router.refresh()
     } catch (_err) {
       showToast('Erreur lors de la mise à jour')
     } finally {

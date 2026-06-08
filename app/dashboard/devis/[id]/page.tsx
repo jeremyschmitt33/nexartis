@@ -302,8 +302,9 @@ export default function DevisDetailPage() {
       await updateRow('devis', devis.id, { statut: newStatut })
       setToastMsg(`Statut mis à jour : ${STATUT_LABELS[newStatut] ?? newStatut}`)
       setTimeout(() => setToastMsg(null), 3000)
-      // Recharger la page pour mettre à jour l'affichage
-      window.location.reload()
+      // D1 (2026-06-08) : router.refresh() au lieu de window.location.reload()
+      // → conserve l'état React local (scroll, modals), revalide juste les Server Components
+      router.refresh()
     } catch (err) {
       alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
     }
