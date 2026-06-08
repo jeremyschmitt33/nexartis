@@ -15,7 +15,7 @@ import {
   useIntervenants,
   insertRow,
   updateRow,
-  deleteRow,
+  softDeleteRow,
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
@@ -161,8 +161,10 @@ function ModalHistorique({
       }
 
       setData({ chantiers, paiements, totalPaye })
-    } catch (_) {
-      // silently ignore
+    } catch (err) {
+      // D6 (2026-06-08) : on log l'erreur pour le debug + on affichera
+      // un état vide dans le modal (les listes restent vides côté UI).
+      console.error('[Équipe] fetchHistorique failed:', err)
     } finally {
       setLoading(false)
     }
@@ -347,8 +349,11 @@ export default function EquipePage() {
       refetch()
       setShowModal(false)
       resetForm()
-    } catch {
-      // silently
+    } catch (err) {
+      // D6 (2026-06-08) : feedback utilisateur sur erreur de création.
+      const msg = err instanceof Error ? err.message : "Échec de l'ajout du membre"
+      // eslint-disable-next-line no-alert
+      alert(`Erreur : ${msg}`)
     } finally {
       setSaving(false)
     }
@@ -417,8 +422,11 @@ export default function EquipePage() {
       })
       refetch()
       setEditingIntervenant(null)
-    } catch {
-      // silently
+    } catch (err) {
+      // D6 (2026-06-08) : feedback utilisateur sur erreur de modification.
+      const msg = err instanceof Error ? err.message : 'Échec de la modification'
+      // eslint-disable-next-line no-alert
+      alert(`Erreur : ${msg}`)
     } finally {
       setEditSaving(false)
     }
@@ -429,12 +437,20 @@ export default function EquipePage() {
   // 29/05/2026 soir). L'utilisateur doit pouvoir tout effacer, y compris
   // sa propre fiche. S'il efface sa fiche en mode Solo, il pourra simplement
   // la recréer dans Mon équipe.
+  // D3 (2026-06-08) : soft delete au lieu de hard delete.
+  // Conserve la trace historique pour l'audit BTP (chantiers passés liés
+  // à d'anciens employés) tout en faisant disparaître l'intervenant de
+  // la liste équipe. Nécessite la migration SQL :
+  // lib/supabase/migration-2026-06-08-D3-soft-delete-intervenants.sql
+  // D6 (2026-06-08) : remplacement du catch silencieux par toast.
   const handleDelete = async (id: string) => {
     try {
-      await deleteRow('intervenants', id)
+      await softDeleteRow('intervenants', id)
       refetch()
-    } catch {
-      // silently
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Échec de la suppression'
+      // eslint-disable-next-line no-alert
+      alert(`Erreur : ${msg}`)
     } finally {
       setDeleteConfirm(null)
     }

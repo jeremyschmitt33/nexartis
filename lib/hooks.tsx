@@ -30,8 +30,8 @@ function useSupabaseQuery<T>(
     let query = supabase.from(table).select('*').eq('user_id', user.id)
 
     // Corbeille : par défaut on exclut les éléments supprimés
-    // Les tables avec deleted_at : devis, factures
-    const SOFT_DELETE_TABLES = ['devis', 'factures']
+    // Les tables avec deleted_at : devis, factures, intervenants (D3 - 2026-06-08)
+    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants']
     if (SOFT_DELETE_TABLES.includes(table)) {
       if (options?.includeDeleted) {
         // Mode corbeille : uniquement les supprimés
