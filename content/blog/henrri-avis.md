@@ -34,7 +34,7 @@ Henrri est un bon point d'entrée pour un indépendant ou auto-entrepreneur qui 
 | Planning chantier | Non |
 | Gestion équipe | Non |
 | Autoliquidation TVA, TVA 5,5 % travaux | Géré partiellement |
-| App mobile | Oui (iOS et Android) |
+| App mobile | Web responsive (tablette OK, smartphone limité) ; app native "Henrri Pay" pour l'encaissement uniquement |
 | Pour qui c'est bien | Indépendants généralistes, freelances, micro-AE |
 | Pour qui c'est limite | Artisans BTP avec chantiers, équipe ou facturation complexe |
 
@@ -42,13 +42,13 @@ Si vous reconnaissez votre situation dans la deuxième ligne, lisez la suite. Si
 
 ## Présentation : Henrri, c'est qui, c'est quoi ?
 
-Henrri est édité par **Rivalis**, un groupe français d'accompagnement d'entrepreneurs lancé en 1994. Rivalis revendique plus de 21 000 clients accompagnés (source : rivalis.fr, page "À propos", consultée en juin 2026), principalement par des consultants indépendants, sur des programmes payants qui se chiffrent en plusieurs centaines d'euros par mois.
+Henrri est édité par **Rivalis**, un groupe français d'accompagnement d'entrepreneurs lancé en 1994. Henrri revendique **plus de 225 000 utilisateurs** sur sa version gratuite (source : henrri.com, juin 2026). Rivalis dispose en parallèle d'un réseau d'**environ 800 conseillers indépendants** qui proposent un accompagnement payant aux entrepreneurs.
 
 Henrri, lui, est gratuit. Et c'est là que le modèle devient intéressant à comprendre.
 
-Le logiciel sert de **produit d'appel** vers le coaching Rivalis. L'utilisateur démarre avec l'outil gratuit, et Rivalis peut, selon le profil, proposer son accompagnement payant. C'est mentionné publiquement par l'éditeur, mais peu mis en avant à l'inscription.
+Rivalis monétise principalement via son **réseau de conseillers en pilotage d'entreprise** (offre "Henrri Édition Rivalis"). Le logiciel gratuit constitue un point d'entrée naturel : Rivalis peut, selon le profil de l'utilisateur, proposer son accompagnement humain payant. Ce lien est explicitement présenté sur le site Henrri sous le nom **"Henrri Édition Rivalis"**.
 
-Ça ne rend pas Henrri mauvais. Ça veut juste dire que le logiciel n'est pas le cœur du chiffre d'affaires de Rivalis : l'accompagnement humain l'est. Le rythme de développement produit reflète ce positionnement.
+Ça ne rend pas Henrri mauvais — au contraire, c'est ce qui explique qu'il puisse rester durablement gratuit. Le rythme de développement produit reflète ce positionnement : l'investissement principal de Rivalis va vers l'accompagnement humain, pas vers de nouvelles fonctionnalités logicielles tous les mois.
 
 ## Les fonctionnalités gratuites d'Henrri
 
@@ -59,9 +59,9 @@ Voici ce qu'on trouve dans la version gratuite, et c'est honnêtement correct po
 - **Devis en ligne** signables par le client (signature électronique simple)
 - Gestion de la base clients et fournisseurs
 - Suivi des paiements et relances manuelles
-- **Application mobile** iOS et Android pour créer un devis depuis un chantier
+- **Interface web responsive** utilisable sur tablette pour créer un devis depuis un chantier (pas d'app native principale ; une app séparée "Henrri Pay" gère uniquement l'encaissement)
 - Export comptable basique
-- Préparation à la **Factur-X 2026** (conformité e-facturation en cours selon Rivalis)
+- Conformité à la **Factur-X 2026** opérationnelle gratuitement, via un partenariat avec **Pennylane**, Plateforme Agréée (PA) par la DGFiP (source : henrri.com)
 
 Pour un auto-entrepreneur dans le conseil, la communication, ou les services à la personne, c'est largement suffisant. L'interface est claire, la prise en main se fait en une heure.
 
@@ -96,14 +96,14 @@ Trois outils, trois approches. Voici un tableau factuel basé sur les versions d
 
 | Critère | Henrri | Tolteck | Nexartis |
 |---|---|---|---|
-| Prix | Gratuit | ~35 €/mois | 25 €/mois |
+| Prix | Gratuit | 19-25 €/mois | 25 €/mois |
 | Cible principale | Indépendants, TPE généralistes | Artisans BTP | Artisans BTP |
 | Devis et factures | Oui | Oui | Oui |
 | Bibliothèque prix BTP | Non | Oui | Oui |
 | Planning chantier | Non | Limité | Oui (visuel équipe) |
 | Gestion équipe et intervenants | Non | Partielle | Oui |
 | Autoliquidation, TVA 5,5 % | Partiel | Oui | Oui |
-| App mobile | Oui | Oui | Web responsive |
+| App mobile | Web responsive | Oui (native) | Web responsive |
 | Factur-X 2026 | En cours | Oui | Oui |
 | Signature électronique | Oui | Oui | Oui |
 | Support | FAQ et formulaire | Téléphone et chat | Email réactif |
@@ -119,10 +119,10 @@ Je donne ma note avec la casquette d'ancien électricien, pas celle de concurren
 | Prix | 10/10 | Gratuit, rien à dire |
 | Simplicité de prise en main | 8/10 | Interface claire, vite en main |
 | Fonctions BTP métier | 4/10 | Pas de bibliothèque, pas de planning, équipe absente |
-| Conformité 2026 (Factur-X) | 7/10 | Annoncée, en cours de déploiement |
+| Conformité 2026 (Factur-X) | 9/10 | Opérationnelle via partenariat PA Pennylane, gratuite |
 | Support client | 5/10 | Communauté et FAQ, pas de support direct sur le gratuit |
 | Complétude pour un artisan | 5/10 | Devis-facture OK, le reste du métier manque |
-| **Moyenne pondérée** | **6,5/10** | **Très adapté au démarrage, à réévaluer en cas de croissance** |
+| **Moyenne pondérée** | **6,8/10** | **Très adapté au démarrage, à réévaluer en cas de croissance** |
 
 Pour un freelance non-BTP, je monterais facilement à 8,5/10. Pour un artisan qui veut un outil complet, on est à 6/10 et ça vaut le coup de regarder une **alternative gratuite** plus spécialisée ou un abonnement modeste.
 
@@ -134,11 +134,11 @@ Oui, la version logicielle est gratuite et sans engagement. Le modèle économiq
 
 ### Henrri est-il fiable et sécurisé ?
 
-Le logiciel est édité par Rivalis depuis plusieurs années et utilisé par des dizaines de milliers d'**indépendants TPE**. Les données sont hébergées en France selon Rivalis. Aucun incident majeur de sécurité connu à date.
+Le logiciel est édité par Rivalis depuis plusieurs années et utilisé par **plus de 225 000 entrepreneurs et indépendants TPE** (source : henrri.com, juin 2026). Les données sont hébergées en France selon Rivalis. Aucun incident majeur de sécurité connu à date.
 
 ### Henrri vs Tolteck, lequel choisir ?
 
-Henrri si vous êtes un indépendant généraliste avec zéro budget. Tolteck si vous êtes artisan BTP avec besoin de bibliothèque de prix, de gestion chantier, et que vous acceptez de payer autour de 35 € par mois pour gagner du temps.
+Henrri si vous êtes un indépendant généraliste avec zéro budget. Tolteck si vous êtes artisan BTP avec besoin de bibliothèque de prix, de gestion chantier, et que vous acceptez de payer **19 à 25 € HT par mois** (selon engagement annuel ou mensuel) pour gagner du temps.
 
 ### Quel est le lien entre Henrri et Rivalis ?
 
@@ -146,7 +146,7 @@ Henrri est édité par Rivalis. Le logiciel sert de point d'entrée gratuit vers
 
 ### Pourquoi y a-t-il un bouton "Payant" partout dans Henrri ?
 
-Ce bouton renvoie vers l'offre Rivalis Coaching, pas vers une version payante d'Henrri. C'est de la publicité interne pour le programme principal de l'éditeur. Vous pouvez l'ignorer sans perdre de fonctionnalités.
+Ce bouton renvoie vers l'offre **"Henrri Édition Rivalis"**, l'accompagnement payant par un conseiller du réseau Rivalis, pas vers une version payante d'Henrri en tant que logiciel. C'est la communication commerciale pour le programme principal de l'éditeur. Vous pouvez l'ignorer sans perdre la moindre fonctionnalité du logiciel gratuit.
 
 ### Henrri est-il adapté à un artisan auto-entrepreneur BTP ?
 
@@ -154,7 +154,7 @@ Pour démarrer, oui. Pour faire 50 à 100 devis par an avec une vraie bibliothè
 
 ### Henrri sera-t-il conforme à la Factur-X 2026 ?
 
-Rivalis a annoncé la conformité à la réforme de la **Factur-X 2026** sur ses outils. Le déploiement complet est en cours selon leurs communications. Pensez à vérifier l'état d'avancement avant l'échéance officielle.
+Oui. Henrri est conforme à la réforme **Factur-X 2026** gratuitement, via un partenariat avec **Pennylane** (Plateforme Agréée — PA — par la DGFiP). Vos clients peuvent dès aujourd'hui recevoir vos factures au format électronique conforme.
 
 ### Existe-t-il une vraie alternative gratuite à Henrri pour le BTP ?
 

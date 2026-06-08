@@ -28,30 +28,35 @@ Si vous êtes pressé, voici l'essentiel à retenir.
 | Cible idéale | TPE BTP 2-10 salariés |
 | Force principale | Gestion équipe complète, planning, multi-utilisateurs |
 | Faiblesse principale | Plus cher, courbe d'apprentissage 1-2 semaines |
-| Note utilisateurs | 4,7/5 sur Trustpilot (450+ avis, relevé juin 2026) |
+| Note utilisateurs | 4,6/5 sur Trustpilot (643 avis, relevé juin 2026) |
 | Conformité Factur-X 2026 | Oui, déjà opérationnelle |
 
 > **À retenir.** Obat est un excellent outil pour une TPE BTP qui a une équipe à piloter et un budget pour absorber 39€/mois. La couverture fonctionnelle est large : équipe, planning, conformité Factur-X. En revanche, si vous êtes seul ou que vous cherchez la simplicité maximale, vous risquez de payer pour des fonctions que vous n'utiliserez pas.
 
 ## Obat, c'est quoi exactement ?
 
-Obat est un **logiciel BTP français** lancé en 2020 par Hugo Sallé et Jules Latapie. L'éditeur revendique plus de 5 000 clients en 2026 (source : obat.fr, consultée en juin 2026) et s'est imposé comme l'un des outils de référence pour les TPE et PME du bâtiment.
+Obat est un **logiciel BTP français** lancé en **2019** par **Florent Liagre (DG), Franck Asseray (Président) et Antony Girault**. L'éditeur nantais s'est imposé comme l'un des outils de référence pour les TPE et PME du bâtiment, avec une équipe d'environ 110 personnes (source : Maddyness, Crédit Mutuel Innovation).
 
 Le positionnement est clair : **Obat vise les TPE avec équipe**, pas l'artisan isolé. Le logiciel mise sur une couverture fonctionnelle large (devis, factures, planning, gestion équipe, suivi chantier) plutôt que sur le prix le plus bas du marché.
 
-L'éditeur est indépendant, sans rachat par un grand groupe à ce jour. C'est à la fois un atout (agilité produit) et un point d'attention (pérennité à confirmer à long terme).
+L'éditeur n'est pas racheté à ce jour, mais a levé **18 M€ au total** : 6 M€ en seed en 2022 puis **12 M€ en Série A en novembre 2023** auprès de Crédit Mutuel Innovation (lead), Truffle Capital, Kima Ventures, Evolem, NCI, NewAlpha et Holnest (source : Maddyness, novembre 2023). C'est à la fois un atout (capacité d'investissement R&D) et un point d'attention (pression de croissance qui peut se traduire par des hausses tarifaires, signalées par certains utilisateurs sur Trustpilot en 2025-2026).
 
 ## Combien coûte Obat en 2026 ?
 
 La grille tarifaire d'Obat est simple, avec deux formules principales.
 
-| Formule | Mensuel | Annuel | Inclus |
-|---|---|---|---|
-| Essentiel | 29€ HT/mois | 348€ HT | 1 utilisateur |
-| Pro | 39€ HT/mois | 468€ HT | Multi-utilisateurs + équipe |
-| Essai gratuit | 14 jours sans CB |  | 100% gratuit |
+Obat propose **3 formules** pour les artisans seuls, et une grille différenciée pour les entreprises de 2 à 50 salariés.
 
-**Point à signaler :** les 39€ HT/mois sont à mettre en perspective avec ce que vous obtenez. Pour une TPE avec 2-3 personnes, le coût ramené par utilisateur reste raisonnable.
+| Formule (artisan seul) | Mensuel | Annuel (équivalent mensuel) | Inclus |
+|---|---|---|---|
+| Starter | 25€ HT/mois | — | 1 utilisateur, fonctions de base |
+| Pro | 45€ HT/mois | 39€ HT/mois (468€ HT/an) | Multi-utilisateurs + équipe |
+| Croissance | 85€ HT/mois | 69€ HT/mois | Toutes fonctions avancées |
+| Essai gratuit | 14 jours sans CB | — | 100% gratuit |
+
+Pour une **entreprise de 2 à 50 salariés**, la grille est plus élevée (Pro 49€, Croissance 79€, Premium 129€ mensuel selon les sources) — demander un devis à Obat pour le tarif exact applicable à votre structure.
+
+**Point à signaler :** plusieurs utilisateurs signalent sur Trustpilot des **hausses tarifaires annuelles** (jusqu'à +60% sur 1 an d'après un avis de mars 2026). Vérifiez la clause de révision tarifaire dans votre contrat avant de signer en annuel.
 
 ## Les fonctionnalités phares testées
 
@@ -63,9 +68,13 @@ C'est ici qu'Obat se distingue. Vous créez des comptes pour chaque collaborateu
 
 Obat propose une vue calendrier pour planifier vos chantiers et affecter vos équipes. C'est fonctionnel, sans être révolutionnaire : la grille reste basique et il manque les alertes de conflit d'affectation que proposent certains concurrents.
 
-### Bibliothèque BTP intégrée
+### Bibliothèque BTP intégrée (30 000 ouvrages)
 
-Une base de prix BTP est intégrée, avec une mise à jour régulière. Elle est moins riche que celle de Tolteck (qui bénéficie des catalogues Saint-Gobain) mais reste très utilisable pour la grande majorité des artisans.
+Obat annonce une base de **30 000 ouvrages** avec temps de pose intégrés, plus 330 modèles de devis prêts à l'emploi (source : obat.fr). C'est une base propre (pas Batichiffrage), moins riche que celle de Tolteck (qui bénéficie des catalogues Saint-Gobain) mais très utilisable pour la grande majorité des artisans.
+
+### Devis vocal IA (depuis 2024)
+
+Contrairement à ce que beaucoup pensent, **Obat propose un module devis vocal IA** depuis 2024. Vous dictez votre devis depuis le terrain, le module structure automatiquement les lignes (prestations, quantités, prix). C'est un argument que peu d'avis tiers mettent en avant, alors qu'il rattrape Vertuoza sur ce terrain (source : obat.fr/devis-factures/devis-vocal-ia).
 
 ### Conformité Factur-X opérationnelle
 
@@ -83,9 +92,9 @@ Soyons honnêtes : Obat n'est pas parfait. Voici les points qui m'ont semblé pe
 
 L'interface est complète mais dense. Comptez 1 à 2 semaines de pratique pour vous sentir à l'aise. Ce n'est pas un défaut en soi (l'outil est riche) mais ça pèse si vous voulez démarrer vite.
 
-### Pas de devis vocal
+### Hausses tarifaires annuelles signalées
 
-Obat n'a pas encore intégré la dictée vocale pour créer un devis depuis le terrain. C'est une fonction qui peut faire gagner un temps significatif aux artisans en chantier, et que vous trouverez notamment chez [Vertuoza](/blog/vertuoza-avis).
+Plusieurs avis Trustpilot 2025-2026 signalent des augmentations sensibles à chaque renouvellement annuel. C'est un point à anticiper pour bien calibrer votre budget à 2-3 ans.
 
 > **À retenir.** Obat est solide et complet, mais il vous coûte le prix de la complétude. Si vous n'avez pas une équipe à piloter, le retour sur investissement est moins évident. Si vous avez 2 à 10 salariés, c'est en revanche un excellent choix.
 
@@ -106,10 +115,10 @@ Voici un tableau direct pour situer Obat face à ses concurrents en juin 2026.
 | Mode hors ligne | Non | Oui | Non | Non |
 | Planning chantier | Basique | Non | Non | Avec alertes |
 | Gestion équipe | Oui | Non | Non | Oui |
-| Devis vocal (dictée) | Non | Non | Non | Oui |
+| Devis vocal (dictée IA) | Oui | Non | Non | Oui |
 | Essai gratuit | 14 jours | 30 jours | Illimité | 14 jours |
 
-**Note honnête sur Nexartis :** sur la couverture équipe + planning, Obat reste le plus mature du marché (5 000 clients, 6 ans d'historique). Nexartis joue sur un prix plus bas (25€) et sur le devis vocal, mais avec moins de recul terrain.
+**Note honnête sur Nexartis :** Obat a clairement plus de profondeur fonctionnelle, plus de recul terrain (fondé en 2019, Série A 12M€) et propose désormais aussi le devis vocal IA. Nexartis joue sur un prix plus bas (25€ fixe) et sur une grille sans hausse annuelle imposée. Sur l'équipe et le planning, Obat reste la référence.
 
 ## Mon verdict : Obat noté sur 10
 
@@ -145,7 +154,7 @@ Oui. Obat est un SaaS accessible via navigateur (Chrome, Safari, Firefox) depuis
 
 ### Combien coûte Obat à l'année ?
 
-En formule Pro (la plus utilisée), Obat coûte 468€ HT par an avec engagement annuel, soit 39€ HT par mois. La formule Essentiel à 29€ HT/mois revient à 348€ HT par an, mais est limitée à un seul utilisateur.
+En formule Pro (artisan seul, la plus utilisée), Obat coûte 468€ HT par an en engagement annuel, soit 39€ HT par mois. La formule Starter à 25€ HT/mois reste l'entrée de gamme à 1 utilisateur. La formule Croissance avance à 69€ HT/mois en annuel (85€ mensuel) pour les besoins avancés. La grille est différente pour les entreprises de 2+ salariés.
 
 ### Obat propose-t-il un essai gratuit ?
 

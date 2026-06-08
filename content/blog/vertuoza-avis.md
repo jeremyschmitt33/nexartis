@@ -24,32 +24,32 @@ Si vous êtes pressé, voici l'essentiel à retenir.
 
 | Point clé | Évaluation |
 |---|---|
-| Prix | Sur devis uniquement (généralement 50-80€/mois selon estimations) |
+| Prix | Sur devis uniquement (aucun prix public communiqué par l'éditeur) |
 | Cible idéale | PME BTP 5-20 salariés qui veulent l'IA |
 | Force principale | Assistant IA vocal mature, intégration approfondie |
 | Faiblesse principale | Prix opaque, pas d'essai gratuit, contrat rigide |
-| Note utilisateurs | 4,3/5 sur Trustpilot (180 avis, relevé juin 2026) |
+| Note utilisateurs | 4,1/5 sur Capterra (15 avis) ; 4,3/5 sur Google (93 avis, relevé juin 2026) |
 | Conformité Factur-X 2026 | Oui, déjà opérationnelle |
 
 > **À retenir.** Vertuoza est l'un des logiciels les plus innovants du marché BTP grâce à son assistant IA vocal mature. Mais l'opacité tarifaire et l'absence d'essai gratuit en font un outil réservé aux PME qui ont le budget et qui sont prêtes à passer par une démo commerciale.
 
 ## Vertuoza, c'est qui exactement ?
 
-Vertuoza est un **logiciel BTP belgo-français** lancé en 2018. Plus de 3 500 entreprises de construction utilisent l'outil en 2026 (source : vertuoza.com, consultée en juin 2026), principalement en Belgique et en France.
+Vertuoza est un **logiciel BTP belgo-français** officialisé en **2021** (société née en 2020). L'éditeur revendique **plus de 13 000 utilisateurs** en 2026 (source : independant.io, skello.io), principalement en Belgique et en France, dont environ 5 500 entreprises sur le module VertuoWork.
 
-L'éditeur a misé tôt sur l'**intelligence artificielle vocale** pour différencier son produit. C'est aujourd'hui l'un des rares acteurs du BTP à proposer un assistant vocal mature, capable de transcrire un devis dicté depuis un chantier.
+L'éditeur a misé tôt sur l'**intelligence artificielle vocale** pour différencier son produit. C'est aujourd'hui l'un des rares acteurs du BTP à proposer un assistant vocal mature : génération de devis en 45 secondes, support de plus de 50 langues (source : vertuoza.com/fonctionnalites/ia).
 
-L'équipe est basée à Bruxelles et à Paris, avec une forte expertise produit. Vertuoza est financé par plusieurs levées de fonds, ce qui rassure côté pérennité, mais pèse aussi sur le pricing : la pression à monétiser est forte.
+L'entreprise est dirigée par ses trois cofondateurs : **Antoni Di Filippo, Dominique Pellegrino et Kévin Vermeulen**. Son siège est à **Nivelles (Belgique)**, avec des bureaux à Paris et Genève, et environ 70 employés. Vertuoza a levé **10 M€ en Série A** au total (XAnge en 2021, Fortino + Wallonie Entreprendre en 2023) et a été distingué **EY Scale-up de l'Année 2023** en Belgique (source : La Libre, novembre 2023).
 
 ## Combien coûte Vertuoza en 2026 ?
 
-C'est le point le plus frustrant de Vertuoza : **le prix n'est pas public**. L'éditeur communique uniquement sur devis, après une démo commerciale.
+C'est le point le plus frustrant de Vertuoza : **le prix n'est pas public**. L'éditeur communique 4 packs (Pro, Pro+, Expert, et un quatrième pack) uniquement sur devis, après une démo commerciale.
 
 | Formule | Prix | Engagement | Essai gratuit |
 |---|---|---|---|
-| Démo commerciale | Sur devis (env. 50-80€/mois) | Annuel | Non |
+| 4 packs (Pro, Pro+, Expert, …) | Sur devis uniquement | Annuel (payé d'avance) | Non |
 
-**Selon les estimations** issues de discussions clients et retours utilisateurs, Vertuoza se positionne autour de 50 à 80€ HT/mois selon le nombre d'utilisateurs et les modules choisis. Pour avoir un prix exact, il faut prendre rendez-vous avec un commercial. Ce n'est pas illégitime, mais ce choix de vente uniquement sur devis se raréfie dans le SaaS en 2026.
+**Aucune fourchette tarifaire publique** n'est communiquée par Vertuoza ni reprise par les comparateurs habituels (Capterra, GetApp). Pour obtenir un prix, il faut prendre rendez-vous avec un commercial. Ce n'est pas illégitime, mais ce modèle d'achat uniquement sur devis se raréfie dans le SaaS en 2026.
 
 ## L'IA Voice testée en conditions réelles
 
@@ -94,7 +94,7 @@ Voici un tableau direct pour situer Vertuoza face à ses concurrents en juin 202
 
 | Critère | Vertuoza | Tolteck | Obat | Nexartis |
 |---|---|---|---|---|
-| Prix mensuel | Sur devis ~60€ | 19-25€ | 39€ | 25€ |
+| Prix mensuel | Sur devis (non public) | 19-25€ | 39€ (Pro annuel) | 25€ |
 | Bibliothèque BTP | Oui | Excellente | Oui | Basique |
 | Devis vocal IA | Mature | Non | Non | Oui (Gemini) |
 | Planning chantier | Oui | Non | Basique | Avec alertes |
@@ -126,7 +126,7 @@ C'est une **bonne note** portée par l'innovation produit. Vertuoza tient une vr
 
 ### Quel est le prix réel de Vertuoza ?
 
-Vertuoza ne publie pas ses tarifs. Sur la base d'estimations issues de retours utilisateurs et de discussions clients, le prix se situe généralement entre 50 et 80€ HT/mois selon le nombre d'utilisateurs et les modules. Pour avoir un prix exact, vous devez passer par une démo commerciale avec un commercial Vertuoza.
+Vertuoza ne publie pas ses tarifs et **aucune fourchette publique fiable** n'est disponible sur les comparateurs habituels (Capterra, GetApp). Pour obtenir un prix, vous devez passer par une démo commerciale avec un commercial Vertuoza. L'engagement est annuel et généralement payé d'avance.
 
 ### Vertuoza propose-t-il un essai gratuit ?
 
@@ -138,7 +138,7 @@ Vertuoza si vous avez le budget et que vous voulez la maturité produit la plus 
 
 ### Vertuoza est-il français ?
 
-Vertuoza est belgo-français. L'éditeur a son siège à Bruxelles et une équipe importante à Paris. Le produit est conçu pour le marché francophone (France et Belgique) avec les conformités légales propres à chacun.
+Vertuoza est belgo-français. L'éditeur a son siège à **Nivelles** (à 30 minutes de Bruxelles, Belgique) et des bureaux à Paris et Genève. Le produit est conçu pour le marché francophone (France, Belgique, Suisse) avec les conformités légales propres à chaque pays.
 
 ### Vertuoza fonctionne-t-il pour les TPE ?
 
@@ -153,6 +153,8 @@ Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au 
 ## Sources
 
 - Site officiel Vertuoza : [vertuoza.com](https://www.vertuoza.com)
-- Avis utilisateurs Trustpilot : [trustpilot.com/review/vertuoza.com](https://fr.trustpilot.com/review/vertuoza.com) (relevé juin 2026 : 4,3/5 sur 180 avis)
+- Capterra Vertuoza : [capterra.com/p/232769/Vertuoza](https://www.capterra.com/p/232769/Vertuoza/) (4,1/5 sur 15 avis)
+- Google reviews : 4,3/5 sur 93 avis (relevé juin 2026)
+- Levée Série A 10 M€ (La Libre, novembre 2023) : [lalibre.be — Vertuoza Série A](https://www.lalibre.be/economie/entreprises-startup/2023/11/17/la-scale-up-belge-vertuoza-en-croissance-exponentielle-leve-six-nouvelles-briques-WEZMNRWHFJDSXFRRBHGNFZFSQU/)
 - Réforme e-facturation et Factur-X : [impots.gouv.fr / facturation électronique](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
 - Comparatifs internes : [Tolteck Avis 2026](/blog/tolteck-avis), [Obat Avis 2026](/blog/obat-avis), [Henrri Avis 2026](/blog/henrri-avis), [Batigest Avis 2026](/blog/batigest-avis)

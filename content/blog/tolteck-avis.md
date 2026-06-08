@@ -30,16 +30,16 @@ ogImage: "/images/tolteck-avis-hero.webp"
 | **Cible idéale** | Artisan seul ou en duo |
 | **Force principale** | Bibliothèque d'ouvrages Point.P, Cedeo, La Plateforme du Bâtiment |
 | **Faiblesse principale** | Aucun planning, aucune gestion d'équipe |
-| **Note utilisateurs** | 4,8/5 Trustpilot (871 avis) |
+| **Note utilisateurs** | 4,8/5 Trustpilot (929 avis, relevé juin 2026) |
 | **Ma note finale** | **7,75/10** |
 
 > **À retenir.** Tolteck est excellent pour un artisan qui chiffre et facture, sans besoin annexe. Dès que vous gérez une équipe ou plusieurs chantiers en parallèle, vous atteindrez vite ses limites.
 
 ## Tolteck en bref
 
-Tolteck est un **logiciel de devis et facturation** dédié aux artisans du bâtiment français. Fondé en 2016 par Adrien Vergé et Pierre-Philippe de Bouville, l'outil est devenu une filiale du groupe **Saint-Gobain** en 2021. Ce rachat garantit une pérennité financière solide et explique l'intégration native avec les enseignes du groupe.
+Tolteck est un **logiciel de devis et facturation** dédié aux artisans du bâtiment français. Fondé en 2016 par Adrien Vergé et Pierre-Philippe de Bouville, l'outil est devenu une filiale du groupe **Saint-Gobain Distribution Bâtiment France (SGDB)** en **décembre 2017**, soit un an après sa création. Ce rachat garantit une pérennité financière solide et explique l'intégration native avec les enseignes du groupe (source : Le Moniteur, 2017).
 
-L'éditeur revendique **33 000 clients artisans** en France, ce qui le place dans le trio de tête des SaaS BTP aux côtés d'Obat et d'Henrri. Sa cible : les petites structures, artisans seuls, auto-entrepreneurs et TPE de 1 à 3 personnes. L'interface est volontairement épurée et reste l'une des plus rapides à prendre en main du marché.
+L'éditeur revendique **33 581 entreprises clientes** en France (compteur affiché sur tolteck.com en juin 2026), ce qui le place dans le trio de tête des SaaS BTP aux côtés d'Obat et d'Henrri. Sa cible : les petites structures, artisans seuls, auto-entrepreneurs et TPE de 1 à 3 personnes. L'interface est volontairement épurée et reste l'une des plus rapides à prendre en main du marché.
 
 ## Combien ça coûte ?
 
@@ -49,10 +49,10 @@ Voici les chiffres exacts relevés en juin 2026 sur le site officiel.
 |---|---|---|
 | **Sans engagement** | 25€ HT/mois | 300€ HT |
 | **Engagement annuel** | 19€ HT/mois | 228€ HT |
-| **Jeune entreprise (-35%)** | ~12,50€ HT/mois | 149€ HT |
+| **Jeune entreprise (-35%)** | ~12,50€ HT/mois | 149€ HT (1ère année) |
 | **Essai gratuit** | 30 jours sans CB | — |
 
-L'essai de **30 jours sans carte bancaire** est l'un des plus longs du marché (la majorité des concurrents s'arrêtent à 14 jours). L'offre **jeune entreprise à 149€/an** est un vrai coup de pouce pour les artisans qui démarrent (moins de 12 mois d'ancienneté).
+L'essai de **30 jours sans carte bancaire** est l'un des plus longs du marché (la majorité des concurrents s'arrêtent à 14 jours). L'offre **jeune entreprise à 149€/an** est un vrai coup de pouce pour les artisans qui démarrent : condition d'éligibilité officielle = entreprise de **moins de 5 ans** (source : tolteck.com/jeune-entreprise).
 
 Pour situer : [Obat](/blog/obat-avis) démarre à 39€ HT/mois, Mediabat tourne autour de 35€ par utilisateur, [Henrri](/blog/henrri-avis) reste gratuit mais limité. Tolteck se place dans la moyenne basse du marché. Comparatifs disponibles sur le [blog Nexartis](/blog).
 
@@ -123,6 +123,8 @@ Mais soyez lucide sur ce que vous achetez : un outil de devis-facture, pas un lo
 ## Sources
 
 - Site officiel Tolteck : [tolteck.com](https://www.tolteck.com)
-- Avis utilisateurs Trustpilot : [trustpilot.com/review/tolteck.com](https://fr.trustpilot.com/review/tolteck.com) (relevé juin 2026 : 4,8/5 sur 871 avis)
+- Avis utilisateurs Trustpilot : [trustpilot.com/review/tolteck.com](https://fr.trustpilot.com/review/tolteck.com) (relevé juin 2026 : 4,8/5 sur 929 avis)
+- Capterra Tolteck : [capterra.fr/software/1011798/tolteck](https://www.capterra.fr/software/1011798/tolteck) (4,5/5 sur 12 avis)
+- Rachat par Saint-Gobain (décembre 2017) : [Le Moniteur](https://www.lemoniteur.fr/article/la-start-up-tolteck-rejoint-la-galaxie-de-saint-gobain-distribution-batiment-france.1050329)
 - Réforme e-facturation et Factur-X : [impots.gouv.fr / facturation électronique](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
 - Comparatifs internes : [Obat Avis 2026](/blog/obat-avis), [Henrri Avis 2026](/blog/henrri-avis), [Vertuoza Avis 2026](/blog/vertuoza-avis), [Batigest Avis 2026](/blog/batigest-avis)
