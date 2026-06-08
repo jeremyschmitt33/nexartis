@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Tarifs Nexartis — 25€/mois tout inclus | Logiciel artisan",
+  title: "Tarifs Nexartis — 15€ ou 25€/mois | Logiciel BTP artisan",
   description:
-    "Un seul abonnement, tout inclus : devis, factures, planning, tableau de bord. Moins cher qu'Obat, plus complet que Tolteck. 14 jours d'essai gratuit.",
+    "Deux offres claires sans engagement : Essentiel à 15€/mois (devis et factures BTP conformes) ou Complet à 25€/mois (planning d'équipe + IA vocale). 14 jours d'essai sans carte bancaire.",
   alternates: {
     canonical: '/tarifs',
   },
