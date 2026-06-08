@@ -1,4 +1,6 @@
 import Atmosphere from '@/components/landing/Atmosphere'
+import IntroOverlay from '@/components/landing/IntroOverlay'
+import LandingNav from '@/components/landing/LandingNav'
 import HeroOrbital from '@/components/landing/HeroOrbital'
 import TrustBar from '@/components/TrustBar'
 import ProblemSection from '@/components/ProblemSection'
@@ -10,22 +12,29 @@ import CtaSection from '@/components/CtaSection'
 import ScrollReveal from '@/components/ScrollReveal'
 
 /**
- * V4 (2026-06-08) — Refonte landing dark premium.
+ * V4.2 (2026-06-08) — Refonte landing dark premium complète.
  *
  * Architecture :
- *  - <Atmosphere /> : fond fixe décoratif (grille + 3 blobs + noise) z-0
- *  - sections : par-dessus, z-1 via .landing-section
+ *  - <IntroOverlay />   : animation cinématique 4,3s, 1×/session (z-200)
+ *  - <LandingNav />     : nav transparent → scrolled blur 18px (z-100)
+ *  - <Atmosphere />     : fond fixe décoratif (grille + 3 blobs + noise) z-0
+ *  - sections           : par-dessus, z-1 via .landing-section
  *
- * Pour cette première itération (commit L1+L2+L3), seul le Hero passe
- * en "scène orbitale" V4. Les autres sections (TrustBar, ProblemSection,
- * etc.) gardent leur look actuel sombre — elles seront refondues dans
- * les commits suivants (L4, L5).
+ * Le Header marketing global est masqué sur "/" via ConditionalLayout
+ * (cf HEADER_ONLY_HIDDEN_ROUTES). LandingNav prend le relais.
+ * Le Footer marketing reste affiché pour le maillage SEO (10 pages métier).
+ *
+ * Toutes les sections ont été adaptées en mode dark + anti-mensonge
+ * (Factur-X "Prêt pour 2026", Données "Europe RGPD", pas de SMS,
+ * web responsive optimisé, suivi des impayés simplifié, etc.).
  */
 export default function HomePage() {
   return (
     <div className="bg-bgdark min-h-screen text-ink font-hanken">
+      <IntroOverlay />
       <ScrollReveal />
       <Atmosphere />
+      <LandingNav />
       <div className="landing-section">
         <HeroOrbital />
         <TrustBar />

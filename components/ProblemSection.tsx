@@ -1,11 +1,14 @@
 "use client";
 
+// V4 landing dark — section "Pourquoi Nexartis".
+// Tous les hex hardcodes light retires. Atmosphere globale traverse via bg-transparent.
+
 const problems = [
   {
-    title: "Des tarifs transparents et maîtrisés",
-    text: "Les solutions du marché atteignent souvent 50 à 100 € par mois pour accéder à l\u2019ensemble des fonctionnalités. Nexartis propose tous les outils à 25 € par mois, sans restriction ni option cachée.",
-    iconBg: "rgba(34,197,94,0.1)",
-    iconColor: "#16a34a",
+    num: "01",
+    title: "Des tarifs transparents et maitrises",
+    text: "Les solutions du marche atteignent souvent 50 a 100 euros par mois pour acceder a l'ensemble des fonctionnalites. Nexartis propose tous les outils a 25 euros par mois, sans restriction ni option cachee.",
+    accent: "var(--mint, #2fd6a0)",
     svgPaths: (
       <>
         <circle cx="12" cy="12" r="10" />
@@ -15,10 +18,10 @@ const problems = [
     ),
   },
   {
-    title: "Une planification fiable, sans conflit d\u2019affectation",
-    text: "Les logiciels existants proposent un calendrier basique, sans détection de conflits. Nexartis vous alerte immédiatement si un intervenant est déjà affecté à un autre chantier le même jour.",
-    iconBg: "rgba(90,180,224,0.1)",
-    iconColor: "#2d8bc9",
+    num: "02",
+    title: "Une planification fiable, sans conflit d'affectation",
+    text: "Les logiciels existants proposent un calendrier basique, sans detection de conflits. Nexartis vous alerte immediatement si un intervenant est deja affecte a un autre chantier le meme jour.",
+    accent: "var(--accent-2, #ff9d4d)",
     svgPaths: (
       <>
         <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -29,10 +32,10 @@ const problems = [
     ),
   },
   {
-    title: "Conçu pour une utilisation sur le terrain",
-    text: "Nexartis fonctionne parfaitement sur smartphone comme sur ordinateur. L\u2019interface a été pensée pour être utilisée rapidement, en situation de mobilité, directement depuis vos chantiers.",
-    iconBg: "rgba(232,122,42,0.1)",
-    iconColor: "#ea580c",
+    num: "03",
+    title: "Concu pour une utilisation sur le terrain",
+    text: "Nexartis fonctionne parfaitement sur smartphone comme sur ordinateur. L'interface a ete pensee pour etre utilisee rapidement, en situation de mobilite, directement depuis vos chantiers.",
+    accent: "var(--electric-2, #6aa0ff)",
     svgPaths: (
       <>
         <rect x="5" y="2" width="14" height="20" rx="2" />
@@ -44,51 +47,74 @@ const problems = [
 
 export default function ProblemSection() {
   return (
-    <section className="py-[100px] px-5 lg:px-10 bg-white">
+    <section
+      id="pourquoi"
+      className="landing-section bg-transparent py-[100px] px-5 lg:px-10"
+    >
       <div className="mx-auto max-w-[1200px]">
         {/* Section header */}
-        <div className="text-center mb-[60px]">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.06em] px-4 py-1.5 rounded-full mb-5 bg-[rgba(34,197,94,0.08)] text-[var(--green-dark)]">
+        <div className="text-center mb-[60px] reveal">
+          <span className="landing-eyebrow mb-5" style={{
+            color: "#9fffd9",
+            background: "color-mix(in srgb, #2fd6a0 12%, transparent)",
+            borderColor: "color-mix(in srgb, #2fd6a0 28%, transparent)",
+          }}>
+            <span className="dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", boxShadow: "0 0 10px currentColor" }} />
             Pourquoi Nexartis
           </span>
-          <h2 className="text-[28px] sm:text-[38px] font-[800] tracking-[-0.03em] text-[var(--navy)] mb-3.5">
-            Des outils professionnels à la hauteur de votre activité
+          <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
+            Des outils professionnels a la hauteur de votre activite
           </h2>
-          <p className="text-[17px] text-[var(--muted)] font-medium max-w-[560px] mx-auto">
-            Trois problèmes que les artisans rencontrent tous les jours, résolus en un seul logiciel.
+          <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
+            Trois problemes que les artisans rencontrent tous les jours, resolus en un seul logiciel.
           </p>
         </div>
 
         {/* Cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 reveal">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {problems.map((problem, i) => (
             <div
               key={i}
-              className={`bg-white border border-[var(--border)] rounded-[var(--radius)] p-[36px_30px] shadow-[var(--shadow)] transition-all duration-300 hover:shadow-[var(--shadow-hover)] hover:-translate-y-[3px] reveal reveal-delay-${i + 1}`}
+              className={`reveal reveal-delay-${i + 1} relative overflow-hidden rounded-[22px] p-[36px_30px] border bg-white/[0.04] border-white/[0.08] transition-all duration-300 hover:bg-white/[0.07] hover:border-white/[0.16] hover:-translate-y-[6px]`}
             >
+              {/* Halo discret en coin */}
               <div
-                className="w-[52px] h-[52px] rounded-[16px] flex items-center justify-center mb-[22px]"
-                style={{ background: problem.iconBg }}
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={problem.iconColor}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                aria-hidden
+                className="absolute -top-12 -right-12 w-[160px] h-[160px] rounded-full opacity-30 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle, ${problem.accent}, transparent 70%)`,
+                }}
+              />
+              <div className="relative">
+                <div
+                  className="w-[52px] h-[52px] rounded-[16px] flex items-center justify-center mb-5"
+                  style={{
+                    background: "color-mix(in srgb, " + problem.accent + " 14%, transparent)",
+                  }}
                 >
-                  {problem.svgPaths}
-                </svg>
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={problem.accent}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {problem.svgPaths}
+                  </svg>
+                </div>
+                <div className="text-[12px] font-bold tracking-[0.12em] text-ink-3 mb-2 font-spline-mono">
+                  {problem.num}
+                </div>
+                <h3 className="text-[20px] font-[800] text-ink mb-2.5 tracking-[-0.01em]">
+                  {problem.title}
+                </h3>
+                <p className="text-[14.5px] text-ink-2 font-medium leading-[1.65]">
+                  {problem.text}
+                </p>
               </div>
-              <h3 className="text-[18px] font-[800] text-[var(--navy)] mb-2.5 tracking-[-0.01em]">
-                {problem.title}
-              </h3>
-              <p className="text-[14px] text-[var(--muted)] font-medium leading-[1.65]">
-                {problem.text}
-              </p>
             </div>
           ))}
         </div>

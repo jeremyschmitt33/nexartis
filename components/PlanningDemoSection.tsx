@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"] as const;
 
@@ -86,6 +86,8 @@ function ChantierCard({
 export default function PlanningDemoSection() {
   const [showConflict, setShowConflict] = useState(false);
   const [conflictPulsing, setConflictPulsing] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const hasAutoTriggered = useRef(false);
 
   const handleSimulateConflict = () => {
     setShowConflict(true);
@@ -98,21 +100,60 @@ export default function PlanningDemoSection() {
     setConflictPulsing(false);
   };
 
+  // V4 — Auto-demo declenchee quand la section entre dans le viewport
+  // (40% visible). On declenche une seule fois, l'utilisateur peut reset apres.
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    const node = sectionRef.current;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasAutoTriggered.current) {
+            hasAutoTriggered.current = true;
+            // Petit delai pour laisser l'animation reveal entrer en scene
+            window.setTimeout(() => {
+              handleSimulateConflict();
+            }, 600);
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, []);
+
   const isMichelCard = (entry: PlanningEntry | null) =>
     entry?.poseur === "Michel R.";
 
   return (
-    <section className="relative overflow-hidden bg-planning-gradient">
+    <section
+      id="planning"
+      ref={sectionRef}
+      className="landing-section relative overflow-hidden bg-transparent"
+    >
       <div className="relative mx-auto max-w-[1200px] px-5 lg:px-10 py-[100px]">
         {/* Section header */}
-        <div className="text-center mb-[60px]">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.06em] px-4 py-1.5 rounded-full mb-5 bg-[rgba(245,200,66,0.12)] text-[var(--gold)]">
-            ★ Fonctionnalité exclusive Nexartis
+        <div className="text-center mb-[60px] reveal">
+          <span
+            className="landing-eyebrow landing-eyebrow--accent mb-5"
+          >
+            <span
+              className="dot"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "currentColor",
+                boxShadow: "0 0 10px currentColor",
+              }}
+            />
+            ★ Fonctionnalite exclusive Nexartis
           </span>
-          <h2 className="text-[28px] sm:text-[38px] font-[800] tracking-[-0.03em] text-white mb-3.5">
-            Le planning qui pense à votre place
+          <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
+            Le planning qui pense a votre place
           </h2>
-          <p className="text-[17px] text-white/50 font-medium max-w-[560px] mx-auto">
+          <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
             Chez tous les concurrents, le planning est une simple liste. Chez Nexartis, c&apos;est un vrai outil de travail.
           </p>
         </div>

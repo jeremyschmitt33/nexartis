@@ -2,27 +2,29 @@
 
 import React from "react";
 
+// V4 landing dark — section "Fonctionnalites".
+// Atmosphere globale traverse via bg-transparent.
+// Anti-mensonge applique :
+// - Devis : "envoye par email" (retire "ou SMS" car pas dispo)
+// - Impayes : "Suivi des impayes simplifie" (relances pas auto, mais visualisation OK)
+// - Loi 2026 : "Pret pour la facturation electronique" + Factur-X arrive
+// - Mobile : "Optimise mobile et terrain" (web responsive, pas apps natives)
+
 interface FeatureCard {
   title: string;
   text: string;
   tag: string;
-  tagBg: string;
-  tagColor: string;
   exclusive?: boolean;
-  iconBg: string;
-  iconColor: string;
+  accent: string;
   svgPaths: React.ReactNode;
 }
 
 const cards: FeatureCard[] = [
   {
     title: "Devis et factures en quelques minutes",
-    text: "Sélectionnez votre client et vos prestations. Le devis est envoyé par email ou SMS. Votre client signe directement sur son téléphone.",
-    tag: "✓ Conforme légalement",
-    tagBg: "rgba(34,197,94,0.12)",
-    tagColor: "#22c55e",
-    iconBg: "rgba(90,180,224,0.12)",
-    iconColor: "#5ab4e0",
+    text: "Selectionnez votre client et vos prestations. Le devis est envoye par email. Votre client signe directement sur son telephone.",
+    tag: "✓ Conforme legalement",
+    accent: "#6aa0ff",
     svgPaths: (
       <>
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -33,14 +35,11 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Planning qui évite les conflits",
-    text: "Glissez vos chantiers sur le calendrier. Si vous affectez quelqu\u2019un deux fois le même jour, une alerte orange apparaît immédiatement.",
-    tag: "★ EXCLUSIF Nexartis",
-    tagBg: "rgba(245,200,66,0.15)",
-    tagColor: "#f5c842",
+    title: "Planning qui evite les conflits",
+    text: "Glissez vos chantiers sur le calendrier. Si vous affectez quelqu'un deux fois le meme jour, une alerte orange apparait immediatement.",
+    tag: "★ Exclusif Nexartis",
     exclusive: true,
-    iconBg: "rgba(245,200,66,0.12)",
-    iconColor: "#f5c842",
+    accent: "#ff9d4d",
     svgPaths: (
       <>
         <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -51,13 +50,10 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Suivi financier en temps réel",
-    text: "Combien vous avez facturé ce mois-ci. Ce qui n\u2019est pas encore payé. Ce qui arrive la semaine prochaine. Tout affiché simplement.",
-    tag: "✓ Temps réel",
-    tagBg: "rgba(34,197,94,0.12)",
-    tagColor: "#22c55e",
-    iconBg: "rgba(34,197,94,0.12)",
-    iconColor: "#22c55e",
+    title: "Suivi financier en temps reel",
+    text: "Combien vous avez facture ce mois-ci. Ce qui n'est pas encore paye. Ce qui arrive la semaine prochaine. Tout affiche simplement.",
+    tag: "✓ Temps reel",
+    accent: "#2fd6a0",
     svgPaths: (
       <>
         <line x1="18" y1="20" x2="18" y2="10" />
@@ -67,13 +63,10 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Plus d\u2019impayés qui traînent",
-    text: "Nexartis envoie automatiquement des rappels polis à vos clients qui n\u2019ont pas payé. Vous n\u2019avez plus à le faire vous-même.",
-    tag: "✓ Automatique",
-    tagBg: "rgba(34,197,94,0.12)",
-    tagColor: "#22c55e",
-    iconBg: "rgba(124,58,237,0.12)",
-    iconColor: "#7c3aed",
+    title: "Suivi des impayes simplifie",
+    text: "Visualisez vos impayes et envoyez des relances en un clic. Vos clients qui doivent encore payer sont mis en avant sur votre tableau de bord.",
+    tag: "✓ Outil integre",
+    accent: "#8b6dff",
     svgPaths: (
       <>
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -82,23 +75,17 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Conforme à la loi 2026",
-    text: "Depuis septembre 2026, la facture électronique est obligatoire. Nexartis est déjà certifié. Vous ne risquez aucune amende.",
-    tag: "⚠️ Obligatoire en 2026",
-    tagBg: "rgba(245,200,66,0.15)",
-    tagColor: "#f5c842",
-    iconBg: "rgba(232,122,42,0.12)",
-    iconColor: "#e87a2a",
+    title: "Pret pour la facturation electronique",
+    text: "Toutes vos factures integrent deja les mentions legales obligatoires. Nexartis integre le format Factur-X pour septembre 2026.",
+    tag: "★ Pret 2026",
+    accent: "#ff7a1a",
     svgPaths: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
   },
   {
-    title: "Fonctionne sur votre téléphone",
-    text: "Créez un devis depuis votre chantier et envoyez-le en quelques instants. Votre client signe directement sur son téléphone.",
-    tag: "✓ iOS & Android",
-    tagBg: "rgba(34,197,94,0.12)",
-    tagColor: "#22c55e",
-    iconBg: "rgba(71,85,105,0.1)",
-    iconColor: "#475569",
+    title: "Optimise mobile et terrain",
+    text: "Creez un devis depuis votre chantier sur smartphone ou tablette. Votre client signe directement sur son telephone.",
+    tag: "✓ Web responsive",
+    accent: "#6aa0ff",
     svgPaths: (
       <>
         <rect x="5" y="2" width="14" height="20" rx="2" />
@@ -110,36 +97,60 @@ const cards: FeatureCard[] = [
 
 export default function FeaturesSection() {
   return (
-    <section id="fonctionnalites" className="bg-[var(--navy)] py-[100px] px-5 lg:px-10">
+    <section
+      id="fonctionnalites"
+      className="landing-section bg-transparent py-[100px] px-5 lg:px-10"
+    >
       <div className="mx-auto max-w-[1200px]">
         {/* Header */}
-        <div className="text-center mb-[60px]">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.06em] px-4 py-1.5 rounded-full mb-5 bg-[rgba(90,180,224,0.1)] text-[var(--sky)]">
-            Fonctionnalités
+        <div className="text-center mb-[60px] reveal">
+          <span
+            className="landing-eyebrow mb-5"
+            style={{
+              color: "#9fc0ff",
+              background: "color-mix(in srgb, #3f7bff 12%, transparent)",
+              borderColor: "color-mix(in srgb, #3f7bff 30%, transparent)",
+            }}
+          >
+            <span
+              className="dot"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "currentColor",
+                boxShadow: "0 0 10px currentColor",
+              }}
+            />
+            Fonctionnalites
           </span>
-          <h2 className="text-[28px] sm:text-[38px] font-[800] tracking-[-0.03em] text-white mb-3.5">
-            Toutes les fonctionnalités dont votre entreprise a besoin
+          <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
+            Tout ce dont votre entreprise a besoin
           </h2>
-          <p className="text-[17px] text-white/50 font-medium max-w-[560px] mx-auto">
-            Prise en main immédiate. Efficacité durable.
+          <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
+            Prise en main immediate. Efficacite durable.
           </p>
         </div>
 
         {/* Cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {cards.map((card) => (
+          {cards.map((card, i) => (
             <div
               key={card.title}
-              className={`flex flex-col rounded-[var(--radius)] p-[32px_28px] transition-all duration-300 hover:-translate-y-[2px] ${
+              className={`reveal reveal-delay-${(i % 3) + 1} relative flex flex-col rounded-[20px] p-[32px_28px] transition-all duration-300 hover:-translate-y-[4px] ${
                 card.exclusive
-                  ? "border border-[rgba(245,200,66,0.3)] bg-[linear-gradient(135deg,rgba(245,200,66,0.06)_0%,rgba(255,255,255,0.04)_100%)] shadow-[0_0_30px_rgba(245,200,66,0.06)]"
-                  : "bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.12]"
+                  ? "border border-[color:color-mix(in_srgb,var(--accent,#ff7a1a)_36%,transparent)] bg-[linear-gradient(160deg,color-mix(in_srgb,var(--accent,#ff7a1a)_10%,transparent),rgba(255,255,255,0.04))] shadow-[0_0_40px_color-mix(in_srgb,var(--accent,#ff7a1a)_18%,transparent)]"
+                  : "bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.16]"
               }`}
             >
-              {/* Tag */}
+              {/* Tag (top-right) */}
               <span
-                className="inline-block text-[11px] font-bold px-3 py-1 rounded-lg mb-4 w-fit"
-                style={{ background: card.tagBg, color: card.tagColor }}
+                className="absolute top-[18px] right-[18px] text-[10.5px] font-bold tracking-[0.04em] uppercase px-2.5 py-1 rounded-md border"
+                style={{
+                  color: card.exclusive ? "#ffc79a" : card.accent,
+                  background: `color-mix(in srgb, ${card.accent} 14%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${card.accent} 32%, transparent)`,
+                }}
               >
                 {card.tag}
               </span>
@@ -147,14 +158,16 @@ export default function FeaturesSection() {
               {/* Icon */}
               <div
                 className="w-12 h-12 rounded-[14px] flex items-center justify-center mb-5"
-                style={{ background: card.iconBg }}
+                style={{
+                  background: `color-mix(in srgb, ${card.accent} 14%, transparent)`,
+                }}
               >
                 <svg
                   width="22"
                   height="22"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke={card.iconColor}
+                  stroke={card.accent}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -163,10 +176,10 @@ export default function FeaturesSection() {
                 </svg>
               </div>
 
-              <h3 className="text-[17px] font-[800] text-white mb-2 tracking-[-0.01em]">
+              <h3 className="text-[18px] font-[800] text-ink mb-2 tracking-[-0.01em] pr-[30px]">
                 {card.title}
               </h3>
-              <p className="flex-1 text-[13px] text-white/50 font-medium leading-[1.65]">
+              <p className="flex-1 text-[14px] text-ink-2 font-medium leading-[1.65]">
                 {card.text}
               </p>
             </div>
