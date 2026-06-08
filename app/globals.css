@@ -36,6 +36,36 @@
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f5c842;
+
+  /* ============================================================
+     V4 (2026-06-08) — Tokens refonte landing dark premium.
+     Cohabitent avec les tokens Nexartis historiques. Utilises
+     uniquement par les composants de la landing (Hero V4, etc.).
+     ============================================================ */
+  --bgdark:    #060912;
+  --bgdark-2:  #0a0f20;
+  --bgdark-3:  #0d1428;
+  --bgdark-ink: #04060d;
+  --surface-glass:   rgba(255,255,255,.04);
+  --surface-glass-2: rgba(255,255,255,.06);
+  --stroke-glass:    rgba(255,255,255,.09);
+  --stroke-glass-2:  rgba(255,255,255,.16);
+  --ink:    #eaf0ff;
+  --ink-2:  #aab4d4;
+  --ink-3:  #76819f;
+  --electric:    #3f7bff;
+  --electric-2:  #6aa0ff;
+  --electric-ink: #9fc0ff;
+  --mint:   #2fd6a0;
+  --landing-violet: #8b6dff;
+  --accent:    #ff7a1a;
+  --accent-2:  #ff9d4d;
+  --accent-ink: #ffc79a;
+  --glow: 1;
+  --landing-radius:    18px;
+  --landing-radius-lg: 26px;
+  --landing-ease:     cubic-bezier(.22,.61,.36,1);
+  --landing-ease-out: cubic-bezier(.16,1,.3,1);
 }
 
 html {
@@ -405,4 +435,118 @@ details summary::-webkit-details-marker {
 
 .driver-popover.nexartis-driver {
   animation: nexartisDriverFadeIn 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================================
+   V4 (2026-06-08) — Landing dark premium
+   ============================================================
+   Classes utilitaires reservees a la landing (toutes prefixees
+   `.landing-` ou utilisees dans des composants V4 dedies pour
+   eviter tout conflit avec le dashboard / devis / factures.
+   ============================================================ */
+
+/* Atmosphere de fond (grille + 3 blobs + noise) */
+.landing-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--bgdark);
+}
+.landing-grid {
+  position: absolute;
+  inset: -2px;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 75%);
+          mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+.landing-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: calc(.5 * var(--glow));
+}
+.landing-blob.b1 {
+  width: 680px; height: 680px;
+  top: -280px; left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--electric) 70%, transparent), transparent 65%);
+}
+.landing-blob.b2 {
+  width: 520px; height: 520px;
+  top: 240px; right: -160px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 60%, transparent), transparent 65%);
+  opacity: calc(.32 * var(--glow));
+}
+.landing-blob.b3 {
+  width: 560px; height: 560px;
+  top: 1400px; left: -200px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--landing-violet) 55%, transparent), transparent 65%);
+  opacity: calc(.28 * var(--glow));
+}
+.landing-noise {
+  position: absolute;
+  inset: 0;
+  opacity: .05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Sur mobile bas de gamme, le noise + 3 blobs blur(80px) sont lourds.
+   On garde grid + 1 blob principal seulement < 980px. */
+@media (max-width: 980px) {
+  .landing-blob.b2,
+  .landing-blob.b3,
+  .landing-noise {
+    display: none;
+  }
+}
+
+/* Effet texte degrade premium (utilise dans Hero) */
+.landing-text-grad {
+  background: linear-gradient(120deg, var(--ink) 0%, var(--electric-2) 55%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+/* Eyebrow pilule (utilise dans toutes les sections landing) */
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 8px 16px;
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--electric) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--electric) 25%, transparent);
+}
+.landing-eyebrow--accent {
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Section landing — relative + z-index pour passer au-dessus de l'atmosphere */
+.landing-section {
+  position: relative;
+  z-index: 1;
+}
+
+/* Anti-flash : respect prefers-reduced-motion (intro skip + animations off) */
+@media (prefers-reduced-motion: reduce) {
+  .landing-atmosphere *,
+  .animate-spin-slow,
+  .animate-spin-slow-reverse,
+  .animate-float-y,
+  .animate-pulse-conflict {
+    animation: none !important;
+  }
 }

@@ -34,13 +34,13 @@ const featureItems = [
   {
     icon: "⚡",
     title: "Facture électronique",
-    desc: "Conforme Factur-X 2026 obligatoire",
+    desc: "Prêt pour Factur-X 2026",
     href: "/#fonctionnalites",
   },
   {
     icon: "📱",
-    title: "Application mobile",
-    desc: "iOS & Android — Conçu pour le terrain",
+    title: "Mobile et terrain",
+    desc: "Optimisé pour smartphone et tablette",
     href: "/#fonctionnalites",
   },
 ];

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 export default function ScrollReveal() {
   useEffect(() => {
+    // V4 (2026-06-08) : threshold 0.12 + rootMargin -8%
+    // pour révéler plus tôt au scroll (recommandation du handoff design).
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -13,7 +15,7 @@ export default function ScrollReveal() {
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     );
 
     document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));

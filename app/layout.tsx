@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://nexartis.fr'),
   title: 'Nexartis — Logiciel devis facture artisan | 25€/mois tout inclus',
   description:
-    'Créez vos devis et factures artisan en quelques minutes. Planning intelligent exclusif. Conforme Factur-X 2026. Essai gratuit 14 jours sans CB.',
+    'Créez vos devis et factures artisan en quelques minutes. Planning intelligent exclusif avec alerte de conflit. Prêt pour Factur-X 2026. Essai gratuit 14 jours sans CB.',
   keywords:
     'logiciel devis artisan, logiciel facture artisan, logiciel artisan, application artisan, gestion artisan, devis en ligne, facturation artisan',
   robots: {
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Nexartis — Logiciel devis facture artisan | 25€/mois tout inclus',
     description:
-      'Créez vos devis et factures artisan en quelques minutes. Planning intelligent exclusif. Conforme Factur-X 2026.',
+      'Créez vos devis et factures artisan en quelques minutes. Planning intelligent exclusif avec alerte de conflit. Prêt pour Factur-X 2026.',
     type: 'website',
     locale: 'fr_FR',
     siteName: 'Nexartis',
@@ -118,7 +118,7 @@ export default function RootLayout({
       height: 512,
     },
     description:
-      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Conforme Factur-X 2026. Aussi performant que les leaders du marche, a un prix juste : 25 EUR/mois tout inclus.",
+      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Pret pour Factur-X 2026. Aussi performant que les leaders du marche, a un prix juste : 25 EUR/mois tout inclus.",
     foundingDate: '2024',
     foundingLocation: {
       '@type': 'Place',
