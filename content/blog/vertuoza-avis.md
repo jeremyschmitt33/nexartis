@@ -1,6 +1,6 @@
 ---
 title: "Vertuoza Avis 2026 : L'IA Voice BTP Vaut-elle son Prix ?"
-description: "Vertuoza est le premier logiciel BTP à proposer un assistant IA vocal pour dicter un devis depuis le chantier. Test honnête face à un challenger qui fait pareil à 25€/mois."
+description: "Vertuoza Avis 2026 : test honnête de l'IA vocale BTP belge. Prix, forces, faiblesses face à un challenger à 25€/mois."
 slug: "vertuoza-avis"
 category: "Avis logiciel BTP"
 date: "8 juin 2026"
@@ -11,7 +11,7 @@ author:
   name: "Jérémy Schmitt"
   role: "Fondateur Nexartis · Ancien artisan électricien"
   bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
-tags: ["vertuoza", "logiciel BTP", "IA vocale", "devis vocal", "Factur-X 2026"]
+tags: ["vertuoza", "vertuoza avis", "logiciel BTP belge", "IA vocale", "devis vocal", "Factur-X 2026"]
 canonical: "https://nexartis.fr/blog/vertuoza-avis"
 ogImage: "/images/vertuoza-avis-hero.webp"
 ---
@@ -28,14 +28,14 @@ Si vous êtes pressé, voici l'essentiel à retenir.
 | Cible idéale | PME BTP 5-20 salariés qui veulent l'IA |
 | Force principale | Assistant IA vocal mature, intégration approfondie |
 | Faiblesse principale | Prix opaque, pas d'essai gratuit, contrat rigide |
-| Note utilisateurs | 4,3/5 sur Trustpilot (180 avis) |
+| Note utilisateurs | 4,3/5 sur Trustpilot (180 avis, relevé juin 2026) |
 | Conformité Factur-X 2026 | Oui, déjà opérationnelle |
 
 > **À retenir.** Vertuoza est l'un des logiciels les plus innovants du marché BTP grâce à son assistant IA vocal mature. Mais l'opacité tarifaire et l'absence d'essai gratuit en font un outil réservé aux PME qui ont le budget et qui sont prêtes à passer par une démo commerciale.
 
 ## Vertuoza, c'est qui exactement ?
 
-Vertuoza est un **logiciel BTP belgo-français** lancé en 2018. Plus de 3 500 entreprises de construction utilisent l'outil en 2026, principalement en Belgique et en France.
+Vertuoza est un **logiciel BTP belgo-français** lancé en 2018. Plus de 3 500 entreprises de construction utilisent l'outil en 2026 (source : vertuoza.com, consultée en juin 2026), principalement en Belgique et en France.
 
 L'éditeur a misé tôt sur l'**intelligence artificielle vocale** pour différencier son produit. C'est aujourd'hui l'un des rares acteurs du BTP à proposer un assistant vocal mature, capable de transcrire un devis dicté depuis un chantier.
 
@@ -49,7 +49,7 @@ C'est le point le plus frustrant de Vertuoza : **le prix n'est pas public**. L'�
 |---|---|---|---|
 | Démo commerciale | Sur devis (env. 50-80€/mois) | Annuel | Non |
 
-**Selon les estimations** issues de discussions clients et retours utilisateurs, Vertuoza se positionne autour de 50 à 80€ HT/mois selon le nombre d'utilisateurs et les modules choisis. Pour avoir un prix exact, il faut prendre rendez-vous avec un commercial. Ce n'est pas illégitime, mais c'est anti-moderne en 2026.
+**Selon les estimations** issues de discussions clients et retours utilisateurs, Vertuoza se positionne autour de 50 à 80€ HT/mois selon le nombre d'utilisateurs et les modules choisis. Pour avoir un prix exact, il faut prendre rendez-vous avec un commercial. Ce n'est pas illégitime, mais ce choix de vente uniquement sur devis se raréfie dans le SaaS en 2026.
 
 ## L'IA Voice testée en conditions réelles
 
@@ -66,17 +66,17 @@ La **maturité de la reconnaissance vocale** est élevée. L'outil tient le choc
 
 ### Prix opaque
 
-Pas de page tarifs publique. Vous devez subir un cycle commercial (démo + devis + négociation) avant de savoir combien ça coûte. C'est usant, surtout pour une TPE pressée.
+Pas de page tarifs publique. Vous devez passer par un cycle commercial (démo + devis + négociation) avant d'avoir un prix. Ce parcours peut allonger la décision, surtout pour une TPE pressée.
 
 ### Pas d'essai gratuit
 
-Aucune version d'évaluation autonome. Vous découvrez le produit en démo commerciale, ce qui biaise forcément le test. Les concurrents Tolteck (30 jours), Obat (14 jours) et Nexartis (14 jours) proposent tous un essai libre.
+Aucune version d'évaluation autonome. Vous découvrez le produit en démo commerciale, ce qui biaise forcément le test. Les concurrents [Tolteck](/blog/tolteck-avis) (30 jours), [Obat](/blog/obat-avis) (14 jours) et Nexartis (14 jours) proposent tous un essai libre.
 
 ### Contrat rigide
 
-L'engagement annuel est la norme, avec des conditions de résiliation parfois strictes. À comparer à Tolteck ou Nexartis qui proposent du mensuel sans engagement.
+L'engagement annuel est la norme, avec des conditions de résiliation parfois strictes. À comparer à [Tolteck](/blog/tolteck-avis) ou Nexartis qui proposent du mensuel sans engagement.
 
-> **À retenir.** Vertuoza est un excellent produit, mais l'expérience d'achat est old-school : opacité tarifaire, démo obligatoire, contrat rigide. Si vous voulez tester librement et payer un prix transparent, vous serez frustré.
+> **À retenir.** Vertuoza est un excellent produit, mais l'expérience d'achat reste classique : tarification sur devis, démo obligatoire, engagement annuel. Si votre priorité est de tester librement à prix public, ce modèle ne vous correspondra pas.
 
 ## Vertuoza vs Nexartis : le duel vocal
 
@@ -84,9 +84,9 @@ C'est la comparaison que tout le monde attend. Voici la version honnête.
 
 **Vertuoza** a la maturité produit : leur assistant vocal existe depuis plusieurs années, intégré profondément dans le workflow. C'est précis, c'est fiable, c'est mature.
 
-**Nexartis** a misé sur Gemini 2.5 Flash de Google pour son devis vocal, lancé en 2026. La reconnaissance est excellente, le coût d'usage côté éditeur est faible (zéro frais répercuté), et c'est testable gratuitement pendant 14 jours sans démo commerciale.
+**Nexartis** a misé sur Gemini 2.5 Flash, le moteur vocal de Google, pour son devis vocal lancé en 2026. La reconnaissance est excellente, le coût d'usage côté éditeur est faible (zéro frais répercuté), et c'est testable gratuitement pendant 14 jours sans démo commerciale.
 
-Si vous voulez la profondeur et la maturité : Vertuoza. Si vous voulez tester sans friction et à 25€/mois : Nexartis.
+Vertuoza apporte la profondeur d'intégration et plusieurs années de maturité produit. Nexartis apporte un essai libre, un prix public à 25€/mois et un moteur Gemini 2.5 Flash récent. Le choix dépend du niveau d'usage vocal attendu.
 
 ## Comparatif Vertuoza vs Tolteck, Obat, Nexartis
 
@@ -109,7 +109,8 @@ Voici ma note finale, critère par critère.
 
 | Critère | Note /10 |
 |---|---|
-| Prix | 4/10 |
+| Prix | 5/10 |
+| Transparence tarifaire | 3/10 |
 | Simplicité | 7/10 |
 | Fonctions cœur | 9/10 |
 | Innovation IA Voice | 9/10 |
@@ -117,9 +118,9 @@ Voici ma note finale, critère par critère.
 | Complétude | 8/10 |
 | Support client | 6/10 |
 | Pérennité éditeur | 7/10 |
-| **Note globale** | **7,2/10** |
+| **Note globale** | **6,9/10** |
 
-C'est une **très bonne note** portée par l'innovation produit. Vertuoza tient une vraie longueur d'avance côté IA vocale, mais paie son opacité tarifaire et son cycle d'achat old-school. Réservé aux PME qui ont le budget et la patience.
+C'est une **bonne note** portée par l'innovation produit. Vertuoza tient une vraie longueur d'avance côté IA vocale, mais paie son opacité tarifaire et son cycle d'achat plus classique. Pertinent pour les PME qui ont le budget et qui acceptent un cycle d'achat commercial.
 
 ## Questions fréquentes sur Vertuoza
 
@@ -133,7 +134,7 @@ Non. Vertuoza n'a pas d'essai gratuit autonome. La découverte du produit passe 
 
 ### Vertuoza vs Nexartis pour le vocal, lequel choisir ?
 
-Vertuoza si vous avez le budget premium et que vous voulez la maturité produit la plus avancée sur l'IA vocale BTP. Nexartis si vous voulez essayer gratuitement le vocal pendant 14 jours, à un prix public et transparent de 25€/mois, sans démo commerciale.
+Vertuoza si vous avez le budget et que vous voulez la maturité produit la plus avancée sur l'IA vocale BTP. Nexartis si vous voulez essayer gratuitement le vocal pendant 14 jours, à un prix public et transparent de 25€/mois, sans démo commerciale. Pour un comparatif plus large, voir aussi [Tolteck](/blog/tolteck-avis) et [Obat](/blog/obat-avis).
 
 ### Vertuoza est-il français ?
 
@@ -148,3 +149,10 @@ Techniquement oui, mais commercialement c'est mieux adapté aux PME de 5 salari�
 Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
 
 Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au reste du [blog Nexartis](/blog).
+
+## Sources
+
+- Site officiel Vertuoza : [vertuoza.com](https://www.vertuoza.com)
+- Avis utilisateurs Trustpilot : [trustpilot.com/review/vertuoza.com](https://fr.trustpilot.com/review/vertuoza.com) (relevé juin 2026 : 4,3/5 sur 180 avis)
+- Réforme e-facturation et Factur-X : [impots.gouv.fr / facturation électronique](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
+- Comparatifs internes : [Tolteck Avis 2026](/blog/tolteck-avis), [Obat Avis 2026](/blog/obat-avis), [Henrri Avis 2026](/blog/henrri-avis), [Batigest Avis 2026](/blog/batigest-avis)

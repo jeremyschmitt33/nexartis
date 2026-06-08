@@ -1,6 +1,6 @@
 ---
-title: "Henrri Avis 2026 : Le Gratuit Est-il Vraiment Suffisant ?"
-description: "Henrri est gratuit, mais convient-il vraiment aux artisans BTP en 2026 ? Test complet, limites cachées, et alternatives au logiciel de Rivalis."
+title: "Henrri Avis 2026 : Que Vaut le Logiciel Gratuit du BTP ?"
+description: "Henrri Avis 2026 : test complet du logiciel devis-facture gratuit de Rivalis. Fonctionnalités, limites pour le BTP, alternatives comparées."
 slug: "henrri-avis"
 category: "Avis logiciel BTP"
 date: "8 juin 2026"
@@ -18,7 +18,7 @@ ogImage: "/images/henrri-avis-hero.webp"
 
 > **Disclosure** — Je suis Jérémy Schmitt, créateur de Nexartis, un logiciel de devis-facture pour artisans BTP. Henrri est un concurrent indirect du mien. Voici mon analyse la plus factuelle possible, avec les forces et les faiblesses des deux outils.
 
-Henrri revient souvent dans les discussions entre artisans qui démarrent. Logique : c'est gratuit, ça fait des devis, ça fait des factures. Mais derrière ce **logiciel devis facture gratuit** se cache un modèle économique précis, et des limites qu'on découvre rarement avant de s'en servir au quotidien.
+Henrri revient souvent dans les discussions entre artisans qui démarrent. Logique : c'est gratuit, ça fait des devis, ça fait des factures. Mais derrière ce **logiciel devis facture gratuit** se trouve un modèle économique précis, et des limites qu'on découvre rarement avant de s'en servir au quotidien.
 
 J'ai installé Henrri, je l'ai utilisé sur trois cas concrets d'artisan, et je l'ai comparé avec ce que je connais du marché. Voici mon retour, sans langue de bois.
 
@@ -42,13 +42,13 @@ Si vous reconnaissez votre situation dans la deuxième ligne, lisez la suite. Si
 
 ## Présentation : Henrri, c'est qui, c'est quoi ?
 
-Henrri est édité par **Rivalis**, un groupe français d'accompagnement d'entrepreneurs lancé en 1994. Rivalis revendique plus de 21 000 clients accompagnés, principalement par des consultants indépendants, sur des programmes payants qui se chiffrent en plusieurs centaines d'euros par mois.
+Henrri est édité par **Rivalis**, un groupe français d'accompagnement d'entrepreneurs lancé en 1994. Rivalis revendique plus de 21 000 clients accompagnés (source : rivalis.fr, page "À propos", consultée en juin 2026), principalement par des consultants indépendants, sur des programmes payants qui se chiffrent en plusieurs centaines d'euros par mois.
 
 Henrri, lui, est gratuit. Et c'est là que le modèle devient intéressant à comprendre.
 
-Le logiciel sert de **produit d'appel** vers le coaching Rivalis. Vous démarrez avec un outil gratuit, vous remplissez votre comptabilité, et au passage Rivalis peut vous proposer son accompagnement payant si votre profil colle. Ce n'est pas caché, c'est juste rarement expliqué clairement.
+Le logiciel sert de **produit d'appel** vers le coaching Rivalis. L'utilisateur démarre avec l'outil gratuit, et Rivalis peut, selon le profil, proposer son accompagnement payant. C'est mentionné publiquement par l'éditeur, mais peu mis en avant à l'inscription.
 
-Ça ne rend pas Henrri mauvais. Ça veut juste dire que le logiciel n'est pas la priorité commerciale de Rivalis : l'accompagnement humain l'est. Le développement produit avance, mais à son rythme.
+Ça ne rend pas Henrri mauvais. Ça veut juste dire que le logiciel n'est pas le cœur du chiffre d'affaires de Rivalis : l'accompagnement humain l'est. Le rythme de développement produit reflète ce positionnement.
 
 ## Les fonctionnalités gratuites d'Henrri
 
@@ -67,7 +67,7 @@ Pour un auto-entrepreneur dans le conseil, la communication, ou les services à 
 
 Le bouton "Signer en ligne" sur les devis envoyés par mail est un vrai plus quand on démarre. Pas besoin d'imprimer, le client signe depuis son canapé, le devis est validé.
 
-## Les vraies limites du gratuit
+## Les limites de la version gratuite
 
 C'est ici que le test devient utile. J'ai listé ce qui manque réellement quand on est artisan BTP au quotidien.
 
@@ -76,7 +76,7 @@ C'est ici que le test devient utile. J'ai listé ce qui manque réellement quand
 - **Pas de gestion d'équipe ni d'intervenants** : pas d'affectation, pas de suivi des heures par chantier, pas de partage de planning.
 - **Mentions légales BTP partielles** : la TVA 5,5 % avec attestation, l'autoliquidation sous-traitance, les mentions de garantie décennale demandent souvent des ajouts manuels.
 - **Support communautaire** : pas de support téléphonique sur la version gratuite. La FAQ Rivalis et un formulaire de contact.
-- **Bouton "Passer en payant" omniprésent** : plusieurs fonctions affichent une bascule vers le coaching Rivalis, ce qui peut perturber au début.
+- **Présence du bouton "Passer en payant"** : plusieurs écrans affichent un lien vers le coaching Rivalis, ce qui peut surprendre les premiers jours.
 
 Aucun de ces points n'est un défaut en soi pour un freelance. Pour un artisan qui pose des prises et fait 80 chantiers par an, ils s'additionnent vite.
 
@@ -86,7 +86,7 @@ Ma réponse honnête, ancien électricien : **ça dépend de votre activité ré
 
 Si vous êtes auto-entrepreneur en dépannage, que vous faites 5 à 15 devis par mois, sans équipe, sans planning compliqué, et que vous gérez votre TVA en franchise, Henrri fait le job. Pas besoin de payer un logiciel pour ça.
 
-Si vous gérez des chantiers de plusieurs jours, avec un compagnon ou un apprenti, des situations d'avancement, de l'autoliquidation, des acomptes, et un planning à organiser, vous allez passer trop de temps à compenser ce que le logiciel ne fait pas. Le temps perdu coûte plus cher qu'un abonnement à un outil **logiciel BTP** spécialisé.
+Si vous gérez des chantiers de plusieurs jours, avec un compagnon ou un apprenti, des situations d'avancement, de l'autoliquidation, des acomptes, et un planning à organiser, vous risquez de devoir compenser manuellement ce que le logiciel ne couvre pas. À volume élevé, le coût en temps peut dépasser celui d'un abonnement à un outil **logiciel BTP** spécialisé.
 
 C'est exactement pour ces artisans-là que j'ai construit Nexartis à 25 € par mois, mais des outils comme [Tolteck](/blog/tolteck-avis) ou Obat existent aussi dans la même fourchette. Le bon réflexe : tester avant de s'engager.
 
@@ -122,11 +122,11 @@ Je donne ma note avec la casquette d'ancien électricien, pas celle de concurren
 | Conformité 2026 (Factur-X) | 7/10 | Annoncée, en cours de déploiement |
 | Support client | 5/10 | Communauté et FAQ, pas de support direct sur le gratuit |
 | Complétude pour un artisan | 5/10 | Devis-facture OK, le reste du métier manque |
-| **Moyenne pondérée** | **6,5/10** | **Bon pour démarrer, limité pour grandir** |
+| **Moyenne pondérée** | **6,5/10** | **Très adapté au démarrage, à réévaluer en cas de croissance** |
 
 Pour un freelance non-BTP, je monterais facilement à 8,5/10. Pour un artisan qui veut un outil complet, on est à 6/10 et ça vaut le coup de regarder une **alternative gratuite** plus spécialisée ou un abonnement modeste.
 
-## FAQ Henrri
+## FAQ Henrri Avis 2026
 
 ### Henrri est-il vraiment 100 % gratuit ?
 
@@ -164,7 +164,7 @@ Honnêtement, pas vraiment, pas avec autant de fonctionnalités. Quelques outils
 
 Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
 
-Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au reste du [blog Nexartis](/blog). Et si vous hésitez encore, écrivez-moi, je réponds personnellement.
+Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au reste du [blog Nexartis](/blog). Et si vous hésitez encore, [écrivez-moi](mailto:contact@nexartis.fr), je réponds personnellement.
 
 ## Sources
 
