@@ -171,14 +171,28 @@ export default function PlanningDemoSection() {
               </span>
             </div>
 
-            {/* Conflict alert banner */}
-            {showConflict && (
-              <div className="border-b border-red-500/30 bg-gradient-to-r from-red-500/20 to-orange-500/20 px-5 py-3">
-                <p className="text-center text-sm font-semibold text-white">
+            {/* Conflict alert banner — A11y :
+                conteneur TOUJOURS présent dans le DOM avec role="status" +
+                aria-live="polite" + aria-atomic="true" pour que les lecteurs
+                d'écran détectent l'apparition du message. Visuellement masqué
+                via opacity + max-height quand showConflict = false. */}
+            <div
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className={[
+                'overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out',
+                showConflict
+                  ? 'max-h-24 opacity-100 scale-100 border-b border-red-500/30 bg-gradient-to-r from-red-500/20 to-orange-500/20'
+                  : 'max-h-0 opacity-0 scale-[0.98] border-b border-transparent',
+              ].join(' ')}
+            >
+              {showConflict && (
+                <p className="px-5 py-3 text-center text-sm font-semibold text-white">
                   ⚠️ Conflit détecté — Michel R. est déjà affecté chez M. Bernard (Pose carrelage) le mercredi après-midi.
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Planning grid */}
             <div className="overflow-x-auto p-4 md:p-6">

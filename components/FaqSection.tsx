@@ -122,8 +122,10 @@ export default function FaqSection() {
                 }`}
               >
                 <button
+                  id={`faq-question-${i}`}
                   onClick={() => toggle(i)}
                   aria-expanded={open}
+                  aria-controls={`faq-answer-${i}`}
                   className="w-full flex items-center gap-4 text-left px-5 py-5 text-[16.5px] font-bold text-ink hover:text-white transition-colors"
                 >
                   <span className="flex-1">{faq.q}</span>
@@ -142,6 +144,9 @@ export default function FaqSection() {
                   </span>
                 </button>
                 <div
+                  id={`faq-answer-${i}`}
+                  role="region"
+                  aria-labelledby={`faq-question-${i}`}
                   className="overflow-hidden transition-[max-height] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
                   style={{
                     maxHeight: open ? "320px" : "0px",

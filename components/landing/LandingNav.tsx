@@ -38,6 +38,7 @@ const NAV_LINKS = [
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Auth-aware : on bascule "Se connecter / Essai gratuit" vers "Mon espace"
   // si l'utilisateur a déjà une session Supabase. Pattern repris de Header.tsx.
@@ -62,6 +63,33 @@ export default function LandingNav() {
     // Si l'IntroOverlay n'est pas monté (déjà skippé/jamais affiché), on no-op.
     // Optional chaining → safe même si la fonction n'a jamais été enregistrée.
     window.__nexartisReplayIntro?.();
+  };
+
+  // Drawer mobile — fermeture sur Escape + lock body scroll quand ouvert.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isMenuOpen]);
+
+  // Helper : fermer le drawer (utilisé par tous les liens internes du drawer
+  // pour que le scroll vers l'ancre se fasse sans drawer ouvert).
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const handleMobileReplayIntro = () => {
+    closeMenu();
+    // Petit délai pour que le drawer ferme avant l'overlay intro.
+    window.setTimeout(() => {
+      window.__nexartisReplayIntro?.();
+    }, 220);
   };
 
   return (
@@ -149,9 +177,132 @@ export default function LandingNav() {
             {isLoggedIn ? 'Mon espace' : 'Essai gratuit'}
           </Link>
 
-          {/* TODO V4.1 — Burger menu mobile (<lg) qui ouvre un drawer dark
-              avec les 4 ancres + "Se connecter" + "Revoir l'intro". Pour la
-              V4 initiale on garde la nav minimaliste sur mobile (logo + CTA). */}
+          {/* ---------------- Bouton burger (<lg) ---------------- */}
+          {/* Icône 3 lignes -> croix quand ouvert. Animation via SVG paths. */}
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((v) => !v)}
+            className="lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-[10px] border border-white/[0.08] hover:border-white/[0.16] text-ink-2 hover:text-ink transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark"
+            aria-label={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={isMenuOpen}
+            aria-controls="landing-mobile-drawer"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {isMenuOpen ? (
+                <>
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="6" y1="18" x2="18" y2="6" />
+                </>
+              ) : (
+                <>
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17" x2="20" y2="17" />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* ---------------- Drawer mobile plein écran ---------------- */}
+      {/* z-[120] : au-dessus de la nav (z-100) mais sous l'intro overlay (z-200/150). */}
+      {/* Backdrop cliquable + panneau qui slide depuis le haut. */}
+      <div
+        id="landing-mobile-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu de navigation"
+        className={[
+          'lg:hidden fixed inset-0 z-[120]',
+          'transition-opacity duration-300 ease-out',
+          isMenuOpen
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none',
+        ].join(' ')}
+      >
+        {/* Backdrop */}
+        <div
+          onClick={closeMenu}
+          className="absolute inset-0 bg-bgdark/70 backdrop-blur-[6px]"
+          aria-hidden="true"
+        />
+
+        {/* Panneau drawer */}
+        <div
+          className={[
+            'absolute top-0 left-0 right-0',
+            'bg-bgdark-2/95 backdrop-blur-[20px]',
+            'border-b border-white/[0.08]',
+            'shadow-[0_24px_60px_-12px_rgba(0,0,0,0.5)]',
+            'transition-transform duration-300 ease-out',
+            'max-h-[100dvh] overflow-y-auto',
+            'pt-[80px] pb-8 px-6',
+            isMenuOpen ? 'translate-y-0' : '-translate-y-full',
+          ].join(' ')}
+        >
+          <div className="max-w-container mx-auto flex flex-col gap-2">
+            {/* Ancres principales — grosse typo */}
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={closeMenu}
+                className="block text-ink hover:text-white font-bold text-[22px] tracking-[-0.01em] px-3 py-3.5 rounded-[12px] hover:bg-white/[0.04] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
+              >
+                {link.label}
+              </a>
+            ))}
+
+            {/* Séparateur */}
+            <div className="my-3 h-px bg-white/[0.08]" />
+
+            {/* Revoir l'intro — secondaire */}
+            <button
+              type="button"
+              onClick={handleMobileReplayIntro}
+              className="flex items-center gap-2.5 text-ink-2 hover:text-ink font-semibold text-[15px] px-3 py-3 rounded-[12px] hover:bg-white/[0.04] transition-colors duration-200 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Revoir l&apos;intro
+            </button>
+
+            {/* Se connecter / Mon espace — secondaire */}
+            <Link
+              href={isLoggedIn ? '/dashboard' : '/login'}
+              onClick={closeMenu}
+              className="block text-ink-2 hover:text-ink font-semibold text-[15px] px-3 py-3 rounded-[12px] hover:bg-white/[0.04] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
+            >
+              {isLoggedIn ? 'Mon espace' : 'Se connecter'}
+            </Link>
+
+            {/* CTA principal — gradient */}
+            <Link
+              href={isLoggedIn ? '/dashboard' : '/register'}
+              onClick={closeMenu}
+              className="mt-4 inline-flex items-center justify-center bg-gradient-to-br from-accent-2 to-accent text-white font-bold text-[15px] px-5 py-3.5 rounded-[13px] shadow-[0_8px_24px_-8px_rgba(255,122,26,0.55)] hover:shadow-[0_12px_32px_-8px_rgba(255,122,26,0.75)] hover:brightness-110 transition-[box-shadow,filter,transform] duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark"
+            >
+              {isLoggedIn ? 'Mon espace' : 'Essai gratuit'}
+            </Link>
+          </div>
         </div>
       </div>
     </nav>
