@@ -245,13 +245,23 @@ export default function CgvPage() {
             gratuitement au médiateur de la consommation :
           </p>
           <p>
-            <strong>Médiateur de la consommation</strong> : adhésion en cours auprès du <strong>CM2C (Centre
-            de la Médiation de la Consommation des Conciliateurs)</strong>. Les coordonnées complètes du
-            médiateur (adresse postale et plateforme en ligne) seront mises à jour dans la présente clause
-            dès finalisation de l&apos;adhésion. Dans l&apos;intervalle, tout Client consommateur souhaitant
-            engager une procédure de médiation est invité à contacter l&apos;Éditeur à l&apos;adresse
-            <strong> contact.nexartis@gmail.com</strong> qui lui transmettra les coordonnées du médiateur
-            sous 48 heures ouvrées.
+            <strong>CM2C — Centre de la Médiation de la Consommation de Conciliateurs de Justice</strong>
+            <br />
+            Site web officiel et saisine en ligne :{' '}
+            <a
+              href="https://www.cm2c.net"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky underline-offset-4 hover:underline"
+            >
+              www.cm2c.net
+            </a>
+            <br />
+            Email : <a href="mailto:cm2c@cm2c.net" className="text-sky underline-offset-4 hover:underline">cm2c@cm2c.net</a>
+            <br />
+            Adresse postale : 14 rue Saint-Jean, 75017 Paris
+            <br />
+            Nexartis est adhérent du CM2C pour une durée de 3 ans (adhésion souscrite le 8 juin 2026).
           </p>
           <p>
             Le Client peut également recourir à la plateforme européenne de règlement en ligne des litiges :{' '}
