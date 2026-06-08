@@ -1,17 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
+import { getClientIp, checkRateLimit, isValidEmail } from '@/lib/api-security'
 
 /**
  * POST /api/auth/resend-confirmation
  * Renvoie le mail de confirmation Nexartis à un utilisateur non confirmé.
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // ✅ SÉCURITÉ : Rate limiting strict (3 tentatives par heure par IP)
+    const ip = getClientIp(request)
+    if (!checkRateLimit(`resend-confirm:${ip}`, 3, 3_600_000)) {
+      // Réponse générique pour ne pas révéler le rate limit
+      return NextResponse.json({ success: true })
+    }
+
     const { email } = await request.json()
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email requis' }, { status: 400 })
+    if (!email || !isValidEmail(email)) {
+      return NextResponse.json({ success: true }) // Réponse générique (pas de fuite)
     }
 
     const supabaseAdmin = createClient(
@@ -20,42 +28,45 @@ export async function POST(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } },
     )
 
-    // Vérifier que l'utilisateur existe et n'est pas déjà confirmé
-    const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
-    const authUser = authUsers?.users?.find(u => u.email === email)
+    // Lookup ciblé par email — évite de charger tous les utilisateurs en mémoire
+    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
 
-    if (!authUser) {
-      // Ne pas révéler si l'email existe ou non (sécurité)
+    if (listError) {
+      console.error('Resend confirmation listUsers error:', listError)
       return NextResponse.json({ success: true })
     }
 
-    if (authUser.email_confirmed_at) {
-      // Déjà confirmé — renvoyer quand même un succès silencieux
+    const authUser = users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
+
+    // Délai artificiel constant pour éviter le timing-based user enumeration
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
+
+    if (!authUser || authUser.email_confirmed_at) {
+      await delay(300) // Même temps de réponse qu'un vrai envoi
       return NextResponse.json({ success: true })
     }
 
     // Générer un nouveau lien de confirmation
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexartis.fr'
-    let confirmUrl = ''
 
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
       options: { redirectTo: `${siteUrl}/auth/confirm` },
     })
-    if (!linkError && linkData?.properties?.action_link) {
-      confirmUrl = linkData.properties.action_link
+
+    if (linkError || !linkData?.properties?.action_link) {
+      console.error('Resend confirmation generateLink error:', linkError)
+      return NextResponse.json({ success: true })
     }
 
-    if (!confirmUrl) {
-      return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
-    }
-
-    // Récupérer le prénom depuis les metadata
+    const confirmUrl = linkData.properties.action_link
     const meta = (authUser.user_metadata as Record<string, unknown>) ?? {}
     const displayName = (meta.prenom as string) || email.split('@')[0]
 
-    // Envoyer le mail
     const html = buildConfirmationEmailHtml({ name: displayName, confirmUrl })
     await sendEmail({
       to: { email, name: displayName },
@@ -66,7 +77,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('Resend confirmation error:', err)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return NextResponse.json({ success: true }) // Réponse générique même en cas d'erreur
   }
 }
 

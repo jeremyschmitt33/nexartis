@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import {
-  getClientIp, checkRateLimit,
+  getClientIp, checkRateLimit, isValidUUID,
   secureJson, secureError, rateLimitError,
 } from '@/lib/api-security'
 
@@ -27,7 +27,7 @@ export async function GET(
     const { token } = await params
 
     // ✅ SÉCURITÉ : Valider le format du token (UUID strict)
-    if (!token || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+    if (!token || !isValidUUID(token)) {
       return secureError('Token invalide')
     }
 

@@ -194,6 +194,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Send facture error:', error)
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 })
+    return secureError('Erreur lors de l\'envoi de la facture', 500)
   }
 }

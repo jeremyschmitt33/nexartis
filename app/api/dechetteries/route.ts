@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getClientIp, checkRateLimit } from '@/lib/api-security'
 
 // ─────────────────────────────────────────────────────────────
 // API /api/dechetteries?cp=33000  ou  ?adresse=12 rue des fleurs 33000 Bordeaux
@@ -37,6 +38,12 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 
 export async function GET(req: NextRequest) {
   try {
+    // ✅ SÉCURITÉ : Rate limiting (20 requêtes/minute par IP)
+    const ip = getClientIp(req)
+    if (!checkRateLimit(`dechetteries:${ip}`, 20, 60_000)) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez dans une minute.' }, { status: 429 })
+    }
+
     const searchParams = req.nextUrl.searchParams
     const cp = searchParams.get('cp') || ''
     const adresse = searchParams.get('adresse') || ''
@@ -128,6 +135,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('Erreur API déchetteries:', error)
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 })
+    console.error('Erreur API déchetteries:', error)
+    return NextResponse.json({ error: 'Erreur serveur lors de la recherche de déchetteries.' }, { status: 500 })
   }
 }

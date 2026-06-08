@@ -215,6 +215,6 @@ ${dateValidite ? `<p style="font-size:13px;color:#e87a2a;margin:0 0 16px;">Ce de
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Send devis error:', error)
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 })
+    return secureError('Erreur lors de l\'envoi du devis', 500)
   }
 }

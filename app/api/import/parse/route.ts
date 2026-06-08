@@ -229,6 +229,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
+    // ✅ SÉCURITÉ : Limite de taille (10 MB max par fichier, zip bomb protection)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+    for (const file of filesArray) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ error: `Fichier trop volumineux (max 10 MB). Taille reçue : ${Math.round(file.size / 1024 / 1024)} MB` }, { status: 413 })
+      }
+    }
+
     if (!(['obat', 'obat_comptable', 'tolteck', 'batappli', 'henrri', 'excel'].includes(source))) {
       return NextResponse.json({ error: 'Source invalide' }, { status: 400 })
     }

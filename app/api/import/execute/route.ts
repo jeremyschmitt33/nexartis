@@ -452,11 +452,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    // ✅ SÉCURITÉ : Limite de taille du body JSON (10 MB max)
+    const contentLength = parseInt(req.headers.get('content-length') || '0', 10)
+    if (contentLength > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Corps de requête trop volumineux (max 10 MB)' }, { status: 413 })
+    }
+
     const body = (await req.json()) as ExecuteRequest
     const { data, options } = body
 
     if (!data || !options) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
+    }
+
+    // ✅ SÉCURITÉ : Limite du nombre de lignes importées (DoS protection)
+    const MAX_ROWS = 5_000
+    const totalRows = Object.values(data).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
+    if (totalRows > MAX_ROWS) {
+      return NextResponse.json({ error: `Trop de lignes à importer (max ${MAX_ROWS}, reçu ${totalRows})` }, { status: 413 })
     }
 
     const { duplicateHandling } = options
