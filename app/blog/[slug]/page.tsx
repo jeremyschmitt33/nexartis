@@ -1,66 +1,87 @@
 /**
- * Page exemple : /blog/tolteck-avis
+ * Route dynamique : /blog/[slug]
  *
- * Sert de référence pour TOUS les futurs articles avis/comparatif.
- * - Lit le fichier markdown depuis content/blog/tolteck-avis.md
- * - Parse le frontmatter YAML simple (voir helpers ci-dessous)
- * - Rend via BlogArticleLayout + ArticleMarkdown
- * - Injecte le Schema.org JSON-LD (Article)
+ * Charge dynamiquement un article markdown depuis content/blog/<slug>.md
+ * et le rend via BlogArticleLayout + ArticleMarkdown.
  *
- * À installer pour passer en prod sereinement :
+ * - Parser frontmatter YAML simple (clone de l'ancienne page tolteck-avis)
+ * - Mini-parser markdown maison (clone de l'ancienne page tolteck-avis)
+ * - Schema.org JSON-LD (Article + FAQPage si question H3 dans la section FAQ)
+ * - generateStaticParams : SSG sur tous les slugs disponibles
+ * - notFound() si le slug n'existe pas
+ *
+ * À installer pour passer en prod sereinement (refactor futur) :
  *   npm i gray-matter remark remark-gfm remark-html
- * Puis remplacer parseFrontmatter() + mdToHtml() par les vraies libs.
  */
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import BlogArticleLayout, {
   BlogFrontmatter,
 } from '@/components/blog/BlogArticleLayout'
 import ArticleMarkdown from '@/components/blog/ArticleMarkdown'
 
-const SLUG = 'tolteck-avis'
 const SITE_URL = 'https://nexartis.fr'
+const CONTENT_DIR = path.join(process.cwd(), 'content', 'blog')
 
-function loadArticle() {
-  const filePath = path.join(process.cwd(), 'content', 'blog', `${SLUG}.md`)
-  if (!fs.existsSync(filePath)) {
-    return {
-      frontmatter: {
-        title: 'Tolteck — Avis complet (à venir)',
-        description: 'Article en cours de rédaction.',
-        date: new Date().toLocaleDateString('fr-FR'),
-      } as BlogFrontmatter,
-      html: '<p>L\'article est en cours de rédaction. Reviens bientôt !</p>',
-    }
-  }
+type Params = { slug: string }
+
+export function generateStaticParams(): Params[] {
+  if (!fs.existsSync(CONTENT_DIR)) return []
+  return fs
+    .readdirSync(CONTENT_DIR)
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => ({ slug: f.replace(/\.md$/, '') }))
+}
+
+function loadArticle(slug: string): {
+  frontmatter: BlogFrontmatter
+  body: string
+  html: string
+} | null {
+  const filePath = path.join(CONTENT_DIR, `${slug}.md`)
+  if (!fs.existsSync(filePath)) return null
   const raw = fs.readFileSync(filePath, 'utf8')
   const { frontmatter, body } = parseFrontmatter(raw)
   const html = mdToHtml(body)
-  return { frontmatter, html }
+  return { frontmatter, body, html }
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const { frontmatter } = loadArticle()
+export async function generateMetadata({
+  params,
+}: {
+  params: Params
+}): Promise<Metadata> {
+  const article = loadArticle(params.slug)
+  if (!article) {
+    return {
+      title: 'Article introuvable — Blog Nexartis',
+      description: "Cet article n'existe pas ou a été déplacé.",
+    }
+  }
+  const fm = article.frontmatter
   return {
-    title: `${frontmatter.title} — Blog Nexartis`,
-    description: frontmatter.description,
-    alternates: { canonical: `/blog/${SLUG}` },
+    title: `${fm.title} — Blog Nexartis`,
+    description: fm.description,
+    alternates: { canonical: `/blog/${params.slug}` },
     openGraph: {
-      title: frontmatter.title,
-      description: frontmatter.description,
+      title: fm.title,
+      description: fm.description,
       type: 'article',
-      url: `${SITE_URL}/blog/${SLUG}`,
-      images: frontmatter.heroImage
-        ? [{ url: frontmatter.heroImage }]
-        : undefined,
+      url: `${SITE_URL}/blog/${params.slug}`,
+      images: fm.heroImage ? [{ url: fm.heroImage }] : undefined,
     },
   }
 }
 
-export default function ToltectAvisPage() {
-  const { frontmatter, html } = loadArticle()
+export default function BlogArticlePage({ params }: { params: Params }) {
+  const article = loadArticle(params.slug)
+  if (!article) {
+    notFound()
+  }
+  const { frontmatter, body, html } = article!
 
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -79,11 +100,30 @@ export default function ToltectAvisPage() {
         url: `${SITE_URL}/images/logo-nexartis.png`,
       },
     },
-    mainEntityOfPage: `${SITE_URL}/blog/${SLUG}`,
+    mainEntityOfPage: `${SITE_URL}/blog/${params.slug}`,
     image: frontmatter.heroImage
       ? `${SITE_URL}${frontmatter.heroImage}`
       : undefined,
   }
+
+  // Extraction FAQ : H3 + paragraphe qui les suit, à l'intérieur de la section
+  // FAQ (H2 dont le titre contient "FAQ" ou "questions" ou "fréquentes").
+  const faqItems = extractFaqItems(body)
+  const faqSchema =
+    faqItems.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: faqItems.map((q) => ({
+            '@type': 'Question',
+            name: q.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: q.answer,
+            },
+          })),
+        }
+      : null
 
   return (
     <>
@@ -91,6 +131,12 @@ export default function ToltectAvisPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <BlogArticleLayout frontmatter={frontmatter}>
         <ArticleMarkdown html={html} />
       </BlogArticleLayout>
@@ -98,8 +144,9 @@ export default function ToltectAvisPage() {
   )
 }
 
-// ═════════════════ Helpers temporaires ═════════════════
-// À remplacer par gray-matter + remark dès que possible.
+// ═════════════════ Helpers ═════════════════
+// Clones EXACTS du parser de l'ancienne page tolteck-avis (déjà éprouvé en
+// prod). Ne pas modifier sans test cross-article complet.
 
 function parseFrontmatter(raw: string): {
   frontmatter: BlogFrontmatter
@@ -144,7 +191,6 @@ function parseFrontmatter(raw: string): {
     const key = line.slice(0, i).trim()
     const val = line.slice(i + 1).trim()
     if (val === '') {
-      // Soit objet, soit array suivant
       currentObjectKey = key
       currentArrayKey = null
       fm[key] = {}
@@ -156,13 +202,6 @@ function parseFrontmatter(raw: string): {
       fm[key] = stripQuotes(val)
       currentObjectKey = null
       currentArrayKey = null
-    }
-  })
-  // Heuristique : si une clé objet est restée vide après lecture et qu'on a
-  // rencontré des "  - " ensuite, c'était en fait un array.
-  Object.keys(fm).forEach((k) => {
-    if (typeof fm[k] === 'object' && !Array.isArray(fm[k]) && Object.keys(fm[k]).length === 0) {
-      // laisser tel quel
     }
   })
   return { frontmatter: fm as BlogFrontmatter, body }
@@ -299,4 +338,53 @@ function splitRow(line: string): string[] {
     .replace(/\|\s*$/, '')
     .split('|')
     .map((s) => s.trim())
+}
+
+/**
+ * Extrait les FAQ (H3 + paragraphe suivant) d'une section H2 qui contient
+ * "FAQ" ou "questions fréquentes". Utilisé pour le Schema.org FAQPage.
+ */
+function extractFaqItems(
+  md: string
+): Array<{ question: string; answer: string }> {
+  const lines = md.split(/\r?\n/)
+  const items: Array<{ question: string; answer: string }> = []
+  let inFaqSection = false
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    const h2 = line.match(/^##\s+(.+)$/)
+    if (h2) {
+      const titleLower = h2[1].toLowerCase()
+      inFaqSection =
+        titleLower.includes('faq') ||
+        titleLower.includes('questions fréquent') ||
+        titleLower.includes('questions frequent')
+      i++
+      continue
+    }
+    if (!inFaqSection) {
+      i++
+      continue
+    }
+    const h3 = line.match(/^###\s+(.+)$/)
+    if (h3) {
+      const question = h3[1].trim()
+      i++
+      const answerBuf: string[] = []
+      while (
+        i < lines.length &&
+        !/^##\s+/.test(lines[i]) &&
+        !/^###\s+/.test(lines[i])
+      ) {
+        if (lines[i].trim() !== '') answerBuf.push(lines[i].trim())
+        i++
+      }
+      const answer = answerBuf.join(' ').replace(/\s+/g, ' ').trim()
+      if (answer) items.push({ question, answer })
+      continue
+    }
+    i++
+  }
+  return items
 }
