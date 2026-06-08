@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * ArticleMarkdown — Rendu styling premium des articles blog.
  *
