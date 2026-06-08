@@ -25,7 +25,7 @@ export default function RgpdPage() {
           Politique de confidentialité
         </h1>
         <p className="mt-3 text-sm text-navy/60">
-          Dernière mise à jour : 20 mai 2026 — Conforme au Règlement (UE) 2016/679 (RGPD)
+          Dernière mise à jour : 8 juin 2026 — Conforme au Règlement (UE) 2016/679 (RGPD)
         </p>
       </header>
 
@@ -46,11 +46,11 @@ export default function RgpdPage() {
           </h2>
           <p>Le responsable du traitement des données est :</p>
           <ul className="list-disc pl-6">
-            <li><strong>[Raison sociale à compléter]</strong></li>
-            <li>[Adresse complète à compléter]</li>
-            <li>SIRET : [À compléter]</li>
+            <li><strong>Nexartis</strong>, entreprise individuelle exploitée par Jérémy SCHMITT</li>
+            <li>Siège : 144 avenue Pasteur, 33185 Le Haillan, France</li>
+            <li>SIRET : 840 059 687 00029</li>
             <li>
-              Email :{' '}
+              Contact RGPD :{' '}
               <a
                 href="mailto:contact.nexartis@gmail.com"
                 className="text-sky underline-offset-4 hover:underline"
@@ -60,7 +60,11 @@ export default function RgpdPage() {
             </li>
           </ul>
           <p>
-            <strong>Délégué à la protection des données (DPO)</strong> : [À compléter — non obligatoire pour une petite structure mais recommandé d&apos;indiquer un contact]
+            <strong>Délégué à la protection des données (DPO)</strong> : aucun DPO n&apos;a été désigné,
+            la nomination d&apos;un DPO n&apos;étant pas légalement obligatoire pour Nexartis (article 37
+            du RGPD). Toutes les demandes relatives au traitement de vos données peuvent être adressées
+            directement à <strong>contact.nexartis@gmail.com</strong>, qui sera traitée personnellement
+            par le responsable de traitement dans un délai maximum d&apos;un mois.
           </p>
         </section>
 
@@ -116,12 +120,30 @@ export default function RgpdPage() {
 
           <h3 className="font-syne text-lg font-bold text-navy mt-6">Sous-traitants techniques</h3>
           <ul className="list-disc pl-6">
-            <li><strong>Vercel Inc.</strong> (États-Unis) — hébergement applicatif. Conforme aux Clauses Contractuelles Types (CCT) européennes.</li>
-            <li><strong>Supabase Inc.</strong> — base de données. Données hébergées en France (région UE).</li>
-            <li><strong>Stripe Payments Europe Ltd.</strong> (Irlande) — paiements.</li>
-            <li><strong>Resend / [À COMPLÉTER selon votre fournisseur d&apos;emails]</strong> — envoi d&apos;emails transactionnels.</li>
-            <li><strong>Google LLC (Google Analytics 4)</strong> — mesure d&apos;audience anonymisée, activée uniquement après consentement.</li>
+            <li><strong>Vercel Inc.</strong> (340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis) — hébergement et diffusion du frontal applicatif via son réseau global de points de présence. Transfert hors UE encadré par les Clauses Contractuelles Types (CCT) européennes.</li>
+            <li><strong>Supabase Inc.</strong> (970 Toa Payoh North #07-04, Singapour) — base de données PostgreSQL et stockage. Le projet Nexartis est configuré sur la région européenne (Francfort, Allemagne) ; les données utilisateurs sont stockées dans l&apos;Union européenne.</li>
+            <li><strong>Stripe Payments Europe Ltd.</strong> (1 Grand Canal Street Lower, Dublin, Irlande) — encaissement de l&apos;abonnement et gestion du portail client.</li>
+            <li><strong>Brevo (anciennement Sendinblue)</strong>, Sendinblue SAS (7 rue de Madrid, 75008 Paris, France) — envoi des emails transactionnels (envoi de devis, factures, notifications). Données traitées en France.</li>
+            <li><strong>Google LLC (Google Analytics 4)</strong> (1600 Amphitheatre Parkway, Mountain View, CA 94043, États-Unis) — mesure d&apos;audience anonymisée, activée uniquement après consentement explicite via la bannière cookies.</li>
+            <li><strong>Google LLC (API Google Gemini)</strong> (même adresse) — reconnaissance vocale pour la fonctionnalité optionnelle « Devis vocal » et « Commande vocale ». Le flux audio enregistré par l&apos;artisan est transmis à Google le temps strictement nécessaire à la transcription et à l&apos;extraction d&apos;informations structurées (nom de client, lignes de prestations). Selon les conditions d&apos;utilisation actuelles de l&apos;API Gemini, l&apos;audio n&apos;est pas utilisé pour entraîner les modèles de Google lorsqu&apos;une clé API gérée est utilisée. Voir{' '}
+              <a
+                href="https://ai.google.dev/gemini-api/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky underline-offset-4 hover:underline"
+              >
+                ai.google.dev/gemini-api/terms
+              </a>
+              .
+            </li>
           </ul>
+          <p className="mt-4 text-sm text-navy/70">
+            <strong>Information importante concernant la fonctionnalité vocale</strong> : l&apos;utilisation
+            du micro est entièrement optionnelle. Le navigateur sollicite explicitement votre autorisation
+            avant tout enregistrement audio. À aucun moment l&apos;audio n&apos;est conservé par Nexartis
+            après traitement — seules les informations structurées extraites (texte) sont enregistrées
+            sur votre compte.
+          </p>
         </section>
 
         <section className="mb-10">
@@ -129,11 +151,21 @@ export default function RgpdPage() {
             6. Transferts hors Union Européenne
           </h2>
           <p>
-            Certains de nos sous-traitants (Vercel, Stripe, Google) peuvent traiter vos données depuis les
-            États-Unis. Ces transferts sont encadrés par les <strong>Clauses Contractuelles Types</strong>{' '}
-            (CCT) approuvées par la Commission européenne, ainsi que par le <strong>EU-US Data Privacy
-            Framework</strong> lorsque le sous-traitant y adhère. Vos données sont chiffrées en transit et
-            au repos.
+            Certains de nos sous-traitants traitent vos données depuis des juridictions situées hors
+            de l&apos;Union européenne :
+          </p>
+          <ul className="list-disc pl-6">
+            <li><strong>Vercel</strong> (États-Unis) — frontal applicatif et logs techniques.</li>
+            <li><strong>Stripe</strong> (Irlande, donc UE) — flux de paiement.</li>
+            <li><strong>Google LLC</strong> (États-Unis) — mesure d&apos;audience (avec consentement) et reconnaissance vocale optionnelle (avec consentement implicite par utilisation de la fonctionnalité micro).</li>
+            <li><strong>Supabase</strong> (siège à Singapour, infrastructure utilisée pour Nexartis en Allemagne, donc UE).</li>
+          </ul>
+          <p>
+            Ces transferts hors UE sont encadrés par les <strong>Clauses Contractuelles Types</strong>{' '}
+            (CCT) approuvées par la Commission européenne (décision d&apos;exécution 2021/914), ainsi
+            que par le <strong>Data Privacy Framework UE-États-Unis</strong> lorsque le sous-traitant
+            y adhère (cas de Vercel et Google). Vos données sont chiffrées en transit (TLS 1.3) et au
+            repos (AES-256).
           </p>
         </section>
 

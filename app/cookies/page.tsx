@@ -25,7 +25,7 @@ export default function CookiesPage() {
           Politique cookies
         </h1>
         <p className="mt-3 text-sm text-navy/60">
-          Dernière mise à jour : 20 mai 2026 — Conforme aux recommandations CNIL
+          Dernière mise à jour : 8 juin 2026 — Conforme aux recommandations CNIL
         </p>
       </header>
 
@@ -72,7 +72,7 @@ export default function CookiesPage() {
                 <tr>
                   <td className="px-3 py-2 font-mono text-xs">nexartis_consent</td>
                   <td className="px-3 py-2">Mémoriser votre choix de cookies</td>
-                  <td className="px-3 py-2">13 mois</td>
+                  <td className="px-3 py-2">6 mois</td>
                 </tr>
                 <tr>
                   <td className="px-3 py-2 font-mono text-xs">nexartis_bypass</td>

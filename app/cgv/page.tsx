@@ -24,7 +24,7 @@ export default function CgvPage() {
         <h1 className="mt-2 font-syne text-4xl font-bold tracking-tight text-navy sm:text-5xl">
           Conditions Générales de Vente
         </h1>
-        <p className="mt-3 text-sm text-navy/60">Dernière mise à jour : 20 mai 2026</p>
+        <p className="mt-3 text-sm text-navy/60">Dernière mise à jour : 8 juin 2026</p>
       </header>
 
       <div className="prose prose-slate max-w-none font-manrope text-[15px] leading-relaxed text-navy">
@@ -32,9 +32,15 @@ export default function CgvPage() {
           <h2 className="font-syne text-2xl font-bold text-navy">Article 1 — Objet</h2>
           <p>
             Les présentes conditions générales de vente (ci-après « CGV ») ont pour objet de définir les modalités
-            de mise à disposition par <strong>[Nexartis — éditeur à compléter]</strong> (ci-après l&apos;« Éditeur »)
-            du logiciel <strong>Nexartis</strong> (ci-après le « Service ») au profit de tout utilisateur (ci-après
-            le « Client ») souscrivant à un abonnement.
+            de mise à disposition par l&apos;entreprise individuelle <strong>Nexartis</strong>, exploitée par
+            Jérémy SCHMITT, dont le siège est situé 144 avenue Pasteur, 33185 Le Haillan, immatriculée sous le
+            numéro SIRET 840 059 687 00029 (ci-après l&apos;« Éditeur ») du logiciel <strong>Nexartis</strong>{' '}
+            (ci-après le « Service ») au profit de tout utilisateur (ci-après le « Client ») souscrivant à un
+            abonnement. Une version complète de l&apos;identification de l&apos;Éditeur figure sur la page{' '}
+            <Link href="/mentions-legales" className="text-sky underline-offset-4 hover:underline">
+              mentions légales
+            </Link>
+            .
           </p>
           <p>
             Le Service est destiné à un usage professionnel par les artisans, les auto-entrepreneurs et les
@@ -65,7 +71,9 @@ export default function CgvPage() {
             Le Service est proposé avec une période d&apos;essai gratuit de <strong>14 jours</strong> sans
             engagement et sans saisie de carte bancaire. À l&apos;issue de cette période, le Client peut souscrire
             à un abonnement payant pour continuer à utiliser le Service. À défaut, l&apos;accès au compte sera
-            suspendu, sans perte des données pendant une durée de [À COMPLÉTER — ex : 90 jours].
+            suspendu et les données conservées pendant une durée de <strong>90 jours</strong>, durant laquelle
+            le Client peut réactiver son compte ou exporter ses données. Au-delà de ce délai, les données sont
+            supprimées définitivement, sauf obligation légale de conservation plus longue.
           </p>
         </section>
 
@@ -78,8 +86,10 @@ export default function CgvPage() {
             <Link href="/tarifs" className="text-sky underline-offset-4 hover:underline">
               Tarifs
             </Link>
-            . L&apos;abonnement standard est facturé <strong>25 € HT par mois</strong>, soit{' '}
-            <strong>30 € TTC</strong> (TVA française 20 % applicable).
+            . L&apos;Éditeur bénéficie de la franchise en base de TVA (article 293 B du Code général des impôts) :
+            les prix affichés sont exprimés en euros toutes taxes comprises (TTC) et correspondent au montant
+            effectivement prélevé, aucune TVA n&apos;étant facturée. La mention « TVA non applicable, art. 293 B du
+            CGI » figure sur l&apos;ensemble des factures émises par l&apos;Éditeur.
           </p>
           <p>
             Le paiement est effectué par prélèvement automatique mensuel via notre prestataire de paiement
@@ -214,11 +224,14 @@ export default function CgvPage() {
             9 bis.3 — Hébergement et portabilité des données
           </h3>
           <p>
-            Les données du Client sont hébergées sur des serveurs situés en <strong>France</strong>{' '}
-            et ne sont en aucun cas transmises, vendues ou commercialisées à des tiers, sauf
-            obligation légale. Le Client peut à tout moment exporter l&apos;intégralité de ses
-            données aux formats CSV ou PDF depuis son espace personnel, ou sur simple demande
-            adressée à <strong>contact.nexartis@gmail.com</strong>.
+            Les données applicatives du Client (devis, factures, clients, chantiers, équipe, prestations)
+            sont hébergées au sein de l&apos;Union européenne, dans la région européenne de notre
+            sous-traitant Supabase (centres de données situés en Allemagne). Le frontal applicatif est servi
+            via le réseau global de Vercel Inc. (États-Unis), dans le cadre des Clauses Contractuelles Types
+            adoptées par la Commission européenne pour les transferts hors UE. Aucune donnée du Client
+            n&apos;est transmise, vendue ou commercialisée à des tiers, sauf obligation légale. Le Client
+            peut à tout moment exporter l&apos;intégralité de ses données depuis son espace personnel
+            (formats CSV et PDF), ou sur simple demande adressée à <strong>contact.nexartis@gmail.com</strong>.
           </p>
         </section>
 
@@ -232,7 +245,13 @@ export default function CgvPage() {
             gratuitement au médiateur de la consommation :
           </p>
           <p>
-            <strong>[À COMPLÉTER — Nom du médiateur, adresse, lien plateforme. Ex : MEDIATION-NET CONSOMMATION, 10 rue de la Bourse, 75002 Paris, www.mediation-net-consommation.com]</strong>
+            <strong>Médiateur de la consommation</strong> : adhésion en cours auprès du <strong>CM2C (Centre
+            de la Médiation de la Consommation des Conciliateurs)</strong>. Les coordonnées complètes du
+            médiateur (adresse postale et plateforme en ligne) seront mises à jour dans la présente clause
+            dès finalisation de l&apos;adhésion. Dans l&apos;intervalle, tout Client consommateur souhaitant
+            engager une procédure de médiation est invité à contacter l&apos;Éditeur à l&apos;adresse
+            <strong> contact.nexartis@gmail.com</strong> qui lui transmettra les coordonnées du médiateur
+            sous 48 heures ouvrées.
           </p>
           <p>
             Le Client peut également recourir à la plateforme européenne de règlement en ligne des litiges :{' '}
@@ -253,9 +272,42 @@ export default function CgvPage() {
             Article 11 — Droit applicable et juridiction
           </h2>
           <p>
-            Les présentes CGV sont soumises au droit français. Tout litige relatif à leur interprétation
-            ou à leur exécution sera soumis à la compétence exclusive des tribunaux français du ressort
-            du siège social de l&apos;Éditeur, sauf disposition légale impérative contraire.
+            Les présentes CGV sont soumises au droit français.
+          </p>
+          <p>
+            <strong>Pour les Clients professionnels (B2B)</strong> : tout litige relatif à leur
+            interprétation ou à leur exécution sera soumis à la compétence exclusive des tribunaux
+            français du ressort du siège social de l&apos;Éditeur.
+          </p>
+          <p>
+            <strong>Pour les Clients consommateurs (B2C)</strong> : conformément aux articles R.631-3
+            du Code de la consommation et 46 du Code de procédure civile, le Client consommateur peut
+            saisir, à son choix, soit la juridiction du lieu où il demeurait au moment de la conclusion
+            du contrat, soit la juridiction du lieu où le fait dommageable s&apos;est produit, soit la
+            juridiction du siège de l&apos;Éditeur.
+          </p>
+        </section>
+
+        <section className="mb-10">
+          <h2 className="font-syne text-2xl font-bold text-navy">
+            Article 11 bis — Garantie légale de conformité et garantie des vices cachés
+          </h2>
+          <p>
+            Conformément aux articles L.224-25-12 et suivants du Code de la consommation, le Service
+            bénéficie pour les Clients consommateurs de la garantie légale de conformité.
+            L&apos;Éditeur s&apos;engage à fournir un Service conforme au contrat et exempt de défaut
+            de conformité dès sa mise à disposition et tout au long de la durée de l&apos;abonnement.
+          </p>
+          <p>
+            En cas de défaut de conformité, le Client consommateur peut demander la mise en conformité
+            du Service, gratuitement et dans un délai raisonnable, sans inconvénient majeur pour lui.
+            À défaut, il peut obtenir une réduction du prix ou la résolution du contrat dans les
+            conditions prévues aux articles L.224-25-19 et suivants du Code de la consommation.
+          </p>
+          <p>
+            Le Client bénéficie également de la garantie des vices cachés au titre des articles
+            1641 et suivants du Code civil. Dans ce cadre, il peut choisir entre la résolution
+            de la vente ou la réduction du prix conformément à l&apos;article 1644 du Code civil.
           </p>
         </section>
 

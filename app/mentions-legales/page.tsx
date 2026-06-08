@@ -25,7 +25,7 @@ export default function MentionsLegalesPage() {
           Mentions légales
         </h1>
         <p className="mt-3 text-sm text-navy/60">
-          Dernière mise à jour : 20 mai 2026
+          Dernière mise à jour : 8 juin 2026
         </p>
       </header>
 
@@ -37,37 +37,43 @@ export default function MentionsLegalesPage() {
           </p>
           <ul className="list-disc pl-6">
             <li>
-              <strong>Raison sociale</strong> : [À COMPLÉTER — ex : Nexartis SAS / Jérémy Schmitt EI]
+              <strong>Nom commercial</strong> : Nexartis
             </li>
             <li>
-              <strong>Forme juridique</strong> : [À COMPLÉTER — ex : Entreprise Individuelle / SAS / SARL]
+              <strong>Exploitant</strong> : Jérémy SCHMITT, entrepreneur individuel
             </li>
             <li>
-              <strong>Capital social</strong> : [À COMPLÉTER si société, sinon supprimer]
+              <strong>Forme juridique</strong> : Entreprise individuelle (micro-entreprise / auto-entrepreneur), régime de la franchise en base de TVA (article 293 B du Code général des impôts)
             </li>
             <li>
-              <strong>Siège social</strong> : [Adresse complète à compléter — ex : 12 rue de la Liberté, 33000 Bordeaux, France]
+              <strong>Siège social</strong> : 144 avenue Pasteur, 33185 Le Haillan, France
             </li>
             <li>
-              <strong>SIRET</strong> : [À COMPLÉTER]
+              <strong>SIRET</strong> : 840 059 687 00029
             </li>
             <li>
-              <strong>RCS</strong> : [À COMPLÉTER — ex : RCS Bordeaux 123 456 789]
+              <strong>Code APE / NAF</strong> : 7022Z (Conseil pour les affaires et autres conseils de gestion)
             </li>
             <li>
-              <strong>Numéro de TVA intracommunautaire</strong> : [À COMPLÉTER si applicable]
+              <strong>RCS</strong> : Non applicable (entreprise individuelle non immatriculée au Registre du commerce)
             </li>
             <li>
-              <strong>Téléphone</strong> : [À COMPLÉTER]
+              <strong>Numéro de TVA intracommunautaire</strong> : Non applicable — Nexartis bénéficie de la franchise en base de TVA (art. 293 B du CGI). La mention « TVA non applicable, art. 293 B du CGI » est portée sur l&apos;ensemble des factures émises.
             </li>
             <li>
-              <strong>Email</strong> :{' '}
+              <strong>Téléphone</strong> : Non communiqué — pour toute demande, merci d&apos;utiliser l&apos;adresse email ci-dessous.
+            </li>
+            <li>
+              <strong>Email de contact</strong> :{' '}
               <a
                 href="mailto:contact.nexartis@gmail.com"
                 className="text-sky underline-offset-4 hover:underline"
               >
                 contact.nexartis@gmail.com
               </a>
+            </li>
+            <li>
+              <strong>Activité</strong> : édition et exploitation d&apos;une plateforme SaaS de gestion (devis, factures, planning) à destination des artisans et professionnels du bâtiment.
             </li>
           </ul>
         </section>
@@ -77,7 +83,7 @@ export default function MentionsLegalesPage() {
             2. Directeur de la publication
           </h2>
           <p>
-            Le directeur de la publication est : <strong>[Nom et prénom à compléter]</strong>, en qualité de [À COMPLÉTER — ex : gérant / représentant légal / dirigeant].
+            Le directeur de la publication est : <strong>Jérémy SCHMITT</strong>, en qualité d&apos;exploitant de l&apos;entreprise individuelle Nexartis.
           </p>
         </section>
 
@@ -86,7 +92,7 @@ export default function MentionsLegalesPage() {
           <p>Le site est hébergé par :</p>
           <ul className="list-disc pl-6">
             <li>
-              <strong>Hébergeur principal</strong> : Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis.{' '}
+              <strong>Hébergeur principal (frontal applicatif)</strong> : Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis. Téléphone : +1 (559) 288-7060.{' '}
               <a
                 href="https://vercel.com"
                 target="_blank"
@@ -95,10 +101,10 @@ export default function MentionsLegalesPage() {
               >
                 vercel.com
               </a>
+              . Le contenu est servi depuis le réseau mondial de points de présence (PoP) de Vercel ; un PoP situé dans l&apos;Union européenne est utilisé pour les visiteurs européens.
             </li>
             <li>
-              <strong>Base de données et stockage</strong> : Supabase (PostgreSQL), Supabase Inc.,
-              970 Toa Payoh North #07-04, Singapour. Données hébergées en France (région UE).{' '}
+              <strong>Base de données applicative et stockage</strong> : Supabase, exploité par Supabase Inc., 970 Toa Payoh North #07-04, Singapour.{' '}
               <a
                 href="https://supabase.com"
                 target="_blank"
@@ -107,9 +113,10 @@ export default function MentionsLegalesPage() {
               >
                 supabase.com
               </a>
+              . Le projet Nexartis est configuré sur la région européenne (Francfort, Allemagne), garantissant que les données utilisateurs sont stockées sur le territoire de l&apos;Union européenne.
             </li>
             <li>
-              <strong>Paiements</strong> : Stripe Payments Europe Ltd., 1 Grand Canal Street Lower, Grand Canal Dock, Dublin, Irlande.{' '}
+              <strong>Traitement des paiements d&apos;abonnement</strong> : Stripe Payments Europe Ltd., 1 Grand Canal Street Lower, Grand Canal Dock, Dublin, Irlande. Téléphone : +353 1 905 2802.{' '}
               <a
                 href="https://stripe.com"
                 target="_blank"
@@ -117,6 +124,28 @@ export default function MentionsLegalesPage() {
                 className="text-sky underline-offset-4 hover:underline"
               >
                 stripe.com
+              </a>
+            </li>
+            <li>
+              <strong>Envoi des emails transactionnels</strong> : Brevo (anciennement Sendinblue), Sendinblue SAS, 7 rue de Madrid, 75008 Paris, France.{' '}
+              <a
+                href="https://www.brevo.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky underline-offset-4 hover:underline"
+              >
+                brevo.com
+              </a>
+            </li>
+            <li>
+              <strong>Reconnaissance vocale (option « Devis vocal »)</strong> : Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, États-Unis, via l&apos;API Google Gemini. Cette fonctionnalité est utilisée uniquement lorsque l&apos;artisan choisit explicitement de dicter un devis ou une commande. Le flux audio est transmis le temps nécessaire au traitement, n&apos;est pas conservé par Nexartis et n&apos;est pas réutilisé pour entraîner les modèles de Google.{' '}
+              <a
+                href="https://ai.google.dev/gemini-api/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky underline-offset-4 hover:underline"
+              >
+                Conditions d&apos;utilisation de l&apos;API Gemini
               </a>
             </li>
           </ul>
@@ -137,10 +166,14 @@ export default function MentionsLegalesPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="font-syne text-2xl font-bold text-navy">5. Marques et logos</h2>
+          <h2 className="font-syne text-2xl font-bold text-navy">5. Nom commercial et logo</h2>
           <p>
-            La marque « Nexartis » ainsi que le logo associé sont [À COMPLÉTER : marques déposées à l&apos;INPI sous le numéro XXX / marques en cours d&apos;enregistrement / noms commerciaux protégés].
-            Toute utilisation non autorisée est passible de poursuites.
+            « Nexartis » est utilisé comme nom commercial par l&apos;entreprise individuelle Jérémy SCHMITT.
+            Le logo associé constitue une œuvre originale protégée par le droit d&apos;auteur dès sa création
+            (articles L.111-1 et suivants du Code de la propriété intellectuelle). Toute reproduction
+            ou réutilisation du nom commercial ou du logo, dans des conditions de nature à créer une
+            confusion avec l&apos;activité de Nexartis, est susceptible d&apos;engager la responsabilité
+            de son auteur au titre de la concurrence déloyale.
           </p>
         </section>
 
