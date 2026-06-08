@@ -2,10 +2,15 @@
 title: "Tolteck Avis 2026 : Notre Test Honnête en 5 min"
 description: "Tolteck vaut-il 19-25€/mois ? Test rapide : tarifs, forces, faiblesses. L'avis d'un concurrent honnête (fondateur Nexartis)."
 slug: "tolteck-avis"
-date: "2026-06-08"
+category: "Avis logiciel BTP"
+date: "8 juin 2026"
 updated: "2026-06-08"
-author: "Jérémy Schmitt"
-authorRole: "Fondateur de Nexartis, ancien artisan électricien"
+readingTime: "5 min"
+heroImage: ""
+author:
+  name: "Jérémy Schmitt"
+  role: "Fondateur Nexartis · Ancien artisan électricien"
+  bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
 tags: ["avis", "logiciel devis", "logiciel facture", "BTP", "Tolteck"]
 canonical: "https://nexartis.fr/blog/tolteck-avis"
 ogImage: "/images/tolteck-avis-hero.webp"
