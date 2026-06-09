@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import MetierPageTemplate from "@/components/MetierPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Devis Paysagiste — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Devis Paysagiste — Nexartis | dès 15€/mois",
   description:
     "Créez vos devis paysagisme et entretien espaces verts en quelques minutes. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
@@ -15,7 +15,7 @@ const data = {
   nomPluriel: "Paysagistes",
   icon: "🌿",
   h1: "Logiciel devis et factures pour paysagistes",
-  metaTitle: "Logiciel Devis Paysagiste — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Devis Paysagiste — Nexartis | dès 15€/mois",
   metaDescription:
     "Créez vos devis paysagisme et entretien espaces verts en quelques minutes. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:

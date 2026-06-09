@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import MetierPageTemplate from "@/components/MetierPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Devis Peintre — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Devis Peintre — Nexartis | dès 15€/mois",
   description:
     "Créez vos devis peinture en quelques minutes. Calcul surfaces automatique. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
@@ -15,7 +15,7 @@ const data = {
   nomPluriel: "Peintres",
   icon: "🎨",
   h1: "Logiciel devis et factures pour peintres en bâtiment",
-  metaTitle: "Logiciel Devis Peintre — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Devis Peintre — Nexartis | dès 15€/mois",
   metaDescription:
     "Créez vos devis peinture en quelques minutes. Calcul surfaces automatique. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:

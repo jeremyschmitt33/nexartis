@@ -382,12 +382,14 @@ function Sidebar({
                 const active = isActive(pathname, item.href)
                 const Icon = item.icon
                 // Ancrage du spotlight onboarding sur les liens Paramètres,
-                // Aide et Mon équipe (V1 Fix #7, mode Société uniquement).
+                // Aide, Mon équipe (V1 Fix #7, mode Société uniquement) et
+                // Matériel (V3 — bulle "Ton inventaire pro").
                 // OnboardingTour cible ces attributs via querySelector.
                 const tourId =
                   item.href === '/dashboard/parametres' ? 'parametres' :
                   item.href === '/dashboard/aide' ? 'aide' :
                   item.href === '/dashboard/equipe' ? 'equipe' :
+                  item.href === '/dashboard/materiel' ? 'materiel' :
                   undefined
                 // Item réservé au plan Complet → on affiche un badge ★ pour
                 // les utilisateurs Essentiel hors période d'essai (incite à
@@ -883,8 +885,12 @@ export default function DashboardLayout({
       <div
         className="transition-all duration-200 md:ml-16 lg:ml-64"
       >
-        {/* Bandeau rappel installation PWA (cache 7j apres dismiss ou si deja installee) */}
-        <div className="print:hidden">
+        {/* Bandeau rappel installation PWA (cache 7j apres dismiss ou si deja installee)
+            data-tour="install-banner" : cible pour la bulle d'onboarding V3
+            (etape "Installe Nexartis sur ton telephone"). Le bandeau peut etre
+            absent du DOM si l'utilisateur a deja installe la PWA ou s'il l'a
+            dismiss — dans ce cas le scenario tour skippe silencieusement. */}
+        <div className="print:hidden" data-tour="install-banner">
           <InstallReminderBanner />
         </div>
 

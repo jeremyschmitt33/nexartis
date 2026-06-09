@@ -35,7 +35,7 @@ export default function Hero() {
             <br />
             Un seul prix.
             <br />
-            <span className="text-[var(--sky)]">25€/mois.</span>
+            <span className="text-[var(--sky)]">Dès 15€/mois.</span>
           </h1>
 
           <p className="reveal reveal-delay-2 text-[18px] text-white/60 font-medium leading-[1.65] max-w-[480px] mt-5 mx-auto lg:mx-0">

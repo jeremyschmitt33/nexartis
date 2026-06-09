@@ -50,9 +50,9 @@ const splineMono = Spline_Sans_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://nexartis.fr'),
-  title: 'Nexartis — Logiciel devis facture artisan | 25€/mois tout inclus',
+  title: 'Logiciel devis facture artisan — Nexartis dès 15€/mois',
   description:
-    'Créez vos devis et factures artisan en quelques minutes. Planning intelligent exclusif avec alerte de conflit. Prêt pour Factur-X 2026. Essai gratuit 14 jours sans CB.',
+    'Créez devis et factures artisan en quelques clics. Planning et dictée vocale IA en option. Essai 14 jours sans carte bancaire. Dès 15€/mois.',
   keywords:
     'logiciel devis artisan, logiciel facture artisan, logiciel artisan, application artisan, gestion artisan, devis en ligne, facturation artisan',
   robots: {
@@ -62,9 +62,9 @@ export const metadata: Metadata = {
     'max-image-preview': 'large',
   },
   openGraph: {
-    title: 'Nexartis — Logiciel devis facture artisan | 25€/mois tout inclus',
+    title: 'Logiciel devis facture artisan — Nexartis dès 15€/mois',
     description:
-      'Créez vos devis et factures artisan en quelques minutes. Planning intelligent exclusif avec alerte de conflit. Prêt pour Factur-X 2026.',
+      'Créez devis et factures artisan en quelques clics. Planning et dictée vocale IA en option. Essai 14 jours sans carte bancaire. Dès 15€/mois.',
     type: 'website',
     locale: 'fr_FR',
     siteName: 'Nexartis',
@@ -80,8 +80,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nexartis — Logiciel devis facture artisan',
-    description: 'Gestion devis factures chantiers pour artisans. Essai gratuit 14 jours.',
+    title: 'Logiciel devis facture artisan — Nexartis dès 15€/mois',
+    description: 'Devis et factures en quelques clics. Planning et IA vocale en option. Essai 14 jours sans CB.',
   },
   alternates: {
     canonical: '/',
@@ -141,7 +141,7 @@ export default function RootLayout({
       height: 512,
     },
     description:
-      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Pret pour Factur-X 2026. Aussi performant que les leaders du marche, a un prix juste : 25 EUR/mois tout inclus.",
+      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Aussi performant que les leaders du marche, a partir de 15 EUR/mois (offre Essentiel) ou 25 EUR/mois tout inclus (offre Complet).",
     foundingDate: '2024',
     foundingLocation: {
       '@type': 'Place',

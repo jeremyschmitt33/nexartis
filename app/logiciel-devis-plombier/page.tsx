@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import MetierPageTemplate from "@/components/MetierPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Devis Plombier — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Devis Plombier — Nexartis | dès 15€/mois",
   description:
     "Créez vos devis plomberie en quelques minutes. TVA 10% et 5.5% automatique. Prêt pour Factur-X 2026. Essai gratuit 14 jours.",
   alternates: {
@@ -15,7 +15,7 @@ const data = {
   nomPluriel: "Plombiers",
   icon: "🔧",
   h1: "Logiciel devis et factures pour plombiers",
-  metaTitle: "Logiciel Devis Plombier — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Devis Plombier — Nexartis | dès 15€/mois",
   metaDescription:
     "Créez vos devis plomberie en quelques minutes. TVA 10% et 5.5% automatique. Prêt pour Factur-X 2026. Essai gratuit 14 jours.",
   tvaNotes:

@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import MetierPageTemplate from "@/components/MetierPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Devis Électricien — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Devis Électricien — Nexartis | dès 15€/mois",
   description:
     "Créez vos devis électricité en quelques minutes. Normes NF C 15-100 intégrées. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
@@ -15,7 +15,7 @@ const data = {
   nomPluriel: "Électriciens",
   icon: "⚡",
   h1: "Logiciel devis et factures pour électriciens",
-  metaTitle: "Logiciel Devis Électricien — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Devis Électricien — Nexartis | dès 15€/mois",
   metaDescription:
     "Créez vos devis électricité en quelques minutes. Normes NF C 15-100 intégrées. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:

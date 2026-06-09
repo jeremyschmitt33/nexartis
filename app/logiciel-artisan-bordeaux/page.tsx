@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LocalPageTemplate from "@/components/LocalPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Artisan Bordeaux — Nexartis | Fait en Gironde | 25€/mois",
+  title: "Logiciel Artisan Bordeaux — Nexartis | Fait en Gironde | dès 15€/mois",
   description:
-    "Nexartis, le logiciel artisan créé à Bordeaux. Devis, factures, planning pour les artisans de Gironde. 25€/mois tout inclus.",
+    "Nexartis, le logiciel artisan créé à Bordeaux. Devis, factures, planning pour les artisans de Gironde. dès 15€/mois.",
   alternates: {
     canonical: '/logiciel-artisan-bordeaux',
   },
@@ -16,9 +16,9 @@ const data = {
   codePostal: "33",
   h1: "Logiciel artisan à Bordeaux — Nexartis, fait en Gironde",
   metaTitle:
-    "Logiciel Artisan Bordeaux — Nexartis | Fait en Gironde | 25€/mois",
+    "Logiciel Artisan Bordeaux — Nexartis | Fait en Gironde | dès 15€/mois",
   metaDescription:
-    "Nexartis, le logiciel artisan créé à Bordeaux. Devis, factures, planning pour les artisans de Gironde. 25€/mois tout inclus.",
+    "Nexartis, le logiciel artisan créé à Bordeaux. Devis, factures, planning pour les artisans de Gironde. dès 15€/mois.",
   specificite:
     "Nexartis est né à Bordeaux, en Gironde. Notre équipe est ici, et nous comprenons les besoins des artisans locaux.",
   temoignage: {

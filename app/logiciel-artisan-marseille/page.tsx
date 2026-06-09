@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import LocalPageTemplate from "@/components/LocalPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Artisan Marseille — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Artisan Marseille — Nexartis | dès 15€/mois",
   description:
-    "Nexartis pour les artisans de Marseille et des Bouches-du-Rhône. Devis, factures, planning. 25€/mois. Essai gratuit.",
+    "Nexartis pour les artisans de Marseille et des Bouches-du-Rhône. Devis, factures, planning. dès 15€/mois. Essai gratuit.",
   alternates: {
     canonical: '/logiciel-artisan-marseille',
   },
@@ -15,9 +15,9 @@ const data = {
   region: "Bouches-du-Rhône",
   codePostal: "13",
   h1: "Logiciel artisan à Marseille — Devis, factures et planning",
-  metaTitle: "Logiciel Artisan Marseille — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Artisan Marseille — Nexartis | dès 15€/mois",
   metaDescription:
-    "Nexartis pour les artisans de Marseille et des Bouches-du-Rhône. Devis, factures, planning. 25€/mois. Essai gratuit.",
+    "Nexartis pour les artisans de Marseille et des Bouches-du-Rhône. Devis, factures, planning. dès 15€/mois. Essai gratuit.",
   specificite:
     "Les artisans marseillais apprécient la simplicité d'Nexartis, un logiciel pensé pour le terrain, pas pour le bureau.",
   temoignage: {

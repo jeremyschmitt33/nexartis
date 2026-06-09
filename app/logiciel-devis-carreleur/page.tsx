@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import MetierPageTemplate from "@/components/MetierPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Devis Carreleur — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Devis Carreleur — Nexartis | dès 15€/mois",
   description:
     "Créez vos devis carrelage en quelques minutes. Fournitures et pose séparées. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
@@ -15,7 +15,7 @@ const data = {
   nomPluriel: "Carreleurs",
   icon: "🔲",
   h1: "Logiciel devis et factures pour carreleurs",
-  metaTitle: "Logiciel Devis Carreleur — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Devis Carreleur — Nexartis | dès 15€/mois",
   metaDescription:
     "Créez vos devis carrelage en quelques minutes. Fournitures et pose séparées. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:

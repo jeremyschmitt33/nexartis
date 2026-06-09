@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import MetierPageTemplate from "@/components/MetierPageTemplate";
 
 export const metadata: Metadata = {
-  title: "Logiciel Devis Chauffagiste — Nexartis | 25€/mois tout inclus",
+  title: "Logiciel Devis Chauffagiste — Nexartis | dès 15€/mois",
   description:
     "Créez vos devis chauffage et climatisation en quelques minutes. TVA réduite automatique. Prêt pour Factur-X 2026. Essai gratuit.",
   alternates: {
@@ -15,7 +15,7 @@ const data = {
   nomPluriel: "Chauffagistes",
   icon: "🔥",
   h1: "Logiciel devis et factures pour chauffagistes",
-  metaTitle: "Logiciel Devis Chauffagiste — Nexartis | 25€/mois tout inclus",
+  metaTitle: "Logiciel Devis Chauffagiste — Nexartis | dès 15€/mois",
   metaDescription:
     "Créez vos devis chauffage et climatisation en quelques minutes. TVA réduite automatique. Prêt pour Factur-X 2026. Essai gratuit.",
   tvaNotes:

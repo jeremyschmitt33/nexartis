@@ -100,7 +100,7 @@ export default function MetierPageTemplate({
     },
     {
       q: "Combien coûte Nexartis ?",
-      a: "25€ par mois, tout inclus. Pas de version premium, pas de frais cachés. 14 jours d'essai gratuit sans carte bancaire.",
+      a: "Deux offres : Essentiel à 15€/mois (devis et factures) ou Complet à 25€/mois (avec planning d'équipe et dictée vocale IA). Pas de frais cachés. 14 jours d'essai gratuit sans carte bancaire.",
     },
     {
       q: "Est-ce que je peux envoyer mes factures à mon comptable ?",

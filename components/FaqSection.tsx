@@ -45,8 +45,8 @@ const faqs = [
     a: "Non, et ce n'est pas son but. Nexartis vous aide a creer vos devis et factures, et a les envoyer a votre comptable en un clic au format qu'il utilise. Ca lui fait gagner du temps, et donc ca vous coute moins cher.",
   },
   {
-    q: "Comment Nexartis propose-t-il autant de fonctionnalites a 25 € par mois ?",
-    a: "Nous pensons qu'un bon logiciel artisan ne devrait pas couter le prix d'un repas au restaurant par semaine. Nous avons decide de rendre tous les outils accessibles a un prix honnete, sans version premium, sans mauvaise surprise.",
+    q: "Comment Nexartis propose-t-il autant de fonctionnalites a un prix aussi competitif ?",
+    a: "Nous pensons qu'un bon logiciel artisan ne devrait pas couter le prix d'un repas au restaurant par semaine. Nous avons decide de rendre tous les outils accessibles a un prix honnete : 15 €/mois pour l'Essentiel, 25 €/mois pour le Complet (avec planning et IA vocale). Sans mauvaise surprise.",
   },
 ];
 

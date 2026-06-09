@@ -332,7 +332,7 @@ export default function LogicielDevisFacturesPage() {
             className="mx-auto mb-14 max-w-xl text-center font-manrope text-lg text-gray-500"
           >
             8 fonctionnalit&eacute;s essentielles, incluses dans votre abonnement
-            &agrave; 25&euro;/mois.
+            d&egrave;s 15&euro;/mois.
           </p>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

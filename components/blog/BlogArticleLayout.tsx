@@ -331,7 +331,7 @@ export default function BlogArticleLayout({
                   Testez Nexartis 14 jours sans CB
                 </h3>
                 <p className="mt-2 font-hanken text-xs leading-relaxed text-gray-600">
-                  Devis, factures, planning chantier. Tout inclus, 25 €/mois ensuite.
+                  Devis, factures, planning chantier. Dès 15 €/mois ensuite.
                 </p>
                 <Link
                   href="/register"
