@@ -2,7 +2,10 @@
 title: "Batigest avis 2026 : prix Sage, alternative simple"
 description: "Sage Batigest Connect 31-102€/mois : pour qui c'est trop, pour qui c'est bien. Alternative artisan moderne à 15€/mois, sans formation requise."
 category: "Comparatifs concurrents"
-author: "Jérémy Schmitt"
+author:
+  name: "Jérémy Schmitt"
+  role: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
+  bio: "Jérémy Schmitt a fondé Nexartis avec une obsession : créer le logiciel ultime pour les artisans français. En écoutant chaque jour les besoins du terrain — devis, factures, planning, chantiers — il développe un outil pensé pour leur réalité quotidienne."
 authorRole: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
 publishedDate: "2026-06-09"
 updated: "2026-06-09"

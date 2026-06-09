@@ -2,7 +2,10 @@
 title: "Vertuoza avis 2026 : prix, limites, alternative TPE"
 description: "Vertuoza cible les PME du bâtiment, sans essai gratuit ni prix public. Comparatif honnête + alternative artisan à 25€/mois sans engagement."
 category: "Comparatifs concurrents"
-author: "Jérémy Schmitt"
+author:
+  name: "Jérémy Schmitt"
+  role: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
+  bio: "Jérémy Schmitt a fondé Nexartis avec une obsession : créer le logiciel ultime pour les artisans français. En écoutant chaque jour les besoins du terrain — devis, factures, planning, chantiers — il développe un outil pensé pour leur réalité quotidienne."
 authorRole: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
 publishedDate: "2026-06-09"
 updated: "2026-06-09"
