@@ -296,7 +296,49 @@ export interface OnboardingState {
   tour_dashboard_seen: boolean
   tour_parametres_seen: boolean
   tour_devis_seen: boolean
+  // V3 (09/06/2026) — 5 nouvelles bulles : install PWA, vocal,
+  // theme, mode Solo/Societe (page Equipe), journal chantier.
+  // Migration : lib/supabase/migration-onboarding-step3.sql
+  tour_install_seen: boolean
+  tour_voice_seen: boolean
+  tour_theme_seen: boolean
+  tour_equipe_mode_seen: boolean
+  tour_chantier_journal_seen: boolean
   tour_completed_at: string | null
+}
+
+// V3 — toutes les etapes du tour reunies en un seul type pour le
+// switch markStepSeen. 'skipAll' marque toutes les etapes restantes
+// d'un coup (utilise sur le 1er refus explicite par croix).
+type OnboardingStep =
+  | 'dashboard'
+  | 'parametres'
+  | 'devis'
+  | 'install'
+  | 'voice'
+  | 'theme'
+  | 'equipeMode'
+  | 'chantierJournal'
+  | 'skipAll'
+
+const ONBOARDING_COLUMNS =
+  'tour_dashboard_seen, tour_parametres_seen, tour_devis_seen, ' +
+  'tour_install_seen, tour_voice_seen, tour_theme_seen, ' +
+  'tour_equipe_mode_seen, tour_chantier_journal_seen, ' +
+  'tour_completed_at'
+
+function emptyOnboardingState(): OnboardingState {
+  return {
+    tour_dashboard_seen: false,
+    tour_parametres_seen: false,
+    tour_devis_seen: false,
+    tour_install_seen: false,
+    tour_voice_seen: false,
+    tour_theme_seen: false,
+    tour_equipe_mode_seen: false,
+    tour_chantier_journal_seen: false,
+    tour_completed_at: null,
+  }
 }
 
 function useOnboarding() {
@@ -318,13 +360,13 @@ function useOnboarding() {
       // Tentative de lecture
       const { data: existing } = await supabase
         .from('user_onboarding')
-        .select('tour_dashboard_seen, tour_parametres_seen, tour_devis_seen, tour_completed_at')
+        .select(ONBOARDING_COLUMNS)
         .eq('user_id', user.id)
         .single()
 
       if (existing) {
         if (!cancelled) {
-          setState(existing as OnboardingState)
+          setState(existing as unknown as OnboardingState)
           setLoading(false)
         }
         return
@@ -338,18 +380,18 @@ function useOnboarding() {
           tour_dashboard_seen: false,
           tour_parametres_seen: false,
           tour_devis_seen: false,
+          tour_install_seen: false,
+          tour_voice_seen: false,
+          tour_theme_seen: false,
+          tour_equipe_mode_seen: false,
+          tour_chantier_journal_seen: false,
           tour_completed_at: null,
         })
-        .select('tour_dashboard_seen, tour_parametres_seen, tour_devis_seen, tour_completed_at')
+        .select(ONBOARDING_COLUMNS)
         .single()
 
       if (!cancelled) {
-        setState((inserted as OnboardingState) ?? {
-          tour_dashboard_seen: false,
-          tour_parametres_seen: false,
-          tour_devis_seen: false,
-          tour_completed_at: null,
-        })
+        setState((inserted as unknown as OnboardingState) ?? emptyOnboardingState())
         setLoading(false)
       }
     }
@@ -361,32 +403,46 @@ function useOnboarding() {
   // tour_completed_at est mis à now() automatiquement.
   // 'skipAll' permet de marquer toutes les étapes restantes d'un coup
   // (quand l'utilisateur ferme la 1ère bulle par la croix, il skippe tout).
-  const markStepSeen = useCallback(async (
-    step: 'dashboard' | 'parametres' | 'devis' | 'skipAll'
-  ) => {
+  const markStepSeen = useCallback(async (step: OnboardingStep) => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
     const patch: Record<string, unknown> = {}
-    if (step === 'skipAll' || step === 'dashboard') patch.tour_dashboard_seen = true
-    if (step === 'skipAll' || step === 'parametres') patch.tour_parametres_seen = true
-    if (step === 'skipAll' || step === 'devis') patch.tour_devis_seen = true
+    const isAll = step === 'skipAll'
+    if (isAll || step === 'dashboard') patch.tour_dashboard_seen = true
+    if (isAll || step === 'parametres') patch.tour_parametres_seen = true
+    if (isAll || step === 'devis') patch.tour_devis_seen = true
+    if (isAll || step === 'install') patch.tour_install_seen = true
+    if (isAll || step === 'voice') patch.tour_voice_seen = true
+    if (isAll || step === 'theme') patch.tour_theme_seen = true
+    if (isAll || step === 'equipeMode') patch.tour_equipe_mode_seen = true
+    if (isAll || step === 'chantierJournal') patch.tour_chantier_journal_seen = true
 
     // On calcule localement si toutes les étapes sont vues pour
     // poser tour_completed_at en un seul UPDATE.
+    const prev = state ?? emptyOnboardingState()
     const nextState: OnboardingState = {
-      tour_dashboard_seen: (step === 'skipAll' || step === 'dashboard') ? true : (state?.tour_dashboard_seen ?? false),
-      tour_parametres_seen: (step === 'skipAll' || step === 'parametres') ? true : (state?.tour_parametres_seen ?? false),
-      tour_devis_seen: (step === 'skipAll' || step === 'devis') ? true : (state?.tour_devis_seen ?? false),
-      tour_completed_at: state?.tour_completed_at ?? null,
+      tour_dashboard_seen: (isAll || step === 'dashboard') ? true : prev.tour_dashboard_seen,
+      tour_parametres_seen: (isAll || step === 'parametres') ? true : prev.tour_parametres_seen,
+      tour_devis_seen: (isAll || step === 'devis') ? true : prev.tour_devis_seen,
+      tour_install_seen: (isAll || step === 'install') ? true : prev.tour_install_seen,
+      tour_voice_seen: (isAll || step === 'voice') ? true : prev.tour_voice_seen,
+      tour_theme_seen: (isAll || step === 'theme') ? true : prev.tour_theme_seen,
+      tour_equipe_mode_seen: (isAll || step === 'equipeMode') ? true : prev.tour_equipe_mode_seen,
+      tour_chantier_journal_seen: (isAll || step === 'chantierJournal') ? true : prev.tour_chantier_journal_seen,
+      tour_completed_at: prev.tour_completed_at,
     }
-    if (
+    const allSeen =
       nextState.tour_dashboard_seen &&
       nextState.tour_parametres_seen &&
       nextState.tour_devis_seen &&
-      !nextState.tour_completed_at
-    ) {
+      nextState.tour_install_seen &&
+      nextState.tour_voice_seen &&
+      nextState.tour_theme_seen &&
+      nextState.tour_equipe_mode_seen &&
+      nextState.tour_chantier_journal_seen
+    if (allSeen && !nextState.tour_completed_at) {
       const nowIso = new Date().toISOString()
       patch.tour_completed_at = nowIso
       nextState.tour_completed_at = nowIso
@@ -409,22 +465,25 @@ function useOnboarding() {
         tour_dashboard_seen: false,
         tour_parametres_seen: false,
         tour_devis_seen: false,
+        tour_install_seen: false,
+        tour_voice_seen: false,
+        tour_theme_seen: false,
+        tour_equipe_mode_seen: false,
+        tour_chantier_journal_seen: false,
         tour_completed_at: null,
       })
       .eq('user_id', user.id)
 
-    setState({
-      tour_dashboard_seen: false,
-      tour_parametres_seen: false,
-      tour_devis_seen: false,
-      tour_completed_at: null,
-    })
+    setState(emptyOnboardingState())
   }, [])
 
   // Réinitialise une seule étape (utilisé depuis la page Aide pour
   // permettre de rejouer juste une partie du tutoriel sans tout
   // recommencer). 'dashboard' inclut aussi la bulle 2 (parametres)
-  // car c'est le même flux.
+  // car c'est le même flux. V3 : on conserve la signature
+  // 'dashboard' | 'devis' pour ne pas casser la page Aide. Quand
+  // on replay 'dashboard' on remet aussi a false les nouvelles
+  // bulles install + voice qui se declenchent sur le meme path.
   const replayStep = useCallback(async (step: 'dashboard' | 'devis') => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -434,17 +493,27 @@ function useOnboarding() {
     if (step === 'dashboard') {
       patch.tour_dashboard_seen = false
       patch.tour_parametres_seen = false
+      patch.tour_install_seen = false
+      patch.tour_voice_seen = false
+      patch.tour_theme_seen = false
     }
     if (step === 'devis') patch.tour_devis_seen = false
 
     await supabase.from('user_onboarding').update(patch).eq('user_id', user.id)
 
-    setState((prev) => ({
-      tour_dashboard_seen: step === 'dashboard' ? false : (prev?.tour_dashboard_seen ?? false),
-      tour_parametres_seen: step === 'dashboard' ? false : (prev?.tour_parametres_seen ?? false),
-      tour_devis_seen: step === 'devis' ? false : (prev?.tour_devis_seen ?? false),
-      tour_completed_at: null,
-    }))
+    setState((prev) => {
+      const base = prev ?? emptyOnboardingState()
+      return {
+        ...base,
+        tour_dashboard_seen: step === 'dashboard' ? false : base.tour_dashboard_seen,
+        tour_parametres_seen: step === 'dashboard' ? false : base.tour_parametres_seen,
+        tour_install_seen: step === 'dashboard' ? false : base.tour_install_seen,
+        tour_voice_seen: step === 'dashboard' ? false : base.tour_voice_seen,
+        tour_theme_seen: step === 'dashboard' ? false : base.tour_theme_seen,
+        tour_devis_seen: step === 'devis' ? false : base.tour_devis_seen,
+        tour_completed_at: null,
+      }
+    })
   }, [])
 
   return { state, loading, markStepSeen, resetOnboarding, replayStep }
