@@ -181,18 +181,26 @@ export default function HeroOrbital() {
             aria-hidden="true"
           />
 
-          {/* Telephone mockup central — Mobile (2026-06-09) : reduit a 210x420
-              pour tenir confortablement dans le container h-[460px] sans clipping.
-              Desktop : tailles d'origine inchangees. */}
+          {/* Telephone mockup central — Refonte 2026-06-09 (fix mobile decalage) :
+              Structure en 2 wrappers pour separer les transforms qui entraient
+              en conflit (le animate-float-y ecrasait le translate de centrage,
+              ce qui poussait le mockup en bas a droite sur mobile).
+
+              - WRAPPER EXTERIEUR : positionnement + parallax desktop (transform stable)
+              - WRAPPER INTERIEUR : animation flottante verticale (translateY)
+              - CONTENU : le smartphone lui-meme
+
+              Mobile : 210x420, parallax desactive (var(--mx) = 0 force).
+              Desktop : 240/250 x 490/510, parallax via var(--mx)/var(--my). */}
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[210px] sm:w-[240px] lg:w-[250px] h-[420px] sm:h-[490px] lg:h-[510px] animate-float-y will-change-transform"
+            className="absolute left-1/2 top-1/2 w-[210px] sm:w-[240px] lg:w-[250px] h-[420px] sm:h-[490px] lg:h-[510px] will-change-transform"
             style={{
-              transform: 'translate(calc(-50% + var(--mx) * -10px), calc(-50% + var(--my) * -10px))',
+              transform: 'translate(calc(-50% + var(--mx, 0) * -10px), calc(-50% + var(--my, 0) * -10px))',
               transition: 'transform 0.4s cubic-bezier(.22,.61,.36,1)',
             }}
           >
             <div
-              className="relative w-full h-full rounded-[36px] border border-white/[0.10] overflow-hidden p-[10px]"
+              className="relative w-full h-full rounded-[36px] border border-white/[0.10] overflow-hidden p-[10px] animate-float-y will-change-transform"
               style={{
                 background: 'linear-gradient(160deg, var(--bgdark-2), var(--bgdark-3))',
                 boxShadow:
