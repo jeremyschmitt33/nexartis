@@ -281,7 +281,7 @@ function Sidebar({
               - SI pas de logo : nom plus grand pour occuper l'espace */}
           {!collapsed && !userLoading && (
             <p
-              className={`font-syne font-bold text-white text-center leading-tight max-w-full break-words px-2 ${
+              className={`font-hanken font-extrabold text-white text-center leading-tight max-w-full break-words px-2 tracking-tight ${
                 entrepriseLogo ? 'text-sm truncate' : 'text-xl py-6'
               }`}
             >
@@ -291,7 +291,7 @@ function Sidebar({
           {/* En mode collapsed (sidebar réduite) sans logo : afficher initiales */}
           {collapsed && !entrepriseLogo && !userLoading && entrepriseNom && (
             <div className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center mb-3">
-              <span className="font-syne font-bold text-white text-base">
+              <span className="font-hanken font-extrabold text-white text-base">
                 {entrepriseNom
                   .split(' ')
                   .map((w) => w[0])
@@ -319,7 +319,7 @@ function Sidebar({
             onClick={() => setCreateOpen(!createOpen)}
             style={{ backgroundColor: 'var(--nexartis-accent, #e87a2a)' }}
             className={`
-              w-full h-11 rounded-lg text-white font-syne font-bold
+              w-full h-11 rounded-lg text-white font-hanken font-bold
               flex items-center justify-center gap-2 transition-all duration-100
               hover:brightness-110
               ${collapsed ? 'px-0' : ''}
@@ -346,7 +346,7 @@ function Sidebar({
                       setCreateOpen(false)
                       onCloseMobile()
                     }}
-                    className="block px-4 py-2.5 text-sm text-[#1a1a2e] font-manrope hover:bg-gray-50 transition-colors duration-100"
+                    className="block px-4 py-2.5 text-sm text-[#0f1a3a] font-hanken hover:bg-gray-50 transition-colors duration-100"
                   >
                     {opt.label}
                   </Link>
@@ -401,7 +401,7 @@ function Sidebar({
                     title={collapsed ? `${item.label}${showPremiumBadge ? ' (offre Complet)' : ''}` : undefined}
                     data-tour={tourId}
                     className={`
-                      group/nav relative flex items-center rounded-lg text-[14px] font-jakarta font-medium
+                      group/nav relative flex items-center rounded-lg text-[14px] font-hanken font-medium
                       transition-all duration-150 ease-out
                       ${collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 h-10 px-3 ml-1'}
                       ${
@@ -467,7 +467,7 @@ function Sidebar({
                 onClick={onCloseMobile}
                 title={collapsed ? 'Admin' : undefined}
                 className={`
-                  group/nav relative flex items-center rounded-lg text-[14px] font-jakarta font-medium
+                  group/nav relative flex items-center rounded-lg text-[14px] font-hanken font-medium
                   transition-all duration-150 ease-out
                   ${collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 h-10 px-3 ml-1'}
                   ${
@@ -494,7 +494,7 @@ function Sidebar({
               {userLoading ? (
                 <div className="w-5 h-3 bg-white/30 rounded animate-pulse" />
               ) : (
-                <span className="text-white text-sm font-syne font-bold">{userInitials}</span>
+                <span className="text-white text-sm font-hanken font-extrabold">{userInitials}</span>
               )}
             </div>
             {!collapsed && (
@@ -886,7 +886,7 @@ export default function DashboardLayout({
         {expirationInfo && (
           <div className="bg-orange-50 border-y border-orange-200 px-4 py-2.5 flex items-center justify-center gap-3 flex-wrap text-center print:hidden">
             <AlertTriangle size={16} className="text-orange-600 flex-shrink-0" />
-            <p className="font-manrope text-sm text-orange-900">
+            <p className="font-hanken text-sm text-orange-900">
               <span className="font-semibold">
                 {expirationInfo.label}{' '}
                 {expirationInfo.joursRestants === 0
