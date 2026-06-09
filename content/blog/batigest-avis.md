@@ -1,172 +1,236 @@
 ---
-title: "Batigest Avis 2026 : Notre Test Complet du Logiciel BTP"
-description: "Batigest Avis 2026 : test complet du logiciel BTP de Sage. Prix, forces, limites, et comparatif avec les SaaS modernes."
+title: "Batigest avis 2026 : prix Sage, alternative simple"
+description: "Sage Batigest Connect 31-102€/mois : pour qui c'est trop, pour qui c'est bien. Alternative artisan moderne à 15€/mois, sans formation requise."
+category: "Comparatifs concurrents"
+author: "Jérémy Schmitt"
+authorRole: "Fondateur Nexartis · Ancien artisan électricien"
+publishedDate: "2026-06-09"
+updated: "2026-06-09"
+readingTime: "10 min"
 slug: "batigest-avis"
-category: "Avis logiciel BTP"
-date: "8 juin 2026"
-updated: "2026-06-08"
-readingTime: "11 min"
-heroImage: ""
-author:
-  name: "Jérémy Schmitt"
-  role: "Fondateur Nexartis · Ancien artisan électricien"
-  bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
-tags: ["batigest", "batigest avis", "sage", "logiciel BTP", "logiciel PME BTP", "alternative batigest", "Factur-X 2026"]
-canonical: "https://nexartis.fr/blog/batigest-avis"
-ogImage: "/images/batigest-avis-hero.webp"
+ogImage: "/blog/batigest-avis-og.jpg"
 ---
 
-> **Conflit d'intérêt assumé.** Je suis créateur de [Nexartis](/), concurrent moderne de Batigest. Voici mon analyse la plus factuelle possible, avec les forces et les faiblesses des deux outils. Si Batigest vous convient mieux, prenez Batigest. Mon objectif : vous aider à choisir, pas à vous vendre quoi que ce soit.
+> **Conflit d'intérêt assumé.** Je suis le fondateur de [Nexartis](/), un [logiciel devis facture artisan complet](/) qui se positionne comme une alternative moderne à Sage Batigest. Mon ambition dans cet article : rester factuel, citer les sources, et vous aider à savoir si Batigest est fait pour vous — ou pas. Sage est un acteur historique respectable, je ne le rabaisse pas, je précise simplement son scope réel.
 
-## Verdict en 2 minutes : Batigest en bref
+## Batigest, c'est quoi exactement ?
 
-Si vous êtes pressé, voici l'essentiel à retenir.
+Batigest est le **logiciel BTP** historique édité par **Sage**, le grand éditeur britannique fondé en 1981 et coté au FTSE 100. Côté généalogie, la gamme s'appelait à l'origine **APIBat**, conçue par l'éditeur français Euratec, **racheté par Sage en septembre 2008**. Depuis, la solution a vécu deux grandes étapes :
 
-| Point clé | Évaluation |
-|---|---|
-| Prix | 60-120€/mois selon modules empilés |
-| Cible idéale | PME BTP 10-50 salariés avec compta Sage |
-| Force principale | Profondeur fonctionnelle, intégration Sage Comptabilité |
-| Faiblesse principale | Interface héritée du desktop, prise en main 2-3 semaines |
-| Note utilisateurs | 3,92/5 sur LeBonLogiciel (1 132 avis vérifiés Batigest) ; 3,8/5 Trustpilot pour Sage France global |
-| Conformité Factur-X 2026 | Oui, en avance sur la réglementaire |
+- **Batigest i7** : la version "à installer", desktop Windows. C'est celle que beaucoup d'artisans connaissent depuis vingt ans, avec licence locale et fichiers stockés sur le poste.
+- **Sage Batigest Connect** : la version **SaaS** (accessible depuis n'importe quel navigateur), lancée pour basculer la base installée vers le cloud. C'est désormais l'offre poussée par Sage à toute nouvelle souscription.
 
-> **À retenir.** Batigest est un outil puissant pour les PME BTP déjà équipées de la suite Sage Comptabilité. Pour un artisan ou une TPE, l'outil est sur-dimensionné et son interface héritée du desktop demande un temps d'adaptation que les SaaS récents évitent. Le rapport qualité-prix penche en faveur des SaaS modernes pour la majorité des artisans français.
+Le positionnement historique du produit est clair : Batigest est **l'outil de référence des PME du BTP** qui tournent déjà sur Sage Comptabilité. La force du produit n'est pas son ergonomie ni son prix — c'est sa **profondeur fonctionnelle** et son **intégration native avec la suite Sage**.
 
-## Qu'est-ce que Batigest, exactement ?
+Côté volumes, Sage revendique plus de **18 000 entreprises BTP clientes en France**, principalement des TPE et PME équipées de longue date. Une base installée massive… qui est aussi la raison pour laquelle l'interface garde un héritage desktop assumé : Sage ne casse pas brutalement les habitudes de ses 18 000 clients existants.
 
-Batigest est un **logiciel BTP** édité par **Sage**, éditeur britannique fondé en 1981 et coté au FTSE 100 depuis 1999 (leader européen de la gestion d'entreprise). La gamme historique "APIBat" est issue de l'éditeur français Euratec, **racheté par Sage en septembre 2008**. Le produit existe d'abord en desktop (Windows uniquement) puis migre progressivement en SaaS via **Batigest Connect**, accessible depuis n'importe quel navigateur.
+> **À retenir.** Batigest = la solution historique pour PME du bâtiment qui veulent un logiciel mature, intégré à Sage Comptabilité, avec toutes les subtilités du BTP français bien gérées. La contrepartie : prix élevé, prise en main longue, et un produit pensé pour des structures avec un dirigeant **et** une assistante administrative.
 
-Le positionnement historique est clair : Batigest est l'outil de référence des **artisans et PME BTP** qui utilisent déjà Sage Comptabilité. L'intégration entre les deux outils est un atout majeur, qui justifie souvent le choix de Batigest plutôt qu'un concurrent SaaS plus moderne.
+## Les 3 offres tarifaires de Sage Batigest Connect
 
-Côté chiffres, Sage revendique **plus de 18 000 entreprises BTP clientes en France** (environ 16 000 en souscription + 17 000 hors souscription, source : presse Sage). La base installée reste solide, particulièrement chez les TPE de 1 à 5 salariés et les PME jusqu'à 50.
+Sage Batigest Connect se décline en **trois packs** plus des options. Voici la grille tarifaire publique relevée en juin 2026 (sources : compte-pro.com, lebonlogiciel.com, fiches Sage).
 
-## Tarifs et modules Batigest
-
-C'est ici que ça se complique. Batigest fonctionne par **modules empilables**, ce qui rend le prix réel difficile à estimer avant devis.
-
-| Pack | Prix HT/mois | Utilisateurs inclus | Cible |
+| Pack | Prix HT/mois | Utilisateurs inclus | Cible déclarée Sage |
 |---|---|---|---|
-| Essentials | 31,08€ | 3 max | Artisan solo / TPE entrée de gamme |
-| Standard | 46€ | 10 max | TPE BTP avec équipe |
-| Premium | 102€ | 50 max | PME BTP structurée |
-| Utilisateur additionnel | + 10€ | — | Tous packs |
-| Connecteur Sage Compta | sur devis | — | Avec Sage 50/100 déjà installé |
+| **Essentials** | 31,08 € (35 € selon source) | 3 max | Artisan ou TPE entrée de gamme |
+| **Standard** | 46 € | 10 max | TPE BTP avec équipe |
+| **Premium** | 102 € | 50 max | PME BTP structurée |
+| Utilisateur additionnel | + 10 € HT/mois | — | Tous packs |
+| Connecteur Sage Compta 50/100 | sur devis | — | Avec Sage déjà installé |
 
-(Sources : compte-pro.com, lebonlogiciel.com, juin 2026.)
+Trois remarques essentielles avant de signer :
 
-**À anticiper côté budget :** la base **Essentials à 31,08€/mois** est volontairement épurée (3 utilisateurs). Une PME équipée du pack Premium avec connecteur Sage et plusieurs utilisateurs supplémentaires arrive vite à 110-150€ HT/mois selon les options. Demander un devis Sage pour le tarif exact applicable à votre structure.
+1. **Le prix réel n'est jamais le prix d'appel.** Le pack Essentials à 31,08 € HT est volontairement épuré (3 utilisateurs, fonctions de base). Dès qu'on ajoute le suivi chantier avancé, le connecteur Sage Compta ou un utilisateur de plus, on bascule en Standard, voire Premium.
+2. **Engagement annuel quasi systématique.** Sage privilégie les contrats à 12 mois reconductibles tacitement. Vérifiez la clause de révision tarifaire.
+3. **Formation initiale rarement incluse.** Comptez **300 à 800 € HT** de formation en plus du premier mois d'abonnement, selon le partenaire revendeur. Aucun essai gratuit autonome n'est proposé : il faut passer par une démo commerciale.
 
-## Les vraies forces de Batigest
+Sur le pur ticket d'entrée mensuel, Batigest Essentials se situe **2 à 3 fois au-dessus** de [Tolteck, pensé pour l'artisan solo](/blog/tolteck-avis), et **2 fois au-dessus de Nexartis Essentiel** (15 € HT/mois). En Premium, on parle d'**un facteur 6** par rapport à Nexartis.
 
-### Profondeur fonctionnelle
+## Les fonctionnalités phares de Batigest
 
-Batigest est un outil **mature**, héritier d'une gamme APIBat lancée dans les années 1990. Tous les cas tordus du BTP français (retenue de garantie, autoliquidation, marchés publics, sous-traitance complexe) sont gérés finement. C'est un argument décisif pour les PME qui ont des dossiers spécifiques.
+Si Sage facture cher, c'est parce que le produit couvre un périmètre fonctionnel large. Voici les briques qui font la réputation de Batigest dans les PME.
 
-### Intégration Sage Comptabilité
+### Bibliothèques d'ouvrages et métrés
 
-Si vous utilisez déjà Sage Compta, l'intégration native avec Batigest est **excellente**. Les écritures comptables remontent automatiquement, plus de double saisie. C'est le principal argument qui justifie de payer cher.
+Batigest embarque des **bibliothèques d'ouvrages BTP** importables (Batichiffrage, ouvrages métier maison) avec sous-détails (temps de pose, main-d'œuvre, fournitures). Vous pouvez chiffrer un mur, une chape, un tableau électrique en quelques clics — utile pour un [logiciel devis maçon](/logiciel-devis-maconnerie) ou un [logiciel devis électricien](/logiciel-devis-electricien) en cabinet structuré.
 
-### Conformité réglementaire
+Les **métrés** sont gérés finement, avec calculs automatiques de quantités. C'est l'une des grandes forces historiques d'APIBat, conservée par Sage.
 
-Sage est en avance sur toutes les évolutions légales : Factur-X 2026 opérationnelle (formats Factur-X, UBL, CII), gestion TVA complexe, normes BTP. **Sage est lui-même Plateforme Agréée (PA) par la DGFiP** depuis juillet 2025, ce qui sécurise toute la chaîne e-facturation pour ses clients. Vous êtes rarement pris au dépourvu côté conformité.
+### Suivi chantier et factures d'avancement
 
-## Les vraies faiblesses
+Batigest gère le **cycle complet d'un chantier BTP** :
 
-### Une ergonomie héritée du desktop
+- Facture **d'acompte** au démarrage
+- Factures **d'avancement** (situations de travaux mensuelles)
+- Facture **de solde** en fin de chantier
+- **Retenue de garantie** (5 % généralement)
+- **Attestation TVA 10 %** pour les travaux de rénovation
 
-L'interface utilisateur reflète l'ADN desktop historique du produit. Comparée aux SaaS post-2018 ([Obat](/blog/obat-avis), [Tolteck](/blog/tolteck-avis), Nexartis), l'ergonomie de Batigest reste héritée de sa génération desktop, ce que confirment plusieurs avis utilisateurs (note Batigest spécifique : 3,92/5 sur 1 132 avis LeBonLogiciel).
+Toutes les subtilités du BTP français sont gérées sans bricolage Excel. C'est un argument décisif pour les PME qui traitent des marchés publics ou des chantiers > 50 000 €.
 
-### Courbe d'apprentissage longue
+### Multi-utilisateurs et droits d'accès
 
-Comptez **2 à 3 semaines** de pratique pour vous sentir à l'aise sur Batigest, en plus de 2-3 jours de formation initiale. C'est bien plus long que les SaaS modernes (1-2 jours sur [Tolteck](/blog/tolteck-avis), [Obat](/blog/obat-avis), Nexartis).
+Dès le pack Standard (10 utilisateurs), Batigest permet de séparer les rôles : dirigeant, conducteur de travaux, chef d'équipe, assistante administrative. Les droits sont paramétrables finement.
 
-### Pas adapté à l'artisan solo
+### Conformité Factur-X et e-facturation 2026
 
-Le rapport qualité-prix penche en défaveur de Batigest pour un artisan seul ou un duo. Vous payez pour de la profondeur fonctionnelle que vous n'utiliserez jamais.
+Sage est en avance sur la réforme. **Sage figure parmi les Plateformes Agréées (PA, ex-PDP) référencées par la DGFiP** depuis le renommage de juillet 2025, ce qui sécurise toute la chaîne e-facturation (Factur-X, UBL, CII). Si la conformité réglementaire est votre priorité absolue, Batigest tient la promesse — mais ce n'est plus un différenciateur fort en 2026 : [Obat, l'alternative moderne](/blog/obat-avis), [Vertuoza pour PME](/blog/vertuoza-avis) et Nexartis sont également opérationnels.
 
-> **À retenir.** Batigest est un excellent outil pour la PME BTP qui veut un intégré profond avec Sage Comptabilité. Pour tout le reste — artisan solo, TPE 2-5 salariés, structure qui veut une interface moderne — les SaaS récents font le job pour 2 à 5 fois moins cher.
+### Appels d'offres et marchés publics
 
-## Batigest face à Factur-X 2026
+Batigest gère les **DPGF, DQE, BPU** pour répondre aux marchés publics. C'est une fonctionnalité de niche, indispensable pour les PME qui répondent à des appels d'offres, totalement inutile pour 90 % des artisans seuls.
 
-C'est l'un des points forts de Batigest. Sage est en avance sur la réforme de la facturation électronique : le format Factur-X est déjà opérationnel, et l'éditeur travaille avec plusieurs plateformes de dématérialisation partenaires (PDP).
+## Pour qui Batigest est vraiment fait
 
-Si la conformité réglementaire est votre première priorité, Batigest tient la promesse. C'est rassurant, mais ce n'est plus un différenciateur fort en 2026 : Obat, Vertuoza et Nexartis sont également opérationnels.
+Soyons honnêtes : Batigest **est un bon produit**, mais pas pour tout le monde. Voici les profils où Sage Batigest Connect a réellement du sens.
 
-## Comparatif Batigest vs Tolteck, Obat, Nexartis
+**Profil 1 : PME BTP 10-50 salariés déjà équipée Sage Compta.** Vous tournez sur Sage 50 ou Sage 100 depuis cinq ans, votre expert-comptable récupère vos écritures via Sage, et la double-saisie devis/compta vous coûte chaque mois. Le connecteur Batigest ↔ Sage Compta justifie à lui seul le prix. C'est la cible historique.
+
+**Profil 2 : entreprise de second œuvre qui répond à des marchés publics.** DPGF, DQE, retenue de garantie, situations de travaux à 30 jours fin de mois… Batigest gère tout sans bricolage. Pour une PME qui chiffre 200 devis/an dont 30 marchés publics, le retour sur investissement est rapide.
+
+**Profil 3 : structure avec assistante administrative à temps plein.** Une personne dédiée à la facturation, formée à Batigest, qui gère le quotidien. La courbe d'apprentissage longue se digère car ce n'est pas le dirigeant qui doit la subir.
+
+**Profil 4 : conducteur de travaux qui pilote 5-10 chantiers en parallèle.** Le suivi chantier de Batigest, avec ses ouvrages, sa main-d'œuvre, ses heures pointées, devient un vrai outil de pilotage. Au-dessus de 5 chantiers simultanés, l'investissement se justifie.
+
+Si vous êtes dans l'un de ces 4 profils, Batigest est probablement le bon choix — quitte à le comparer à EBP Bâtiment ou Codial, ses concurrents directs sur le segment PME.
+
+## Les limites à connaître pour un artisan seul
+
+Mais si vous êtes **artisan seul** ou **micro-entreprise de 1 à 3 personnes**, Batigest devient problématique. Voici les 4 freins que je vois remonter le plus souvent.
+
+### Surdimensionné pour les besoins réels
+
+Un artisan plombier qui fait 8 devis par mois et 12 factures n'a pas besoin de gérer la retenue de garantie sur marché public, ni les appels d'offres DPGF, ni la sous-traitance multi-niveaux. Vous payez 31 à 102 € par mois pour des fonctionnalités que vous n'utiliserez **jamais**.
+
+### Prise en main complexe
+
+Comptez **2 à 3 semaines** de pratique pour vous sentir à l'aise sur Batigest, en plus de 2-3 jours de formation initiale (300 à 800 € HT). Pour un artisan qui doit déjà gérer ses chantiers, ses devis, sa famille, et qui ouvre le logiciel le soir à 20 h, c'est insurmontable. Les avis Trustpilot 2025-2026 ramènent souvent ce point : **"trop riche, on s'y perd"**.
+
+### Trop cher pour petit budget
+
+À 31,08 € HT en Essentials (et plus si vous voulez le suivi chantier complet), vous êtes **2 fois plus cher que [Tolteck, pensé pour l'artisan solo](/blog/tolteck-avis)** (19-25 €) et **2 fois plus cher que Nexartis Essentiel** (15 € HT). Sur trois ans, le delta atteint 600 à 1 200 € — soit un mois entier de chiffre d'affaires pour un micro-entrepreneur.
+
+### Interface héritée du desktop
+
+Même sur Batigest Connect, la version SaaS, l'ergonomie reflète l'**ADN desktop historique** du produit. Menus en cascade, fenêtres modales empilées, formulaires denses. Comparée aux SaaS post-2018 (Obat, Tolteck, Nexartis), l'interface fait son âge. Sur LeBonLogiciel, Batigest récolte une note de **3,92/5 sur 1 132 avis vérifiés**, contre 4,6-4,7/5 pour les concurrents modernes.
+
+> **À retenir.** Batigest est un excellent outil pour la PME structurée déjà sur Sage. Mais pour l'artisan seul, le rapport prix/utilité penche fortement en défaveur. Vous payez la profondeur fonctionnelle d'une PME pour les besoins d'un artisan : c'est mécaniquement perdant.
+
+## Batigest vs Obat vs Nexartis : tableau comparatif
 
 Voici un tableau direct pour situer Batigest face aux SaaS modernes en juin 2026.
 
-| Critère | Batigest | Tolteck | Obat | Nexartis |
-|---|---|---|---|---|
-| Cible | Artisan + PME 1-50 | Artisan/TPE | TPE/PME | Artisan/TPE |
-| Prix entrée | 31,08€ Essentials | 19-25€ | 25-39€ (Starter/Pro) | 25€ |
-| Prix réel équipé | 46-150€ (Standard/Premium) | 19-25€ | 39-129€ | 25€ fixe |
-| Modules à acheter | Oui (empilables) | Non | Partiel | Aucun |
-| Interface | Datée | Moderne | Moderne | Moderne |
-| Prise en main | 2-3 semaines | 1-2 jours | 1-2 jours | Quelques heures |
-| Compta intégrée Sage | Excellente | Non | Non | Non |
+| Critère | Batigest Connect | Obat | Nexartis |
+|---|---|---|---|
+| **Cible** | PME BTP 10-50 | TPE BTP 2-10 | Artisan seul / TPE |
+| **Prix entrée** | 31,08 € (Essentials) | 25 € (Starter) | **15 € (Essentiel)** |
+| **Prix réel équipé** | 46-150 € | 39-129 € | **15-25 €** |
+| **Modules à acheter** | Oui (empilables) | Partiel | **Aucun** |
+| **Formation requise** | 2-3 jours payants | 1-2 semaines | **15 minutes** |
+| **Interface** | Datée (héritage desktop) | Moderne | Moderne |
+| **Engagement** | Annuel | Annuel | **Sans engagement** |
+| **Essai gratuit** | Non (démo commerciale) | 14 jours | 14 jours |
+| **Bibliothèque ouvrages BTP** | Excellente | Bonne | Basique |
+| **Situations de travaux** | Excellente | Bonne | Bonne |
+| **Compta Sage intégrée** | **Excellente** | Non | Non |
+| **Marchés publics (DPGF, DQE)** | Oui | Partiel | Non |
+| **Conformité Factur-X 2026** | Oui (PA Sage) | Oui | Oui |
 
-**Note honnête sur Nexartis :** nous n'avons pas (et n'aurons pas) d'intégration native Sage Comptabilité au niveau de Batigest. Si vous tournez sur Sage Compta et que la double-saisie est un frein majeur, **Batigest reste devant sur ce point précis.**
+**Honnêteté sur Nexartis :** nous n'avons pas l'intégration native Sage Comptabilité, ni les modules marchés publics. Si vous tournez sur Sage Compta ou si vous répondez régulièrement à des appels d'offres publics, **Batigest reste devant**. C'est un choix assumé : nous ciblons l'artisan et la TPE, pas la PME de 50 salariés.
 
-## Mon verdict : Batigest noté sur 10
+## Notre alternative Nexartis Essentiel : 15 €/mois sans formation
 
-Voici ma note finale, critère par critère.
+Si vous vous reconnaissez dans le profil "artisan seul" ou "TPE 2-5 salariés", voici ce que [Nexartis Essentiel à 15 €/mois sans formation](/tarifs) propose en face de Batigest Essentials (31 €/mois).
 
-> *Notation pondérée pour la cible déclarée par Sage : PME BTP de 10 à 50 salariés.*
+**Couverture fonctionnelle Nexartis Essentiel :**
 
-| Critère | Note /10 |
-|---|---|
-| Profondeur fonctionnelle | 9/10 |
-| Compta intégrée | 9/10 |
-| Conformité réglementaire | 9/10 |
-| Rapport qualité-prix | 5/10 |
-| Modernité interface | 4/10 |
-| Facilité prise en main | 4/10 |
-| Support client | 5/10 |
-| **Note globale** | **6,4/10** |
+- **Devis et factures illimités** avec mentions légales auto, TVA française gérée (20 %, 10 %, 5,5 %, AE), acomptes, retenues, conditions de paiement.
+- **Conformité Factur-X 2026** prête (PDF/A-3 + XML embarqué).
+- **Suivi de chantier** : statut, planning, équipe, notes datées par intervention.
+- **Planning intégré** avec créneaux horaires et alertes de conflit d'affectation.
+- **Signature électronique** des devis par lien public (UUID + expiration), sans Yousign à part.
+- **Génération PDF** native (jsPDF + jspdf-autotable) avec votre logo et vos couleurs.
+- **Dashboard mobile** responsive, PWA installable Android/iOS/Desktop.
 
-C'est une **note honorable** portée par la profondeur fonctionnelle et l'intégration Sage. Mais elle reste moyenne : la cible artisan/TPE — majoritaire en France — n'est tout simplement pas celle de Batigest.
+**Ce qu'on a volontairement laissé de côté pour rester à 15 €/mois :**
+
+- Intégration native Sage 50/100 (pas notre cible).
+- Modules marchés publics (DPGF, DQE) — vous ne signez pas de marché public à 80 K€ tous les mois quand vous êtes artisan seul.
+- Multi-sociétés (1 société par compte).
+
+**Prise en main réelle :** la moyenne d'activation de nos artisans (premier devis signé) est de **15 minutes après inscription**. Pas de formation payante, pas de revendeur intermédiaire, pas d'engagement annuel. Si vous arrêtez le mois prochain, vous arrêtez le mois prochain.
+
+**Pour aller plus loin selon votre métier :**
+
+- [Logiciel devis maçon](/logiciel-devis-maconnerie) — bibliothèque adaptée gros œuvre, métrés simples.
+- [Logiciel devis électricien](/logiciel-devis-electricien) — devis tableau divisionnaire, modèles courants.
+- [Henrri, le gratuit](/blog/henrri-avis) — si vous voulez tester le gratuit avant de payer.
+
+## Verdict 2026
+
+Sage Batigest Connect est un **produit historique solide**, porté par 18 ans d'expérience BTP française. La profondeur fonctionnelle est réelle, l'intégration Sage Comptabilité est imbattable, et la conformité Factur-X est sécurisée par le statut de Plateforme Agréée DGFiP.
+
+**Pour qui Batigest est le bon choix en 2026 :**
+
+- PME BTP 10-50 salariés équipée Sage Compta → **oui**, le meilleur choix possible.
+- Entreprise de second œuvre qui répond à des marchés publics → **oui**, Batigest ou EBP Bâtiment.
+- Conducteur de travaux qui pilote 5+ chantiers simultanés → **oui**, l'outil tient la charge.
+
+**Pour qui Batigest n'est pas le bon choix :**
+
+- Artisan seul ou micro-entrepreneur → **non**, vous paierez 2 à 6 fois trop cher pour des fonctions inutilisées. Allez voir [Tolteck pour artisan solo](/blog/tolteck-avis), [Henrri, le gratuit](/blog/henrri-avis), ou Nexartis Essentiel à 15 €/mois.
+- TPE 2-5 salariés sans expertise Sage → **non**, la courbe d'apprentissage et le prix ne se justifient pas. [Obat, alternative moderne](/blog/obat-avis), reste plus pertinent.
+- Artisan en démarrage d'activité → **non**, démarrez sur du léger et changez plus tard si besoin.
+
+Ma conviction d'ancien électricien : un logiciel BTP doit **vous faire gagner du temps**, pas devenir un projet en soi. Si vous passez plus de temps à apprendre l'outil qu'à l'utiliser, vous avez choisi le mauvais outil. Batigest est puissant, mais sa puissance n'est pas neutre : elle vient avec un coût d'entrée — financier, cognitif, organisationnel — que tout le monde n'a pas à payer.
 
 ## Questions fréquentes sur Batigest
 
-### Quel est le prix réel de Batigest ?
+### Quelle différence entre Batigest i7 et Batigest Connect ?
 
-Le pack Essentials démarre à **31,08€ HT/mois** (3 utilisateurs max). Le pack Standard est à 46€ HT/mois (10 utilisateurs max), le Premium à 102€ HT/mois (50 utilisateurs max). Comptez **+10€ HT/mois par utilisateur supplémentaire** au-delà des inclus. Avec le connecteur Sage Compta, une configuration complète peut atteindre 110-150€ HT/mois. Demandez toujours un devis détaillé avant de signer (sources : compte-pro.com, lebonlogiciel.com).
+**Batigest i7** est la version desktop historique, à installer sur un poste Windows. **Sage Batigest Connect** est la version SaaS lancée pour basculer la base installée vers le cloud : même produit logique, mais accessible depuis n'importe quel navigateur (Chrome, Safari, Firefox), depuis Windows, Mac ou Linux. Sage pousse désormais toutes les nouvelles souscriptions vers Connect. Si vous êtes encore sur i7, la migration vers Connect est proposée par les revendeurs Sage.
 
-### Batigest existe-t-il en version gratuite ?
+### Sage Batigest est-il adapté à un artisan seul ?
 
-Non. Sage ne propose pas de version gratuite de Batigest. La découverte du produit passe par une démo commerciale, puis un devis personnalisé. Aucun essai gratuit autonome n'est disponible, contrairement à Tolteck (30 jours), Obat (14 jours) ou Nexartis (14 jours).
+**Non, pas vraiment.** Le pack Essentials à 31,08 € HT/mois est techniquement accessible à un artisan seul, mais vous paierez 2 fois le prix de Nexartis Essentiel (15 €) pour une couverture fonctionnelle largement surdimensionnée. La prise en main de 2-3 semaines et la formation initiale payante achèvent de pénaliser le rapport temps/argent. Pour un artisan seul, [Tolteck pour artisan solo](/blog/tolteck-avis), [Henrri, le gratuit](/blog/henrri-avis), ou Nexartis sont plus pertinents.
 
-### Batigest est-il édité par Sage ?
+### Quel est le prix de Sage Batigest Connect ?
 
-Oui. Batigest est édité par Sage France depuis le **rachat d'Euratec en septembre 2008** (qui éditait la gamme APIBat, ancêtre de Batigest). C'est aujourd'hui l'un des produits phares de Sage sur le segment BTP français, avec une intégration étroite avec Sage Comptabilité.
+Le pack Essentials démarre à **31,08 € HT/mois** (3 utilisateurs max), le Standard à **46 € HT/mois** (10 utilisateurs), le Premium à **102 € HT/mois** (50 utilisateurs). Comptez **+ 10 € HT/mois par utilisateur supplémentaire**. Le connecteur Sage Comptabilité est facturé sur devis. Ajoutez **300 à 800 € HT de formation initiale** au premier mois. Une PME équipée Premium avec 12 utilisateurs et connecteur Sage atteint facilement **120 à 150 € HT/mois**. Demandez toujours un devis détaillé au revendeur Sage avant de signer.
 
-### Quelle alternative à Batigest ?
+### Quelles alternatives à Batigest pour une TPE ?
 
-Cela dépend de votre profil. EBP Bâtiment ou Codial sont les concurrents historiques côté PME, et Sage 100 / Sage Multi Devis restent les cousins internes côté écosystème Sage. Pour une TPE ou un artisan, les SaaS modernes ([Tolteck](/blog/tolteck-avis), [Obat](/blog/obat-avis), Nexartis) offrent un meilleur rapport qualité-prix, une interface moderne et une prise en main plus rapide. Le choix dépend surtout de votre attachement à la suite Sage Comptabilité.
+Cela dépend de votre profil. Pour un **artisan seul ou micro-entrepreneur** : [Nexartis Essentiel à 15 €/mois sans formation](/tarifs), [Tolteck pour artisan solo](/blog/tolteck-avis) ou [Henrri, le gratuit](/blog/henrri-avis). Pour une **TPE 2-10 salariés avec équipe à piloter** : [Obat, alternative moderne](/blog/obat-avis) ou Nexartis Croissance. Pour une **PME 10-50 salariés sans Sage Compta** : [Vertuoza pour PME](/blog/vertuoza-avis), Codial ou EBP Bâtiment.
 
-### Combien de temps pour maîtriser Batigest ?
+### Existe-t-il un essai gratuit de Batigest ?
 
-Comptez 2 à 3 jours de formation initiale (souvent payante) puis 2 à 3 semaines de pratique pour vous sentir à l'aise. C'est sensiblement plus long que les SaaS modernes (1-2 jours de prise en main sur [Tolteck](/blog/tolteck-avis), [Obat](/blog/obat-avis), Nexartis). C'est l'un des points les plus critiqués par les utilisateurs.
+Non. Sage ne propose pas d'essai gratuit autonome de Batigest. La découverte du produit passe obligatoirement par une **démo commerciale** avec un revendeur Sage, puis par un devis personnalisé. C'est un point qui pénalise Batigest face à [Obat](/blog/obat-avis) (14 jours sans CB), Tolteck (30 jours) ou Nexartis (14 jours sans CB).
+
+### Batigest gère-t-il la facture électronique Factur-X 2026 ?
+
+Oui, totalement. **Sage est lui-même Plateforme Agréée (PA)** par la DGFiP depuis juillet 2025. Les factures Batigest sont compatibles **PDF/A-3 + XML embarqué** (Factur-X, UBL, CII), et la chaîne e-facturation est sécurisée de bout en bout. C'est un vrai point fort si la conformité réglementaire est votre priorité — mais ce n'est plus un différenciateur unique en 2026 : Obat, Vertuoza et Nexartis sont également opérationnels.
 
 ### Batigest fonctionne-t-il sur Mac ?
 
-Historiquement non : Batigest desktop tourne uniquement sur Windows. La version SaaS **Batigest Connect**, accessible depuis un navigateur, lève cette contrainte et permet d'utiliser le logiciel depuis macOS ou Linux. Si Mac est votre environnement principal, c'est Batigest Connect qu'il faut viser, pas la version desktop.
+**Batigest i7** (desktop) tourne uniquement sur Windows. **Sage Batigest Connect**, la version SaaS accessible via navigateur, lève cette contrainte et fonctionne depuis macOS, Linux ou tablette. Si Mac est votre environnement principal, c'est Batigest Connect qu'il faut viser, pas la version desktop.
+
+### Combien de temps pour maîtriser Batigest ?
+
+Comptez **2 à 3 jours de formation initiale** (souvent payante : 300 à 800 € HT chez les revendeurs Sage), puis **2 à 3 semaines de pratique quotidienne** pour vous sentir vraiment à l'aise. C'est nettement plus long que les SaaS modernes (1-2 jours sur Obat ou Tolteck, 15 minutes sur Nexartis Essentiel). C'est l'un des points les plus critiqués par les utilisateurs sur LeBonLogiciel et Trustpilot.
 
 ## À propos de l'auteur
 
 Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
 
-Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au reste du [blog Nexartis](/blog).
+Si cet article vous a été utile, jetez un œil à [Nexartis Essentiel à 15 €/mois sans formation](/tarifs) ou au reste du [blog Nexartis](/blog).
 
 ## Sources
 
 - Site officiel Batigest (Sage) : [sage.com/fr-fr/sage-batigest-i7](https://www.sage.com/fr-fr/sage-batigest-i7)
-- Note Batigest spécifique : [LeBonLogiciel — Sage Batigest i7](https://lebonlogiciel.com/organisation-facturation-et-planification-gestion-commerciale-erp-gpao/sage-batigest-i7/avis/28) (3,92/5 sur 1 132 avis vérifiés, juin 2026)
-- Avis Sage globaux Trustpilot : [trustpilot.com/review/sage.com](https://fr.trustpilot.com/review/sage.com) (3,8/5 sur ~19 600 avis, tous produits Sage confondus)
-- Tarifs Batigest Connect : [compte-pro.com/batigest](https://www.compte-pro.com/batigest)
-- Rachat Euratec/APIBat par Sage en 2008 : [Wikipedia Sage France](https://fr.wikipedia.org/wiki/Sage_(entreprise))
-- Sage Plateforme Agréée (PA) : [sage.com/fr-fr/dematerialisation/facture-electronique](https://www.sage.com/fr-fr/dematerialisation/facture-electronique/sage-plateforme-de-dematerialisation-partenaire/)
+- Tarifs Sage Batigest Connect : [compte-pro.com/batigest](https://www.compte-pro.com/batigest)
+- Note utilisateurs Batigest : [LeBonLogiciel — Sage Batigest i7](https://lebonlogiciel.com/organisation-facturation-et-planification-gestion-commerciale-erp-gpao/sage-batigest-i7/avis/28) (3,92/5 sur 1 132 avis vérifiés, juin 2026)
+- Avis Sage globaux Trustpilot : [trustpilot.com/review/sage.com](https://fr.trustpilot.com/review/sage.com) (3,8/5, tous produits Sage)
+- Rachat Euratec/APIBat par Sage : [Wikipedia Sage France](https://fr.wikipedia.org/wiki/Sage_(entreprise))
+- Sage Plateforme Agréée DGFiP : [sage.com/fr-fr/dematerialisation/facture-electronique](https://www.sage.com/fr-fr/dematerialisation/facture-electronique/sage-plateforme-de-dematerialisation-partenaire/)
 - Réforme e-facturation et Factur-X : [impots.gouv.fr / facturation électronique](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
-- Comparatifs internes : [Tolteck Avis 2026](/blog/tolteck-avis), [Obat Avis 2026](/blog/obat-avis), [Henrri Avis 2026](/blog/henrri-avis), [Vertuoza Avis 2026](/blog/vertuoza-avis)
+- Comparatifs internes : [Obat, alternative moderne](/blog/obat-avis), [Tolteck pour artisan solo](/blog/tolteck-avis), [Henrri, le gratuit](/blog/henrri-avis), [Vertuoza pour PME](/blog/vertuoza-avis)

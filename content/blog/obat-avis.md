@@ -1,174 +1,354 @@
 ---
-title: "Obat Avis 2026 : Notre Test Honnête du Logiciel BTP à 39€"
-description: "Obat Avis 2026 : test honnête du logiciel BTP à 39€/mois. Prix, gestion équipe, Factur-X, comparatif avec Tolteck et alternatives."
+title: "Obat avis 2026 : prix, limites, alternative honnête"
+description: "Obat à 25-79€/mois : pour qui, ce que disent les utilisateurs, et une alternative tout-en-un à 25€/mois (Nexartis Complet, planning inclus)."
 slug: "obat-avis"
-category: "Avis logiciel BTP"
-date: "8 juin 2026"
-updated: "2026-06-08"
-readingTime: "10 min"
+category: "Comparatifs concurrents"
+date: "9 juin 2026"
+updated: "2026-06-09"
+publishedDate: "2026-06-09"
+readingTime: "11 min"
 heroImage: ""
 author:
   name: "Jérémy Schmitt"
   role: "Fondateur Nexartis · Ancien artisan électricien"
   bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
-tags: ["obat", "logiciel BTP", "logiciel devis facture", "TPE BTP", "Factur-X 2026"]
+tags: ["obat", "obat avis", "logiciel BTP", "logiciel devis facture", "TPE BTP", "Factur-X 2026", "BatiChiffrage"]
 canonical: "https://nexartis.fr/blog/obat-avis"
-ogImage: "/images/obat-avis-hero.webp"
+ogImage: "/blog/obat-avis-og.jpg"
 ---
 
-> **Conflit d'intérêt assumé.** Je suis créateur de [Nexartis](/), concurrent direct d'Obat. Voici mon analyse la plus factuelle possible, avec les forces et les faiblesses des deux outils. Si Obat vous convient mieux, prenez Obat. Mon objectif : vous aider à choisir, pas à vous vendre quoi que ce soit.
+> **Conflit d'intérêt assumé.** Je suis Jérémy Schmitt, fondateur de [Nexartis](/), concurrent direct d'Obat. Vous lisez un comparatif écrit par un acteur du marché, pas une analyse neutre. J'ai pris le parti d'être factuel et de vous donner les éléments pour décider seul. Si Obat correspond mieux à votre activité, prenez Obat. Mon seul objectif est de vous éviter une mauvaise pioche à 500€ par an.
 
 ## Verdict en 2 minutes : Obat en bref
 
-Si vous êtes pressé, voici l'essentiel à retenir.
+Si vous êtes pressé, voici l'essentiel à retenir avant d'aller plus loin.
 
 | Point clé | Évaluation |
 |---|---|
-| Prix | 39€ HT/mois en formule Pro (engagement annuel) |
-| Cible idéale | TPE BTP 2-10 salariés |
-| Force principale | Gestion équipe complète, planning, multi-utilisateurs |
-| Faiblesse principale | Plus cher, courbe d'apprentissage 1-2 semaines |
-| Note utilisateurs | 4,6/5 sur Trustpilot (643 avis, relevé juin 2026) |
+| Prix | 25€ HT/mois (micro-entreprise) à 79€ HT/mois (Premium) |
+| Cible idéale | Artisan en croissance, TPE BTP 2 à 10 salariés |
+| Force principale | Bibliothèque BatiChiffrage intégrée, signature électronique native |
+| Faiblesse principale | Prix Pro élevé pour un artisan seul, pas de gestion stock |
+| Note utilisateurs | 4,9/5 sur 2 000+ avis Google (relevé juin 2026) |
 | Conformité Factur-X 2026 | Oui, déjà opérationnelle |
+| Engagement | Tarifs annuels privilégiés, renouvellement signalé en hausse |
 
-> **À retenir.** Obat est un excellent outil pour une TPE BTP qui a une équipe à piloter et un budget pour absorber 39€/mois. La couverture fonctionnelle est large : équipe, planning, conformité Factur-X. En revanche, si vous êtes seul ou que vous cherchez la simplicité maximale, vous risquez de payer pour des fonctions que vous n'utiliserez pas.
+> **À retenir.** Obat est un outil très complet pour qui veut tout chez le même éditeur : devis, factures, signature, bibliothèque, planning chantier basique. Pour une TPE BTP avec équipe, le rapport qualité-prix tient la route. Pour un **artisan seul** qui paye 39€ HT/mois (Pro) sans utiliser le multi-utilisateurs, l'addition devient discutable. Une alternative comme [Nexartis Complet à 25€/mois](/tarifs) couvre un périmètre proche pour 36% de moins, planning chantier et commande vocale inclus.
 
 ## Obat, c'est quoi exactement ?
 
-Obat est un **logiciel BTP français** lancé en **2019** par **Florent Liagre (DG), Franck Asseray (Président) et Antony Girault**. L'éditeur nantais s'est imposé comme l'un des outils de référence pour les TPE et PME du bâtiment, avec une équipe d'environ 110 personnes (source : Maddyness, Crédit Mutuel Innovation).
+Obat est un **logiciel BTP français** lancé en **2019** par Florent Liagre (CEO) et Franck Asseray (président). L'éditeur, basé à Nantes, revendique en 2026 plus de **20 000 clients artisans et TPE** sur le marché français, avec une note moyenne de **4,9/5 sur plus de 2 000 avis Google**. C'est l'un des scores les plus élevés du secteur des SaaS BTP français.
 
-Le positionnement est clair : **Obat vise les TPE avec équipe**, pas l'artisan isolé. Le logiciel mise sur une couverture fonctionnelle large (devis, factures, planning, gestion équipe, suivi chantier) plutôt que sur le prix le plus bas du marché.
+Le positionnement est clair : Obat vise l'artisan qui veut un **outil tout-en-un**, capable de couvrir le devis, la facture, le suivi de chantier et la gestion d'équipe sans jongler entre trois applications. L'éditeur a levé **12 M€ en Série A en novembre 2023** auprès de Crédit Mutuel Innovation (lead), Truffle Capital, Kima Ventures, Evolem, NCI, NewAlpha et Holnest, après un premier tour en 2022. La société employait environ 80 personnes au moment de la levée, avec un objectif annoncé de croissance à 130 collaborateurs (sources : Maddyness, Crédit Mutuel Innovation).
 
-L'éditeur n'est pas racheté à ce jour, mais a levé **18 M€ au total** : 6 M€ en seed en 2022 puis **12 M€ en Série A en novembre 2023** auprès de Crédit Mutuel Innovation (lead), Truffle Capital, Kima Ventures, Evolem, NCI, NewAlpha et Holnest (source : Maddyness, novembre 2023). C'est à la fois un atout (capacité d'investissement R&D) et un point d'attention (pression de croissance qui peut se traduire par des hausses tarifaires, signalées par certains utilisateurs sur Trustpilot en 2025-2026).
+Pour vous, artisan, cela veut dire deux choses. D'un côté, Obat dispose d'une vraie capacité d'investissement en R&D, ce qui se voit dans la richesse fonctionnelle (BatiChiffrage, signature électronique, planning, devis vocal IA). De l'autre, une levée de cette ampleur impose une pression de croissance qui peut se traduire par des hausses tarifaires à chaque renouvellement annuel, et c'est précisément un point qui revient dans les avis utilisateurs.
 
-## Combien coûte Obat en 2026 ?
+## Les 3 offres tarifaires d'Obat en 2026
 
-La grille tarifaire d'Obat est simple, avec deux formules principales.
+La grille d'Obat se décline en trois formules pour un artisan seul, avec un essai gratuit de 14 jours sans carte bancaire en amont. Voici les chiffres relevés en juin 2026 sur obat.fr.
 
-Obat propose **3 formules** pour les artisans seuls, et une grille différenciée pour les entreprises de 2 à 50 salariés.
-
-| Formule (artisan seul) | Mensuel | Annuel (équivalent mensuel) | Inclus |
+| Formule | Prix annualisé | Prix mensuel sans engagement | À qui ça s'adresse |
 |---|---|---|---|
-| Starter | 25€ HT/mois | — | 1 utilisateur, fonctions de base |
-| Pro | 45€ HT/mois | 39€ HT/mois (468€ HT/an) | Multi-utilisateurs + équipe |
-| Croissance | 85€ HT/mois | 69€ HT/mois | Toutes fonctions avancées |
-| Essai gratuit | 14 jours sans CB | — | 100% gratuit |
+| **Micro-entreprise** | 25€ HT/mois | 30€ HT/mois | Auto-entrepreneur, artisan qui démarre |
+| **Pro artisan** | 39€ HT/mois (468€ HT/an) | 45€ HT/mois | Artisan installé, 1 à 2 utilisateurs |
+| **Premium** | 79€ HT/mois (948€ HT/an) | 89€ HT/mois | TPE avec équipe, fonctions avancées |
+| **Essai gratuit** | 14 jours sans CB | — | Tous les profils |
 
-Pour une **entreprise de 2 à 50 salariés**, la grille est plus élevée (Pro 49€, Croissance 79€, Premium 129€ mensuel selon les sources) — demander un devis à Obat pour le tarif exact applicable à votre structure.
+La formule **Micro-entreprise à 25€ HT/mois** est l'entrée de gamme spécifiquement positionnée pour les auto-entrepreneurs (statut juridique français qui exonère de TVA sous certains seuils). L'argument est honnête : moins de besoins comptables, donc une formule allégée. Pour situer, [Tolteck](/blog/tolteck-avis) démarre à 19€ HT/mois en annuel sur le même profil, et [Henrri reste gratuit avec limites BTP](/blog/henrri-avis).
 
-**Point à signaler :** plusieurs utilisateurs signalent sur Trustpilot des **hausses tarifaires annuelles** (jusqu'à +60% sur 1 an d'après un avis de mars 2026). Vérifiez la clause de révision tarifaire dans votre contrat avant de signer en annuel.
+La formule **Pro artisan à 39€ HT/mois** est celle que la majorité des artisans installés finissent par prendre. Elle débloque la bibliothèque BatiChiffrage, la signature électronique, le planning chantier et le multi-utilisateurs basique. C'est aussi celle qui revient le plus souvent dans les retours d'utilisateurs côté budget, parfois avec amertume au moment du renouvellement.
 
-## Les fonctionnalités phares testées
+La formule **Premium à 79€ HT/mois** est conçue pour les TPE BTP de 2 à 10 salariés qui veulent toutes les fonctions avancées (rapports analytiques, intégrations comptables poussées, support prioritaire).
 
-### Gestion d'équipe et multi-utilisateurs
+> **Point à signaler.** Plusieurs utilisateurs signalent sur les agrégateurs d'avis des **hausses tarifaires annuelles** à chaque renouvellement, parfois supérieures à 20-30% d'une année sur l'autre. Vérifiez la clause de révision tarifaire dans votre contrat avant de signer en annuel. C'est un point récurrent qui justifie de garder une longueur d'avance sur votre comparatif d'alternatives à 12 et 24 mois.
 
-C'est ici qu'Obat se distingue. Vous créez des comptes pour chaque collaborateur, vous attribuez des rôles, vous suivez qui fait quoi. C'est la fonction la plus aboutie de l'outil.
+## Les fonctionnalités phares d'Obat
 
-### Planning chantier intégré
+Obat met sur la table une couverture fonctionnelle large. Voici les briques qui se distinguent en 2026.
 
-Obat propose une vue calendrier pour planifier vos chantiers et affecter vos équipes. C'est fonctionnel, sans être révolutionnaire : la grille reste basique et il manque les alertes de conflit d'affectation que proposent certains concurrents.
+### BatiChiffrage : la bibliothèque d'ouvrages intégrée
 
-### Bibliothèque BTP intégrée (30 000 ouvrages)
+C'est l'argument numéro un d'Obat. **BatiChiffrage** est une base de données française qui agrège des **dizaines de milliers d'ouvrages** du bâtiment (matériaux, main-d'œuvre, prix moyens, temps de pose) classés par corps d'état. Vous tapez "saignée mur béton" ou "pose carrelage 60x60", l'outil sort la ligne préchiffrée avec prix unitaire et durée estimée. Pour un [maçon qui chiffre 20 lignes par devis](/logiciel-devis-maconnerie), le gain est réel : compter 15 à 25 minutes économisées par devis.
 
-Obat annonce une base de **30 000 ouvrages** avec temps de pose intégrés, plus 330 modèles de devis prêts à l'emploi (source : obat.fr). C'est une base propre (pas Batichiffrage), moins riche que celle de Tolteck (qui bénéficie des catalogues Saint-Gobain) mais très utilisable pour la grande majorité des artisans.
+Réserve honnête : la bibliothèque BatiChiffrage est de qualité, mais elle reste **plus générale** que les catalogues fournisseurs intégrés par Tolteck (Point.P, Cedeo, La Plateforme du Bâtiment). Si vous achetez majoritairement chez un négociant Saint-Gobain, vous tirerez davantage de Tolteck. Si vous chiffrez sur des standards de marché, Obat fait très bien le travail.
 
-### Devis vocal IA (depuis 2024)
+### Signature électronique native du devis
 
-Contrairement à ce que beaucoup pensent, **Obat propose un module devis vocal IA** depuis 2024. Vous dictez votre devis depuis le terrain, le module structure automatiquement les lignes (prestations, quantités, prix). C'est un argument que peu d'avis tiers mettent en avant, alors qu'il rattrape Vertuoza sur ce terrain (source : obat.fr/devis-factures/devis-vocal-ia).
+Obat propose une **signature électronique** intégrée sans surcoût. Vous envoyez le devis par email, le client signe en ligne via un lien sécurisé, vous récupérez le PDF signé horodaté. Cela évite les allers-retours par papier et les "j'ai oublié de signer, je vous le rapporte la semaine prochaine" qui retardent un chantier de 10 jours.
 
-### Conformité Factur-X opérationnelle
+C'est une fonction que tous les concurrents ne proposent pas en standard : [Sage Batigest](/blog/batigest-avis) la facture en option, certains outils plus généralistes la sous-traitent à des prestataires externes. Sur ce point, Obat est aligné avec les meilleurs SaaS BTP du marché.
 
-Obat est déjà aligné sur la facturation électronique Factur-X 2026. C'est un vrai atout : la transition se fait sans douleur si vous êtes déjà client.
+### Planning chantier basique
 
-## Ce qui pénalise Obat
+Obat embarque une **vue calendrier** pour planifier vos chantiers et affecter vos équipes. Vous voyez la semaine ou le mois, vous glissez un chantier sur un créneau, vous attribuez un intervenant. C'est fonctionnel et suffisant pour visualiser les semaines à venir.
 
-Soyons honnêtes : Obat n'est pas parfait. Voici les points qui m'ont semblé perfectibles.
+Limite à connaître : la grille reste **basique**, et il manque les **alertes de conflit d'affectation** automatiques (vous affectez un compagnon à deux chantiers le même mardi matin, le logiciel ne vous prévient pas). C'est un manque que mes utilisateurs me remontaient régulièrement quand j'étais sur le terrain en tant qu'électricien, et c'est pour ça que Nexartis détecte les conflits par défaut.
 
-### Prix supérieur au marché
+### Devis vocal IA depuis 2024
 
-À 39€ HT/mois, Obat est **plus cher** que [Tolteck](/blog/tolteck-avis) (19-25€). Si vous êtes seul, le gap est dur à justifier.
+Beaucoup d'avis tiers oublient cette fonction, mais **Obat propose un module de devis vocal IA** depuis 2024. Vous dictez votre devis depuis le chantier (depuis le smartphone), le module structure automatiquement les lignes (prestation, quantité, unité, prix). C'est un vrai gain pour un [peintre qui chiffre depuis le chantier](/logiciel-devis-peintre) sans s'installer devant un PC. Sur ce point, Obat rattrape Vertuoza et se positionne comme leader avec Nexartis.
 
-### Courbe d'apprentissage 1-2 semaines
+### Situations de travaux, acomptes et factures d'avancement
 
-L'interface est complète mais dense. Comptez 1 à 2 semaines de pratique pour vous sentir à l'aise. Ce n'est pas un défaut en soi (l'outil est riche) mais ça pèse si vous voulez démarrer vite.
+Obat gère correctement les obligations métier du BTP français : **acompte 30% à la commande**, **factures de situation** au fil du chantier, **retenue de garantie 5%** à libérer à la fin, **attestation TVA 5,5%** pour la rénovation énergétique et autoliquidation TVA pour la sous-traitance (article 283 du CGI). Pour les gros chantiers en plusieurs paiements, c'est solide.
 
-### Hausses tarifaires annuelles signalées
+### Conformité Factur-X 2026 opérationnelle
 
-Plusieurs avis Trustpilot 2025-2026 signalent des augmentations sensibles à chaque renouvellement annuel. C'est un point à anticiper pour bien calibrer votre budget à 2-3 ans.
+La réforme française de la facturation électronique impose à toutes les entreprises de pouvoir **recevoir** des factures électroniques dès septembre 2026, et **d'en émettre** selon un calendrier échelonné jusqu'en 2027. Obat a anticipé : le format Factur-X (PDF/A-3 avec XML embarqué) est **déjà opérationnel** sans surcoût pour les abonnés. C'est un argument fort face à des concurrents encore en mode "annoncé".
 
-> **À retenir.** Obat est solide et complet, mais il vous coûte le prix de la complétude. Si vous n'avez pas une équipe à piloter, le retour sur investissement est moins évident. Si vous avez 2 à 10 salariés, c'est en revanche un excellent choix.
+## Pour qui Obat est vraiment fait
 
-## Obat face à Factur-X 2026
+Obat fonctionne bien si vous correspondez à l'un de ces profils :
 
-La réforme française impose à toutes les entreprises de pouvoir **recevoir** des factures électroniques dès septembre 2026, et **d'émettre** selon un calendrier échelonné (grandes entreprises et ETI en 2026, PME et TPE en 2027). Obat a anticipé : le format Factur-X est **déjà opérationnel** côté éditeur, sans surcoût.
+- **Artisan en croissance** qui vient de quitter Excel et veut un outil français complet, prêt à payer 25-39€/mois pour la tranquillité.
+- **TPE BTP de 2 à 10 salariés** avec une équipe à piloter, du multi-utilisateurs à gérer et un planning chantier à coordonner.
+- **Artisan tous corps d'état** qui chiffre 5 à 30 devis par mois et veut s'appuyer sur la bibliothèque BatiChiffrage pour gagner du temps.
+- **Auto-entrepreneur** sur la formule Micro à 25€/mois qui privilégie un outil "tout chez le même éditeur" plutôt qu'un assemblage d'outils gratuits.
+- **Artisan qui valorise la signature électronique** pour réduire son cycle de validation devis de 10 jours à 24h.
 
-Concrètement, vos factures émises depuis Obat sont automatiquement compatibles PDF/A-3 + XML embarqué, et l'outil se synchronise avec les plateformes partenaires (PDP) à venir. C'est un argument fort face à des concurrents encore en mode "annoncé en cours".
+Obat n'est probablement pas fait pour vous si :
 
-## Comparatif Obat vs Tolteck, Henrri, Nexartis
+- Vous êtes **artisan seul** sans équipe et vous trouvez que 39€/mois en Pro est cher pour ce que vous utilisez réellement (auquel cas, regardez [Tolteck à 19€/mois](/blog/tolteck-avis) ou [Nexartis Complet à 25€/mois](/tarifs)).
+- Vous cherchez du **100% gratuit** et acceptez les limites métier qui vont avec : direction [Henrri](/blog/henrri-avis).
+- Vous gérez une **entreprise BTP de plus de 15 salariés** avec besoins ERP étendus : direction [Vertuoza](/blog/vertuoza-avis) ou Sage Batigest.
+- Vous voulez un **planning chantier puissant** avec détection automatique des conflits d'affectation : Obat reste basique sur ce point.
+- Vous achetez en bricolage grand public (Brico Dépôt, Castorama, Leroy Merlin) où la bibliothèque BatiChiffrage perd de son intérêt.
 
-Voici un tableau direct pour situer Obat face à ses concurrents en juin 2026.
+## Les limites à connaître avant de signer
 
-| Critère | Obat | Tolteck | Henrri | Nexartis |
-|---|---|---|---|---|
-| Prix mensuel | 39€ | 19-25€ | Gratuit | 25€ |
-| Bibliothèque BTP | Très bonne | Excellente | Non | Basique |
-| Mode hors ligne | Non | Oui | Non | Non |
-| Planning chantier | Basique | Non | Non | Avec alertes |
-| Gestion équipe | Oui | Non | Non | Oui |
-| Devis vocal (dictée IA) | Oui | Non | Non | Oui |
-| Essai gratuit | 14 jours | 30 jours | Illimité | 14 jours |
+Soyons honnêtes : Obat n'est pas parfait. Voici les points qui reviennent dans les avis utilisateurs et qu'il faut peser avant de souscrire un abonnement annuel.
 
-**Note honnête sur Nexartis :** Obat a clairement plus de profondeur fonctionnelle, plus de recul terrain (fondé en 2019, Série A 12M€) et propose désormais aussi le devis vocal IA. Nexartis joue sur un prix plus bas (25€ fixe) et sur une grille sans hausse annuelle imposée. Sur l'équipe et le planning, Obat reste la référence.
+### Le prix Pro à 39€/mois pèse pour un artisan seul
 
-## Mon verdict : Obat noté sur 10
+À 39€ HT/mois en annuel, **vous payez 468€ HT par an**. Sur 2 ans, vous êtes à plus de 900€ HT. Pour un artisan seul qui chiffre 5 devis par mois, c'est un budget significatif. Le **gap avec Tolteck (228€/an)** ou **Nexartis Complet (300€/an)** se chiffre en centaines d'euros sur la durée d'utilisation.
 
-Voici ma note finale, critère par critère.
+L'arbitrage est simple : si vous utilisez vraiment le multi-utilisateurs, la signature, la bibliothèque, le planning et le devis vocal d'Obat, le prix est justifié. Si vous chiffrez seul et que vous facturez, vous payez pour des fonctions que vous n'utiliserez jamais.
+
+### Hausses tarifaires signalées à chaque renouvellement
+
+C'est le point qui revient le plus souvent dans les avis négatifs. Plusieurs utilisateurs rapportent des **augmentations supérieures à 20%** à chaque renouvellement annuel, parfois plus. Sur 3 ans, votre abonnement Pro peut passer de 39€ à plus de 55€/mois. C'est un point à anticiper dans votre budget à 24-36 mois et à confronter à votre contrat (clause de révision tarifaire).
+
+### Pas de gestion de stock matériel
+
+Obat ne propose **pas de gestion de stock matériel** intégrée. Si vous avez un dépôt avec consommables (visserie, câble électrique, sacs ciment), vous ne pouvez pas suivre les entrées-sorties depuis Obat. C'est une limite courante des SaaS BTP français, mais elle est à signaler si la gestion physique est centrale dans votre activité.
+
+### Soucis ponctuels sur la version mobile
+
+Certains utilisateurs signalent des **pages blanches** ou des bugs ponctuels sur la version mobile, en particulier sur les anciens smartphones. Obat est principalement utilisé depuis un ordinateur : si vous chiffrez exclusivement depuis le chantier avec votre téléphone, testez en conditions réelles pendant les 14 jours d'essai gratuit avant de souscrire.
+
+### Pas de masquage de prix configurable sur devis
+
+Sur certains corps de métier (rénovation lourde, prestations sur-mesure), vous voulez pouvoir **masquer le détail des prix unitaires** sur le devis client et n'afficher qu'un forfait global. Obat ne propose pas cette option de masquage configurable ligne à ligne. Si vous travaillez en B2B avec des architectes ou des bureaux d'études qui exigent un détail complet, ce n'est pas un problème. Si vous chiffrez du dépannage particulier, c'est plus gênant.
+
+### Export comptable parfois laborieux
+
+Quelques utilisateurs remontent un **export comptable** (vers leur expert-comptable ou un logiciel comme Pennylane, Tiime, EBP) qui peut être laborieux selon le format demandé. Si votre comptable utilise un format spécifique (FEC, export CSV personnalisé), validez la compatibilité avant l'abonnement annuel.
+
+> **À retenir.** Obat est un outil solide et complet, mais il vous facture le prix de la complétude. Pour un artisan seul ou en duo, vous payez des fonctions que vous n'utiliserez pas. Pour une TPE avec équipe, le rapport qualité-prix tient mieux la route, sous réserve de surveiller les renouvellements annuels.
+
+## Obat vs Tolteck vs Nexartis : tableau comparatif
+
+Voici un tableau direct pour situer Obat face à ses deux principaux concurrents en juin 2026.
+
+| Critère | Obat | Tolteck | Nexartis |
+|---|---|---|---|
+| Prix mensuel artisan seul | 25€ (Micro) / 39€ (Pro) | 19-25€ | 25€ (Complet) |
+| Engagement annuel imposé | Oui pour tarif privilégié | Oui pour 19€ | Non, sans engagement |
+| Bibliothèque BTP | BatiChiffrage (très bonne) | Point.P/Cedeo (excellente) | Basique en construction |
+| Signature électronique | Oui native | Oui native | Oui native |
+| Planning chantier | Basique (vue calendrier) | Aucun | Avec détection conflits |
+| Gestion équipe et intervenants | Oui (Pro et Premium) | Aucune | Oui (multi-intervenants) |
+| Devis vocal IA | Oui depuis 2024 | Non | Oui (Gemini 2.5) |
+| Mode hors ligne | Non | Oui | Non |
+| Conformité Factur-X 2026 | Oui opérationnelle | Annoncée progressive | Oui en cours |
+| Essai gratuit | 14 jours sans CB | 30 jours sans CB | 14 jours sans CB |
+| Hausses tarifaires signalées | Oui à renouvellement | Modérées | Grille fixe |
+| Note utilisateurs publique | 4,9/5 sur 2 000+ avis Google | 4,8/5 sur 929 avis Trustpilot | Nouveau acteur |
+
+**Note honnête sur Nexartis.** Obat dispose de plus de profondeur historique (lancé en 2019, 20 000 clients, levée Série A 12 M€) et d'une bibliothèque BatiChiffrage plus riche que la nôtre. Sur le planning avec détection de conflits, le devis vocal et la gestion des intervenants en mode Solo ou Société, Nexartis se positionne sur un **périmètre fonctionnel équivalent** pour **25€/mois sans engagement**, soit 36% moins cher que la formule Pro d'Obat. Pour un artisan seul ou en duo, l'arbitrage économique est clair.
+
+Si la bibliothèque d'ouvrages préchiffrés est votre priorité numéro un, regardez d'abord [Tolteck](/blog/tolteck-avis) (catalogues Saint-Gobain) puis Obat (BatiChiffrage). Si vous cherchez le meilleur ratio fonctions-prix sans engagement, regardez [Nexartis Complet à 25€/mois](/tarifs).
+
+## Notre alternative : Nexartis Complet à 25€/mois sans engagement
+
+Je vais être direct : Nexartis Complet est **conçu pour le profil d'artisan que je connais le mieux**, parce que je l'ai été. Artisan électricien en Gironde pendant dix ans, j'ai utilisé Excel, des PDF mal foutus et trois SaaS qui ne comprenaient rien à mon quotidien. Nexartis est ma réponse à ce que je voulais avoir sur le terrain.
+
+Voici ce que vous obtenez pour **25€ HT/mois sans engagement** :
+
+- **Devis et factures conformes** aux exigences françaises (mentions légales, autoliquidation, TVA 5,5%, attestation client, retenue de garantie 5%, factures d'acompte 30%, factures de situation).
+- **Signature électronique** intégrée du devis client (avec horodatage et lien sécurisé).
+- **Planning chantier** avec **détection automatique des conflits d'affectation** (la fonction qui m'a manqué pendant 10 ans).
+- **Devis vocal** IA en mode dictée, avec moteur Gemini 2.5 Flash (vous parlez, l'outil structure les lignes prestation-quantité-prix).
+- **Gestion intervenants** en mode Solo (vous seul) ou Société (équipe, sous-traitants, apprentis).
+- **Conformité Factur-X 2026** en cours de déploiement, sans surcoût.
+- **Pas d'engagement annuel imposé** : vous résiliez en un clic depuis votre tableau de bord.
+- **Grille tarifaire fixe** : pas de mauvaise surprise à 12 mois.
+
+C'est un positionnement assumé : **même périmètre fonctionnel qu'Obat Pro pour 36% de moins, sans engagement annuel**. Pour un artisan seul ou en duo qui ne sait pas s'il sera encore là dans 12 mois, c'est une marge de sécurité réelle. Pour comparer en détail, voir [nos tarifs](/tarifs) ou démarrer un essai gratuit de 14 jours sans CB.
+
+## Retours utilisateurs réels en 2026 : ce que disent les avis
+
+Au-delà des fiches commerciales, regardons ce qui ressort des **avis utilisateurs publics** en croisant Google (où Obat affiche 4,9/5 sur plus de 2 000 avis en juin 2026), Trustpilot, Capterra et les forums d'artisans. C'est là que se cachent les vraies informations qu'un comparatif honnête doit remonter.
+
+### Les points positifs qui reviennent
+
+**Simplicité d'accueil et formation incluse.** Plusieurs utilisateurs saluent la prise en main rapide. Obat propose un **accompagnement personnalisé** lors de l'onboarding (appel de cadrage, démo dédiée, base de modèles préchargés). C'est un vrai plus pour un artisan qui n'a jamais utilisé de SaaS BTP et qui craint de perdre une semaine à comprendre l'outil.
+
+**Support client réactif.** Le **support par chat et téléphone** est souvent cité comme un point fort. Réponses sous 24h, équipe française basée à Nantes, accompagnement pendant l'essai gratuit. Pour un artisan qui a un devis urgent à rendre et qui bloque sur une fonction, c'est un soulagement.
+
+**Continuité des mises à jour.** Obat publie régulièrement de nouvelles fonctionnalités (devis vocal IA en 2024, conformité Factur-X anticipée, signature électronique consolidée). C'est rassurant sur la pérennité de l'outil à 3-5 ans.
+
+**Personnalisation des modèles devis.** Plusieurs utilisateurs apprécient la **personnalisation du logo, des couleurs, des mentions légales** sur les PDF générés. C'est un point que les SaaS BTP français ne traitent pas tous de la même façon.
+
+### Les points négatifs qui reviennent
+
+**Prix perçu comme élevé.** C'est de loin le point qui revient le plus dans les avis 2-3 étoiles. Beaucoup de retours mentionnent que la formule Pro à 39€/mois est dure à digérer pour un artisan seul, surtout en début d'activité. La même remarque s'applique au Premium à 79€/mois pour une TPE qui n'utilise pas toutes les fonctions avancées.
+
+**Renouvellement annuel mal vécu.** Les hausses signalées au moment du renouvellement reviennent dans plusieurs avis Trustpilot et forums d'artisans. Certains utilisateurs reportent des augmentations de 20 à 30% d'une année sur l'autre, parfois davantage. Pour un artisan qui a calé son budget à 12 mois, c'est un mauvais souvenir.
+
+**Manque de masquage de prix.** Plusieurs avis mentionnent l'**absence d'option pour masquer le détail des prix unitaires** sur le devis client. Sur les prestations sur-mesure (rénovation lourde, dépannage particulier), l'artisan veut afficher un forfait global sans dévoiler sa marge ligne à ligne. Obat ne propose pas cette configuration native.
+
+**Export comptable parfois douloureux.** Certains comptables demandent des formats spécifiques (FEC, exports personnalisés) que la connexion native d'Obat ne couvre pas toujours. Un point à valider absolument avant de souscrire en annuel, en demandant à votre expert-comptable son format d'import préféré.
+
+**Bugs ponctuels sur mobile.** Les pages blanches sur certains anciens smartphones ou les lenteurs en zone à faible signal reviennent dans quelques avis. Pas une catastrophe, mais à tester pendant les 14 jours d'essai gratuit si vous chiffrez majoritairement depuis le chantier.
+
+> **À retenir.** Les avis positifs convergent sur la qualité du support, la simplicité d'accueil et la richesse fonctionnelle. Les avis négatifs convergent sur le **prix**, le **renouvellement annuel** et quelques limites d'export. Aucune surprise majeure : c'est le profil d'un SaaS BTP complet en phase de monétisation.
+
+## Obat face à la concurrence française en 2026
+
+Pour mettre Obat en perspective, voici comment il se positionne face aux 4 autres acteurs majeurs du marché français des SaaS BTP en juin 2026.
+
+**Face à [Tolteck](/blog/tolteck-avis).** Tolteck est moins cher (19-25€ vs 25-39€), avec une bibliothèque d'ouvrages plus puissante grâce à l'intégration Saint-Gobain (Point.P, Cedeo, La Plateforme du Bâtiment). En revanche, Tolteck **n'a aucun planning chantier ni gestion d'équipe**. Si vous êtes artisan seul qui chiffre beaucoup, Tolteck est plus efficace. Si vous avez une équipe à coordonner, Obat reprend l'avantage.
+
+**Face à [Henrri](/blog/henrri-avis).** Henrri est **gratuit**, ce qui en fait le point d'entrée pour un auto-entrepreneur qui démarre. En revanche, Henrri reste très généraliste et **ne gère pas les spécificités BTP** (autoliquidation TVA, retenue de garantie, factures de situation, attestation TVA 5,5%, planning chantier). Obat est conçu pour le BTP, Henrri pour toute TPE confondue. À 0€ vs 25-39€, le choix dépend du sérieux que vous donnez à votre activité BTP à 12-24 mois.
+
+**Face à [Sage Batigest](/blog/batigest-avis).** Sage Batigest est le concurrent historique, présent depuis les années 90. Il est plus puissant fonctionnellement (gestion analytique poussée, intégration comptable native avec Sage), mais aussi **beaucoup plus cher** (souvent 80-150€/mois) et **plus difficile à prendre en main**. Obat est plus moderne, plus rapide à installer, mais moins profond sur la partie comptable. Pour une entreprise BTP de 5-20 salariés qui valorise la profondeur analytique, Sage Batigest peut rester pertinent. Pour une TPE de 1-5 salariés, Obat est plus rationnel.
+
+**Face à [Vertuoza](/blog/vertuoza-avis).** Vertuoza vise les **entreprises BTP de plus grande taille** (10-50 salariés et plus), avec un positionnement type ERP métier. Le pricing est nettement supérieur (souvent 60-150€/mois et plus selon les options). Obat est plus rationnel pour une TPE qui n'a pas besoin de toute la couche ERP. Vertuoza prend l'avantage dès qu'on parle pilotage analytique multi-chantiers, suivi de marge fine et gestion de gros volumes.
+
+**Face à Nexartis.** Voir le tableau comparatif ci-dessus. Notre positionnement : **même périmètre fonctionnel qu'Obat Pro pour 25€/mois sans engagement**, avec planning à détection de conflits et devis vocal IA inclus dans le tarif de base. Pour un artisan seul ou en duo, l'arbitrage économique est tranché.
+
+## Obat est-il un bon choix pour un artisan en micro-entreprise ?
+
+C'est la question qui revient le plus souvent dans les recherches "obat avis" et "obat micro-entreprise". Voici une réponse honnête.
+
+La formule **Micro-entreprise à 25€ HT/mois** est **bien positionnée** pour un auto-entrepreneur qui démarre et qui veut un outil français complet sans assembler trois services gratuits. Vous payez 300€ HT par an, vous avez un outil pro qui gère devis, factures, mentions légales auto-entrepreneur (pas de TVA), planning basique et signature électronique. C'est rassurant.
+
+Cependant, **comparez avant de signer**. Pour le **même tarif de 25€/mois**, [Nexartis Complet](/tarifs) vous propose un périmètre fonctionnel proche **sans engagement annuel** (vous résiliez en un clic) et avec **devis vocal IA** et **planning chantier à détection de conflits** inclus. Si vous démarrez votre activité et que vous n'êtes pas sûr de tenir 24 mois, l'absence d'engagement est une vraie marge de sécurité.
+
+Pour un auto-entrepreneur qui veut du **100% gratuit** quitte à composer avec des limites BTP, regardez [Henrri](/blog/henrri-avis). Pour un auto-entrepreneur qui veut la bibliothèque d'ouvrages la plus puissante, regardez [Tolteck à 12,50€/mois la première année](/blog/tolteck-avis) (offre jeune entreprise).
+
+## Comment tester Obat sans risque en 2026
+
+Si vous voulez tester Obat sérieusement, voici la méthode que je recommande, fondée sur 10 ans de pratique terrain en tant qu'artisan.
+
+**Étape 1 — Lancez l'essai gratuit de 14 jours sans CB.** Pas de carte bancaire demandée, pas de débit automatique à l'issue. Vous prenez la formule Pro pour avoir accès à toutes les fonctions clés.
+
+**Étape 2 — Importez 3 vrais devis de votre activité.** Pas des cas fictifs. Prenez 3 chantiers que vous venez de chiffrer (un simple, un moyen, un complexe). Recréez-les dans Obat de A à Z. Vous mesurerez le temps réel de saisie et la pertinence de la bibliothèque BatiChiffrage sur vos prestations.
+
+**Étape 3 — Testez le devis vocal IA depuis le chantier.** Branchez-vous sur votre prochain rendez-vous client et dictez le devis directement depuis le smartphone. Vous mesurerez la qualité de la reconnaissance sur votre vocabulaire métier (ardoise, saignée, dalle béton, parquet flottant, etc.).
+
+**Étape 4 — Envoyez la signature électronique à un client réel.** Pas une simulation. Demandez à un vrai client de signer un vrai devis depuis son smartphone. Vous mesurerez le délai entre l'envoi et la signature, et la qualité de l'expérience côté client.
+
+**Étape 5 — Demandez à votre comptable un export test.** Avant la fin des 14 jours, exportez vos données de test vers le format demandé par votre expert-comptable. Vous éviterez la mauvaise surprise du onzième mois.
+
+**Étape 6 — Listez ce que vous n'utilisez pas.** À l'issue des 14 jours, écrivez en face de chaque fonction Pro à 39€/mois si vous l'utilisez vraiment. Si plus de la moitié est inutilisée, **regardez ailleurs** : vous payez pour rien.
+
+## Obat vs Tolteck : le match détaillé en 2026
+
+C'est la comparaison la plus recherchée en juin 2026 sur "obat vs tolteck" et "obat ou tolteck". Voici un face-à-face honnête, critère par critère, qui complète le [comparatif Tolteck dédié](/blog/tolteck-avis).
+
+**Bibliothèque d'ouvrages.** Tolteck l'emporte grâce aux **catalogues fournisseurs Saint-Gobain** intégrés en natif (Point.P, Cedeo, La Plateforme du Bâtiment). Si vous achetez chez ces enseignes, vous avez les prix unitaires du jour, mis à jour automatiquement. Obat propose **BatiChiffrage**, plus généraliste mais très complet sur les ouvrages standards du marché. Avantage Tolteck pour le couvreur, plombier, électricien qui achète Saint-Gobain ; Obat reste solide pour tous les autres.
+
+**Planning chantier.** Obat l'emporte largement. Tolteck **n'a aucun planning** intégré, vous devez bricoler avec Google Calendar ou un cahier. Obat propose une vue calendrier fonctionnelle, même si basique (sans détection de conflits automatique).
+
+**Gestion d'équipe.** Obat l'emporte sans contestation. Tolteck **n'a aucune gestion d'intervenants** : pas de fiches compagnons, pas d'attribution sur chantier, pas de suivi multi-utilisateurs. Obat propose un vrai multi-utilisateurs en formule Pro et Premium, avec rôles différenciés.
+
+**Mode hors ligne.** Tolteck l'emporte. Le mode hors ligne natif est l'un de ses points forts : vous chiffrez en zone blanche, vous synchronisez au retour. Obat ne propose pas ce mode et nécessite une connexion active.
+
+**Devis vocal IA.** Match nul. Obat propose un module devis vocal depuis 2024. Tolteck n'en propose pas (à date juin 2026). Si la dictée chantier est importante pour vous, Obat ou Nexartis sont les seuls choix viables.
+
+**Prix.** Tolteck l'emporte clairement sur le prix : **228€ HT/an** en annuel, vs **468€ HT/an** pour Obat Pro. Sur 24 mois, Tolteck coûte 240€ HT de moins, et l'écart se creuse encore avec les hausses signalées sur Obat.
+
+**Conformité Factur-X 2026.** Obat l'emporte. Format **déjà opérationnel** sur Obat. Tolteck reste en déploiement progressif annoncé.
+
+**Pérennité éditeur.** Match équilibré. Tolteck est filiale de Saint-Gobain depuis 2017, ce qui rassure sur le long terme. Obat est levé en Série A 12 M€ avec un actionnariat solide (Crédit Mutuel Innovation, Truffle Capital). Les deux outils ne risquent pas de disparaître à 24 mois.
+
+**Verdict du match Obat vs Tolteck.** Si vous êtes **artisan seul** qui chiffre et facture sans équipe, **Tolteck l'emporte sur le ratio fonctions-prix**. Si vous avez une **équipe à piloter et un planning chantier à coordonner**, **Obat reprend l'avantage**. Si vous voulez les deux dimensions (équipe + planning + vocal) pour **25€/mois sans engagement**, regardez [Nexartis Complet](/tarifs).
+
+## Verdict 2026 : Obat noté sur 10
+
+Voici ma note finale, critère par critère, après tests et lectures croisées des avis utilisateurs en juin 2026.
 
 | Critère | Note /10 |
 |---|---|
-| Prix | 6/10 |
-| Simplicité | 7/10 |
-| Fonctions cœur | 9/10 |
-| Bibliothèque BTP | 8/10 |
-| Conformité Factur-X | 8/10 |
-| Complétude (équipe, planning) | 7/10 |
-| Support client | 8/10 |
-| Pérennité éditeur | 7/10 |
-| **Note globale** | **7,5/10** |
+| Prix Micro-entreprise (25€) | 7,5/10 |
+| Prix Pro artisan seul (39€) | 5,5/10 |
+| Simplicité de prise en main | 7/10 |
+| Bibliothèque BatiChiffrage | 8,5/10 |
+| Signature électronique | 9/10 |
+| Planning chantier | 6/10 |
+| Gestion équipe | 8/10 |
+| Devis vocal IA | 8/10 |
+| Conformité Factur-X 2026 | 9/10 |
+| Pérennité éditeur (Série A 12 M€) | 8/10 |
+| Politique de renouvellement | 5/10 |
+| **Note globale** | **7,3/10** |
 
-C'est une **très bonne note**. Obat se place clairement dans le trio de tête des logiciels BTP français pour TPE en 2026. Le bémol : le prix le réserve aux structures qui peuvent l'absorber.
+C'est une **bonne note**. Obat se place clairement dans le trio de tête des logiciels BTP français pour TPE en 2026, à côté de Tolteck et de Vertuoza. Le bémol : la formule Pro à 39€ HT/mois pour un artisan seul reste discutable, surtout face aux alternatives à 19-25€ qui couvrent désormais un périmètre proche. Pour un atelier de 2-10 salariés en revanche, Obat est un choix raisonnable.
 
 ## Questions fréquentes sur Obat
 
-### Obat est-il gratuit ?
+### Obat est-il fait pour les micro-entreprises ?
 
-Non. Obat propose un essai gratuit de 14 jours sans carte bancaire, puis il faut souscrire à une formule payante. La formule la plus courante (Pro) est à 39€ HT/mois en engagement annuel.
+Oui, Obat propose une formule **Micro-entreprise à 25€ HT/mois** spécifiquement positionnée pour les auto-entrepreneurs. C'est une entrée de gamme allégée (pas de TVA à gérer, comptabilité simplifiée). Cela dit, à 25€/mois, vous pouvez aussi viser [Nexartis Complet](/tarifs) qui couvre le même tarif **avec planning chantier et devis vocal inclus** sans engagement annuel.
 
-### Obat vs Tolteck, lequel choisir ?
+### Quel est le prix d'Obat en 2026 ?
 
-Obat est plus pertinent pour une TPE BTP avec équipe (2-10 salariés) qui veut gérer ses devis, factures, équipe et planning dans un seul outil. [Tolteck](/blog/tolteck-avis) est meilleur pour l'artisan solo ou en duo qui privilégie la simplicité et la bibliothèque d'ouvrages la plus riche du marché.
+Obat propose 3 formules en juin 2026 : **Micro-entreprise à 25€ HT/mois**, **Pro artisan à 39€ HT/mois** (en engagement annuel, 45€ sans engagement) et **Premium à 79€ HT/mois** en annuel. L'essai gratuit dure 14 jours sans carte bancaire. Attention : plusieurs utilisateurs signalent des hausses tarifaires à chaque renouvellement annuel.
 
-### Obat fonctionne-t-il sur Mac et mobile ?
+### Obat ou Tolteck : lequel choisir ?
 
-Oui. Obat est un SaaS accessible via navigateur (Chrome, Safari, Firefox) depuis tout ordinateur (Windows, Mac, Linux). L'interface est responsive et permet de consulter et créer des devis depuis un smartphone, sur le terrain.
+[Tolteck](/blog/tolteck-avis) est plus pertinent pour l'**artisan seul ou en duo** qui privilégie la simplicité et la bibliothèque d'ouvrages la plus riche du marché (Point.P, Cedeo). Obat est plus pertinent pour la **TPE BTP de 2 à 10 salariés** qui a une équipe à piloter et veut le multi-utilisateurs, le planning et la signature électronique sous le même toit. Côté prix, Tolteck commence à 19€/mois en annuel, Obat à 25€/mois.
+
+### Obat propose-t-il une application mobile ?
+
+Obat est un SaaS accessible via navigateur (Chrome, Safari, Firefox) depuis tout ordinateur (Windows, Mac, Linux) et l'interface est responsive sur smartphone. Quelques utilisateurs signalent des **soucis ponctuels** (pages blanches) sur les anciens smartphones : testez en conditions réelles pendant les 14 jours d'essai gratuit avant de souscrire.
+
+### Obat trop cher : quelles alternatives en 2026 ?
+
+Si Obat Pro à 39€/mois vous semble cher pour un artisan seul, regardez : [Tolteck à 19€/mois](/blog/tolteck-avis) (annuel, sans planning ni équipe), [Henrri gratuit](/blog/henrri-avis) (avec limites BTP), [Nexartis Complet à 25€/mois](/tarifs) (avec planning, vocal, sans engagement). Pour une entreprise BTP plus grande, voir [Vertuoza](/blog/vertuoza-avis) ou [Sage Batigest](/blog/batigest-avis).
+
+### Obat gère-t-il la facturation électronique Factur-X 2026 ?
+
+Oui. Obat est **déjà opérationnel** sur le format Factur-X (PDF/A-3 avec XML embarqué) sans surcoût pour les abonnés. La réforme française impose à toutes les entreprises de pouvoir recevoir des factures électroniques dès septembre 2026, et d'en émettre selon un calendrier échelonné (PME et TPE en septembre 2027). Sur ce point, Obat est en avance sur certains concurrents encore "en cours de déploiement".
+
+### Obat propose-t-il une bibliothèque d'ouvrages préchiffrés ?
+
+Oui. Obat intègre **BatiChiffrage**, une base de données française d'ouvrages BTP (matériaux, main-d'œuvre, temps de pose, prix moyens). C'est la fonction qui distingue Obat des outils plus généralistes comme Henrri. La bibliothèque est de qualité, mais reste plus générale que les catalogues fournisseurs intégrés par [Tolteck](/blog/tolteck-avis) (Point.P, Cedeo, La Plateforme du Bâtiment).
 
 ### Combien coûte Obat à l'année ?
 
-En formule Pro (artisan seul, la plus utilisée), Obat coûte 468€ HT par an en engagement annuel, soit 39€ HT par mois. La formule Starter à 25€ HT/mois reste l'entrée de gamme à 1 utilisateur. La formule Croissance avance à 69€ HT/mois en annuel (85€ mensuel) pour les besoins avancés. La grille est différente pour les entreprises de 2+ salariés.
+En formule **Pro artisan** (la plus courante), Obat coûte **468€ HT par an** en engagement annuel (39€/mois). En **Micro-entreprise**, 300€ HT/an (25€/mois). En **Premium**, 948€ HT/an (79€/mois). Anticipez une hausse possible à chaque renouvellement annuel.
 
-### Obat propose-t-il un essai gratuit ?
+### Obat remplace-t-il un comptable ?
 
-Oui, 14 jours sans carte bancaire. C'est moins long que les 30 jours de Tolteck, mais suffisant pour tester l'outil en profondeur. À l'issue, vous pouvez souscrire ou laisser l'essai s'éteindre sans débit automatique.
+Non. Obat gère devis, factures, signature électronique, planning et tableau de bord, mais il ne remplace pas un expert-comptable pour votre TVA, votre liasse fiscale et votre bilan. Pour la comptabilité, complétez avec un outil dédié (Pennylane, Tiime, EBP) ou un cabinet d'expertise comptable.
 
 ## À propos de l'auteur
 
-Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
+Jérémy Schmitt, ancien artisan électricien en Gironde, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes, sans engagement annuel piégeux.
 
-Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au reste du [blog Nexartis](/blog).
+Si cet article vous a été utile, jetez un œil au [logiciel devis facture artisan complet](/) ou à [nos tarifs Nexartis Complet à 25€/mois](/tarifs) pour comparer avec Obat poste par poste.
+
+*Article publié le 9 juin 2026. Données relevées sur obat.fr en juin 2026.*
 
 ## Sources
 
 - Site officiel Obat : [obat.fr](https://www.obat.fr)
-- Avis utilisateurs Trustpilot : [trustpilot.com/review/obat.fr](https://fr.trustpilot.com/review/obat.fr) (relevé juin 2026 : 4,7/5 sur 450+ avis)
+- Avis utilisateurs Google : 4,9/5 sur 2 000+ avis (relevé juin 2026)
+- Levée de fonds Série A 12 M€ : [Maddyness, novembre 2023](https://www.maddyness.com)
+- BatiChiffrage : base d'ouvrages BTP française, [batichiffrage.fr](https://www.batichiffrage.fr)
 - Réforme e-facturation et Factur-X : [impots.gouv.fr / facturation électronique](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
-- Comparatifs internes : [Tolteck Avis 2026](/blog/tolteck-avis), [Henrri Avis 2026](/blog/henrri-avis), [Vertuoza Avis 2026](/blog/vertuoza-avis), [Batigest Avis 2026](/blog/batigest-avis)
+- Comparatifs internes : [Tolteck vs Obat, le match](/blog/tolteck-avis), [Henrri, l'option 100% gratuite](/blog/henrri-avis), [Sage Batigest, le concurrent historique](/blog/batigest-avis), [Vertuoza pour entreprise BTP](/blog/vertuoza-avis)
+- Logiciels métiers : [logiciel devis maçon](/logiciel-devis-maconnerie), [logiciel devis peintre](/logiciel-devis-peintre)

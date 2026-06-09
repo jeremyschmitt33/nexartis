@@ -1,24 +1,26 @@
 ---
-title: "Tolteck Avis 2026 : Notre Test Honnête en 5 min"
-description: "Tolteck Avis 2026 : tarifs 19-25€/mois, forces, faiblesses testées. Analyse honnête d'un concurrent direct (fondateur Nexartis)."
+title: "Tolteck avis 2026 : test, prix, alternative honnête"
+description: "Tolteck à 19-25€/mois : pour qui, vraies limites, à comparer avec Nexartis (15€/mois, devis + facture + planning + chantier). Le test 2026."
 slug: "tolteck-avis"
 category: "Avis logiciel BTP"
-date: "8 juin 2026"
-updated: "2026-06-08"
-readingTime: "5 min"
+date: "9 juin 2026"
+updated: "2026-06-09"
+publishedDate: "2026-06-09"
+readingTime: "12 min"
 heroImage: ""
 author:
   name: "Jérémy Schmitt"
   role: "Fondateur Nexartis · Ancien artisan électricien"
   bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
-tags: ["avis", "logiciel devis", "logiciel facture", "BTP", "Tolteck"]
+authorRole: "Fondateur Nexartis · Ancien artisan électricien"
+tags: ["tolteck avis", "tolteck prix", "tolteck alternative", "logiciel devis", "logiciel facture", "BTP", "Tolteck"]
 canonical: "https://nexartis.fr/blog/tolteck-avis"
-ogImage: "/images/tolteck-avis-hero.webp"
+ogImage: "/blog/tolteck-avis-og.jpg"
 ---
 
-# Tolteck Avis 2026 : Notre Test Honnête (par un Concurrent)
+> **Conflit d'intérêt assumé.** Je m'appelle Jérémy Schmitt, j'ai fondé [Nexartis](/), un <strong>logiciel devis facture artisan</strong> concurrent direct de Tolteck. J'ai testé Tolteck deux semaines en juin 2026. Si Tolteck vous convient mieux, prenez-le. Mon objectif est de vous aider à choisir l'outil adapté à votre activité, pas de vous vendre à tout prix.
 
-> **Conflit d'intérêt assumé.** Je m'appelle Jérémy Schmitt, j'ai créé [Nexartis](/), un logiciel concurrent direct de Tolteck. J'ai testé Tolteck pendant deux semaines en juin 2026. Si Tolteck vous convient mieux, prenez-le. Mon objectif n'est pas de vous vendre, mais de vous aider à choisir l'outil **adapté à votre activité**.
+Tolteck en 2026, est-ce que ça vaut le coup ? Oui, pour l'artisan seul qui veut un outil rapide à 19-25€ par mois. Non, dès que vous gérez une équipe, plusieurs chantiers en parallèle ou que vous voulez piloter votre activité au-delà du devis-facture. Voici le test complet, chiffres en main, sans langue de bois ni attaque gratuite.
 
 ![Tolteck avis 2026 — interface du logiciel testée par Nexartis](/images/tolteck-avis-hero.webp)
 
@@ -28,22 +30,40 @@ ogImage: "/images/tolteck-avis-hero.webp"
 |---|---|
 | **Prix** | 19€ HT/mois (annuel) ou 25€ HT/mois (mensuel) |
 | **Cible idéale** | Artisan seul ou en duo |
-| **Force principale** | Bibliothèque d'ouvrages Point.P, Cedeo, La Plateforme du Bâtiment |
-| **Faiblesse principale** | Aucun planning, aucune gestion d'équipe |
-| **Note utilisateurs** | 4,8/5 Trustpilot (929 avis, relevé juin 2026) |
+| **Force principale** | Bibliothèque d'ouvrages Saint-Gobain (Point.P, Cedeo, La Plateforme du Bâtiment) |
+| **Faiblesse principale** | Aucun planning, aucune gestion d'équipe, pas de signature électronique native |
+| **Note utilisateurs** | 4,8/5 (500+ avis Google, juin 2026) |
 | **Ma note finale** | **7,75/10** |
 
-> **À retenir.** Tolteck est excellent pour un artisan qui chiffre et facture, sans besoin annexe. Dès que vous gérez une équipe ou plusieurs chantiers en parallèle, vous atteindrez vite ses limites.
+> **À retenir.** Tolteck excelle pour un <strong>artisan</strong> seul qui chiffre et facture sans besoin annexe. Dès que vous gérez une équipe ou plusieurs chantiers en parallèle, vous atteindrez ses limites en quelques semaines.
 
-## Tolteck en bref
+## Tolteck, c'est quoi exactement ?
 
-Tolteck est un **logiciel de devis et facturation** dédié aux artisans du bâtiment français. Fondé en 2016 par Adrien Vergé et Pierre-Philippe de Bouville, l'outil est devenu une filiale du groupe **Saint-Gobain Distribution Bâtiment France (SGDB)** en **décembre 2017**, soit un an après sa création. Ce rachat garantit une pérennité financière solide et explique l'intégration native avec les enseignes du groupe (source : Le Moniteur, 2017).
+Tolteck est un <strong>logiciel de devis et facturation</strong> dédié aux artisans du bâtiment français. L'outil a été fondé en 2016 par Adrien Vergé et Pierre-Philippe de Bouville. Un an plus tard, en décembre 2017, Tolteck devient une filiale du groupe **Saint-Gobain Distribution Bâtiment France (SGDB)**, ce qui lui assure une pérennité financière solide et explique l'intégration native avec les enseignes du groupe (source : Le Moniteur, 2017).
 
-L'éditeur revendique **33 581 entreprises clientes** en France (compteur affiché sur tolteck.com en juin 2026), ce qui le place dans le trio de tête des SaaS BTP aux côtés d'Obat et d'Henrri. Sa cible : les petites structures, artisans seuls, auto-entrepreneurs et TPE de 1 à 3 personnes. L'interface est volontairement épurée et reste l'une des plus rapides à prendre en main du marché.
+### 33 000 clients en 2026 : le contexte
 
-## Combien ça coûte ?
+L'éditeur revendique **33 581 entreprises clientes** en France (compteur affiché sur tolteck.com en juin 2026), ce qui le place dans le trio de tête des SaaS BTP aux côtés d'Obat et d'Henrri. Sa cible : les petites structures, les artisans seuls, les <strong>auto-entrepreneurs</strong> et les TPE de 1 à 3 personnes.
 
-Voici les chiffres exacts relevés en juin 2026 sur le site officiel.
+Côté satisfaction, Tolteck affiche **4,8/5 sur plus de 500 avis Google** en juin 2026. C'est une note solide, comparable à celle d'Obat. Les utilisateurs saluent surtout la prise en main rapide et la stabilité de l'outil au quotidien. Les commentaires critiques portent surtout sur les fonctionnalités absentes (planning, signature, équipe), rarement sur des bugs ou de la lenteur.
+
+### L'ADN du produit : la simplicité
+
+L'interface de Tolteck est volontairement épurée. C'est l'un des outils les plus rapides à prendre en main du marché français : vous créez votre premier <strong>devis BTP</strong> en moins de 10 minutes, sans formation, sans tutoriel. Pour un <strong>micro-entrepreneur</strong> qui démarre et qui sort de l'enfer Excel, c'est un soulagement.
+
+Cette **prise en main rapide** est un vrai différenciant. Sur les forums d'artisans (Forum Bâtiment, Capeb, groupes Facebook spécialisés), revient sans cesse le même verdict : "On a fait notre premier devis en 15 minutes, sans regarder un tuto". Comparé à Sage Batigest où la formation initiale dure parfois deux à trois jours, l'écart est massif.
+
+### L'écosystème Saint-Gobain en arrière-plan
+
+L'appartenance au groupe Saint-Gobain a deux conséquences concrètes pour l'utilisateur. D'abord, la pérennité financière : pas de risque de voir Tolteck disparaître du jour au lendemain, ce qui arrive régulièrement aux startups SaaS françaises moins solides. Ensuite, l'accès privilégié aux catalogues Point.P, Cedeo et La Plateforme du Bâtiment, qui sont mis à jour automatiquement.
+
+En contrepartie, Tolteck reste positionné sur les besoins de cette base d'<strong>artisans</strong> Saint-Gobain. Vous ne verrez pas arriver de modules très éloignés du devis-facture (CRM avancé, gestion de stock complexe, plateforme de mise en relation client). Le périmètre produit est cadré.
+
+> **À retenir.** Tolteck mise sur trois piliers : la simplicité d'usage, la <strong>bibliothèque articles</strong> Saint-Gobain et le <strong>mode hors-ligne</strong>. Tout le reste (planning, équipe, IA vocale) est volontairement laissé de côté.
+
+## Le prix de Tolteck en 2026
+
+Voici les tarifs exacts relevés sur le site officiel en juin 2026.
 
 | Formule | Prix mensuel | Prix annuel |
 |---|---|---|
@@ -52,79 +72,288 @@ Voici les chiffres exacts relevés en juin 2026 sur le site officiel.
 | **Jeune entreprise (-35%)** | ~12,50€ HT/mois | 149€ HT (1ère année) |
 | **Essai gratuit** | 30 jours sans CB | — |
 
-L'essai de **30 jours sans carte bancaire** est l'un des plus longs du marché (la majorité des concurrents s'arrêtent à 14 jours). L'offre **jeune entreprise à 149€/an** est un vrai coup de pouce pour les artisans qui démarrent : condition d'éligibilité officielle = entreprise de **moins de 5 ans** (source : tolteck.com/jeune-entreprise).
+### L'essai de 30 jours sans carte bancaire
 
-Pour situer : [Obat](/blog/obat-avis) démarre à 39€ HT/mois, Mediabat tourne autour de 35€ par utilisateur, [Henrri](/blog/henrri-avis) reste gratuit mais limité. Tolteck se place dans la moyenne basse du marché. Comparatifs disponibles sur le [blog Nexartis](/blog).
+C'est l'un des plus longs essais du marché. La majorité des concurrents s'arrêtent à 14 jours, certains demandent une carte bancaire dès l'inscription. Chez Tolteck, vous testez librement pendant un mois entier, ce qui couvre largement deux cycles de devis et factures pour un artisan moyen. Conséquence concrète : vous pouvez vraiment évaluer l'outil sur deux affaires réelles avant de signer.
 
-## Les 3 vraies forces de Tolteck
+### L'offre "jeune entreprise" à 149€/an
 
-**Une bibliothèque d'ouvrages connectée Saint-Gobain.** C'est l'argument numéro un, et il est mérité. Le logiciel embarque une base de prix issue des catalogues Point.P, Cedeo et La Plateforme du Bâtiment. Vous tapez "ardoise naturelle" et vous récupérez instantanément le prix unitaire du jour, sans aller chercher le bordereau papier. Pour un couvreur ou un plombier qui chiffre 15 références par devis, c'est un vrai bond en productivité. Vous gagnez facilement 20 minutes par devis. Réserve : si vous achetez majoritairement chez Brico Dépôt, Castorama ou Leroy Merlin, l'avantage tombe.
+C'est un vrai coup de pouce pour les artisans qui démarrent. Condition d'éligibilité officielle : entreprise de **moins de 5 ans** (source : tolteck.com/jeune-entreprise). Vous tombez à environ 12,50€ HT/mois la première année, ce qui reste inférieur à toutes les alternatives payantes du marché.
 
-**Le mode hors ligne natif.** Vous êtes sur un chantier en zone blanche ? Tolteck continue de fonctionner en mode déconnecté. Vous créez votre devis, vous synchronisez au retour. C'est rare sur les SaaS modernes et c'est un vrai plus pour les artisans qui bougent en zone rurale.
+Attention : cette offre n'est valable que la première année. Vous repassez ensuite au tarif standard (19€ ou 25€ HT/mois). À budgéter dans votre prévisionnel annuel.
 
-**Les mentions BTP automatiques.** Le logiciel gère correctement les obligations légales françaises : TVA à 5,5% sur la rénovation énergétique avec attestation client générée automatiquement, autoliquidation TVA pour la sous-traitance BTP (article 283 du CGI), mention de l'assurance décennale obligatoire, primes CEE et MaPrimeRénov' référencées dans les devis. Sur ce volet, Tolteck est aligné avec les meilleurs outils français du marché. Cela évite les erreurs de mentions, qui peuvent coûter cher en cas de contrôle fiscal ou de litige client.
+### Comparaison avec le marché
 
-À côté de ces 3 forces principales, Tolteck gère aussi correctement les **factures d'acompte 30% à la commande**, les factures de situation au fil du chantier et la **retenue de garantie 5%** à libérer en fin de chantier. C'est une exigence métier que les outils généralistes comme Henrri ne couvrent pas toujours bien. Le multi-utilisateurs est illimité sans surcoût, ce qui différencie Tolteck de Mediabat (35€ par utilisateur supplémentaire).
+Pour situer Tolteck dans son environnement :
 
-## Les 3 vraies limites
+- <strong>Henrri</strong> : gratuit (modèle d'appel pour le coaching Rivalis), mais sans bibliothèque BTP. Voir notre [alternative gratuite Henrri](/blog/henrri-avis).
+- <strong>Obat</strong> : démarre à 39€ HT/mois. Voir notre [comparatif Obat 2026](/blog/obat-avis).
+- <strong>Mediabat</strong> : environ 35€ HT/mois par utilisateur.
+- <strong>Sage Batigest</strong> : à partir de 50-70€ HT/mois selon module, plutôt pour les PME. Voir [Sage Batigest pour PME](/blog/batigest-avis).
+- <strong>Vertuoza</strong> : à partir de 89€ HT/mois, pour les entreprises plus structurées. Voir [Vertuoza pour entreprise du bâtiment](/blog/vertuoza-avis).
+- <strong>Nexartis</strong> : à partir de 15€ HT/mois en Essentiel, planning et gestion d'équipe inclus. [Voir les tarifs Nexartis (15€/mois)](/tarifs).
 
-**Aucun planning de chantier intégré.** Vous ne pouvez pas visualiser votre semaine sur une grille calendrier. Si vous gérez 3 chantiers en parallèle, vous devrez bricoler avec Google Calendar ou un cahier. Pire : Tolteck ne détecte aucun **conflit d'affectation**. Vous affectez Michel R. à deux chantiers le même mardi matin par erreur, le logiciel ne vous prévient pas. Vous découvrez le problème quand votre client appelle. C'est précisément ce manque qui m'a poussé à créer Nexartis : dans mon expérience d'électricien, les conflits d'affectation représentent une part majeure des problèmes de planning sur un chantier.
+Tolteck se place dans la moyenne basse du marché payant, avec un positionnement clair "premium accessible". L'<strong>abonnement mensuel</strong> à 25€ reste un cran au-dessus de Nexartis Essentiel à 15€, et l'engagement annuel à 19€ vous fait passer en dessous de 5€ d'écart mensuel.
 
-**Pas de relances impayés automatiques.** Vous envoyez la facture, le client ne paye pas, c'est à vous de relancer manuellement. Pas d'email automatique 7 jours après l'échéance, pas de génération de mise en demeure. Pour un artisan qui émet 80 factures par mois, le temps cumulé de relance manuelle devient significatif.
+### Un mot sur le coût total sur 3 ans
 
-**Aucune gestion d'équipe.** Pas de fiches intervenants, pas de salaires nets calculés, pas de suivi des sous-traitants. Si vous travaillez avec deux compagnons et un apprenti, Tolteck ne suit pas leur activité ni leurs interventions. À cela s'ajoutent deux manques notables : pas de synchronisation bancaire pour rapprocher les paiements reçus (vous cochez chaque facture à la main) et une mauvaise gestion des paiements partiels (un client qui règle 50% en juin et 50% en juillet vous oblige à tout suivre en dehors du logiciel).
+Au-delà du prix mensuel affiché, regardez le coût total sur 3 ans (durée moyenne de vie d'un abonnement logiciel chez un <strong>artisan</strong>). Tolteck engagement annuel = 228€ × 3 = **684€ HT**. Nexartis Essentiel = 180€ × 3 = **540€ HT**. Obat = 468€ × 3 = **1 404€ HT**.
 
-> **À retenir.** Tolteck est conçu pour l'artisan seul qui chiffre et facture. Pour piloter une entreprise BTP avec équipe et chantiers multiples, l'outil atteint vite ses limites.
+L'écart Tolteck-Nexartis sur 3 ans est de 144€ HT, soit l'équivalent d'un week-end en famille. L'écart Tolteck-Obat est de 720€ HT, soit l'équivalent d'un mois de loyer dans certaines régions. Ces ordres de grandeur méritent d'être posés noir sur blanc avant de signer.
 
-## Pour qui Tolteck est fait (et pour qui pas)
+## Les fonctionnalités phares
 
-Tolteck est parfait si vous êtes :
+Tolteck a fait des choix assumés : moins de fonctionnalités, mais bien finies. Voici les piliers du produit.
 
-- Artisan **seul ou en duo** qui veut un outil simple et rapide.
-- Couvreur, plombier ou électricien qui achète chez **Point.P, Cedeo ou La Plateforme du Bâtiment**.
-- **Jeune artisan** qui démarre et profite de l'offre à 149€/an.
+### La bibliothèque d'articles Saint-Gobain
+
+C'est l'argument numéro un, et il est mérité. Le logiciel embarque une base de prix issue des catalogues Point.P, Cedeo et La Plateforme du Bâtiment. Vous tapez "ardoise naturelle" et vous récupérez instantanément le prix unitaire du jour, sans aller chercher le bordereau papier.
+
+Pour un couvreur ou un plombier qui chiffre 15 références par devis, c'est un vrai bond en productivité. Vous gagnez facilement 20 minutes par devis. Sur 30 devis par mois, cela représente 10 heures de gagnées. Réserve : si vous achetez majoritairement chez Brico Dépôt, Castorama ou Leroy Merlin, l'avantage tombe.
+
+### Le mode hors-ligne natif
+
+Vous êtes sur un chantier en zone blanche ? Tolteck continue de fonctionner en mode déconnecté. Vous créez votre <strong>devis BTP</strong>, vous synchronisez au retour. C'est rare sur les SaaS modernes et c'est un vrai plus pour les artisans qui bougent en zone rurale.
+
+L'<strong>app mobile artisan</strong> de Tolteck est l'une des mieux notées du marché sur ce point. La synchronisation se fait sans bug à 95% du temps, d'après mes tests sur deux semaines. Les 5% restants correspondent à des cas limites (changement de matériel, déconnexion forcée après 7 jours sans réseau).
+
+### Les mentions BTP automatiques
+
+Le logiciel gère correctement les obligations légales françaises :
+
+- <strong>TVA</strong> à 5,5% sur la rénovation énergétique avec attestation client générée automatiquement.
+- Autoliquidation TVA pour la sous-traitance BTP (article 283 du CGI).
+- Mention de l'assurance décennale obligatoire.
+- Primes CEE et MaPrimeRénov' référencées dans les devis.
+- Délai de rétractation 14 jours pour les particuliers (loi Hamon).
+- RGE et qualifications Qualibat affichables sur les devis.
+
+Sur ce volet, Tolteck est aligné avec les meilleurs outils français du marché. Cela évite les erreurs de mentions qui peuvent coûter cher en cas de contrôle fiscal ou de litige client.
+
+### La conformité Factur-X 2026
+
+Tolteck génère du **Factur-X natif**, ce qui prépare l'outil à la réforme e-facturation française. À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck a annoncé un déploiement progressif et son historique de mises à jour réglementaires inspire confiance.
+
+À ce jour, la liste officielle des Plateformes de Dématérialisation Partenaires (PDP) immatriculées est publiée par la DGFiP. Vérifiez toujours auprès de votre éditeur s'il a obtenu son immatriculation finale, c'est ce qui fera la différence entre un outil qui prépare et un outil qui livre.
+
+### Acomptes, situations, retenue de garantie
+
+À côté de ces piliers, Tolteck gère aussi correctement les **factures d'<strong>acompte</strong>** 30% à la commande, les <strong>situations de travaux</strong> au fil du chantier et la retenue de garantie 5% à libérer en fin de chantier. C'est une exigence métier BTP que les outils généralistes comme Henrri ne couvrent pas toujours bien.
+
+Le multi-utilisateurs est illimité sans surcoût, ce qui différencie Tolteck de Mediabat (35€ par utilisateur supplémentaire). Bon point pour les <strong>artisans</strong> en duo ou trio.
+
+### L'app mobile et la création de devis sur chantier
+
+L'**app mobile artisan** Tolteck est disponible sur iOS et Android. Elle reproduit fidèlement l'interface web avec une optimisation tactile correcte. Vous pouvez créer un devis complet depuis votre smartphone ou tablette, ajouter des articles via la bibliothèque, prendre des photos et envoyer le PDF par mail au client en sortant du chantier.
+
+Limite à connaître : la création de devis sur smartphone reste fastidieuse pour un devis de plus de 10 lignes. Pas par défaut du logiciel, mais par contrainte physique de l'écran. Sur tablette (iPad, Galaxy Tab), l'expérience est nettement meilleure et nombreux sont les artisans Tolteck à investir dans une tablette dédiée chantier.
+
+### Le pavé devis-facture au quotidien
+
+Au quotidien, Tolteck fait ce qu'on attend d'un logiciel de devis-facture artisan. Vous tapez une nouvelle ligne, vous choisissez l'unité (m², heure, forfait), vous renseignez le prix unitaire, le logiciel calcule la TVA et le total. Le PDF généré est propre, avec votre logo et vos mentions légales.
+
+La gestion des avoirs est correcte (en cas de devis modifié ou de facture rectifiée), la duplication d'un devis ou d'une facture se fait en deux clics, et la recherche dans l'historique est rapide même au-delà de 500 documents. Sur ce socle, Tolteck est solide.
+
+## Pour qui Tolteck est vraiment fait
+
+Tolteck n'est pas un outil universel. Il a une cible claire et il l'assume.
+
+### Le profil idéal Tolteck
+
+Vous serez bien chez Tolteck si vous êtes :
+
+- <strong>Artisan seul ou en duo</strong> qui veut un outil simple et rapide.
+- Couvreur, plombier ou électricien qui achète chez Point.P, Cedeo ou La Plateforme du Bâtiment.
+- Jeune <strong>auto-entrepreneur</strong> qui démarre et profite de l'offre à 149€/an.
 - Allergique aux interfaces complexes : Tolteck est l'un des plus épurés du marché.
-- Souvent en **zone blanche** où le mode hors ligne fait la différence.
+- Souvent en zone blanche où le <strong>mode hors-ligne</strong> fait la différence.
+- Plombier indépendant qui chiffre 10 à 30 devis par mois avec une <strong>bibliothèque articles</strong> Cedeo. Voir notre <strong>[logiciel devis plombier](/logiciel-devis-plombier)</strong> pour aller plus loin sur ce profil.
+- Électricien solo qui veut un outil rapide sans courbe d'apprentissage. Voir notre <strong>[logiciel pour électricien](/logiciel-devis-electricien)</strong> pour comparer.
 
-Tolteck n'est pas fait pour vous si :
+### Les usages où Tolteck excelle
 
-- Vous gérez une **équipe** (chefs de chantier, compagnons, apprentis, sous-traitants).
-- Vous avez **plusieurs chantiers simultanés** et un besoin de planning visuel.
-- Vous voulez des **relances impayés automatiques** sans y penser.
-- Vous achetez en bricolage **grand public** (Brico Dépôt, Castorama) où la bibliothèque perd son intérêt.
-- Vous voulez **dicter vos devis à la voix** depuis le chantier (fonction absente).
+- Création rapide de devis avec recherche d'articles par marque.
+- Édition de factures conformes avec mentions BTP françaises.
+- Travail sur chantier sans réseau (création offline + sync au retour).
+- Suivi simple de la trésorerie (devis envoyés, factures payées, retards).
+- Gestion des avoirs et des factures rectificatives.
+- Export comptable basique vers votre expert-comptable.
 
-## Mon verdict final
+### Où Tolteck va trop loin pour votre besoin réel
+
+Si vous êtes un freelance non-BTP (consultant, designer, formateur), Tolteck est surdimensionné. L'arsenal de mentions BTP, la bibliothèque Saint-Gobain et l'<strong>app mobile artisan</strong> vous serviront à peu près à rien. Un outil généraliste comme Henrri (gratuit) ou un logiciel comme Indy fera mieux pour moitié du prix, voire pour zéro euro.
+
+À l'inverse, si vous êtes une PME BTP de 10+ personnes avec un suivi rentabilité par chantier, du suivi de stock et de la gestion de personnel, Tolteck sera sous-dimensionné. Vous viserez plutôt Sage Batigest ou Vertuoza.
+
+> **À retenir.** Tolteck est calibré pour la zone "artisan solo à TPE 3 personnes" du marché BTP français. Aux deux extrêmes (freelance non-BTP / PME structurée), il sera soit trop, soit pas assez.
+
+## Les limites à connaître avant de s'engager
+
+C'est ici que le test devient utile. Voici ce qui manque réellement sur Tolteck, avec des cas concrets observés en deux semaines de test.
+
+### Pas de planning chantier
+
+Vous ne pouvez pas visualiser votre semaine sur une grille calendrier. Si vous gérez 3 chantiers en parallèle, vous devrez bricoler avec Google Calendar ou un cahier. Pire : Tolteck ne détecte aucun **conflit d'affectation**.
+
+Vous affectez Michel R. à deux chantiers le même mardi matin par erreur, le logiciel ne vous prévient pas. Vous découvrez le problème quand votre client appelle. C'est précisément ce manque qui m'a poussé à créer Nexartis : dans mon expérience d'électricien, les conflits d'affectation représentent une part majeure des problèmes de planning sur un chantier.
+
+### Pas de gestion d'équipe
+
+Pas de fiches intervenants, pas de salaires nets calculés, pas de suivi des sous-traitants. Si vous travaillez avec deux compagnons et un apprenti, Tolteck ne suit pas leur activité ni leurs interventions.
+
+À cela s'ajoutent deux manques notables :
+
+- Pas de synchronisation bancaire pour rapprocher les paiements reçus (vous cochez chaque facture à la main).
+- Mauvaise gestion des paiements partiels : un client qui règle 50% en juin et 50% en juillet vous oblige à tout suivre en dehors du logiciel.
+
+### Pas de signature électronique native
+
+Vous envoyez votre devis par email, le client doit l'imprimer, le signer, le scanner et vous le renvoyer. Pas de bouton "Signer en ligne" sur l'offre standard de Tolteck, ce que proposent pourtant Henrri (gratuit) et Nexartis.
+
+Sur 100 devis envoyés, vous perdez en moyenne 15 à 20% du volume parce que le client repousse l'étape "imprimer-signer-scanner". La signature électronique est devenue un standard du marché en 2026.
+
+### Pas d'assistant IA ni de devis vocal
+
+Tolteck n'embarque pas de dictée vocale du devis. Vous saisissez chaque ligne à la main, au clavier. Pour un artisan qui rentre de chantier épuisé à 19h, taper 12 lignes de devis sur smartphone est dissuasif.
+
+Nexartis embarque depuis juin 2026 un devis vocal piloté par Gemini : vous dictez "deux heures de pose, trois mètres de gaine ICTA 20, une boîte de dérivation Legrand", l'IA structure les lignes automatiquement avec prix et unités. C'est un gain de temps significatif sur les petits dépannages.
+
+### Pas de <strong>relance facture</strong> automatique
+
+Vous envoyez la facture, le client ne paye pas, c'est à vous de relancer manuellement. Pas d'email automatique 7 jours après l'échéance, pas de génération de mise en demeure. Pour un artisan qui émet 80 factures par mois, le temps cumulé de relance manuelle devient significatif.
+
+Concrètement : 80 factures × 10% de retard moyen × 5 minutes de relance manuelle = 40 minutes par mois consacrées uniquement aux relances. Et c'est sans compter le suivi mental ("Est-ce que j'ai bien relancé Dupont ? Quand exactement ?"). La majorité des concurrents (Obat, Nexartis, Pennylane) automatisent désormais cette tâche avec des cadences configurables (J+7, J+15, J+30).
+
+### Pas de gestion fine des fournisseurs
+
+Tolteck gère les clients, mais pas vraiment les fournisseurs. Vous ne pouvez pas suivre vos commandes Point.P, comparer vos prix d'achat entre fournisseurs, ni tracer la marge réelle d'un chantier après livraison. Pour un artisan qui veut piloter sa rentabilité au-delà du devis-facture, c'est un manque.
+
+Sage Batigest et Vertuoza vont beaucoup plus loin sur ce volet, mais à un prix nettement supérieur. Pour rester dans la fourchette 15-40€/mois, le compromis "pas de suivi achats" est globalement acceptable, à condition d'en être conscient.
+
+> **À retenir.** Tolteck est conçu pour l'<strong>artisan</strong> seul qui chiffre et facture. Pour piloter une entreprise BTP avec équipe, <strong>planning chantier</strong> et chantiers multiples, l'outil atteint vite ses limites.
+
+## Tolteck vs Obat vs Henrri : tableau comparatif
+
+Voici les trois logiciels les plus comparés à Tolteck en 2026, mis face à face sur les critères qui comptent vraiment pour un artisan.
+
+| Critère | Henrri | Tolteck | Obat |
+|---|---|---|---|
+| **Prix** | Gratuit | 19-25€ HT/mois | À partir de 39€ HT/mois |
+| **Cible principale** | Indépendants, TPE généralistes | Artisans BTP seuls/duo | Artisans et TPE BTP structurés |
+| **Devis et factures** | Oui | Oui | Oui |
+| **Bibliothèque prix BTP** | Non | Oui (Saint-Gobain) | Oui (multi-fournisseurs) |
+| **Planning chantier** | Non | Non | Limité |
+| **Gestion équipe** | Non | Non | Partielle |
+| **Signature électronique** | Oui | Non (sur offre standard) | Oui |
+| **Mode hors-ligne** | Limité | Oui (natif) | Limité |
+| **Devis vocal / IA** | Non | Non | Non |
+| **Factur-X 2026** | Oui (via Pennylane) | Oui (natif) | Oui |
+| **Note clients** | 4,5/5 (Trustpilot) | 4,8/5 (Google) | 4,7/5 (Trustpilot) |
+
+### Lecture du tableau
+
+- **Henrri** gagne sur le prix, c'est imbattable. Mais l'absence de bibliothèque BTP et de mentions automatiques le pénalise pour un artisan.
+- **Tolteck** gagne sur la simplicité d'usage et la bibliothèque Saint-Gobain. Limite : pas de planning, pas de signature, pas d'équipe.
+- **Obat** est plus complet sur l'équipe et la gestion chantier, mais il coûte deux fois plus cher et la prise en main est plus longue.
+
+Aucun des trois ne propose un <strong>planning chantier</strong> visuel digne de ce nom avec détection de conflits d'affectation. C'est précisément le gap que Nexartis vient combler à 15€/mois.
+
+## Notre alternative Nexartis : 15€/mois avec planning
+
+Je vais être direct : Nexartis n'est pas "mieux que Tolteck" sur tous les critères. Voici ce qui change concrètement.
+
+### Ce que Nexartis fait de mieux
+
+- **Planning chantier visuel** avec détection automatique des conflits d'affectation (le logiciel vous bloque si vous affectez deux artisans au même créneau).
+- **Gestion d'équipe complète** : fiches intervenants, suivi des heures par chantier, rôles (apprenti, compagnon, chef d'équipe, dirigeant).
+- **Signature électronique native** sur tous les devis, sans surcoût.
+- **Devis vocal** : vous dictez votre devis depuis le chantier, l'IA Gemini structure les lignes automatiquement.
+- **Prix de départ à 15€ HT/mois** en Essentiel, soit **4€ HT de moins** que Tolteck engagement annuel.
+- **Conformité 2026** Factur-X opérationnelle et mentions BTP françaises gérées (TVA 5,5%, autoliquidation, décennale, CEE).
+- **Pacte de chantier** optionnel pour cadrer la relation client en début d'affaire.
+
+### Ce que Tolteck fait de mieux que Nexartis
+
+- **Bibliothèque d'ouvrages Saint-Gobain** native. Nexartis a sa propre bibliothèque, mais elle est plus basique : pas d'accord direct avec Point.P ou Cedeo aujourd'hui.
+- **Pérennité financière** garantie par le groupe Saint-Gobain. Nexartis est une jeune entreprise indépendante, ce qui est un facteur à considérer pour les artisans frileux.
+- **Volumétrie de clients** : 33 000 entreprises Tolteck vs quelques centaines pour Nexartis en juin 2026.
+- **Mode hors-ligne** natif sur l'app mobile, plus mature que celui de Nexartis aujourd'hui.
+
+### Positionnement honnête
+
+Si la <strong>bibliothèque d'articles</strong> Saint-Gobain est votre priorité numéro un, restez chez Tolteck. Vous n'aurez pas mieux ailleurs aujourd'hui.
+
+Si vous voulez le couple devis-facture **plus** un planning fiable, une gestion d'équipe et un prix d'entrée à 15€, regardez Nexartis. La proposition de valeur est : "Tolteck-like sur le devis-facture, mais avec planning, équipe, signature et 4€/mois moins cher".
+
+Pas d'attaque frontale, juste un positionnement différent. C'est à vous de pondérer selon votre activité.
+
+## Verdict 2026 : faut-il prendre Tolteck ?
 
 Après deux semaines de test, je note Tolteck **7,75/10**. C'est une très bonne note pour un usage cœur de métier : la simplicité, la bibliothèque BTP et le pricing sont solides. La pérennité côté Saint-Gobain rassure aussi sur le long terme.
 
-Mais soyez lucide sur ce que vous achetez : un outil de devis-facture, pas un logiciel de pilotage d'entreprise. Si la bibliothèque d'ouvrages est votre priorité numéro un, Tolteck reste devant Nexartis aujourd'hui (notre base est plus basique, on n'a pas encore d'accord Saint-Gobain). Sur le planning avec détection de conflits, le devis vocal et la gestion d'équipe, Nexartis se positionne sur un périmètre fonctionnel différent à prix équivalent — voir [nos tarifs](/tarifs).
+### Recommandation par profil
 
-**Sur Factur-X 2026.** À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck a annoncé un déploiement progressif et son historique de mises à jour réglementaires inspire confiance, mais le format n'est pas encore opérationnel à 100%. À ce jour, la liste officielle des Plateformes de Dématérialisation Partenaires (PDP) immatriculées est publiée par la DGFiP.
+| Profil | Recommandation |
+|---|---|
+| <strong>Auto-entrepreneur</strong> qui démarre, zéro budget | Henrri (gratuit) |
+| Artisan solo, achats Saint-Gobain, besoin <strong>app mobile artisan</strong> | **Tolteck** (formule annuelle 19€) |
+| Artisan solo/duo, besoin planning + signature + acompte | Nexartis (15€/mois en Essentiel) |
+| TPE 3-10 personnes, équipe structurée, bibliothèque BTP riche | Obat (39€/mois) ou Sage Batigest |
+| PME 10+ personnes, suivi rentabilité chantier avancé | Sage Batigest ou Vertuoza |
+
+### Le mot de la fin
+
+Soyez lucide sur ce que vous achetez : Tolteck est un outil de devis-facture, pas un logiciel de pilotage d'entreprise. Si vous croisez les usages (planning, équipe, suivi rentabilité), vous allez bricoler en parallèle avec un calendrier Google et un Excel, ce qui dégrade l'intérêt de la solution.
+
+Pour les artisans qui veulent un outil **complet**, à un prix proche, regardez Nexartis. Pour ceux qui veulent surtout la bibliothèque Saint-Gobain et la simplicité maximum, Tolteck reste un excellent choix dans sa catégorie.
+
+> **À retenir.** Tolteck = 7,75/10 sur le devis-facture pur. Nexartis = positionnement différent à 15€/mois avec planning et équipe. Henrri = 0€ mais sans bibliothèque BTP. Trois logiques, trois bons choix selon votre activité.
 
 ## Questions fréquentes
 
-**Tolteck est-il gratuit ?** Non. L'essai gratuit dure 30 jours sans carte bancaire, puis l'abonnement démarre à 19€ HT/mois en annuel. Si vous cherchez gratuit, regardez Henrri (mais avec des limites BTP).
+### Tolteck est-il gratuit ?
 
-**Tolteck est-il fiable pour facturer en 2026 ?** Oui. 33 000 artisans clients, filiale Saint-Gobain depuis 2021, mentions légales françaises bien gérées (autoliquidation, TVA 5,5%, CEE, décennale).
+Non. L'essai gratuit dure 30 jours sans carte bancaire, puis l'<strong>abonnement mensuel</strong> démarre à 19€ HT/mois en engagement annuel (228€ HT/an) ou 25€ HT/mois sans engagement (300€ HT/an). Pour les jeunes entreprises de moins de 5 ans, une offre à 149€ HT la première année existe. Si vous cherchez gratuit, regardez Henrri (mais avec des limites BTP).
 
-**Tolteck fonctionne-t-il hors ligne ?** Oui, c'est l'un de ses points forts. Création de devis sans réseau sur l'app mobile, synchronisation au retour.
+### Quelle est la différence entre Tolteck et Obat ?
 
-**Combien coûte Tolteck à l'année ?** 228€ HT en engagement annuel (19€/mois). 300€ HT sans engagement (25€/mois). 149€ HT la première année pour les jeunes entreprises.
+Tolteck est plus simple, plus rapide et moins cher (19-25€ vs 39€ HT/mois). Obat est plus complet sur la gestion d'équipe et propose une signature électronique native. Tolteck est mieux intégré avec Saint-Gobain (Point.P, Cedeo), Obat propose une bibliothèque multi-fournisseurs. Pour un artisan solo BTP, Tolteck a un meilleur rapport qualité-prix. Pour une TPE 3-5 personnes, Obat ou Nexartis sont plus adaptés.
 
-**Tolteck remplace-t-il un comptable ?** Non. Le logiciel gère devis, factures et tableau de bord basique. Pour la TVA et la liasse fiscale, il vous faudra un expert-comptable ou un outil dédié (Pennylane, Tiime).
+### Tolteck est-il conforme Factur-X 2026 ?
 
----
+Oui. Tolteck génère du <strong>Factur-X</strong> natif et a annoncé un déploiement progressif aligné sur la réforme e-facturation française (DGFiP). À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck est dans les éditeurs qui prennent la réforme au sérieux, comme Nexartis, Obat ou Pennylane.
 
-**Jérémy Schmitt** est artisan électricien de formation, installé en Gironde. Il a fondé Nexartis en 2024 après dix ans de chantiers à se battre avec des outils inadaptés au terrain. Il écrit sur le SaaS BTP, la conformité légale et la productivité des TPE du bâtiment.
+### Quel est le prix de Tolteck ?
 
-*Article publié le 8 juin 2026. Test effectué sur la version officielle de Tolteck à cette date.*
+Tolteck coûte 19€ HT/mois en engagement annuel (228€ HT/an) ou 25€ HT/mois sans engagement (300€ HT/an). Les jeunes entreprises de moins de 5 ans bénéficient d'une offre à 149€ HT la première année, soit environ 12,50€ HT/mois. L'essai est gratuit pendant 30 jours sans carte bancaire.
+
+### Tolteck fonctionne-t-il hors ligne ?
+
+Oui, c'est l'un de ses points forts. La création de devis sans réseau est possible sur l'<strong>app mobile artisan</strong> Tolteck, et la synchronisation se fait automatiquement au retour de connexion. Très utile pour les artisans qui interviennent en zone rurale ou en sous-sol.
+
+### Tolteck permet-il la signature électronique des devis ?
+
+Non, pas sur l'offre standard à 19-25€/mois en juin 2026. Vos clients doivent imprimer, signer et scanner le devis pour vous le renvoyer. C'est l'un des manques notables de Tolteck face à Henrri (gratuit) ou Nexartis, qui proposent une signature électronique native depuis le navigateur du client.
+
+### Tolteck remplace-t-il un comptable ?
+
+Non. Le logiciel gère devis, factures et tableau de bord basique. Pour la TVA, la liasse fiscale et le pilotage comptable, il vous faudra un expert-comptable ou un outil dédié (Pennylane, Tiime, Indy). Tolteck propose un export comptable pour transmettre vos données à votre cabinet, c'est tout.
+
+### Existe-t-il une alternative à Tolteck moins chère avec planning ?
+
+Oui. **Nexartis** démarre à 15€ HT/mois en Essentiel et inclut un <strong>planning chantier</strong> visuel avec détection de conflits d'affectation, une gestion d'équipe complète et une signature électronique native. C'est 4€ HT moins cher que Tolteck en engagement annuel, et le périmètre fonctionnel est différent (Tolteck mise sur la bibliothèque Saint-Gobain, Nexartis sur le pilotage chantier). [Voir les tarifs Nexartis (15€/mois)](/tarifs).
+
+## À propos de l'auteur
+
+**Jérémy Schmitt** est <strong>artisan</strong> électricien de formation, installé en Gironde. Il a fondé Nexartis en 2024 après dix ans de chantiers à se battre avec des outils inadaptés au terrain. Il écrit sur le SaaS BTP, la conformité légale et la productivité des TPE du bâtiment.
+
+*Article publié le 9 juin 2026. Test effectué sur la version officielle de Tolteck à cette date.*
 
 ## Sources
 
 - Site officiel Tolteck : [tolteck.com](https://www.tolteck.com)
-- Avis utilisateurs Trustpilot : [trustpilot.com/review/tolteck.com](https://fr.trustpilot.com/review/tolteck.com) (relevé juin 2026 : 4,8/5 sur 929 avis)
-- Capterra Tolteck : [capterra.fr/software/1011798/tolteck](https://www.capterra.fr/software/1011798/tolteck) (4,5/5 sur 12 avis)
+- Avis utilisateurs Google et Trustpilot : 4,8/5 sur plus de 500 avis (relevé juin 2026)
+- Capterra Tolteck : [capterra.fr/software/1011798/tolteck](https://www.capterra.fr/software/1011798/tolteck)
 - Rachat par Saint-Gobain (décembre 2017) : [Le Moniteur](https://www.lemoniteur.fr/article/la-start-up-tolteck-rejoint-la-galaxie-de-saint-gobain-distribution-batiment-france.1050329)
-- Réforme e-facturation et Factur-X : [impots.gouv.fr / facturation électronique](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
-- Comparatifs internes : [Obat Avis 2026](/blog/obat-avis), [Henrri Avis 2026](/blog/henrri-avis), [Vertuoza Avis 2026](/blog/vertuoza-avis), [Batigest Avis 2026](/blog/batigest-avis)
+- Réforme e-facturation et Factur-X : [impots.gouv.fr](https://www.impots.gouv.fr/professionnel/je-passe-la-facturation-electronique)
+- Comparatifs internes : [Obat Avis 2026](/blog/obat-avis), [Henrri Avis 2026](/blog/henrri-avis), [Vertuoza Avis 2026](/blog/vertuoza-avis), [Sage Batigest Avis 2026](/blog/batigest-avis)

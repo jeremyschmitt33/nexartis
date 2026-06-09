@@ -1,137 +1,327 @@
+/**
+ * Route : /blog (index)
+ *
+ * Liste TOUS les articles publiés dans content/blog/*.md.
+ * Tri : plus récent en premier (champ `date` du frontmatter, fallback
+ * sur `updated`). Lien vers /blog/[slug] (jamais vers /register).
+ *
+ * Server Component : lecture FS au build. Aucune dépendance client.
+ */
+
+import fs from 'node:fs'
+import path from 'node:path'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 
+const SITE_URL = 'https://nexartis.fr'
+const CONTENT_DIR = path.join(process.cwd(), 'content', 'blog')
+
 export const metadata: Metadata = {
-  title: 'Blog Nexartis — Conseils pratiques pour artisans',
+  title: 'Blog Nexartis — Avis logiciels artisan BTP & guides',
   description:
-    'Guides, astuces et actualités pour les artisans de tous corps de métier. Devis, facturation, planning, TVA, Factur-X 2026.',
-  alternates: {
-    canonical: '/blog',
+    'Comparatifs et avis sur les logiciels de devis-facture pour artisans : Tolteck, Henrri, Obat, Vertuoza, Batigest. Notre regard d’artisan-fondateur.',
+  alternates: { canonical: '/blog' },
+  openGraph: {
+    title: 'Blog Nexartis — Avis logiciels artisan BTP & guides',
+    description:
+      'Comparatifs et avis sur les logiciels de devis-facture pour artisans : Tolteck, Henrri, Obat, Vertuoza, Batigest.',
+    type: 'website',
+    url: `${SITE_URL}/blog`,
   },
 }
 
-const posts = [
-  {
-    category: 'Actualité',
-    title: 'Facture électronique 2026 : ce que chaque artisan doit savoir',
-    excerpt:
-      'La loi change en septembre 2026. Voici ce que vous devez préparer dès maintenant pour être conforme.',
-    date: '15 mars 2026',
-    time: '5 min',
-  },
-  {
-    category: 'Guide',
-    title: 'Comment faire un devis artisan conforme en 2026',
-    excerpt:
-      'Les 12 mentions obligatoires, les erreurs à éviter, et un modèle gratuit à télécharger.',
-    date: '8 mars 2026',
-    time: '8 min',
-  },
-  {
-    category: 'Astuce',
-    title: '5 astuces pour être payé plus vite par vos clients',
-    excerpt:
-      'Relances automatiques, acomptes, conditions de paiement claires : voici comment réduire vos délais de paiement.',
-    date: '1 mars 2026',
-    time: '4 min',
-  },
-  {
-    category: 'Guide',
-    title: 'Artisan auto-entrepreneur : comment facturer sans TVA',
-    excerpt:
-      'La mention obligatoire, les seuils à connaître, et comment Nexartis vous simplifie la vie.',
-    date: '22 février 2026',
-    time: '6 min',
-  },
-  {
-    category: 'Actualité',
-    title: 'TVA à taux réduit : les travaux concernés en 2026',
-    excerpt:
-      '5.5%, 10%, 20% : quel taux pour quel type de travaux ? Le guide complet pour ne plus se tromper.',
-    date: '15 février 2026',
-    time: '7 min',
-  },
-  {
-    category: 'Astuce',
-    title: 'Organiser ses chantiers sans stress avec un planning digital',
-    excerpt:
-      'Comment passer du carnet papier à un planning intelligent en moins de 10 minutes.',
-    date: '8 février 2026',
-    time: '4 min',
-  },
-]
-
-const categoryColors: Record<string, string> = {
-  Guide: 'bg-[#5ab4e0]/15 text-[#5ab4e0]',
-  Actualité: 'bg-[#e87a2a]/15 text-[#e87a2a]',
-  Astuce: 'bg-[#f5c842]/20 text-[#0f1a3a]',
+type ArticleSummary = {
+  slug: string
+  title: string
+  description: string
+  category: string
+  date: string
+  updated?: string
+  readingTime?: string
+  authorName?: string
+  sortKey: number
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse minimal du frontmatter (clone de la logique de [slug]/page.tsx,
+// allégé : on ne récupère que les champs nécessaires à la fiche listing).
+// ─────────────────────────────────────────────────────────────────────────────
+function stripQuotes(s: string): string {
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    return s.slice(1, -1)
+  }
+  return s
+}
+
+function parseFrontmatter(raw: string): Record<string, any> {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!match) return {}
+  const yaml = match[1]
+  const fm: Record<string, any> = {}
+  let currentObjectKey: string | null = null
+  yaml.split(/\r?\n/).forEach((line) => {
+    if (!line.trim()) return
+    if (line.startsWith('  ') && currentObjectKey) {
+      const trimmed = line.trim()
+      const i = trimmed.indexOf(':')
+      if (i > 0) {
+        fm[currentObjectKey][trimmed.slice(0, i).trim()] = stripQuotes(
+          trimmed.slice(i + 1).trim()
+        )
+      }
+      return
+    }
+    const i = line.indexOf(':')
+    if (i < 0) return
+    const key = line.slice(0, i).trim()
+    const val = line.slice(i + 1).trim()
+    if (val === '') {
+      currentObjectKey = key
+      fm[key] = {}
+    } else if (val === '[]') {
+      fm[key] = []
+      currentObjectKey = null
+    } else {
+      fm[key] = stripQuotes(val)
+      currentObjectKey = null
+    }
+  })
+  return fm
+}
+
+function getAllArticles(): ArticleSummary[] {
+  if (!fs.existsSync(CONTENT_DIR)) return []
+  const files = fs.readdirSync(CONTENT_DIR).filter((f) => f.endsWith('.md'))
+  const articles: ArticleSummary[] = []
+  for (const file of files) {
+    const slug = file.replace(/\.md$/, '')
+    try {
+      const raw = fs.readFileSync(path.join(CONTENT_DIR, file), 'utf8')
+      const fm = parseFrontmatter(raw)
+      // Tri : on privilégie `updated` (ISO YYYY-MM-DD), sinon `date` (humain).
+      let sortKey = 0
+      if (typeof fm.updated === 'string') {
+        const d = new Date(fm.updated)
+        if (!isNaN(d.getTime())) sortKey = d.getTime()
+      }
+      if (sortKey === 0 && typeof fm.date === 'string') {
+        const d = new Date(fm.date)
+        if (!isNaN(d.getTime())) sortKey = d.getTime()
+      }
+      articles.push({
+        slug,
+        title: fm.title ?? slug,
+        description: fm.description ?? '',
+        category: fm.category ?? 'Article',
+        date: fm.date ?? '',
+        updated: fm.updated,
+        readingTime: fm.readingTime,
+        authorName:
+          fm.author && typeof fm.author === 'object'
+            ? fm.author.name
+            : undefined,
+        sortKey,
+      })
+    } catch {
+      // article illisible : on l'ignore plutôt que casser la page
+    }
+  }
+  // Plus récent en premier
+  articles.sort((a, b) => b.sortKey - a.sortKey)
+  return articles
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Couleurs catégorie (palette V4)
+// ─────────────────────────────────────────────────────────────────────────────
+function categoryBadgeClass(category: string): string {
+  const c = category.toLowerCase()
+  if (c.includes('avis') || c.includes('comparatif')) {
+    return 'bg-[#ff7a1a]/12 text-[#ff7a1a] ring-1 ring-[#ff7a1a]/20'
+  }
+  if (c.includes('guide')) {
+    return 'bg-[#5ab4e0]/15 text-[#1d5b8a] ring-1 ring-[#5ab4e0]/30'
+  }
+  if (c.includes('actualité') || c.includes('actualite')) {
+    return 'bg-[#0f1a3a]/8 text-[#0f1a3a] ring-1 ring-[#0f1a3a]/15'
+  }
+  return 'bg-[#f5c842]/20 text-[#0f1a3a] ring-1 ring-[#f5c842]/40'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────────────────
 export default function BlogPage() {
+  const articles = getAllArticles()
+
+  // Schema.org Blog + ItemList pour aider Google à comprendre la structure
+  const blogSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    '@id': `${SITE_URL}/blog`,
+    name: 'Blog Nexartis',
+    description:
+      'Comparatifs et avis sur les logiciels de devis-facture pour artisans BTP.',
+    url: `${SITE_URL}/blog`,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Nexartis',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/images/logo-nexartis.png`,
+      },
+    },
+    blogPost: articles.map((a) => ({
+      '@type': 'BlogPosting',
+      headline: a.title,
+      description: a.description,
+      url: `${SITE_URL}/blog/${a.slug}`,
+      datePublished: a.updated || a.date,
+      author: a.authorName
+        ? { '@type': 'Person', name: a.authorName }
+        : undefined,
+    })),
+  }
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Accueil',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Blog',
+        item: `${SITE_URL}/blog`,
+      },
+    ],
+  }
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+
       {/* Hero */}
       <section className="bg-[#0f1a3a] py-20 md:py-28">
         <div className="mx-auto max-w-4xl px-6 text-center">
-          <h1 className="font-syne text-4xl font-extrabold text-white md:text-5xl lg:text-6xl">
-            Le blog des artisans malins
+          <span className="inline-block rounded-full bg-white/8 px-4 py-1.5 font-hanken text-xs font-semibold uppercase tracking-wider text-[#ff7a1a] ring-1 ring-[#ff7a1a]/30">
+            Le blog Nexartis
+          </span>
+          <h1 className="mt-6 font-hanken text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl">
+            Avis & guides pour artisans BTP
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl font-manrope text-lg text-gray-300 md:text-xl">
-            Guides pratiques, astuces et actualités pour bien gérer votre
-            activité artisanale.
+          <p className="mx-auto mt-6 max-w-2xl font-hanken text-lg text-gray-300 md:text-xl">
+            Comparatifs honnêtes des logiciels de devis-facture (Tolteck,
+            Henrri, Obat, Vertuoza, Batigest) et guides pratiques pour mieux
+            gérer votre activité. Notre regard d&apos;artisan-fondateur.
           </p>
         </div>
       </section>
 
-      {/* Blog grid */}
-      <section className="bg-white py-16 md:py-24">
+      {/* Grille articles */}
+      <section className="bg-[#f6f8fb] py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post, i) => (
-              <a
-                key={i}
-                href="/register"
-                className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-md transition hover:shadow-lg"
-              >
-                <span
-                  className={`inline-block self-start rounded-full px-3 py-1 text-xs font-semibold ${categoryColors[post.category]}`}
+          {articles.length === 0 ? (
+            <p className="text-center font-hanken text-gray-500">
+              Aucun article publié pour le moment.
+            </p>
+          ) : (
+            <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+              {articles.map((a) => (
+                <Link
+                  key={a.slug}
+                  href={`/blog/${a.slug}`}
+                  className="group flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#ff7a1a]/30 hover:shadow-lg"
                 >
-                  {post.category}
-                </span>
+                  <span
+                    className={`inline-flex w-fit items-center rounded-full px-3 py-1 font-hanken text-xs font-semibold ${categoryBadgeClass(
+                      a.category
+                    )}`}
+                  >
+                    {a.category}
+                  </span>
 
-                <h2 className="mt-4 font-syne text-lg font-bold text-[#0f1a3a] md:text-xl">
-                  {post.title}
-                </h2>
+                  <h2 className="mt-4 font-hanken text-lg font-bold leading-snug text-[#0f1a3a] transition group-hover:text-[#ff7a1a] md:text-xl">
+                    {a.title}
+                  </h2>
 
-                <p className="mt-3 flex-1 font-manrope text-sm leading-relaxed text-gray-600">
-                  {post.excerpt}
-                </p>
+                  {a.description && (
+                    <p className="mt-3 flex-1 font-hanken text-sm leading-relaxed text-gray-600">
+                      {a.description}
+                    </p>
+                  )}
 
-                <div className="mt-5 flex items-center gap-3 text-xs text-gray-400">
-                  <span>{post.date}</span>
-                  <span className="h-1 w-1 rounded-full bg-gray-300" />
-                  <span>{post.time} de lecture</span>
-                </div>
-              </a>
-            ))}
-          </div>
+                  <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 font-hanken text-xs text-gray-500">
+                    {a.authorName && (
+                      <span className="font-medium text-[#0f1a3a]">
+                        {a.authorName}
+                      </span>
+                    )}
+                    {a.authorName && a.date && (
+                      <span className="h-1 w-1 rounded-full bg-gray-300" />
+                    )}
+                    {a.date && <span>{a.date}</span>}
+                    {a.readingTime && (
+                      <>
+                        <span className="h-1 w-1 rounded-full bg-gray-300" />
+                        <span>{a.readingTime} de lecture</span>
+                      </>
+                    )}
+                  </div>
+
+                  <span className="mt-5 inline-flex items-center gap-1 font-hanken text-sm font-semibold text-[#ff7a1a]">
+                    Lire l&apos;article
+                    <svg
+                      className="h-4 w-4 transition group-hover:translate-x-0.5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.94 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.25 4.25a.75.75 0 0 1 0 1.08l-4.25 4.25a.75.75 0 0 1-1.06-.02Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-[#f0ede4] py-16 md:py-20">
+      {/* CTA légitime : essai gratuit Nexartis */}
+      <section className="bg-[#0f1a3a] py-16 md:py-20">
         <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="font-syne text-2xl font-extrabold text-[#0f1a3a] md:text-3xl">
-            Prêt à simplifier votre quotidien&nbsp;?
+          <h2 className="font-hanken text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+            Vous comparez les logiciels artisan&nbsp;?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl font-manrope text-gray-600">
-            Rejoignez les artisans qui gagnent du temps avec Nexartis.
+          <p className="mx-auto mt-4 max-w-xl font-hanken text-gray-300">
+            Testez Nexartis gratuitement pendant 14 jours. Sans carte
+            bancaire, sans engagement.
           </p>
-          <a
+          <Link
             href="/register"
-            className="mt-8 inline-block rounded-xl bg-[#e87a2a] px-8 py-4 font-syne text-lg font-bold text-white transition hover:bg-[#f09050]"
+            className="mt-8 inline-block rounded-xl bg-[#ff7a1a] px-8 py-4 font-hanken text-lg font-bold text-white shadow-lg shadow-[#ff7a1a]/20 transition hover:bg-[#ff8a32]"
           >
-            Essayez Nexartis gratuitement
-          </a>
+            Essayer Nexartis gratuitement
+          </Link>
         </div>
       </section>
     </>
