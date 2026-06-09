@@ -186,6 +186,13 @@ export default function LandingNav() {
             {isLoggedIn ? 'Mon espace' : 'Essai gratuit'}
           </Link>
 
+          {/* Icône Install pour mobile uniquement — visible juste à gauche du burger.
+              Le composant gère lui-même son affichage (null si non supporté,
+              déjà installée ou refusée < 7j). Touch target 44x44 standard. */}
+          <div className="lg:hidden">
+            <InstallPrompt iconOnly />
+          </div>
+
           {/* ---------------- Bouton burger (<lg) ---------------- */}
           {/* Icône 3 lignes -> croix quand ouvert. Animation via SVG paths. */}
           <button

@@ -23,6 +23,7 @@ import ThemeSelector from '@/components/ThemeSelector'
 import DocumentThemePicker from '@/components/parametres/DocumentThemePicker'
 import LogoThemeProposals from '@/components/parametres/LogoThemeProposals'
 import LogoCustomization from '@/components/parametres/LogoCustomization'
+import InstallPrompt from '@/components/InstallPrompt'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -874,6 +875,28 @@ function ApparenceSection() {
       <p className="text-xs text-[#9ca3af] font-manrope italic">
         Astuce : la couleur de la sidebar ne s&apos;applique qu&apos;à la barre latérale et aux éléments actifs de ton tableau de bord.
       </p>
+
+      {/* Sous-section "Installer Nexartis comme application" — PWA.
+          Le composant <InstallPrompt /> ne s'affiche que si le navigateur a
+          émis beforeinstallprompt (Chrome Android/Desktop, Edge). Si non
+          supporté (Safari iOS, Firefox Desktop) ou déjà installée, le bouton
+          est null mais on conserve le titre + description + footer texte
+          pour expliquer le pourquoi à l'artisan. */}
+      <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="font-syne font-bold text-lg text-[#0f1a3a]">
+            Installer Nexartis comme application
+          </h3>
+          <p className="text-gray-600 text-sm mt-1">
+            Ajoutez Nexartis à votre écran d&apos;accueil pour y accéder en un clic, sans passer par le navigateur. Disponible sur Chrome Android, Edge, et la plupart des navigateurs modernes.
+          </p>
+        </div>
+        <InstallPrompt theme="dashboard" />
+        <p className="text-xs text-gray-500">
+          Si le bouton ne s&apos;affiche pas, votre navigateur a peut-être déjà proposé l&apos;installation ou la prend en charge différemment (ex : Safari iOS via «&nbsp;Partager &gt; Sur l&apos;écran d&apos;accueil&nbsp;»).
+        </p>
+      </section>
+
       {/* V3.1 : Themes auto-generes a partir des couleurs du logo */}
       <LogoThemeProposals />
       {/* V3.1 : Personnalisation de l'incrustation du logo (style + tailles) */}

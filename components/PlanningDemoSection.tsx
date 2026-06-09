@@ -195,81 +195,103 @@ export default function PlanningDemoSection() {
             </div>
 
             {/* Planning grid */}
+            {/*
+              Fix mobile 2026-06-09 :
+              - sm:min-w-[640px] : le min-w forcait un scroll horizontal de
+                265px sur iPhone SE (375px). Desormais actif uniquement >=640px.
+              - Grille adaptee : 3 jours sur mobile (Mar/Mer/Jeu, centree sur
+                la colonne de conflit Mercredi), 5 jours en sm: et +.
+              - Colonne intervenant retrecie (60px) sur mobile.
+            */}
             <div className="overflow-x-auto p-4 md:p-6">
-              <div className="min-w-[640px]">
+              <div className="sm:min-w-[640px]">
                 {/* Day headers */}
-                <div className="mb-2 grid grid-cols-[80px_repeat(5,1fr)] gap-[1px]">
+                <div className="mb-2 grid grid-cols-[60px_repeat(3,1fr)] sm:grid-cols-[80px_repeat(5,1fr)] gap-[1px]">
                   <div />
-                  {days.map((day, i) => (
-                    <div
-                      key={day}
-                      className={`text-center text-[12px] font-bold uppercase tracking-[0.06em] py-2 px-1 ${
-                        i === 2 ? "text-white bg-[rgba(90,180,224,0.15)] rounded-lg" : "text-white/50"
-                      }`}
-                    >
-                      {day}
-                    </div>
-                  ))}
+                  {days.map((day, i) => {
+                    // Sur mobile on n'affiche que Mardi/Mercredi/Jeudi (indices 1,2,3)
+                    // pour garder le conflit Michel R. visible (mercredi = colonne centrale).
+                    const isMobileHidden = i === 0 || i === 4
+                    return (
+                      <div
+                        key={day}
+                        className={`${isMobileHidden ? 'hidden sm:block' : ''} text-center text-[12px] font-bold uppercase tracking-[0.06em] py-2 px-1 ${
+                          i === 2 ? "text-white bg-[rgba(90,180,224,0.15)] rounded-lg" : "text-white/50"
+                        }`}
+                      >
+                        {day}
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* AM row */}
-                <div className="mb-2 grid grid-cols-[80px_repeat(5,1fr)] gap-[1px]">
+                <div className="mb-2 grid grid-cols-[60px_repeat(3,1fr)] sm:grid-cols-[80px_repeat(5,1fr)] gap-[1px]">
                   <div className="flex items-center text-[11px] font-semibold uppercase tracking-widest text-white/35 px-2">
                     Matin
                   </div>
-                  {planningData.am.map((entry, dayIdx) => (
-                    <div key={dayIdx} className="flex min-h-[72px] flex-col gap-1 rounded-lg bg-white/[0.03] p-1.5">
-                      {entry && (
-                        <ChantierCard
-                          poseur={entry.poseur}
-                          client={entry.client}
-                          objet={entry.objet}
-                          color={entry.color}
-                          conflict={showConflict && isMichelCard(entry) && dayIdx === 2}
-                          pulsing={conflictPulsing && isMichelCard(entry) && dayIdx === 2}
-                        />
-                      )}
-                    </div>
-                  ))}
+                  {planningData.am.map((entry, dayIdx) => {
+                    const isMobileHidden = dayIdx === 0 || dayIdx === 4
+                    return (
+                      <div
+                        key={dayIdx}
+                        className={`${isMobileHidden ? 'hidden sm:flex' : 'flex'} min-h-[72px] flex-col gap-1 rounded-lg bg-white/[0.03] p-1.5`}
+                      >
+                        {entry && (
+                          <ChantierCard
+                            poseur={entry.poseur}
+                            client={entry.client}
+                            objet={entry.objet}
+                            color={entry.color}
+                            conflict={showConflict && isMichelCard(entry) && dayIdx === 2}
+                            pulsing={conflictPulsing && isMichelCard(entry) && dayIdx === 2}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* PM row */}
-                <div className="grid grid-cols-[80px_repeat(5,1fr)] gap-[1px]">
+                <div className="grid grid-cols-[60px_repeat(3,1fr)] sm:grid-cols-[80px_repeat(5,1fr)] gap-[1px]">
                   <div className="flex items-center text-[11px] font-semibold uppercase tracking-widest text-white/35 px-2">
                     Après-midi
                   </div>
-                  {planningData.pm.map((entry, dayIdx) => (
-                    <div
-                      key={dayIdx}
-                      className={`flex min-h-[72px] flex-col gap-1 rounded-lg p-1.5 ${
-                        entry === null && !showConflict
-                          ? "border border-dashed border-white/15 bg-white/[0.01]"
-                          : "bg-white/[0.03]"
-                      }`}
-                    >
-                      {entry && (
-                        <ChantierCard
-                          poseur={entry.poseur}
-                          client={entry.client}
-                          objet={entry.objet}
-                          color={entry.color}
-                        />
-                      )}
-                      {showConflict && dayIdx === 2 && (
-                        <ChantierCard
-                          poseur={conflictCard.poseur}
-                          client={conflictCard.client}
-                          objet={conflictCard.objet}
-                          color={conflictCard.color}
-                          conflict
-                          pulsing={conflictPulsing}
-                        />
-                      )}
-                      {entry === null && !showConflict && (
-                        <p className="m-auto text-[10px] text-white/30">Libre</p>
-                      )}
-                    </div>
-                  ))}
+                  {planningData.pm.map((entry, dayIdx) => {
+                    const isMobileHidden = dayIdx === 0 || dayIdx === 4
+                    return (
+                      <div
+                        key={dayIdx}
+                        className={`${isMobileHidden ? 'hidden sm:flex' : 'flex'} min-h-[72px] flex-col gap-1 rounded-lg p-1.5 ${
+                          entry === null && !showConflict
+                            ? "border border-dashed border-white/15 bg-white/[0.01]"
+                            : "bg-white/[0.03]"
+                        }`}
+                      >
+                        {entry && (
+                          <ChantierCard
+                            poseur={entry.poseur}
+                            client={entry.client}
+                            objet={entry.objet}
+                            color={entry.color}
+                          />
+                        )}
+                        {showConflict && dayIdx === 2 && (
+                          <ChantierCard
+                            poseur={conflictCard.poseur}
+                            client={conflictCard.client}
+                            objet={conflictCard.objet}
+                            color={conflictCard.color}
+                            conflict
+                            pulsing={conflictPulsing}
+                          />
+                        )}
+                        {entry === null && !showConflict && (
+                          <p className="m-auto text-[10px] text-white/30">Libre</p>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>

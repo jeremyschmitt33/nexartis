@@ -31,13 +31,16 @@ const CHIPS: Chip[] = [
 
 function chipPositionClasses(corner: Chip['corner']): string {
   switch (corner) {
-    // Positions ajustees 2026-06-08 : decalage des chips vers l'exterieur pour
-    // eviter tout chevauchement avec le telephone central (largeur 250px) sur
-    // toutes les tailles d'ecran. Les chips orbitent autour, jamais dessus.
-    case 'tl': return 'top-[2%] left-[-10%] sm:left-[-14%]'
-    case 'tr': return 'top-[14%] right-[-10%] sm:right-[-14%]'
-    case 'bl': return 'bottom-[24%] left-[-12%] sm:left-[-16%]'
-    case 'br': return 'bottom-[10%] right-[-10%] sm:right-[-14%]'
+    // Positions ajustees 2026-06-09 (fix mobile) :
+    // - MOBILE (<640px) : pourcentages POSITIFS pour rester DANS le cadre
+    //   du conteneur scene (combine a overflow-hidden plus bas). Evite que
+    //   les chips ne sortent de l'ecran a 375px (iPhone SE).
+    // - DESKTOP (sm: et +) : pourcentages NEGATIFS conserves pour l'effet
+    //   "orbital" qui depasse autour du telephone.
+    case 'tl': return 'top-[2%] left-[2%] sm:left-[-14%]'
+    case 'tr': return 'top-[14%] right-[2%] sm:right-[-14%]'
+    case 'bl': return 'bottom-[24%] left-[2%] sm:left-[-16%]'
+    case 'br': return 'bottom-[10%] right-[2%] sm:right-[-14%]'
   }
 }
 
@@ -143,9 +146,16 @@ export default function HeroOrbital() {
         </div>
 
         {/* COLONNE 2 - SCENE ORBITALE */}
+        {/*
+          Fix mobile 2026-06-09 :
+          - overflow-hidden : empeche les chips et anneaux orbitaux de deborder
+            sur les cotes a 375px (iPhone SE) une fois passes en positions positives.
+          - h-[420px] (mobile) : hauteur reduite pour que le mockup ne chevauche
+            plus la TrustBar qui suit dans le flow. Desktop inchange.
+        */}
         <div
           ref={stageRef}
-          className="reveal reveal-delay-3 relative w-full mx-auto h-[460px] sm:h-[540px] lg:h-[620px] max-w-[560px] [--mx:0] [--my:0]"
+          className="reveal reveal-delay-3 relative w-full mx-auto h-[420px] sm:h-[540px] lg:h-[620px] max-w-[560px] overflow-hidden sm:overflow-visible [--mx:0] [--my:0]"
           style={{ '--mx': 0, '--my': 0 } as React.CSSProperties}
           aria-hidden="true"
         >
@@ -159,14 +169,15 @@ export default function HeroOrbital() {
             }}
           />
 
-          {/* Anneau 1 */}
+          {/* Anneau 1 - cache sur mobile (overflow-hidden l'aurait clippe de toute facon,
+              et a 375px il prendrait toute la largeur ecran sans valeur ajoutee visuelle). */}
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[105%] aspect-square rounded-full border border-dashed border-white/[0.10] animate-spin-slow pointer-events-none"
+            className="hidden sm:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-w-[105%] aspect-square rounded-full border border-dashed border-white/[0.10] animate-spin-slow pointer-events-none"
             aria-hidden="true"
           />
-          {/* Anneau 2 */}
+          {/* Anneau 2 - meme logique, reserve au desktop ou il a l'espace de respirer. */}
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[620px] max-w-[130%] aspect-square rounded-full border border-dashed border-white/[0.06] animate-spin-slow-reverse pointer-events-none"
+            className="hidden sm:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[620px] max-w-[130%] aspect-square rounded-full border border-dashed border-white/[0.06] animate-spin-slow-reverse pointer-events-none"
             aria-hidden="true"
           />
 

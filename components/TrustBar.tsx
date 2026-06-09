@@ -15,7 +15,12 @@ const items = [
 
 export default function TrustBar() {
   return (
-    <section className="landing-section bg-transparent border-y border-white/5 py-7 px-5 lg:px-10">
+    // Fix mobile 2026-06-09 :
+    // - pt-12 (48px) sur mobile pour bien degager le mockup smartphone du Hero
+    //   qui termine juste au-dessus. Le bouton orange "+ Nouveau devis" ne
+    //   chevauche plus les puces de la TrustBar a 375px / 414px.
+    // - py-7 conserve a partir de sm: (desktop inchange).
+    <section className="landing-section bg-transparent border-y border-white/5 pt-12 pb-7 sm:py-7 px-5 lg:px-10">
       <div className="mx-auto max-w-[1200px] flex items-center justify-center flex-wrap gap-x-8 gap-y-4">
         {items.map((item) => (
           <div

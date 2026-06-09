@@ -38,7 +38,27 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISS_STORAGE_KEY = 'nexartis_pwa_prompt_dismissed_until'
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 jours
 
-export default function InstallPrompt() {
+/**
+ * Props du composant InstallPrompt.
+ *
+ * - iconOnly : variante carrée 44x44px (icône seule, pas de texte). Pensée
+ *   pour la nav mobile de la landing (juste à gauche du burger). Touch
+ *   target standard iOS/Android.
+ *
+ * - theme : palette appliquée au bouton.
+ *   - 'landing' (défaut) : couleurs V4 dark (bg-accent / text-bgdark).
+ *   - 'dashboard' : couleurs V3.0d.2 (#e87a2a sur fond white, contraste
+ *     adapté aux écrans du dashboard avec sections blanches).
+ */
+interface InstallPromptProps {
+  iconOnly?: boolean
+  theme?: 'landing' | 'dashboard'
+}
+
+export default function InstallPrompt({
+  iconOnly = false,
+  theme = 'landing',
+}: InstallPromptProps = {}) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
@@ -112,31 +132,71 @@ export default function InstallPrompt() {
 
   if (!deferredPrompt) return null
 
+  // Icône Download partagée entre les deux variantes (texte / icon-only).
+  // Inline SVG pour éviter une dépendance lucide-react.
+  const downloadIcon = (size: number) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+
+  // Sélection des classes de couleur selon le theme.
+  // - landing : palette V4 dark (accent orange #ff7a1a sur bgdark).
+  // - dashboard : palette V3.0d.2 (orange Nexartis #e87a2a, texte blanc).
+  const colorClasses =
+    theme === 'dashboard'
+      ? 'bg-[#e87a2a] hover:bg-[#f09050] text-white'
+      : 'bg-accent hover:bg-accent-2 text-bgdark'
+
+  // ---------- Variante icône carrée 44x44 (mobile nav landing) ----------
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        onClick={handleInstallClick}
+        className={[
+          colorClasses,
+          // Touch target standard 44x44, border-radius cohérent avec le burger
+          // adjacent (qui est en rounded-[10px]) — on prend rounded-[12px]
+          // pour une légère différenciation visuelle entre les deux carrés.
+          'inline-flex items-center justify-center w-11 h-11 rounded-[12px]',
+          'shadow-[0_0_20px_rgba(255,122,26,0.4)] transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark',
+        ].join(' ')}
+        aria-label="Installer l'application Nexartis sur cet appareil"
+      >
+        {downloadIcon(20)}
+      </button>
+    )
+  }
+
+  // ---------- Variante texte complète (par défaut) ----------
   return (
     <button
       type="button"
       onClick={handleInstallClick}
-      className="bg-accent hover:bg-accent-2 text-bgdark font-hanken font-bold px-5 py-2.5 rounded-full text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(255,122,26,0.4)] transition-colors"
+      className={[
+        colorClasses,
+        'font-hanken font-bold px-5 py-2.5 rounded-full text-sm',
+        'flex items-center gap-2 shadow-[0_0_20px_rgba(255,122,26,0.4)] transition-colors',
+      ].join(' ')}
       aria-label="Installer l'application Nexartis sur cet appareil"
     >
-      {/* Icône Download — SVG inline pour éviter une dépendance lucide-react */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      Installer l'app
+      {downloadIcon(16)}
+      Installer l&apos;app
     </button>
   )
 }
