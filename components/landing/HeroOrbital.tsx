@@ -155,7 +155,7 @@ export default function HeroOrbital() {
         */}
         <div
           ref={stageRef}
-          className="reveal reveal-delay-3 relative w-full mx-auto h-[420px] sm:h-[540px] lg:h-[620px] max-w-[560px] overflow-hidden sm:overflow-visible [--mx:0] [--my:0]"
+          className="reveal reveal-delay-3 relative w-full mx-auto h-[460px] sm:h-[540px] lg:h-[620px] max-w-[560px] overflow-hidden sm:overflow-visible [--mx:0] [--my:0]"
           style={{ '--mx': 0, '--my': 0 } as React.CSSProperties}
           aria-hidden="true"
         >
@@ -181,9 +181,11 @@ export default function HeroOrbital() {
             aria-hidden="true"
           />
 
-          {/* Telephone mockup central */}
+          {/* Telephone mockup central — Mobile (2026-06-09) : reduit a 210x420
+              pour tenir confortablement dans le container h-[460px] sans clipping.
+              Desktop : tailles d'origine inchangees. */}
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[230px] sm:w-[240px] lg:w-[250px] h-[470px] sm:h-[490px] lg:h-[510px] animate-float-y will-change-transform"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[210px] sm:w-[240px] lg:w-[250px] h-[420px] sm:h-[490px] lg:h-[510px] animate-float-y will-change-transform"
             style={{
               transform: 'translate(calc(-50% + var(--mx) * -10px), calc(-50% + var(--my) * -10px))',
               transition: 'transform 0.4s cubic-bezier(.22,.61,.36,1)',
@@ -271,7 +273,11 @@ export default function HeroOrbital() {
             </div>
           </div>
 
-          {/* 4 chips flottantes */}
+          {/* 4 chips flottantes — Hero epure mobile (decision Jerem 2026-06-09) :
+              Sur mobile (<640px), les chips sont MASQUEES pour que le Hero
+              respire et que l'attention aille au mockup smartphone seul.
+              L'effet orbital (chips qui flottent autour du telephone) reste
+              intact sur tablette/desktop (sm: et +). */}
           {CHIPS.map((chip) => {
             const sign = chipParallaxSign(chip.corner)
             const posClasses = chipPositionClasses(chip.corner)
@@ -280,7 +286,7 @@ export default function HeroOrbital() {
             return (
               <div
                 key={chip.label}
-                className={`absolute ${posClasses} reveal animate-float-y will-change-transform`}
+                className={`hidden sm:block absolute ${posClasses} reveal animate-float-y will-change-transform`}
                 style={{
                   transform,
                   transition: 'transform 0.5s cubic-bezier(.22,.61,.36,1)',
