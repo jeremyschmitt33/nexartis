@@ -25,6 +25,7 @@ import DocumentThemePicker from '@/components/parametres/DocumentThemePicker'
 import LogoThemeProposals from '@/components/parametres/LogoThemeProposals'
 import LogoCustomization from '@/components/parametres/LogoCustomization'
 import InstallPrompt from '@/components/InstallPrompt'
+import { QRCodeSVG } from 'qrcode.react'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -1438,12 +1439,51 @@ function ApplicationSection() {
             Si le bouton ne s&apos;affiche pas, votre navigateur a peut-etre deja propose l&apos;installation, ou la prend en charge differemment (ex&nbsp;: Safari iOS via «&nbsp;Partager &gt; Sur l&apos;ecran d&apos;accueil&nbsp;»).
           </p>
 
-          {/* Bloc Multi-appareils */}
-          <GroupTitle mt="mt-10">A faire sur chaque appareil</GroupTitle>
-          <div className="rounded-xl bg-[#fff5ec] border border-[#ff7a1a]/30 px-4 py-3.5">
-            <p className="font-hanken text-sm text-[#0f1a3a] leading-relaxed">
-              <span className="font-bold">L&apos;installation est independante par appareil.</span> Pour avoir Nexartis sur votre telephone <em>et</em> sur votre ordinateur, vous devez ouvrir <span className="font-spline-mono font-medium text-[13px]">nexartis.fr</span> sur chacun et installer separement. Vos donnees restent les memes (synchronisees via votre compte).
-            </p>
+          {/* Bloc Installer sur un autre appareil — QR code (V3 09/06/2026)
+              Permet a l'artisan sur PC de scanner avec son tel pour installer
+              direct. Et inversement (sur tel, on scanne avec un autre tel). */}
+          <GroupTitle mt="mt-10">Installer sur un autre appareil</GroupTitle>
+          <p className="font-hanken text-sm text-gray-600 leading-relaxed mb-4">
+            Scannez ce QR code avec un autre appareil (telephone, tablette ou ordinateur) pour ouvrir Nexartis directement et l&apos;installer la-bas aussi. Vos donnees suivent automatiquement (synchronisees via votre compte).
+          </p>
+
+          {/* Layout 2 colonnes : QR a gauche, instructions a droite */}
+          <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 items-center">
+            {/* Carte QR code */}
+            <div className="bg-white border-[1.5px] border-[#ff7a1a]/25 rounded-2xl p-4 mx-auto sm:mx-0 shadow-[0_4px_16px_rgba(255,122,26,0.08)]">
+              <div className="bg-white">
+                <QRCodeSVG
+                  value="https://nexartis.fr?utm_source=qr&utm_medium=dashboard&utm_campaign=install_multi_device"
+                  size={180}
+                  level="M"
+                  fgColor="#0f1a3a"
+                  bgColor="#ffffff"
+                />
+              </div>
+              <p className="text-center mt-3 font-spline-mono font-semibold text-[12px] text-[#0f1a3a] tracking-[0.5px]">
+                nexartis.fr
+              </p>
+            </div>
+
+            {/* Instructions etape par etape */}
+            <ol className="space-y-3 text-sm font-hanken text-gray-600 leading-relaxed">
+              <li className="flex gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[#fff5ec] border border-[#ff7a1a]/30 flex items-center justify-center font-spline-mono font-bold text-[12px] text-[#ff7a1a]">1</span>
+                <span>Ouvrez l&apos;appareil photo de votre autre appareil et pointez-le sur le QR code.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[#fff5ec] border border-[#ff7a1a]/30 flex items-center justify-center font-spline-mono font-bold text-[12px] text-[#ff7a1a]">2</span>
+                <span>Touchez la notification qui apparait pour ouvrir Nexartis dans votre navigateur.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[#fff5ec] border border-[#ff7a1a]/30 flex items-center justify-center font-spline-mono font-bold text-[12px] text-[#ff7a1a]">3</span>
+                <span>Touchez le bouton <span className="font-bold text-[#0f1a3a]">Installer l&apos;app</span> en haut a droite, ou via le menu Chrome <span className="font-bold text-[#0f1a3a]">«&nbsp;Ajouter a l&apos;ecran d&apos;accueil&nbsp;»</span>.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[#fff5ec] border border-[#ff7a1a]/30 flex items-center justify-center font-spline-mono font-bold text-[12px] text-[#ff7a1a]">4</span>
+                <span>Connectez-vous avec votre compte habituel — toutes vos donnees sont la.</span>
+              </li>
+            </ol>
           </div>
 
           {/* Bloc Mises a jour */}
