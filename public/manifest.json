@@ -1,0 +1,27 @@
+{
+  "name": "Nexartis — Logiciel artisan",
+  "short_name": "Nexartis",
+  "description": "Devis, factures, planning chantier pour artisans du BTP. Tous vos outils. Un seul prix.",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "fr-FR",
+  "background_color": "#060912",
+  "theme_color": "#ff7a1a",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/desktop.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide" },
+    { "src": "/screenshots/mobile.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" }
+  ],
+  "shortcuts": [
+    { "name": "Nouveau devis", "short_name": "Devis", "description": "Créer un nouveau devis", "url": "/dashboard/devis/nouveau?utm_source=pwa_shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Nouvelle facture", "short_name": "Facture", "description": "Créer une nouvelle facture", "url": "/dashboard/factures/nouvelle?utm_source=pwa_shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Planning", "short_name": "Planning", "description": "Voir le planning de la semaine", "url": "/dashboard/planning?utm_source=pwa_shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

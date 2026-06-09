@@ -49,6 +49,10 @@ const nextConfig = {
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://api.stripe.com https://m.stripe.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
               "frame-src 'self' https://js.stripe.com https://*.stripe.com",
+              // PWA V4 : autorise explicitement le service worker (/sw.js) et le manifest.
+              // Sans ces deux directives, certains navigateurs strictes bloquent l'install PWA.
+              "worker-src 'self'",
+              "manifest-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

@@ -19,6 +19,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import InstallPrompt from '@/components/InstallPrompt';
 
 // Augmentation TypeScript pour exposer la fonction globale de replay.
 // L'IntroOverlay l'attache à window quand il monte ; on l'appelle au click.
@@ -158,6 +159,14 @@ export default function LandingNav() {
             Revoir l&apos;intro
           </button>
 
+          {/* "Installer l'app" — visible lg+ uniquement quand le navigateur
+              a émis beforeinstallprompt (Chrome/Edge). Le composant gère
+              lui-même son affichage (null si déjà installé, refusé, ou non
+              supporté côté navigateur — Firefox/Safari iOS). */}
+          <div className="hidden lg:inline-flex">
+            <InstallPrompt />
+          </div>
+
           {/* "Se connecter" / "Mon espace" — texte simple, lg+ uniquement.
               Sur mobile on garde uniquement le CTA principal pour éviter
               l'encombrement (le burger menu sera ajouté plus tard). */}
@@ -266,6 +275,13 @@ export default function LandingNav() {
 
             {/* Séparateur */}
             <div className="my-3 h-px bg-white/[0.08]" />
+
+            {/* Installer l'app — drawer mobile. Comme sur desktop, le composant
+                gère son affichage (null si non supporté). On l'enveloppe d'un
+                wrapper qui ferme le drawer au clic via onClick capture. */}
+            <div onClick={closeMenu} className="flex justify-start">
+              <InstallPrompt />
+            </div>
 
             {/* Revoir l'intro — secondaire */}
             <button

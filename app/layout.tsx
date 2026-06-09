@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Syne, Manrope, Plus_Jakarta_Sans, Hanken_Grotesk, Spline_Sans_Mono } from 'next/font/google'
 import { headers } from 'next/headers'
 import './globals.css'
@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import ConditionalLayout from '@/components/ConditionalLayout'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import CookieConsent from '@/components/CookieConsent'
+import PWARegister from '@/components/PWARegister'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -88,6 +89,28 @@ export const metadata: Metadata = {
   verification: {
     google: 'FJBByC3CPJtSwTo4mqYE8ijL_ZbvJS3Ha2jITTB3KN8',
   },
+  // PWA — Manifest + icônes natives. Le themeColor est dans `viewport` ci-dessous
+  // (déplacé hors metadata depuis Next.js 14).
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Nexartis',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon-180.png',
+  },
+}
+
+// V4 PWA — Viewport séparé pour respecter Next.js 14.
+// `viewportFit: 'cover'` permet d'utiliser tout l'écran sur iPhone (notch / safe areas).
+// `themeColor` ici (et non dans metadata) pour conformité Next.js 14.
+export const viewport: Viewport = {
+  themeColor: '#ff7a1a',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -172,6 +195,9 @@ export default function RootLayout({
         >
           {children}
         </ConditionalLayout>
+        {/* PWA — Enregistre le service worker et gère le toast "Nouvelle version".
+            Composant client, monté une seule fois ici pour couvrir toute l'app. */}
+        <PWARegister />
         <CookieConsent />
       </body>
     </html>

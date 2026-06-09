@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
 
-const HIDDEN_ROUTES = ['/dashboard', '/onboarding', '/login', '/register', '/auth', '/signer', '/maintenance']
+const HIDDEN_ROUTES = ['/dashboard', '/onboarding', '/login', '/register', '/auth', '/signer', '/offline', '/maintenance']
 
 // V4 (2026-06-08) — Routes qui masquent UNIQUEMENT le header marketing.
 // La home "/" est dans cette liste : elle a sa propre navigation dark
