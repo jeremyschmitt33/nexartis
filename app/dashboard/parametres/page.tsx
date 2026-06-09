@@ -323,12 +323,12 @@ function PremiumInput({
           w-full py-2.5 px-4 rounded-xl
           border-[1.5px] ${displayedError ? 'border-red-300' : 'border-gray-200'}
           bg-[#fafbfc]
-          font-hanken font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4]
+          font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
           placeholder:text-gray-400
           focus:outline-none focus:border-[#ff7a1a] focus:bg-white
           focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
           transition-all duration-200
-          ${mono ? 'font-spline-mono font-semibold tracking-[0.5px]' : ''}
+          ${mono ? 'font-spline-mono font-medium tracking-[0.5px]' : ''}
         `}
       />
       {displayedError ? <FieldError>{displayedError}</FieldError> : hint ? <FieldHint>{hint}</FieldHint> : null}
@@ -616,7 +616,7 @@ function EntrepriseSection({
               }
             }}
             className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
-                       font-hanken font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
                        focus:outline-none focus:border-[#ff7a1a] focus:bg-white
                        focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
                        transition-all duration-200 cursor-pointer"
@@ -2232,7 +2232,7 @@ export default function ParametresPage() {
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm font-manrope font-medium transition-colors whitespace-nowrap w-full text-left ${
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-hanken font-medium transition-colors whitespace-nowrap w-full text-left ${
                     active
                       ? 'bg-[#5ab4e0]/10 text-[#5ab4e0] border-l-0 md:border-l-[3px] border-b-[3px] md:border-b-0 border-[#5ab4e0]'
                       : 'text-[#6b7280] hover:bg-gray-50'

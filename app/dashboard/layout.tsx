@@ -545,7 +545,7 @@ function DashboardHeader({
       <button onClick={onMenuClick} className="p-1.5 rounded-md hover:bg-gray-100 md:hidden transition-colors">
         <Menu size={22} className="text-[#1a1a2e]" />
       </button>
-      <h1 className="font-syne font-bold text-base sm:text-xl text-[#1a1a2e] truncate flex-1">{title}</h1>
+      <h1 className="font-hanken font-extrabold text-base sm:text-xl text-[#1a1a2e] tracking-tight truncate flex-1">{title}</h1>
       {/* Commande vocale universelle V3.1 — icone sur mobile, pilule "Dicter" sur desktop */}
       <UniversalVoiceButton variant="icon" className="md:hidden" />
       <UniversalVoiceButton variant="pill" className="hidden md:inline-flex" />
