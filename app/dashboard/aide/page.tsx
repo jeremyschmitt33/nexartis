@@ -44,6 +44,7 @@ import {
   Mic,
   Smartphone,
   Palette,
+  LayoutDashboard,
   Sparkles,
   AlertTriangle,
   NotebookPen,
@@ -405,6 +406,44 @@ export default function AidePage() {
           <div className="bg-sky-50 border border-sky-200 rounded-lg p-4 mt-3">
             <p className="text-[13px] font-hanken text-sky-900">
               <strong>Aperçu live :</strong> un aperçu en direct s&apos;affiche à droite quand tu modifies une couleur. Tes choix s&apos;appliquent automatiquement aux 4 rendus (devis HTML, devis PDF, facture HTML, facture PDF).
+            </p>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'personnaliser-dashboard',
+      icon: LayoutDashboard,
+      title: 'Personnalise ton dashboard — Sa couleur, ton identité',
+      subtitle: 'Choisis la couleur de la barre latérale parmi 7 ambiances disponibles.',
+      content: (
+        <>
+          <p className="mb-4">
+            En plus de pouvoir habiller tes <strong>devis et factures</strong> à tes couleurs, tu peux aussi
+            personnaliser ton <strong>dashboard</strong>. La barre latérale (la sidebar gauche) prend la
+            couleur de ton choix : ton espace de travail devient le tien.
+          </p>
+          <h4 className="font-hanken font-bold text-[15px] text-[#0f1a3a] mt-5 mb-2">Où régler ça</h4>
+          <p className="mb-3">
+            Va dans <strong>Paramètres &gt; onglet Apparence</strong>. Tu y trouves la zone
+            « Couleur de la sidebar » avec 7 pastilles à cliquer.
+          </p>
+          <h4 className="font-hanken font-bold text-[15px] text-[#0f1a3a] mt-5 mb-2">Les 7 couleurs disponibles</h4>
+          <ul className="space-y-1.5 mb-4 pl-1">
+            <li className="flex gap-2"><span className="text-orange-600 font-bold flex-shrink-0">→</span><span><strong>Orange</strong> (couleur par défaut Nexartis)</span></li>
+            <li className="flex gap-2"><span className="text-orange-600 font-bold flex-shrink-0">→</span><span><strong>Bleu</strong>, <strong>Rouge</strong>, <strong>Jaune</strong>, <strong>Vert</strong>, <strong>Violet</strong></span></li>
+            <li className="flex gap-2"><span className="text-orange-600 font-bold flex-shrink-0">→</span><span><strong>Noir (Ardoise)</strong> — pour un look sobre et pro</span></li>
+          </ul>
+          <h4 className="font-hanken font-bold text-[15px] text-[#0f1a3a] mt-5 mb-2">Le contraste s&apos;adapte tout seul</h4>
+          <p className="mb-3">
+            Le texte de la sidebar change automatiquement de couleur (clair ou foncé) pour rester
+            <strong> lisible</strong> sur la couleur de fond que tu choisis. Tu n&apos;as pas besoin de t&apos;en soucier.
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3">
+            <p className="text-[13px] font-hanken text-amber-900">
+              <strong>Choix par appareil :</strong> ce réglage est stocké localement sur ton navigateur.
+              Si tu te connectes depuis un autre ordinateur ou téléphone, tu peux y choisir une couleur
+              différente. C&apos;est pratique pour distinguer tes appareils.
             </p>
           </div>
         </>

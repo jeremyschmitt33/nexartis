@@ -2660,10 +2660,16 @@ export default function ParametresPage() {
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
               const active = activeSection === item.id
+              // V3 onboarding (09/06/2026) : on accroche data-tour="param-documents"
+              // sur l'onglet "Documents" — c'est la bulle "Habille tes documents
+              // a tes couleurs" qui pointe vers la personnalisation du theme.
+              // V3.0d.2 (09/06/2026) : ajout data-tour="param-apparence" sur l'onglet
+              // "Apparence" pour la bulle "Habille ton dashboard a tes couleurs".
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
+                  data-tour={item.id === 'documents' ? 'param-documents' : item.id === 'apparence' ? 'param-apparence' : undefined}
                   className={`flex items-center gap-3 px-4 py-3 text-sm font-hanken font-medium transition-colors whitespace-nowrap w-full text-left ${
                     active
                       ? 'bg-[#5ab4e0]/10 text-[#5ab4e0] border-l-0 md:border-l-[3px] border-b-[3px] md:border-b-0 border-[#5ab4e0]'

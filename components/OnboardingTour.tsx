@@ -340,6 +340,28 @@ export default function OnboardingTour() {
           }
         }
 
+        // V3.0d.2 (09/06/2026) : Bulle "Habille ton dashboard a tes couleurs"
+        // sur l'onglet Apparence. Pas de tracking dedie (option a) :
+        // se valide en meme temps que tour_parametres_seen via stepNames.
+        // Skip defensif si l'element n'existe pas dans le DOM.
+        if (
+          !state.tour_parametres_seen &&
+          document.querySelector('[data-tour="param-apparence"]')
+        ) {
+          steps.push({
+            element: '[data-tour="param-apparence"]',
+            popover: {
+              title: 'Habille ton dashboard à tes couleurs',
+              description: `
+                <p style="margin: 0 0 10px 0;">Choisis parmi <strong>7 couleurs</strong> (Orange, Bleu, Rouge, Jaune, Vert, Violet, Noir) pour personnaliser la barre latérale de ton dashboard.</p>
+                <p style="margin: 0; color: #445068; font-size: 13px;">Le contraste du texte s'ajuste automatiquement pour rester lisible. Réglage par appareil, idéal pour distinguer tes machines.</p>
+              `,
+              side: 'bottom',
+              align: 'center',
+            },
+          })
+        }
+
         // Bulle "Mon équipe" — V1 Fix #7, mode Société uniquement.
         // Reste hors gestion seen (purement contextuelle).
         if (
