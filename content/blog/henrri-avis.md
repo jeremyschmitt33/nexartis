@@ -3,7 +3,7 @@ title: "Henrri avis 2026 : vraiment gratuit ? Limites pour le BTP"
 description: "Henrri est gratuit mais sans planning chantier ni app mobile. Notre test honnête + alternative BTP complète à 15€/mois (Nexartis Essentiel)."
 category: "Comparatifs concurrents"
 author: "Jérémy Schmitt"
-authorRole: "Fondateur Nexartis · Ancien artisan électricien"
+authorRole: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
 publishedDate: "2026-06-09"
 updated: "2026-06-09"
 readingTime: "10 min"
@@ -148,25 +148,25 @@ Henrri est généraliste, et ça se sent dès qu'on l'utilise sur un vrai chanti
 
 ### Pas de planning chantier
 
-Aucune vue calendrier sur les chantiers en cours, aucune grille semaine ou mois pour visualiser qui intervient où. Pour un artisan solo qui fait du dépannage, ça passe. Pour deux compagnons à coordonner sur trois chantiers, vous repassez sur Google Calendar ou un tableau Excel mural.
+Henrri a fait un choix généraliste qui ne couvre pas la vue planning : aucune grille semaine ou mois pour visualiser qui intervient où. Pour un artisan solo qui fait du dépannage, ça passe. Pour deux compagnons à coordonner sur trois chantiers, vous repassez sur Google Calendar ou un tableau Excel mural.
 
 Le planning est l'une des fonctions les plus structurantes d'un logiciel BTP. C'est précisément ce manque qui pousse beaucoup d'artisans à migrer vers un [logiciel devis facture artisan complet](/) après quelques mois sur Henrri. Sans planning, le moindre conflit d'affectation (deux compagnons sur le même chantier le même jour, ou un intervenant oublié) se découvre quand le client appelle, mécontent.
 
 ### Pas d'app mobile native
 
-L'app native "Henrri Pay" gère uniquement l'encaissement. Pour créer un devis ou consulter une facture depuis le terrain, vous repassez par le navigateur de votre téléphone, sur une interface non optimisée pour les petits écrans.
+Henrri a fait un choix généraliste qui ne couvre pas l'usage smartphone : l'app native "Henrri Pay" gère uniquement l'encaissement. Pour créer un devis ou consulter une facture depuis le terrain, vous repassez par le navigateur de votre téléphone, sur une interface non optimisée pour les petits écrans.
 
 C'est un vrai handicap. Un artisan qui sort de chez un client à 18h ne va pas attendre 20h devant son ordinateur pour saisir le devis : il veut le faire dans sa camionnette, sur son téléphone. Tolteck et Nexartis le permettent, pas Henrri.
 
 ### Pas de bibliothèque de prix BTP
 
-Pas de prestations préchargées par métier (électricité, plomberie, peinture, maçonnerie). Pas de connexion aux catalogues Point.P, Cedeo ou La Plateforme du Bâtiment. Vous saisissez chaque ligne à la main, à chaque devis, ou vous dupliquez d'anciens devis comme modèle.
+Henrri a fait un choix généraliste qui ne couvre pas les prestations préchargées par métier (électricité, plomberie, peinture, maçonnerie). Pas de connexion aux catalogues Point.P, Cedeo ou La Plateforme du Bâtiment. Vous saisissez chaque ligne à la main, à chaque devis, ou vous dupliquez d'anciens devis comme modèle.
 
 Si vous cherchez un [logiciel devis plombier](/logiciel-devis-plombier) ou un [logiciel devis électricien](/logiciel-devis-electricien) avec une vraie matrice de prestations métier, vous gagnerez beaucoup de temps avec un outil qui embarque la base par défaut. Sur 50 devis par mois, on parle de plusieurs heures économisées.
 
 ### Pas de gestion d'équipe ni d'intervenants
 
-Pas de fiche compagnon, pas d'affectation par chantier, pas de suivi des heures par intervenant. Si vous embauchez votre premier apprenti ou si vous travaillez avec un sous-traitant régulier, Henrri ne suit rien : c'est à vous de tout tracer en parallèle.
+Henrri a fait un choix généraliste qui ne couvre pas la fiche compagnon, l'affectation par chantier ni le suivi des heures par intervenant. Si vous embauchez votre premier apprenti ou si vous travaillez avec un sous-traitant régulier, c'est à vous de tout tracer en parallèle.
 
 ### Mentions BTP partiellement gérées
 
@@ -219,21 +219,46 @@ Trois outils, trois philosophies. Voici les chiffres relevés en juin 2026.
 
 Pour aller plus loin, voir nos comparatifs détaillés : [Obat pour artisan du bâtiment](/blog/obat-avis), [Sage Batigest pour PME](/blog/batigest-avis), [Vertuoza pour entreprise BTP en croissance](/blog/vertuoza-avis).
 
-## Notre alternative Nexartis : 15€/mois avec planning chantier
+## Notre alternative Nexartis — Le plus complet à un prix imbattable
 
-Soyons direct sur ce qu'on propose et pourquoi.
+Nexartis propose deux offres pensées pour deux profils d'artisans.
 
-[Nexartis Essentiel à 15€/mois](/tarifs) (HT, sans engagement) couvre tout ce qu'Henrri fait gratuitement — devis et factures illimités, signature électronique, personnalisation, Factur-X 2026 — **et** ajoute ce qui manque à Henrri pour un artisan BTP :
+### Essentiel — 15€ HT/mois (artisan solo)
 
-- **Planning chantier visuel** avec détection automatique des conflits d'affectation
-- **Gestion d'équipe** avec fiches intervenants, affectation, suivi des interventions
-- **App mobile responsive** utilisable sur smartphone (pas que tablette 1024px+)
-- **Mentions BTP natives** : autoliquidation, TVA 5,5% avec attestation auto-générée, décennale, retenue de garantie 5%, factures de situation
-- **Bibliothèque de prestations** par métier (à enrichir librement)
-- **Saisie vocale du devis** depuis le terrain (Gemini AI, free tier)
-- **Notes datées par intervention** sur chaque chantier (visibles client ou privées)
+Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP — ce qu'Henrri ne propose pas.
 
-À 15€/mois, l'écart avec Henrri Pro gratuit est de **180€ HT par an**. La question à se poser : combien d'heures je passe par mois à compenser les manques d'Henrri (saisie manuelle des prestations, planning sur autre outil, relances une par une) ? Si la réponse dépasse 1h, l'abonnement est rentabilisé.
+- Devis et factures **illimités**
+- **Mentions légales BTP automatiques** : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Signature électronique native
+- Suivi des paiements
+- **Application installable** sur smartphone (PWA) — ce que vous n'aurez pas avec Henrri
+- Web responsive
+- Données hébergées en Europe (RGPD)
+- Support email
+
+### Complet — 25€ HT/mois (société avec équipe ou chantiers multiples)
+
+Pour l'artisan qui pilote une activité avec plusieurs intervenants. Tout l'Essentiel, plus les outils premium.
+
+- **Planning chantier visuel** avec détection automatique de conflits d'affectation
+- **Gestion d'équipe complète** : salariés, intérimaires, sous-traitants
+- **Dictée vocale IA** — créez un devis en parlant
+- **Chantiers + journal daté + Pacte de chantier**
+- **Personnalisation aux couleurs de votre entreprise**
+- **Bibliothèque de prestations personnalisable**
+- **Acomptes, factures de situation, avoirs**
+- **Statistiques avancées + export comptable**
+
+### Pourquoi Nexartis
+
+- **Conçu en France**, à Bordeaux, par et pour les artisans français
+- **Sans engagement annuel**
+- **Essai 14 jours sans carte bancaire**
+- **Application installable** sur iPhone, Android, Mac, Windows
+
+Comparez avec ce que vous obtenez gratuitement chez Henrri, et avec ce que Nexartis apporte en plus pour 15€/mois. Essayez 14 jours, sans CB.
+
+[Voir les tarifs Nexartis](/tarifs)
 
 ### Quand Henrri reste le bon choix
 
@@ -305,7 +330,7 @@ Pour le pur devis-facture illimité gratuit, **pas vraiment**. Les autres outils
 
 ## À propos de l'auteur
 
-Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
+Jérémy Schmitt est le fondateur de Nexartis. Il construit le logiciel ultime pour les artisans français du BTP en écoutant chaque jour les besoins du terrain. Devis, factures, planning chantier, gestion d'équipe : chaque fonctionnalité de Nexartis vient d'un retour d'artisan.
 
 Si cet article vous a été utile, jetez un œil à [nos tarifs](/tarifs) ou au reste du blog Nexartis. Et si vous hésitez encore, écrivez-moi (contact.nexartis@gmail.com), je réponds personnellement.
 

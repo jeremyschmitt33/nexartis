@@ -10,8 +10,8 @@ readingTime: "11 min"
 heroImage: ""
 author:
   name: "Jérémy Schmitt"
-  role: "Fondateur Nexartis · Ancien artisan électricien"
-  bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
+  role: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
+  bio: "Jérémy Schmitt a fondé Nexartis avec une obsession : créer le logiciel ultime pour les artisans français. En écoutant chaque jour les besoins du terrain — devis, factures, planning, chantiers — il développe un outil pensé pour leur réalité quotidienne."
 tags: ["obat", "obat avis", "logiciel BTP", "logiciel devis facture", "TPE BTP", "Factur-X 2026", "BatiChiffrage"]
 canonical: "https://nexartis.fr/blog/obat-avis"
 ogImage: "/blog/obat-avis-og.jpg"
@@ -82,7 +82,7 @@ C'est une fonction que tous les concurrents ne proposent pas en standard : [Sage
 
 Obat embarque une **vue calendrier** pour planifier vos chantiers et affecter vos équipes. Vous voyez la semaine ou le mois, vous glissez un chantier sur un créneau, vous attribuez un intervenant. C'est fonctionnel et suffisant pour visualiser les semaines à venir.
 
-Limite à connaître : la grille reste **basique**, et il manque les **alertes de conflit d'affectation** automatiques (vous affectez un compagnon à deux chantiers le même mardi matin, le logiciel ne vous prévient pas). C'est un manque que mes utilisateurs me remontaient régulièrement quand j'étais sur le terrain en tant qu'électricien, et c'est pour ça que Nexartis détecte les conflits par défaut.
+Périmètre fonctionnel à connaître : Obat a fait le choix d'une grille **volontairement simple**, sans alertes de conflit d'affectation automatiques (si vous affectez un compagnon à deux chantiers le même mardi matin, le logiciel laisse l'arbitrage au chef de chantier). C'est un manque que les artisans me remontent régulièrement, et c'est pour ça que Nexartis détecte les conflits par défaut.
 
 ### Devis vocal IA depuis 2024
 
@@ -130,7 +130,7 @@ C'est le point qui revient le plus souvent dans les avis négatifs. Plusieurs ut
 
 ### Pas de gestion de stock matériel
 
-Obat ne propose **pas de gestion de stock matériel** intégrée. Si vous avez un dépôt avec consommables (visserie, câble électrique, sacs ciment), vous ne pouvez pas suivre les entrées-sorties depuis Obat. C'est une limite courante des SaaS BTP français, mais elle est à signaler si la gestion physique est centrale dans votre activité.
+Obat a fait le choix de ne **pas intégrer la gestion de stock matériel** dans son périmètre fonctionnel. Si vous avez un dépôt avec consommables (visserie, câble électrique, sacs ciment), le suivi des entrées-sorties se fait via un outil dédié. C'est un parti pris courant des SaaS BTP français, à anticiper si la gestion physique est centrale dans votre activité.
 
 ### Soucis ponctuels sur la version mobile
 
@@ -138,7 +138,7 @@ Certains utilisateurs signalent des **pages blanches** ou des bugs ponctuels sur
 
 ### Pas de masquage de prix configurable sur devis
 
-Sur certains corps de métier (rénovation lourde, prestations sur-mesure), vous voulez pouvoir **masquer le détail des prix unitaires** sur le devis client et n'afficher qu'un forfait global. Obat ne propose pas cette option de masquage configurable ligne à ligne. Si vous travaillez en B2B avec des architectes ou des bureaux d'études qui exigent un détail complet, ce n'est pas un problème. Si vous chiffrez du dépannage particulier, c'est plus gênant.
+Sur certains corps de métier (rénovation lourde, prestations sur-mesure), vous voulez pouvoir **masquer le détail des prix unitaires** sur le devis client et n'afficher qu'un forfait global. Obat a fait le choix d'afficher le détail complet ligne à ligne, sans option de masquage configurable. Si vous travaillez en B2B avec des architectes ou des bureaux d'études qui exigent un détail complet, c'est cohérent avec leur attente. Si vous chiffrez du dépannage particulier, c'est un point à anticiper.
 
 ### Export comptable parfois laborieux
 
@@ -169,22 +169,47 @@ Voici un tableau direct pour situer Obat face à ses deux principaux concurrents
 
 Si la bibliothèque d'ouvrages préchiffrés est votre priorité numéro un, regardez d'abord [Tolteck](/blog/tolteck-avis) (catalogues Saint-Gobain) puis Obat (BatiChiffrage). Si vous cherchez le meilleur ratio fonctions-prix sans engagement, regardez [Nexartis Complet à 25€/mois](/tarifs).
 
-## Notre alternative : Nexartis Complet à 25€/mois sans engagement
+## Notre alternative Nexartis — Le plus complet à un prix imbattable
 
-Je vais être direct : Nexartis Complet est **conçu pour le profil d'artisan que je connais le mieux**, parce que je l'ai été. Artisan électricien en Gironde pendant dix ans, j'ai utilisé Excel, des PDF mal foutus et trois SaaS qui ne comprenaient rien à mon quotidien. Nexartis est ma réponse à ce que je voulais avoir sur le terrain.
+Nexartis propose deux offres pensées pour deux profils d'artisans.
 
-Voici ce que vous obtenez pour **25€ HT/mois sans engagement** :
+### Essentiel — 15€ HT/mois (artisan solo)
 
-- **Devis et factures conformes** aux exigences françaises (mentions légales, autoliquidation, TVA 5,5%, attestation client, retenue de garantie 5%, factures d'acompte 30%, factures de situation).
-- **Signature électronique** intégrée du devis client (avec horodatage et lien sécurisé).
-- **Planning chantier** avec **détection automatique des conflits d'affectation** (la fonction qui m'a manqué pendant 10 ans).
-- **Devis vocal** IA en mode dictée, avec moteur Gemini 2.5 Flash (vous parlez, l'outil structure les lignes prestation-quantité-prix).
-- **Gestion intervenants** en mode Solo (vous seul) ou Société (équipe, sous-traitants, apprentis).
-- **Conformité Factur-X 2026** en cours de déploiement, sans surcoût.
-- **Pas d'engagement annuel imposé** : vous résiliez en un clic depuis votre tableau de bord.
-- **Grille tarifaire fixe** : pas de mauvaise surprise à 12 mois.
+Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP, sans payer pour des outils d'équipe qu'il n'utilisera pas.
 
-C'est un positionnement assumé : **même périmètre fonctionnel qu'Obat Pro pour 36% de moins, sans engagement annuel**. Pour un artisan seul ou en duo qui ne sait pas s'il sera encore là dans 12 mois, c'est une marge de sécurité réelle. Pour comparer en détail, voir [nos tarifs](/tarifs) ou démarrer un essai gratuit de 14 jours sans CB.
+- Devis et factures **illimités**
+- **Mentions légales BTP automatiques** : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Signature électronique native
+- Suivi des paiements
+- Web responsive
+- Données hébergées en Europe (RGPD)
+- Application installable sur mobile (PWA)
+- Support email
+
+### Complet — 25€ HT/mois (société avec équipe ou chantiers multiples)
+
+Pour l'artisan qui pilote une activité avec plusieurs intervenants ou plusieurs chantiers en parallèle. Tout l'Essentiel, plus les outils premium.
+
+- **Planning chantier visuel** avec détection automatique de conflits d'affectation
+- **Gestion d'équipe complète** : salariés, intérimaires, sous-traitants, suivi paiements ST
+- **Dictée vocale IA**
+- **Chantiers + journal daté + Pacte de chantier**
+- **Personnalisation aux couleurs de votre entreprise** (6 zones)
+- **Bibliothèque de prestations personnalisable**
+- **Acomptes, factures de situation, avoirs**
+- **Statistiques avancées + export comptable**
+
+### Pourquoi Nexartis face à Obat
+
+À 25€ HT/mois, Nexartis Complet propose un périmètre fonctionnel proche d'Obat Pro à 39€/mois — soit **14€ de moins par mois, sans engagement annuel**. Les artisans solo économisent encore davantage avec l'Essentiel à 15€.
+
+- **Conçu en France**, à Bordeaux, par et pour les artisans français
+- **Sans engagement annuel** — vous arrêtez quand vous voulez
+- **Essai 14 jours sans carte bancaire**
+
+Comparez sur 12 mois ce que vous payeriez ailleurs. Puis essayez Nexartis 14 jours, sans CB.
+
+[Voir les tarifs Nexartis](/tarifs)
 
 ## Retours utilisateurs réels en 2026 : ce que disent les avis
 
@@ -218,9 +243,9 @@ Au-delà des fiches commerciales, regardons ce qui ressort des **avis utilisateu
 
 Pour mettre Obat en perspective, voici comment il se positionne face aux 4 autres acteurs majeurs du marché français des SaaS BTP en juin 2026.
 
-**Face à [Tolteck](/blog/tolteck-avis).** Tolteck est moins cher (19-25€ vs 25-39€), avec une bibliothèque d'ouvrages plus puissante grâce à l'intégration Saint-Gobain (Point.P, Cedeo, La Plateforme du Bâtiment). En revanche, Tolteck **n'a aucun planning chantier ni gestion d'équipe**. Si vous êtes artisan seul qui chiffre beaucoup, Tolteck est plus efficace. Si vous avez une équipe à coordonner, Obat reprend l'avantage.
+**Face à [Tolteck](/blog/tolteck-avis).** Tolteck est moins cher (19-25€ vs 25-39€), avec une bibliothèque d'ouvrages plus puissante grâce à l'intégration Saint-Gobain (Point.P, Cedeo, La Plateforme du Bâtiment). En revanche, Tolteck a fait le choix de se concentrer sur le devis-facture, **sans planning chantier ni gestion d'équipe**. Si vous êtes artisan seul qui chiffre beaucoup, Tolteck est plus efficace. Si vous avez une équipe à coordonner, Obat reprend l'avantage.
 
-**Face à [Henrri](/blog/henrri-avis).** Henrri est **gratuit**, ce qui en fait le point d'entrée pour un auto-entrepreneur qui démarre. En revanche, Henrri reste très généraliste et **ne gère pas les spécificités BTP** (autoliquidation TVA, retenue de garantie, factures de situation, attestation TVA 5,5%, planning chantier). Obat est conçu pour le BTP, Henrri pour toute TPE confondue. À 0€ vs 25-39€, le choix dépend du sérieux que vous donnez à votre activité BTP à 12-24 mois.
+**Face à [Henrri](/blog/henrri-avis).** Henrri est **gratuit**, ce qui en fait le point d'entrée pour un auto-entrepreneur qui démarre. Henrri a fait le choix d'un positionnement très généraliste, sans couvrir les spécificités BTP (autoliquidation TVA, retenue de garantie, factures de situation, attestation TVA 5,5%, planning chantier). Obat est conçu pour le BTP, Henrri pour toute TPE confondue. À 0€ vs 25-39€, le choix dépend du sérieux que vous donnez à votre activité BTP à 12-24 mois.
 
 **Face à [Sage Batigest](/blog/batigest-avis).** Sage Batigest est le concurrent historique, présent depuis les années 90. Il est plus puissant fonctionnellement (gestion analytique poussée, intégration comptable native avec Sage), mais aussi **beaucoup plus cher** (souvent 80-150€/mois) et **plus difficile à prendre en main**. Obat est plus moderne, plus rapide à installer, mais moins profond sur la partie comptable. Pour une entreprise BTP de 5-20 salariés qui valorise la profondeur analytique, Sage Batigest peut rester pertinent. Pour une TPE de 1-5 salariés, Obat est plus rationnel.
 
@@ -260,13 +285,13 @@ C'est la comparaison la plus recherchée en juin 2026 sur "obat vs tolteck" et "
 
 **Bibliothèque d'ouvrages.** Tolteck l'emporte grâce aux **catalogues fournisseurs Saint-Gobain** intégrés en natif (Point.P, Cedeo, La Plateforme du Bâtiment). Si vous achetez chez ces enseignes, vous avez les prix unitaires du jour, mis à jour automatiquement. Obat propose **BatiChiffrage**, plus généraliste mais très complet sur les ouvrages standards du marché. Avantage Tolteck pour le couvreur, plombier, électricien qui achète Saint-Gobain ; Obat reste solide pour tous les autres.
 
-**Planning chantier.** Obat l'emporte largement. Tolteck **n'a aucun planning** intégré, vous devez bricoler avec Google Calendar ou un cahier. Obat propose une vue calendrier fonctionnelle, même si basique (sans détection de conflits automatique).
+**Planning chantier.** Obat l'emporte largement. Tolteck a fait le choix de **ne pas embarquer de planning** intégré, vous coordonnez via Google Calendar ou un cahier. Obat propose une vue calendrier fonctionnelle, même si volontairement simple (sans détection de conflits automatique).
 
-**Gestion d'équipe.** Obat l'emporte sans contestation. Tolteck **n'a aucune gestion d'intervenants** : pas de fiches compagnons, pas d'attribution sur chantier, pas de suivi multi-utilisateurs. Obat propose un vrai multi-utilisateurs en formule Pro et Premium, avec rôles différenciés.
+**Gestion d'équipe.** Obat l'emporte sans contestation. Tolteck a fait le choix de **rester sur un périmètre artisan seul**, sans fiches compagnons, sans attribution sur chantier, sans multi-utilisateurs. Obat propose un vrai multi-utilisateurs en formule Pro et Premium, avec rôles différenciés.
 
-**Mode hors ligne.** Tolteck l'emporte. Le mode hors ligne natif est l'un de ses points forts : vous chiffrez en zone blanche, vous synchronisez au retour. Obat ne propose pas ce mode et nécessite une connexion active.
+**Mode hors ligne.** Tolteck l'emporte. Le mode hors ligne natif est l'un de ses points forts : vous chiffrez en zone blanche, vous synchronisez au retour. Obat a fait le choix d'un fonctionnement 100% connecté, qui nécessite une connexion active.
 
-**Devis vocal IA.** Match nul. Obat propose un module devis vocal depuis 2024. Tolteck n'en propose pas (à date juin 2026). Si la dictée chantier est importante pour vous, Obat ou Nexartis sont les seuls choix viables.
+**Devis vocal IA.** Avantage Obat. Obat propose un module devis vocal depuis 2024. Tolteck a fait le choix de ne pas l'intégrer à date juin 2026. Si la dictée chantier est importante pour vous, Obat ou Nexartis sont les choix viables.
 
 **Prix.** Tolteck l'emporte clairement sur le prix : **228€ HT/an** en annuel, vs **468€ HT/an** pour Obat Pro. Sur 24 mois, Tolteck coûte 240€ HT de moins, et l'écart se creuse encore avec les hausses signalées sur Obat.
 
@@ -337,7 +362,7 @@ Non. Obat gère devis, factures, signature électronique, planning et tableau de
 
 ## À propos de l'auteur
 
-Jérémy Schmitt, ancien artisan électricien en Gironde, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes, sans engagement annuel piégeux.
+Jérémy Schmitt est le fondateur de Nexartis. Il construit le logiciel ultime pour les artisans français du BTP en écoutant chaque jour les besoins du terrain. Devis, factures, planning chantier, gestion d'équipe : chaque fonctionnalité de Nexartis vient d'un retour d'artisan.
 
 Si cet article vous a été utile, jetez un œil au [logiciel devis facture artisan complet](/) ou à [nos tarifs Nexartis Complet à 25€/mois](/tarifs) pour comparer avec Obat poste par poste.
 

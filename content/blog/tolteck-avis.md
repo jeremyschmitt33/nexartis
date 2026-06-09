@@ -10,9 +10,9 @@ readingTime: "12 min"
 heroImage: ""
 author:
   name: "Jérémy Schmitt"
-  role: "Fondateur Nexartis · Ancien artisan électricien"
-  bio: "Artisan électricien de formation, installé en Gironde. Après dix ans à gérer mes propres chantiers et à me battre avec des outils qui n'étaient pas pensés pour le terrain, j'ai fondé Nexartis pour proposer un logiciel adapté à la réalité quotidienne des artisans français."
-authorRole: "Fondateur Nexartis · Ancien artisan électricien"
+  role: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
+  bio: "Jérémy Schmitt a fondé Nexartis avec une obsession : créer le logiciel ultime pour les artisans français. En écoutant chaque jour les besoins du terrain — devis, factures, planning, chantiers — il développe un outil pensé pour leur réalité quotidienne."
+authorRole: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
 tags: ["tolteck avis", "tolteck prix", "tolteck alternative", "logiciel devis", "logiciel facture", "BTP", "Tolteck"]
 canonical: "https://nexartis.fr/blog/tolteck-avis"
 ogImage: "/blog/tolteck-avis-og.jpg"
@@ -195,7 +195,7 @@ C'est ici que le test devient utile. Voici ce qui manque réellement sur Tolteck
 
 Vous ne pouvez pas visualiser votre semaine sur une grille calendrier. Si vous gérez 3 chantiers en parallèle, vous devrez bricoler avec Google Calendar ou un cahier. Pire : Tolteck ne détecte aucun **conflit d'affectation**.
 
-Vous affectez Michel R. à deux chantiers le même mardi matin par erreur, le logiciel ne vous prévient pas. Vous découvrez le problème quand votre client appelle. C'est précisément ce manque qui m'a poussé à créer Nexartis : dans mon expérience d'électricien, les conflits d'affectation représentent une part majeure des problèmes de planning sur un chantier.
+Vous affectez Michel R. à deux chantiers le même mardi matin par erreur, le logiciel ne vous prévient pas. Vous découvrez le problème quand votre client appelle. C'est précisément ce manque qui m'a poussé à créer Nexartis : d'après les retours d'artisans du terrain, les conflits d'affectation représentent une part majeure des problèmes de planning sur un chantier.
 
 ### Pas de gestion d'équipe
 
@@ -253,39 +253,50 @@ Voici les trois logiciels les plus comparés à Tolteck en 2026, mis face à fac
 ### Lecture du tableau
 
 - **Henrri** gagne sur le prix, c'est imbattable. Mais l'absence de bibliothèque BTP et de mentions automatiques le pénalise pour un artisan.
-- **Tolteck** gagne sur la simplicité d'usage et la bibliothèque Saint-Gobain. Limite : pas de planning, pas de signature, pas d'équipe.
+- **Tolteck** gagne sur la simplicité d'usage et la bibliothèque Saint-Gobain. Il a fait un choix de simplicité (sans planning, sans signature, sans équipe) qui peut convenir à certains profils.
 - **Obat** est plus complet sur l'équipe et la gestion chantier, mais il coûte deux fois plus cher et la prise en main est plus longue.
 
 Aucun des trois ne propose un <strong>planning chantier</strong> visuel digne de ce nom avec détection de conflits d'affectation. C'est précisément le gap que Nexartis vient combler à 15€/mois.
 
-## Notre alternative Nexartis : 15€/mois avec planning
+## Notre alternative Nexartis — Le plus complet à un prix imbattable
 
-Je vais être direct : Nexartis n'est pas "mieux que Tolteck" sur tous les critères. Voici ce qui change concrètement.
+Nexartis propose deux offres pensées pour deux profils d'artisans.
 
-### Ce que Nexartis fait de mieux
+### Essentiel — 15€ HT/mois (artisan solo)
 
-- **Planning chantier visuel** avec détection automatique des conflits d'affectation (le logiciel vous bloque si vous affectez deux artisans au même créneau).
-- **Gestion d'équipe complète** : fiches intervenants, suivi des heures par chantier, rôles (apprenti, compagnon, chef d'équipe, dirigeant).
-- **Signature électronique native** sur tous les devis, sans surcoût.
-- **Devis vocal** : vous dictez votre devis depuis le chantier, l'IA Gemini structure les lignes automatiquement.
-- **Prix de départ à 15€ HT/mois** en Essentiel, soit **4€ HT de moins** que Tolteck engagement annuel.
-- **Conformité 2026** Factur-X opérationnelle et mentions BTP françaises gérées (TVA 5,5%, autoliquidation, décennale, CEE).
-- **Pacte de chantier** optionnel pour cadrer la relation client en début d'affaire.
+Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française, sans complexité.
 
-### Ce que Tolteck fait de mieux que Nexartis
+- Devis et factures **illimités**
+- **Mentions légales BTP automatiques** : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Signature électronique native
+- Suivi des paiements
+- Web responsive (smartphone, tablette, ordinateur)
+- Données hébergées en Europe (RGPD)
+- Support email
 
-- **Bibliothèque d'ouvrages Saint-Gobain** native. Nexartis a sa propre bibliothèque, mais elle est plus basique : pas d'accord direct avec Point.P ou Cedeo aujourd'hui.
-- **Pérennité financière** garantie par le groupe Saint-Gobain. Nexartis est une jeune entreprise indépendante, ce qui est un facteur à considérer pour les artisans frileux.
-- **Volumétrie de clients** : 33 000 entreprises Tolteck vs quelques centaines pour Nexartis en juin 2026.
-- **Mode hors-ligne** natif sur l'app mobile, plus mature que celui de Nexartis aujourd'hui.
+### Complet — 25€ HT/mois (société avec équipe ou chantiers multiples)
 
-### Positionnement honnête
+Pour l'artisan qui pilote une activité avec **plusieurs intervenants** ou plusieurs chantiers en parallèle. Tout l'Essentiel, plus les outils premium.
 
-Si la <strong>bibliothèque d'articles</strong> Saint-Gobain est votre priorité numéro un, restez chez Tolteck. Vous n'aurez pas mieux ailleurs aujourd'hui.
+- **Planning chantier visuel** avec détection automatique de conflits d'affectation
+- **Gestion d'équipe complète** : salariés, intérimaires, sous-traitants, suivi paiements ST
+- **Dictée vocale IA** — créez un devis en 30 secondes en parlant
+- **Chantiers + journal daté + Pacte de chantier** signable par le client
+- **Personnalisation aux couleurs de votre entreprise** (6 zones)
+- **Bibliothèque de prestations personnalisable**
+- **Acomptes, factures de situation, avoirs**
+- **Statistiques avancées + export comptable**
 
-Si vous voulez le couple devis-facture **plus** un planning fiable, une gestion d'équipe et un prix d'entrée à 15€, regardez Nexartis. La proposition de valeur est : "Tolteck-like sur le devis-facture, mais avec planning, équipe, signature et 4€/mois moins cher".
+### Pourquoi Nexartis
 
-Pas d'attaque frontale, juste un positionnement différent. C'est à vous de pondérer selon votre activité.
+- **Conçu en France**, à Bordeaux, par et pour les artisans français
+- **Sans engagement annuel** — vous arrêtez quand vous voulez
+- **Essai 14 jours sans carte bancaire**
+- **Application installable** sur iPhone, Android, Mac, Windows (PWA native)
+
+Comparez avec ce que vous payez aujourd'hui, et avec ce que vous obtenez en retour. Puis essayez 14 jours.
+
+[Voir les tarifs Nexartis](/tarifs)
 
 ## Verdict 2026 : faut-il prendre Tolteck ?
 
@@ -345,7 +356,7 @@ Oui. **Nexartis** démarre à 15€ HT/mois en Essentiel et inclut un <strong>pl
 
 ## À propos de l'auteur
 
-**Jérémy Schmitt** est <strong>artisan</strong> électricien de formation, installé en Gironde. Il a fondé Nexartis en 2024 après dix ans de chantiers à se battre avec des outils inadaptés au terrain. Il écrit sur le SaaS BTP, la conformité légale et la productivité des TPE du bâtiment.
+**Jérémy Schmitt** est le fondateur de Nexartis. Il construit le logiciel ultime pour les artisans français du BTP en écoutant chaque jour les besoins du terrain. Devis, factures, planning chantier, gestion d'équipe : chaque fonctionnalité de Nexartis vient d'un retour d'artisan.
 
 *Article publié le 9 juin 2026. Test effectué sur la version officielle de Tolteck à cette date.*
 

@@ -3,7 +3,7 @@ title: "Vertuoza avis 2026 : prix, limites, alternative TPE"
 description: "Vertuoza cible les PME du bâtiment, sans essai gratuit ni prix public. Comparatif honnête + alternative artisan à 25€/mois sans engagement."
 category: "Comparatifs concurrents"
 author: "Jérémy Schmitt"
-authorRole: "Fondateur Nexartis · Ancien artisan électricien"
+authorRole: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
 publishedDate: "2026-06-09"
 updated: "2026-06-09"
 readingTime: "10 min"
@@ -181,35 +181,46 @@ Voici un tableau direct pour situer Vertuoza face à ses deux alternatives les p
 
 **Lecture du tableau.** Vertuoza est objectivement **le plus complet** des trois. Mais cette complétude a un prix qui le sort du jeu pour une TPE. [Obat](/blog/obat-avis) est l'**alternative plus accessible** côté PME en croissance, et Nexartis se positionne sur la **TPE et l'artisan seul** avec un périmètre core volontairement resserré.
 
-## Notre alternative Nexartis : 25€/mois publics, essai gratuit, sans engagement
+## Notre alternative Nexartis — Le plus complet à un prix imbattable
 
-Disons-le clairement : **Nexartis n'est pas un concurrent de Vertuoza sur le segment PME**. Ce serait absurde de le prétendre. Mais Nexartis est une **alternative crédible à Vertuoza pour les artisans et TPE** qui se sont fait démarcher par Vertuoza et qui se sont rendu compte que le produit dépassait largement leur besoin.
+Nexartis propose deux offres pensées pour deux profils d'artisans.
 
-### Ce que Nexartis couvre (et que Vertuoza couvre aussi, mais 50x plus cher pour la cible TPE)
+### Essentiel — 15€ HT/mois (artisan solo)
 
-- **Devis** illimités, conforme aux mentions légales françaises (BTP, AE et société)
-- **Factures** avec mentions obligatoires, situation de travaux partielle (acomptes), retenue de garantie, escompte
-- **Planning chantier** avec alertes de conflit d'affectation
-- **Suivi chantier** par intervenant et par poste
-- **Conformité Factur-X 2026** opérationnelle
-- **Devis vocal IA** (Gemini 2.5 Flash) inclus sans surcoût
+Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP, accessible et sans engagement annuel — à l'opposé du modèle Vertuoza.
 
-### Ce que Nexartis ne couvre PAS (et qu'il faut chercher ailleurs)
+- Devis et factures **illimités**
+- **Mentions légales BTP automatiques** : TVA réduite, autoliquidation, attestation rénovation, décennale
+- Signature électronique native
+- Suivi des paiements
+- Application installable sur mobile (PWA)
+- Web responsive
+- Données hébergées en Europe (RGPD)
+- Support email
 
-- Pas de **CRM** avancé : la gestion des leads se fait via un outil dédié (HubSpot gratuit, Folk, Pipedrive)
-- Pas de **stock chantier** complet : seulement une fiche matériel simple par chantier
-- Pas de **RH** : on assume que la TPE utilise un outil paie dédié (PayFit, Silae)
-- Pas de **sous-traitance** structurée : seulement des notes au chantier
+### Complet — 25€ HT/mois (société avec équipe ou chantiers multiples)
 
-C'est un **choix de scope assumé** : on couvre le coeur du métier de l'artisan (devis-facture-planning-chantier) avec un niveau de qualité élevé, sans s'éparpiller sur des modules ERP que la cible n'utilisera jamais.
+Pour l'artisan qui pilote une activité avec plusieurs intervenants. Tout l'Essentiel, plus les outils premium.
 
-### Trois différences commerciales fortes face à Vertuoza
+- **Planning chantier visuel** avec détection de conflits
+- **Gestion d'équipe** : salariés, intérimaires, sous-traitants
+- **Dictée vocale IA**
+- **Chantiers + journal daté + Pacte de chantier**
+- **Personnalisation aux couleurs de votre entreprise**
+- **Bibliothèque de prestations** personnalisable
+- **Acomptes, factures de situation, avoirs**
+- **Statistiques avancées + export comptable**
 
-1. **Prix public et fixe** : 25€/mois HT, affiché sur la page [Tarifs Nexartis](/tarifs). Pas de devis sur mesure.
-2. **Essai gratuit 14 jours sans carte bancaire** : vous testez le produit dans vos conditions réelles, pas en démo commerciale. Si ça ne colle pas, vous partez sans rien payer.
-3. **Sans engagement, résiliable à tout moment** : vous payez au mois le mois, vous arrêtez quand vous voulez depuis le portail client Stripe. Pas de 12 mois bloqués d'avance.
+### Pourquoi Nexartis face à Vertuoza
 
-Pour aller plus loin, voir aussi nos pages dédiées : [logiciel pour électricien indépendant](/logiciel-devis-electricien) et [logiciel pour entreprise maçonnerie](/logiciel-devis-maconnerie), qui détaillent le périmètre fonctionnel par corps de métier.
+Vertuoza cible les PME structurées du bâtiment, avec une grille tarifaire opaque et sans essai gratuit. **Nexartis publie ses prix** (15€ ou 25€ HT/mois), propose **14 jours d'essai sans CB**, et reste accessible à l'artisan solo comme à la société avec équipe.
+
+- **Conçu en France**, à Bordeaux, par et pour les artisans français
+- **Sans engagement annuel**
+- **Prix publics, simples, sans devis commercial**
+- **Application installable** sur iPhone, Android, Mac, Windows
+
+[Voir les tarifs Nexartis](/tarifs)
 
 ## Verdict 2026 : Vertuoza, oui mais pour qui ?
 
@@ -275,7 +286,7 @@ Oui. Vertuoza a **anticipé la réforme Factur-X** et est aligné sur le calendr
 
 ## À propos de l'auteur
 
-Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
+Jérémy Schmitt est le fondateur de Nexartis. Il construit le logiciel ultime pour les artisans français du BTP en écoutant chaque jour les besoins du terrain. Devis, factures, planning chantier, gestion d'équipe : chaque fonctionnalité de Nexartis vient d'un retour d'artisan.
 
 Si cet article vous a été utile, jetez un oeil à [nos tarifs](/tarifs) ou au reste du [blog Nexartis](/blog).
 

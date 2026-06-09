@@ -3,7 +3,7 @@ title: "Batigest avis 2026 : prix Sage, alternative simple"
 description: "Sage Batigest Connect 31-102€/mois : pour qui c'est trop, pour qui c'est bien. Alternative artisan moderne à 15€/mois, sans formation requise."
 category: "Comparatifs concurrents"
 author: "Jérémy Schmitt"
-authorRole: "Fondateur Nexartis · Ancien artisan électricien"
+authorRole: "Fondateur de Nexartis, à l'écoute des artisans du BTP"
 publishedDate: "2026-06-09"
 updated: "2026-06-09"
 readingTime: "10 min"
@@ -106,7 +106,7 @@ Un artisan plombier qui fait 8 devis par mois et 12 factures n'a pas besoin de g
 
 Comptez **2 à 3 semaines** de pratique pour vous sentir à l'aise sur Batigest, en plus de 2-3 jours de formation initiale (300 à 800 € HT). Pour un artisan qui doit déjà gérer ses chantiers, ses devis, sa famille, et qui ouvre le logiciel le soir à 20 h, c'est insurmontable. Les avis Trustpilot 2025-2026 ramènent souvent ce point : **"trop riche, on s'y perd"**.
 
-### Trop cher pour petit budget
+### Budget plus élevé que la moyenne du marché
 
 À 31,08 € HT en Essentials (et plus si vous voulez le suivi chantier complet), vous êtes **2 fois plus cher que [Tolteck, pensé pour l'artisan solo](/blog/tolteck-avis)** (19-25 €) et **2 fois plus cher que Nexartis Essentiel** (15 € HT). Sur trois ans, le delta atteint 600 à 1 200 € — soit un mois entier de chiffre d'affaires pour un micro-entrepreneur.
 
@@ -138,33 +138,46 @@ Voici un tableau direct pour situer Batigest face aux SaaS modernes en juin 2026
 
 **Honnêteté sur Nexartis :** nous n'avons pas l'intégration native Sage Comptabilité, ni les modules marchés publics. Si vous tournez sur Sage Compta ou si vous répondez régulièrement à des appels d'offres publics, **Batigest reste devant**. C'est un choix assumé : nous ciblons l'artisan et la TPE, pas la PME de 50 salariés.
 
-## Notre alternative Nexartis Essentiel : 15 €/mois sans formation
+## Notre alternative Nexartis — Le plus complet à un prix imbattable
 
-Si vous vous reconnaissez dans le profil "artisan seul" ou "TPE 2-5 salariés", voici ce que [Nexartis Essentiel à 15 €/mois sans formation](/tarifs) propose en face de Batigest Essentials (31 €/mois).
+Nexartis propose deux offres pensées pour deux profils d'artisans.
 
-**Couverture fonctionnelle Nexartis Essentiel :**
+### Essentiel — 15€ HT/mois (artisan solo)
 
-- **Devis et factures illimités** avec mentions légales auto, TVA française gérée (20 %, 10 %, 5,5 %, AE), acomptes, retenues, conditions de paiement.
-- **Conformité Factur-X 2026** prête (PDF/A-3 + XML embarqué).
-- **Suivi de chantier** : statut, planning, équipe, notes datées par intervention.
-- **Planning intégré** avec créneaux horaires et alertes de conflit d'affectation.
-- **Signature électronique** des devis par lien public (UUID + expiration), sans Yousign à part.
-- **Génération PDF** native (jsPDF + jspdf-autotable) avec votre logo et vos couleurs.
-- **Dashboard mobile** responsive, PWA installable Android/iOS/Desktop.
+Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP, sans la complexité d'un Sage Batigest et sans formation initiale.
 
-**Ce qu'on a volontairement laissé de côté pour rester à 15 €/mois :**
+- Devis et factures **illimités**
+- **Mentions légales BTP automatiques** — TVA réduite, autoliquidation, attestation rénovation, décennale
+- Signature électronique native
+- Suivi des paiements
+- Application installable sur mobile (PWA)
+- Web responsive
+- Données hébergées en Europe (RGPD)
+- **Prise en main en 15 minutes**, sans formation requise
 
-- Intégration native Sage 50/100 (pas notre cible).
-- Modules marchés publics (DPGF, DQE) — vous ne signez pas de marché public à 80 K€ tous les mois quand vous êtes artisan seul.
-- Multi-sociétés (1 société par compte).
+### Complet — 25€ HT/mois (société avec équipe ou chantiers multiples)
 
-**Prise en main réelle :** la moyenne d'activation de nos artisans (premier devis signé) est de **15 minutes après inscription**. Pas de formation payante, pas de revendeur intermédiaire, pas d'engagement annuel. Si vous arrêtez le mois prochain, vous arrêtez le mois prochain.
+Pour l'artisan qui pilote une activité avec plusieurs intervenants. Tout l'Essentiel, plus les outils premium.
 
-**Pour aller plus loin selon votre métier :**
+- **Planning chantier visuel** avec détection de conflits
+- **Gestion d'équipe** — salariés, intérimaires, sous-traitants
+- **Dictée vocale IA**
+- **Chantiers + journal daté + Pacte de chantier**
+- **Personnalisation aux couleurs de votre entreprise**
+- **Bibliothèque de prestations** personnalisable
+- **Acomptes, factures de situation, avoirs**
+- **Statistiques avancées + export comptable**
 
-- [Logiciel devis maçon](/logiciel-devis-maconnerie) — bibliothèque adaptée gros œuvre, métrés simples.
-- [Logiciel devis électricien](/logiciel-devis-electricien) — devis tableau divisionnaire, modèles courants.
-- [Henrri, le gratuit](/blog/henrri-avis) — si vous voulez tester le gratuit avant de payer.
+### Pourquoi Nexartis face à Sage Batigest
+
+Sage Batigest Connect démarre à 31€ HT/mois (Essentials) et grimpe jusqu'à 102€ HT/mois (Premium), avec une prise en main qui peut nécessiter plusieurs heures de formation. **Nexartis Essentiel à 15€ HT/mois** propose les fonctions BTP de base sans cette complexité. **Nexartis Complet à 25€ HT/mois** ajoute le planning, l'équipe et la dictée vocale, toujours sans formation.
+
+- **Conçu en France**, à Bordeaux, par et pour les artisans français
+- **Sans engagement annuel**
+- **Essai 14 jours sans carte bancaire**
+- **Application installable** sur iPhone, Android, Mac, Windows
+
+[Voir les tarifs Nexartis](/tarifs)
 
 ## Verdict 2026
 
@@ -178,11 +191,11 @@ Sage Batigest Connect est un **produit historique solide**, porté par 18 ans d'
 
 **Pour qui Batigest n'est pas le bon choix :**
 
-- Artisan seul ou micro-entrepreneur → **non**, vous paierez 2 à 6 fois trop cher pour des fonctions inutilisées. Allez voir [Tolteck pour artisan solo](/blog/tolteck-avis), [Henrri, le gratuit](/blog/henrri-avis), ou Nexartis Essentiel à 15 €/mois.
+- Artisan seul ou micro-entrepreneur → **non**, le rapport prix/fonctions utilisées sera défavorable (facteur 2 à 6 selon le pack). Allez voir [Tolteck pour artisan solo](/blog/tolteck-avis), [Henrri, le gratuit](/blog/henrri-avis), ou Nexartis Essentiel à 15 €/mois.
 - TPE 2-5 salariés sans expertise Sage → **non**, la courbe d'apprentissage et le prix ne se justifient pas. [Obat, alternative moderne](/blog/obat-avis), reste plus pertinent.
 - Artisan en démarrage d'activité → **non**, démarrez sur du léger et changez plus tard si besoin.
 
-Ma conviction d'ancien électricien : un logiciel BTP doit **vous faire gagner du temps**, pas devenir un projet en soi. Si vous passez plus de temps à apprendre l'outil qu'à l'utiliser, vous avez choisi le mauvais outil. Batigest est puissant, mais sa puissance n'est pas neutre : elle vient avec un coût d'entrée — financier, cognitif, organisationnel — que tout le monde n'a pas à payer.
+Ma conviction, à l'écoute des artisans du BTP : un logiciel BTP doit **vous faire gagner du temps**, pas devenir un projet en soi. Si vous passez plus de temps à apprendre l'outil qu'à l'utiliser, vous avez choisi le mauvais outil. Batigest est puissant, mais sa puissance n'est pas neutre — elle vient avec un coût d'entrée financier, cognitif, organisationnel — que tout le monde n'a pas à payer.
 
 ## Questions fréquentes sur Batigest
 
@@ -220,7 +233,7 @@ Comptez **2 à 3 jours de formation initiale** (souvent payante : 300 à 800 €
 
 ## À propos de l'auteur
 
-Jérémy Schmitt, ancien artisan électricien dans la région bordelaise, fondateur de Nexartis. J'ai créé Nexartis après dix ans de chantiers à galérer avec Excel, des PDF mal foutus, et des logiciels qui ne comprenaient rien au quotidien d'un artisan. Mon objectif : un outil métier honnête, à un prix qui ne pénalise pas les petites boîtes.
+Jérémy Schmitt est le fondateur de Nexartis. Il construit le logiciel ultime pour les artisans français du BTP en écoutant chaque jour les besoins du terrain. Devis, factures, planning chantier, gestion d'équipe : chaque fonctionnalité de Nexartis vient d'un retour d'artisan.
 
 Si cet article vous a été utile, jetez un œil à [Nexartis Essentiel à 15 €/mois sans formation](/tarifs) ou au reste du [blog Nexartis](/blog).
 
