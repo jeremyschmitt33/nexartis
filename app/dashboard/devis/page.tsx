@@ -31,8 +31,7 @@ import {
   ErrorBanner,
 } from "@/lib/hooks"
 import { champsLegauxManquants } from "@/lib/helpers"
-import { Input } from "@/components/ui/Input"
-import { Select } from "@/components/ui/Select"
+import { PremiumInput, PremiumSelect, InfoBanner } from "@/components/ui/v4"
 
 type DevisStatus = "brouillon" | "envoye" | "signe" | "refuse" | "expire" | "facture"
 
@@ -241,36 +240,34 @@ export default function DevisListPage() {
           du profil entreprise manquent, on previent l'artisan que ses
           devis ne sont pas pleinement conformes a la loi.
           ============================================================ */}
+      {/* V4 : InfoBanner warn pour signaler le profil entreprise incomplet.
+          Affiche la liste des mentions légales manquantes et un CTA vers /parametres. */}
       {profilIncomplet && (
-        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 sm:p-5">
-          <div className="flex items-start gap-3 sm:gap-4">
-            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
-              <AlertTriangle size={18} className="text-amber-700" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-syne font-bold text-[14px] sm:text-[15px] text-amber-900 mb-1">
-                Tes devis ne sont pas pleinement conformes a la loi
-              </h3>
-              <p className="font-manrope text-[13px] text-amber-800 mb-2">
-                Il manque {champsManquants.length} mention{champsManquants.length > 1 ? 's' : ''} obligatoire{champsManquants.length > 1 ? 's' : ''} dans ton profil entreprise.
-                Les PDFs generes affichent une banniere d&apos;avertissement tant que ce n&apos;est pas regle.
-              </p>
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {champsManquants.map(label => (
-                  <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-manrope text-[11px] font-medium">
-                    {label}
-                  </span>
-                ))}
-              </div>
-              <Link
-                href="/dashboard/parametres"
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-syne font-bold text-[13px] transition-colors"
-              >
-                Completer mon profil
-              </Link>
-            </div>
+        <InfoBanner
+          variant="warn"
+          icon={<AlertTriangle size={18} className="text-amber-700" />}
+        >
+          <p className="font-hanken font-bold text-[15px] text-amber-900 mb-1">
+            Tes devis ne sont pas pleinement conformes à la loi
+          </p>
+          <p className="font-hanken text-sm text-amber-800 mb-2">
+            Il manque {champsManquants.length} mention{champsManquants.length > 1 ? 's' : ''} obligatoire{champsManquants.length > 1 ? 's' : ''} dans ton profil entreprise.
+            Les PDFs générés affichent une bannière d&apos;avertissement tant que ce n&apos;est pas réglé.
+          </p>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {champsManquants.map(label => (
+              <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-hanken text-[11px] font-semibold">
+                {label}
+              </span>
+            ))}
           </div>
-        </div>
+          <Link
+            href="/dashboard/parametres"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] hover:brightness-105 text-white font-hanken font-bold text-[13px] shadow-[0_4px_12px_rgba(255,122,26,0.25)] transition-all"
+          >
+            Compléter mon profil
+          </Link>
+        </InfoBanner>
       )}
 
       {/* V3.0d.2 : StatCards cliquables = filtres. Le dropdown filter HTML est
@@ -312,45 +309,73 @@ export default function DevisListPage() {
           value={String(stats.attenteCount)}
           sub={formatCurrency(stats.attenteTTC)}
           gradient="from-orange/30 to-orange/10"
-          color="#e87a2a"
+          color="#ff7a1a"
           active={filter === "Brouillon"}
           onClick={() => setFilter(filter === "Brouillon" ? "Tous" : "Brouillon")}
         />
       </div>
 
+      {/* V4 : barre recherche + tri + CTA "Nouveau devis".
+          Utilise PremiumInput/PremiumSelect partagés + gradient orange sur le bouton. */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-          <Input
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+          <PremiumInput
             type="text"
             placeholder="Rechercher un devis..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="[&_input]:pl-9"
           />
         </div>
-        <Select value={sort} onChange={(e) => setSort(e.target.value)} containerClassName="sm:w-auto">
+        <PremiumSelect
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="sm:w-44"
+        >
           {SORT_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-        </Select>
-        <Link href="/dashboard/devis/nouveau" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white text-sm font-syne font-bold transition-colors shrink-0">
+        </PremiumSelect>
+        <Link
+          href="/dashboard/devis/nouveau"
+          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     text-white text-sm font-hanken font-bold
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.4)]
+                     hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0
+                     transition-all duration-200 shrink-0"
+        >
           <Plus size={16} /> Nouveau devis
         </Link>
       </div>
 
+      {/* V4 : barre d'actions groupées (visible quand >=1 devis sélectionné) */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
-          <span className="text-sm font-manrope font-semibold text-blue-700">{selected.size} devis sélectionné{selected.size > 1 ? "s" : ""}</span>
-          <button onClick={handleBulkDelete} disabled={bulkDeleting} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-manrope font-semibold transition-colors disabled:opacity-50"><Trash2 size={13} /> {bulkDeleting ? "Suppression..." : "Supprimer la sélection"}</button>
-          <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-manrope font-medium text-gray-600 hover:bg-gray-50 transition-colors">Tout désélectionner</button>
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-blue-50/80 border border-blue-200/70 rounded-xl">
+          <span className="text-sm font-hanken font-bold text-blue-800">
+            {selected.size} devis sélectionné{selected.size > 1 ? "s" : ""}
+          </span>
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-hanken font-bold transition-colors disabled:opacity-50"
+          >
+            <Trash2 size={13} /> {bulkDeleting ? "Suppression..." : "Supprimer la sélection"}
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="px-3 py-1.5 rounded-lg bg-white border-[1.5px] border-gray-200 text-xs font-hanken font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          >
+            Tout désélectionner
+          </button>
         </div>
       )}
 
-      {/* Mobile cards (visible < md) */}
-      <div className="md:hidden space-y-2">
+      {/* V4 : Mobile cards (visible < md). rounded-2xl, ombre douce, accent au hover. */}
+      <div className="md:hidden space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center bg-white rounded-xl border border-gray-200">
+          <div className="py-12 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06)]">
             <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun devis trouvé</p>
+            <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
           </div>
         ) : (
           filtered.map((devis) => {
@@ -359,41 +384,43 @@ export default function DevisListPage() {
               <div
                 key={String(devis.id)}
                 onClick={() => router.push(`/dashboard/devis/${devis.id}`)}
-                className="bg-white rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] px-4 py-3.5 cursor-pointer
+                           shadow-[0_4px_12px_rgba(15,26,58,0.04)]
+                           hover:border-[#ff7a1a]/40 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(15,26,58,0.08)]
+                           active:translate-y-0 transition-all duration-200"
               >
-                {/* V3.0d.2 : police Hanken sur montant (tabular-nums) + numero
-                    devis en pastille Spline Sans Mono (cohérence PDF) */}
+                {/* Police Hanken sur titres + Spline Sans Mono sur montants/numéro pour parité PDF */}
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-manrope font-bold text-navy truncate">
+                    <p className="text-sm font-hanken font-bold text-[#0f1a3a] truncate">
                       {(devis.notes_client as string)?.split(" | ")[0] || getClientName(devis.client_id as string | null) || String(devis.numero || '')}
                     </p>
-                    <p className="text-xs font-manrope text-gray-500 truncate mt-0.5">
+                    <p className="text-xs font-hanken text-gray-500 truncate mt-0.5">
                       {(devis.objet as string) || String(devis.numero || '')}
                     </p>
                   </div>
                   <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] font-manrope font-bold uppercase tracking-wider ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] font-hanken font-bold uppercase tracking-wider ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABELS[statut] || statut}
                     </span>
-                    <p className="font-hanken font-extrabold text-[15px] text-navy tabular-nums">{formatCurrency(devis.montant_ttc as number)}</p>
+                    <p className="font-spline-mono font-bold text-[15px] text-[#0f1a3a] tabular-nums">{formatCurrency(devis.montant_ttc as number)}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-2 gap-2">
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-spline-mono text-[11px] text-navy bg-cream px-2 py-0.5 rounded">{String(devis.numero || '')}</span>
-                    <span className="text-xs font-manrope text-gray-400">{formatDate(devis.date_emission as string)}</span>
+                    <span className="font-spline-mono text-[11px] text-[#0f1a3a] bg-[#fafbfc] border border-gray-100 px-2 py-0.5 rounded">{String(devis.numero || '')}</span>
+                    <span className="text-xs font-spline-mono text-gray-400">{formatDate(devis.date_emission as string)}</span>
                   </div>
                   <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleSend(devis) }}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#5ab4e0]/10 text-[#5ab4e0] text-xs font-manrope font-semibold hover:bg-[#5ab4e0]/20 active:scale-95 transition-all"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-hanken font-semibold hover:bg-blue-100 active:scale-95 transition-all"
                     >
                       <Send size={11} /> Envoyer
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/devis/${devis.id}?convert=1`) }}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-manrope font-semibold hover:bg-emerald-100 active:scale-95 transition-all"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-hanken font-semibold hover:bg-emerald-100 active:scale-95 transition-all"
                     >
                       <FileText size={11} /> Convertir
                     </button>
@@ -411,14 +438,15 @@ export default function DevisListPage() {
         )}
       </div>
 
-      {/* Desktop table (visible ≥ md) */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      {/* V4 : Desktop table dans une carte secondaire (rounded-2xl, ombre subtile).
+          Polices Hanken partout, montants en Spline Sans Mono pour la parité PDF. */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)] overflow-x-auto">
         <table className="w-full min-w-[900px]">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-3 w-10"><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0] cursor-pointer" /></th>
+            <tr className="bg-[#fafbfc] border-b border-gray-100">
+              <th className="px-3 py-3.5 w-10"><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a] cursor-pointer" /></th>
               {["Client / Chantier", "Statut", "Numéro", "Modifié", "Date", "Valable jusqu'au", "Total HT", "Total TTC", "Actions"].map((col) => (
-                <th key={col} className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">{col}</th>
+                <th key={col} className="px-4 py-3.5 text-left text-[11.5px] font-hanken font-bold uppercase tracking-[0.08em] text-gray-700">{col}</th>
               ))}
             </tr>
           </thead>
@@ -426,39 +454,45 @@ export default function DevisListPage() {
             {filtered.map((devis, idx) => {
               const statut = (devis.statut as DevisStatus) || "brouillon"
               return (
-                <tr key={String(devis.id)} onClick={() => router.push(`/dashboard/devis/${devis.id}`)} className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${idx % 2 === 1 ? "bg-[#f8f9fa]" : ""}`}>
-                  <td className="px-3 py-3 w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(devis.id as string)} onChange={() => toggleSelect(devis.id as string)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0] cursor-pointer" /></td>
-                  <td className="px-4 py-3"><div className="text-sm font-manrope font-bold text-[#1a1a2e]">{(devis.notes_client as string)?.split(" | ")[0] || getClientName(devis.client_id as string | null)}</div><div className="text-sm font-manrope font-semibold text-gray-700">{(devis.objet as string) || (devis.description as string) || getChantierTitre(devis.chantier_id as string | null)}</div></td>
-                  <td className="px-4 py-3"><span className={`inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>{STATUS_LABELS[statut] || statut}</span></td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-500">{String(devis.numero || '')}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{formatDate(devis.updated_at as string)}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{formatDate(devis.date_emission as string)}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{formatDate(devis.date_validite as string)}</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-medium text-[#1a1a2e]">{formatCurrency(devis.montant_ht as number)}</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-bold text-[#1a1a2e]">{formatCurrency(devis.montant_ttc as number)}</td>
+                <tr key={String(devis.id)} onClick={() => router.push(`/dashboard/devis/${devis.id}`)} className={`border-b border-gray-100 hover:bg-[#fafbfc] cursor-pointer transition-colors ${idx % 2 === 1 ? "bg-[#fbfcfd]" : ""}`}>
+                  <td className="px-3 py-3 w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(devis.id as string)} onChange={() => toggleSelect(devis.id as string)} className="w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a] cursor-pointer" /></td>
+                  <td className="px-4 py-3"><div className="text-sm font-hanken font-bold text-[#0f1a3a]">{(devis.notes_client as string)?.split(" | ")[0] || getClientName(devis.client_id as string | null)}</div><div className="text-xs font-hanken font-medium text-gray-500 mt-0.5">{(devis.objet as string) || (devis.description as string) || getChantierTitre(devis.chantier_id as string | null)}</div></td>
+                  <td className="px-4 py-3"><span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>{STATUS_LABELS[statut] || statut}</span></td>
+                  <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-700">{String(devis.numero || '')}</td>
+                  <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-600">{formatDate(devis.updated_at as string)}</td>
+                  <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-600">{formatDate(devis.date_emission as string)}</td>
+                  <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-600">{formatDate(devis.date_validite as string)}</td>
+                  <td className="px-4 py-3 text-sm font-spline-mono font-medium text-[#0f1a3a] tabular-nums">{formatCurrency(devis.montant_ht as number)}</td>
+                  <td className="px-4 py-3 text-sm font-spline-mono font-bold text-[#0f1a3a] tabular-nums">{formatCurrency(devis.montant_ttc as number)}</td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={(e) => openMenu(e, devis.id as string)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"><MoreHorizontal size={16} className="text-gray-500" /></button>
+                    <button onClick={(e) => openMenu(e, devis.id as string)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><MoreHorizontal size={16} className="text-gray-500" /></button>
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
-        {filtered.length === 0 && (<div className="py-12 text-center"><FileText size={40} className="mx-auto text-gray-300 mb-3" /><p className="text-sm font-manrope text-gray-500">Aucun devis trouvé</p></div>)}
+        {filtered.length === 0 && (
+          <div className="py-12 text-center">
+            <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
+          </div>
+        )}
       </div>
 
-      {/* Menu flottant en position fixed — sort du conteneur */}
+      {/* V4 : Menu flottant d'actions (rounded-xl, ombre douce bleutée) */}
       {openActions && menuPos && activeDevis && (
         <div
-          className="fixed z-[9999] w-48 bg-white rounded-lg shadow-2xl border border-gray-200 py-1"
+          className="fixed z-[9999] w-52 bg-white rounded-xl shadow-[0_12px_32px_rgba(15,26,58,0.18),_0_4px_12px_rgba(15,26,58,0.08)] border border-[#0f1a3a]/[0.06] py-1.5"
           style={{ top: menuPos.top, left: menuPos.left }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button onClick={() => { closeMenu(); router.push(`/dashboard/devis/${activeDevis.id}`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Eye size={14} /> Voir</button>
-          <button onClick={() => { closeMenu(); router.push(`/dashboard/devis/${activeDevis.id}/modifier`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Pencil size={14} /> Modifier</button>
-          <button onClick={() => { closeMenu(); router.push(`/dashboard/devis/${activeDevis.id}?convert=1`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><FileText size={14} /> Convertir en facture</button>
-          <button onClick={() => { closeMenu(); handleSend(activeDevis) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><SendHorizonal size={14} /> Envoyer</button>
-          <button onClick={() => { closeMenu(); handleDelete(activeDevis.id as string) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-red-600"><Trash2 size={14} /> Supprimer</button>
+          <button onClick={() => { closeMenu(); router.push(`/dashboard/devis/${activeDevis.id}`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-hanken font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"><Eye size={14} /> Voir</button>
+          <button onClick={() => { closeMenu(); router.push(`/dashboard/devis/${activeDevis.id}/modifier`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-hanken font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"><Pencil size={14} /> Modifier</button>
+          <button onClick={() => { closeMenu(); router.push(`/dashboard/devis/${activeDevis.id}?convert=1`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-hanken font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"><FileText size={14} /> Convertir en facture</button>
+          <button onClick={() => { closeMenu(); handleSend(activeDevis) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-hanken font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"><SendHorizonal size={14} /> Envoyer</button>
+          <div className="h-px bg-gray-100 my-1 mx-2" />
+          <button onClick={() => { closeMenu(); handleDelete(activeDevis.id as string) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-hanken font-semibold hover:bg-red-50 transition-colors text-red-600"><Trash2 size={14} /> Supprimer</button>
         </div>
       )}
     </div>

@@ -13,22 +13,41 @@ function formatCurrency(n: number): string {
   return n.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
 }
 
+// ============ StatCard V4 Light Premium ============
+// Carte blanche premium, label SMALL CAPS, valeur en Spline Mono (chiffres).
+// Accent line orange optionnelle si highlight=true.
 function StatCard({
   label,
   value,
-  valueColor = "text-[#1a1a2e]",
+  valueColor = "text-[#0f1a3a]",
   size = "2xl",
+  highlight = false,
 }: {
   label: string;
   value: string;
   valueColor?: string;
   size?: "2xl" | "3xl";
+  highlight?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-      <p className="text-sm text-[#6b7280] font-manrope mb-2">{label}</p>
+    <div
+      className="relative bg-white rounded-2xl p-5 border border-[#0f1a3a]/[0.06]
+                 shadow-[0_4px_16px_rgba(15,26,58,0.04),_0_1px_3px_rgba(15,26,58,0.04)]
+                 transition-all duration-200 hover:-translate-y-0.5
+                 hover:shadow-[0_8px_24px_rgba(15,26,58,0.08),_0_2px_4px_rgba(15,26,58,0.04)]
+                 overflow-hidden"
+    >
+      {highlight && (
+        <div
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+        />
+      )}
+      <p className="font-hanken font-semibold text-[11.5px] uppercase tracking-wider text-gray-500 mb-2">
+        {label}
+      </p>
       <p
-        className={`font-syne font-bold ${
+        className={`font-spline-mono font-medium tracking-[-0.01em] ${
           size === "3xl" ? "text-3xl" : "text-2xl"
         } ${valueColor}`}
       >
@@ -38,11 +57,18 @@ function StatCard({
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+// ============ SectionHeader (titre de zone) V4 ============
+// Titre H2 extrabold Hanken, sans icône (pour structurer les blocs de KPI).
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-4 mt-10 first:mt-0">
-      {title}
-    </h2>
+    <div className="mb-5 mt-10 first:mt-0">
+      <h2 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="font-hanken font-medium text-sm text-gray-500 mt-1">{subtitle}</p>
+      )}
+    </div>
   );
 }
 
@@ -157,9 +183,9 @@ export default function StatistiquesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50/50">
+      <div className="min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="font-syne font-bold text-2xl text-[#1a1a2e] mb-8">
+          <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] mb-8">
             Statistiques
           </h1>
           <LoadingSkeleton rows={8} />
@@ -169,61 +195,111 @@ export default function StatistiquesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    // ============ Page Statistiques — V4 Light Premium ============
+    // Header de page Hanken extrabold + sous-titre, cartes blanches arrondies
+    // 2xl, chiffres en Spline Mono, accent line orange sur les cards mises en
+    // avant. Logique recharts préservée à 100% (BarChart, dataKey, formatter).
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="font-syne font-bold text-2xl text-[#1a1a2e] mb-8">
-          Statistiques
-        </h1>
+        {/* Header de page */}
+        <div className="mb-8">
+          <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Statistiques
+          </h1>
+          <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+            Suivi de votre chiffre d&apos;affaires, devis, factures et planning
+          </p>
+        </div>
 
-        <SectionHeader title="Chiffre d'affaires" />
+        <SectionHeader title="Chiffre d'affaires" subtitle="Suivi mensuel du facturé et de l'encaissé" />
 
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+        {/* ============ Carte graphique CA — PremiumCard avec accent line ============ */}
+        <div
+          className="relative bg-white rounded-3xl p-6 sm:p-8 border border-[#0f1a3a]/[0.06]
+                     shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]
+                     overflow-hidden"
+        >
+          <div
+            aria-hidden
+            className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+          />
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <p className="text-sm text-[#6b7280] font-manrope">
-                CA encaissé {chartYear}
+              <p className="font-hanken font-semibold text-[11.5px] uppercase tracking-wider text-gray-500">
+                CA encaissé <span className="font-spline-mono font-medium">{chartYear}</span>
               </p>
-              <p className="font-syne font-bold text-3xl text-[#22c55e]">
+              <p className="font-spline-mono font-medium text-3xl text-emerald-600 mt-1 tracking-[-0.01em]">
                 {formatCurrency(stats.totalCA)}
               </p>
-              <div className="flex gap-4 mt-1">
-                <span className="text-xs text-[#6b7280] font-manrope">Facturé : <strong className="text-[#1a1a2e]">{formatCurrency(stats.totalCAFacture)}</strong></span>
-                <span className="text-xs text-[#6b7280] font-manrope">Reste : <strong className="text-[#e87a2a]">{formatCurrency(stats.resteAEncaisser)}</strong></span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                <span className="font-hanken text-xs text-gray-500">
+                  Facturé : <strong className="text-[#0f1a3a] font-spline-mono font-medium">{formatCurrency(stats.totalCAFacture)}</strong>
+                </span>
+                <span className="font-hanken text-xs text-gray-500">
+                  Reste : <strong className="text-[#ff7a1a] font-spline-mono font-medium">{formatCurrency(stats.resteAEncaisser)}</strong>
+                </span>
               </div>
             </div>
+            {/* Sélecteur d'année */}
             <div className="flex items-center gap-2">
-              <button onClick={() => setChartYear(chartYear - 1)} className="px-3 py-1.5 text-xs font-medium text-[#6b7280] hover:bg-gray-50 border border-gray-200 rounded-lg">&larr; {chartYear - 1}</button>
-              <span className="px-3 py-1.5 text-xs font-bold bg-[#0f1a3a] text-white rounded-lg">{chartYear}</span>
-              <button onClick={() => setChartYear(chartYear + 1)} disabled={chartYear >= new Date().getFullYear()} className="px-3 py-1.5 text-xs font-medium text-[#6b7280] hover:bg-gray-50 border border-gray-200 rounded-lg disabled:opacity-30">{chartYear + 1} &rarr;</button>
+              <button
+                onClick={() => setChartYear(chartYear - 1)}
+                className="px-3 py-1.5 font-hanken font-semibold text-xs text-gray-600 bg-white border-[1.5px] border-gray-200 rounded-lg
+                           hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200"
+              >
+                &larr; <span className="font-spline-mono font-medium">{chartYear - 1}</span>
+              </button>
+              <span className="px-3 py-1.5 font-spline-mono font-medium text-xs text-white bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] rounded-lg
+                              shadow-[0_4px_12px_rgba(255,122,26,0.3)]">
+                {chartYear}
+              </span>
+              <button
+                onClick={() => setChartYear(chartYear + 1)}
+                disabled={chartYear >= new Date().getFullYear()}
+                className="px-3 py-1.5 font-hanken font-semibold text-xs text-gray-600 bg-white border-[1.5px] border-gray-200 rounded-lg
+                           hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200
+                           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-white"
+              >
+                <span className="font-spline-mono font-medium">{chartYear + 1}</span> &rarr;
+              </button>
             </div>
           </div>
 
+          {/* Logique recharts INTACTE — couleurs adaptées à la palette V4. */}
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12, fill: '#6b7280', fontFamily: 'var(--font-hanken)' }}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: '#6b7280', fontFamily: 'var(--font-spline-mono)' }}
+                tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+              />
               <Tooltip
                 formatter={(value, name) => [
                   `${Number(value).toLocaleString('fr-FR')} €`,
                   name === 'facture' ? 'CA facturé' : 'CA encaissé',
                 ]}
-                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}
+                contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13, fontFamily: 'var(--font-hanken)' }}
               />
               <Legend formatter={(value: string) => value === 'facture' ? 'CA facturé' : 'CA encaissé'} />
-              <Bar dataKey="facture" fill="#5ab4e0" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="encaisse" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="facture" fill="#ff9d4d" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="encaisse" fill="#10b981" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <SectionHeader title="Devis" />
+        <SectionHeader title="Devis" subtitle="Performance commerciale" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Taux de transformation"
             value={`${stats.tauxTransformation}%`}
-            valueColor="text-[#22c55e]"
+            valueColor="text-emerald-600"
             size="3xl"
+            highlight
           />
           <StatCard label="Délai moyen signature" value="—" />
           <StatCard label="Montant moyen" value={formatCurrency(stats.montantMoyenDevis)} />
@@ -233,23 +309,24 @@ export default function StatistiquesPage() {
           />
         </div>
 
-        <SectionHeader title="Factures" />
+        <SectionHeader title="Factures" subtitle="Suivi de l'encaissement" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Délai moyen paiement" value="—" />
           <StatCard
             label="Reste à encaisser"
             value={formatCurrency(stats.resteAEncaisser)}
-            valueColor="text-[#e87a2a]"
+            valueColor="text-[#ff7a1a]"
+            highlight
           />
           <StatCard
             label="Factures en retard"
             value={String(stats.facturesEnRetard)}
-            valueColor="text-[#ef4444]"
+            valueColor="text-red-600"
           />
           <StatCard label="Taux encaissement" value={`${stats.tauxEncaissement}%`} />
         </div>
 
-        <SectionHeader title="Planning" />
+        <SectionHeader title="Planning" subtitle="Activité chantiers" />
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           <StatCard label="Taux occupation" value="—" />
           <StatCard label="Jour le plus chargé" value="—" />

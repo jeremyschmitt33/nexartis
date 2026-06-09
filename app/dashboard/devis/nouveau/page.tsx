@@ -77,7 +77,8 @@ function formatCurrency(n: number): string {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
-const inputCls = 'w-full h-11 rounded-xl border-2 border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/20 transition-all bg-white placeholder:text-gray-400'
+// V4 : style input partagé sur cette page — bordure 1.5px, bg #fafbfc, focus halo orange
+const inputCls = 'w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200'
 
 // -------------------------------------------------------------------
 // Voice Modal — V3.0e Vague 1
@@ -300,15 +301,15 @@ function VoiceModal({ open, onClose, onResult }: {
       <div className="bg-white rounded-2xl w-full max-w-lg mx-4 p-6 sm:p-8 shadow-2xl">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="font-syne font-bold text-xl text-navy">Dictée vocale</h3>
-            <p className="text-xs font-manrope text-gray-500 mt-1">Décris ton devis à voix haute, l&apos;IA pré-remplit les champs.</p>
+            <h3 className="font-hanken font-bold text-xl text-navy">Dictée vocale</h3>
+            <p className="text-xs font-hanken text-gray-500 mt-1">Décris ton devis à voix haute, l&apos;IA pré-remplit les champs.</p>
           </div>
           <button onClick={onClose} className="p-2 -m-2 hover:bg-gray-100 rounded-lg" aria-label="Fermer"><X size={20} /></button>
         </div>
 
         {!supported ? (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <p className="text-sm font-manrope text-red-700">Ton navigateur ne supporte pas l&apos;enregistrement audio. Mets-le à jour ou utilise Chrome/Safari récent.</p>
+            <p className="text-sm font-hanken text-red-700">Ton navigateur ne supporte pas l&apos;enregistrement audio. Mets-le à jour ou utilise Chrome/Safari récent.</p>
           </div>
         ) : (
           <>
@@ -337,23 +338,23 @@ function VoiceModal({ open, onClose, onResult }: {
                 {recording ? (
                   <>
                     <p className="font-hanken font-bold text-2xl text-red-500 tabular-nums">{formatTime(elapsedSec)}</p>
-                    <p className="text-xs font-manrope text-gray-500 mt-0.5">Parle maintenant — touche le micro pour stopper</p>
+                    <p className="text-xs font-hanken text-gray-500 mt-0.5">Parle maintenant — touche le micro pour stopper</p>
                   </>
                 ) : audioBlob ? (
                   <>
                     <p className="font-hanken font-bold text-lg text-navy">Enregistrement prêt ({formatTime(elapsedSec)})</p>
-                    <p className="text-xs font-manrope text-gray-500 mt-0.5">Clique sur « Analyser » ou ré-enregistre</p>
+                    <p className="text-xs font-hanken text-gray-500 mt-0.5">Clique sur « Analyser » ou ré-enregistre</p>
                   </>
                 ) : (
-                  <p className="text-sm font-manrope text-gray-500">Touche le micro pour commencer</p>
+                  <p className="text-sm font-hanken text-gray-500">Touche le micro pour commencer</p>
                 )}
               </div>
             </div>
 
             {/* Conseil */}
             {!recording && !audioBlob && !error && (
-              <div className="bg-sky/10 border border-sky/30 rounded-xl px-4 py-3 mb-4">
-                <p className="text-xs font-manrope text-navy leading-relaxed">
+              <div className="rounded-xl px-4 py-3 mb-4" style={{ background: '#fff5ec', border: '1px solid #ffeadb' }}>
+                <p className="text-xs font-hanken leading-relaxed" style={{ color: '#0f1a3a' }}>
                   <strong className="font-bold">Exemple : </strong>
                   « Devis pour Madame Aude Rouyer, 230 allée des merles, 33480 Sainte-Hélène. Pose de 25 mètres linéaires de clôture rigide gris anthracite à 195 euros le mètre. Acompte 30 pour cent. »
                 </p>
@@ -362,16 +363,16 @@ function VoiceModal({ open, onClose, onResult }: {
 
             {/* Etat traitement Gemini */}
             {processing && (
-              <div className="bg-sky/10 border border-sky/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-sky border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm font-manrope text-navy">L&apos;IA analyse ta dictée et pré-remplit les champs...</p>
+              <div className="rounded-xl px-4 py-3 mb-4 flex items-center gap-3" style={{ background: '#fff5ec', border: '1px solid #ffeadb' }}>
+                <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#ff7a1a', borderTopColor: 'transparent' }} />
+                <p className="text-sm font-hanken" style={{ color: '#0f1a3a' }}>L&apos;IA analyse ta dictée et pré-remplit les champs...</p>
               </div>
             )}
 
             {/* Erreur */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-                <p className="text-sm font-manrope text-red-700 flex items-start gap-2">
+                <p className="text-sm font-hanken text-red-700 flex items-start gap-2">
                   <span aria-hidden>⚠</span>
                   <span>{error}</span>
                 </p>
@@ -383,7 +384,7 @@ function VoiceModal({ open, onClose, onResult }: {
               <button
                 onClick={onClose}
                 disabled={processing}
-                className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-manrope font-medium hover:bg-gray-50 disabled:opacity-50"
+                className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-hanken font-medium hover:bg-gray-50 disabled:opacity-50"
               >
                 Annuler
               </button>
@@ -391,7 +392,7 @@ function VoiceModal({ open, onClose, onResult }: {
                 <button
                   onClick={handleSubmit}
                   disabled={processing}
-                  className="h-11 px-6 rounded-xl bg-gradient-to-br from-orange to-orange-hover text-white text-sm font-syne font-bold shadow-[0_6px_16px_-4px_rgba(232,122,42,0.45)] disabled:opacity-50 active:scale-95 transition-transform"
+                  className="h-11 px-6 rounded-xl bg-gradient-to-br from-orange to-orange-hover text-white text-sm font-hanken font-bold shadow-[0_6px_16px_-4px_rgba(232,122,42,0.45)] disabled:opacity-50 active:scale-95 transition-transform"
                 >
                   {processing ? 'Analyse...' : 'Analyser et pré-remplir'}
                 </button>
@@ -399,7 +400,7 @@ function VoiceModal({ open, onClose, onResult }: {
             </div>
 
             {/* Mention RGPD discrete */}
-            <p className="text-[10.5px] font-manrope text-gray-400 mt-4 text-center leading-relaxed">
+            <p className="text-[10.5px] font-hanken text-gray-400 mt-4 text-center leading-relaxed">
               Audio traité par Google Gemini pour transcription et extraction, puis supprimé. Pas de stockage permanent.
             </p>
           </>
@@ -1000,8 +1001,8 @@ function NouveauDevisPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={String(entreprise?.logo_url || '')} alt="Logo" className="h-16 w-auto object-contain mb-2" style={{ mixBlendMode: 'multiply', maxWidth: 160 }} />
                 )}
-                <h2 className="font-syne font-bold text-xl text-[#0f1a3a]">{String(entreprise?.nom || 'Mon Entreprise')}</h2>
-                <p className="text-sm font-manrope text-[#6b7280] mt-1 leading-relaxed">
+                <h2 className="font-hanken font-bold text-xl text-[#0f1a3a]">{String(entreprise?.nom || 'Mon Entreprise')}</h2>
+                <p className="text-sm font-hanken text-[#6b7280] mt-1 leading-relaxed">
                   {Boolean(entreprise?.adresse) && <>{String(entreprise?.adresse || '')}<br /></>}
                   {Boolean(entreprise?.code_postal || entreprise?.ville) && <>{String(entreprise?.code_postal || '')} {String(entreprise?.ville || '')}<br /></>}
                   {Boolean(entreprise?.siret) && <>SIRET : {String(entreprise?.siret || '')}<br /></>}
@@ -1009,42 +1010,42 @@ function NouveauDevisPage() {
                 </p>
               </div>
               <div className="text-right">
-                <h3 className="font-syne font-bold text-lg text-[#0f1a3a]">DEVIS</h3>
-                <p className="text-sm font-manrope text-[#6b7280] mt-1">
+                <h3 className="font-hanken font-bold text-lg text-[#0f1a3a]">DEVIS</h3>
+                <p className="text-sm font-hanken text-[#6b7280] mt-1">
                   Date : {new Date(dateDevis).toLocaleDateString('fr-FR')}<br />
                   Validité : {new Date(dateValidite).toLocaleDateString('fr-FR')}
                 </p>
               </div>
             </div>
             <div className="mb-8 p-4 bg-gray-50 rounded-lg">
-              <p className="text-xs font-manrope font-semibold uppercase tracking-wider text-[#6b7280] mb-1">Client</p>
-              <p className="text-sm font-manrope text-[#1a1a2e] font-medium">{clientCivilite ? `${clientCivilite} ` : ''}{clientNom || 'Non renseigné'}</p>
-              {clientAdresse && <p className="text-sm font-manrope text-[#6b7280]">{clientAdresse}</p>}
-              {(clientCodePostal || clientVille) && <p className="text-sm font-manrope text-[#6b7280]">{clientCodePostal} {clientVille}</p>}
+              <p className="text-xs font-hanken font-semibold uppercase tracking-wider text-[#6b7280] mb-1">Client</p>
+              <p className="text-sm font-hanken text-[#0f1a3a] font-medium">{clientCivilite ? `${clientCivilite} ` : ''}{clientNom || 'Non renseigné'}</p>
+              {clientAdresse && <p className="text-sm font-hanken text-[#6b7280]">{clientAdresse}</p>}
+              {(clientCodePostal || clientVille) && <p className="text-sm font-hanken text-[#6b7280]">{clientCodePostal} {clientVille}</p>}
             </div>
             {chantierDesc && (
-              <div className="mb-8"><p className="text-xs font-manrope font-semibold uppercase tracking-wider text-[#6b7280] mb-1">Chantier</p><p className="text-sm font-manrope text-[#1a1a2e]">{chantierDesc}</p></div>
+              <div className="mb-8"><p className="text-xs font-hanken font-semibold uppercase tracking-wider text-[#6b7280] mb-1">Chantier</p><p className="text-sm font-hanken text-[#0f1a3a]">{chantierDesc}</p></div>
             )}
 
             <table className="w-full mb-8">
-              <thead><tr className="bg-[#5ab4e0] text-white">
-                <th className="px-3 py-2.5 text-left text-xs font-manrope font-semibold uppercase">Désignation</th>
-                <th className="px-3 py-2.5 text-center text-xs font-manrope font-semibold uppercase">Qté</th>
-                <th className="px-3 py-2.5 text-center text-xs font-manrope font-semibold uppercase">Unité</th>
-                <th className="px-3 py-2.5 text-right text-xs font-manrope font-semibold uppercase">Prix U. HT</th>
+              <thead><tr className="bg-[#0f1a3a] text-white">
+                <th className="px-3 py-2.5 text-left text-xs font-hanken font-semibold uppercase">Désignation</th>
+                <th className="px-3 py-2.5 text-center text-xs font-hanken font-semibold uppercase">Qté</th>
+                <th className="px-3 py-2.5 text-center text-xs font-hanken font-semibold uppercase">Unité</th>
+                <th className="px-3 py-2.5 text-right text-xs font-hanken font-semibold uppercase">Prix U. HT</th>
                 {/* V2.5 — Colonne TVA par ligne (parite Obat / PDF) */}
-                <th className="px-3 py-2.5 text-center text-xs font-manrope font-semibold uppercase">TVA</th>
-                <th className="px-3 py-2.5 text-right text-xs font-manrope font-semibold uppercase">Total HT</th>
+                <th className="px-3 py-2.5 text-center text-xs font-hanken font-semibold uppercase">TVA</th>
+                <th className="px-3 py-2.5 text-right text-xs font-hanken font-semibold uppercase">Total HT</th>
               </tr></thead>
               <tbody>
                 {lines.filter(l => l.designation || l.priceHT > 0).map((l, i) => (
                   <tr key={l.id} className={i % 2 === 1 ? 'bg-gray-50' : ''}>
-                    <td className="px-3 py-2.5 text-sm font-manrope text-[#1a1a2e] whitespace-pre-wrap">{l.designation}</td>
-                    <td className="px-3 py-2.5 text-sm font-manrope text-center">{l.type === 'line' ? l.qty : ''}</td>
-                    <td className="px-3 py-2.5 text-sm font-manrope text-center text-[#6b7280]">{l.type === 'line' ? l.unit : ''}</td>
-                    <td className="px-3 py-2.5 text-sm font-manrope text-right">{l.type === 'line' && l.priceHT > 0 ? formatCurrency(l.priceHT) : l.type === 'line' ? '--' : ''}</td>
-                    <td className="px-3 py-2.5 text-sm font-manrope text-center text-[#6b7280]">{l.type === 'line' ? `${(l.tva ?? 0).toString().replace('.', ',')}%` : ''}</td>
-                    <td className="px-3 py-2.5 text-sm font-manrope text-right font-semibold">{l.type === 'line' && l.priceHT > 0 ? formatCurrency(l.qty * l.priceHT) : l.type === 'line' ? '--' : ''}</td>
+                    <td className="px-3 py-2.5 text-sm font-hanken text-[#0f1a3a] whitespace-pre-wrap">{l.designation}</td>
+                    <td className="px-3 py-2.5 text-sm font-hanken text-center">{l.type === 'line' ? l.qty : ''}</td>
+                    <td className="px-3 py-2.5 text-sm font-hanken text-center text-[#6b7280]">{l.type === 'line' ? l.unit : ''}</td>
+                    <td className="px-3 py-2.5 text-sm font-hanken text-right">{l.type === 'line' && l.priceHT > 0 ? formatCurrency(l.priceHT) : l.type === 'line' ? '--' : ''}</td>
+                    <td className="px-3 py-2.5 text-sm font-hanken text-center text-[#6b7280]">{l.type === 'line' ? `${(l.tva ?? 0).toString().replace('.', ',')}%` : ''}</td>
+                    <td className="px-3 py-2.5 text-sm font-hanken text-right font-semibold">{l.type === 'line' && l.priceHT > 0 ? formatCurrency(l.qty * l.priceHT) : l.type === 'line' ? '--' : ''}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1052,21 +1053,21 @@ function NouveauDevisPage() {
 
             <div className="flex justify-end mb-8">
               <div className="w-72">
-                <div className="flex justify-between py-2 text-sm font-manrope"><span className="text-[#6b7280]">Total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
+                <div className="flex justify-between py-2 text-sm font-hanken"><span className="text-[#6b7280]">Total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
                 {!autoEntrepreneur && Object.entries(tvaGroups).filter(([r]) => Number(r) > 0).sort(([a], [b]) => Number(a) - Number(b)).map(([rate, group]) => (
-                  <div key={rate} className="flex justify-between py-2 text-sm font-manrope"><span className="text-[#6b7280]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
+                  <div key={rate} className="flex justify-between py-2 text-sm font-hanken"><span className="text-[#6b7280]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
                 ))}
                 <div className="border-t mt-2 pt-2 flex justify-between py-2"><span className="text-[#6b7280]">Total TTC</span><span className="font-semibold">{formatCurrency(totalTTC)}</span></div>
                 {autoEntrepreneur && <p className="text-xs text-[#6b7280] italic mt-1">TVA non applicable, art. 293 B du CGI</p>}
               </div>
             </div>
 
-            {conditionsStr && <div className="mb-8"><h4 className="font-manrope font-semibold text-sm text-[#1a1a2e] mb-2">Conditions de paiement</h4><p className="text-sm font-manrope text-[#6b7280] whitespace-pre-wrap">{conditionsStr}</p></div>}
+            {conditionsStr && <div className="mb-8"><h4 className="font-hanken font-semibold text-sm text-[#0f1a3a] mb-2">Conditions de paiement</h4><p className="text-sm font-hanken text-[#6b7280] whitespace-pre-wrap">{conditionsStr}</p></div>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-10">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center"><p className="text-sm font-manrope text-[#6b7280]">Signature du client</p><div className="h-20" /></div>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center"><p className="text-sm font-hanken text-[#6b7280]">Signature du client</p><div className="h-20" /></div>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <p className="text-sm font-manrope text-[#6b7280]">Signature de l&apos;artisan</p>
+                <p className="text-sm font-hanken text-[#6b7280]">Signature de l&apos;artisan</p>
                 {Boolean(entreprise?.signature_base64) ? (
                   <div className="h-20 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1089,19 +1090,19 @@ function NouveauDevisPage() {
       <TopBar showPreview={false} setShowPreview={setShowPreview} saving={saving} onDraft={() => handleSave('brouillon')} onFinish={() => handleSave('enregistrer')} />
 
       <div className="p-6 space-y-6">
-        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-manrope">{error}</p></div>}
+        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-hanken">{error}</p></div>}
 
         {/* Voice button */}
-        <button onClick={() => setVoiceOpen(true)} className="flex items-center gap-2 bg-[#e87a2a] text-white rounded-xl px-6 py-3 font-syne font-bold text-sm hover:bg-[#f09050] transition-colors">
+        <button onClick={() => setVoiceOpen(true)} className="flex items-center gap-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-xl px-6 py-3 font-hanken font-bold text-sm shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all">
           <Mic size={18} /> Créer un devis par la voix
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Dates */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date</label><input type="date" value={dateDevis} onChange={e => setDateDevis(e.target.value)} className={inputCls} /></div>
-            <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Valable jusqu&apos;au</label><input type="date" value={dateValidite} onChange={e => setDateValidite(e.target.value)} className={inputCls} /></div>
-            <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Durée estimée</label><input type="text" value={duree} onChange={e => setDuree(e.target.value)} placeholder="Ex. : 3 jours" className={inputCls} /></div>
+            <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Date</label><input type="date" value={dateDevis} onChange={e => setDateDevis(e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Valable jusqu&apos;au</label><input type="date" value={dateValidite} onChange={e => setDateValidite(e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Durée estimée</label><input type="text" value={duree} onChange={e => setDuree(e.target.value)} placeholder="Ex. : 3 jours" className={inputCls} /></div>
           </div>
 
           {/* Right: Client + Chantier */}
@@ -1109,12 +1110,12 @@ function NouveauDevisPage() {
             {/* Client — ancre pour le tutoriel onboarding (infobulle 1/2).
                 Voir components/OnboardingTour.tsx, scénario devis. */}
             <div data-tour="devis-client" className="bg-white rounded-2xl border-2 border-gray-200 p-5 shadow-sm space-y-3">
-              <label className="block text-sm font-manrope font-semibold text-[#1a1a2e]">Client</label>
+              <label className="block text-sm font-hanken font-semibold text-[#0f1a3a]">Client</label>
 
               {/* Ligne 1 : Civilité + Nom (pleine largeur) + autocomplete */}
               <div className="relative">
                 <div className="flex gap-2">
-                  <select value={clientCivilite} onChange={e => setClientCivilite(e.target.value)} className="w-24 h-11 shrink-0 rounded-xl border-2 border-gray-200 px-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white">
+                  <select value={clientCivilite} onChange={e => setClientCivilite(e.target.value)} className="w-24 h-11 shrink-0 rounded-xl border-2 border-gray-200 px-2 text-sm font-hanken outline-none focus:border-[#ff7a1a] bg-white">
                     <option value="">—</option>
                     <option value="M.">M.</option>
                     <option value="Mme">Mme</option>
@@ -1132,15 +1133,15 @@ function NouveauDevisPage() {
                 </div>
                 {/* Dropdown autocomplete — pleine largeur, au-dessus des autres champs */}
                 {clientDropdownOpen && clientSuggestions.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#5ab4e0] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
+                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#ff7a1a]/30 shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
                     {clientSuggestions.map(c => (
                       <button
                         key={c.id}
                         type="button"
                         onMouseDown={e => { e.preventDefault(); selectClientSuggestion(c) }}
-                        className="w-full text-left px-4 py-3 font-manrope hover:bg-[#eef7fc] border-b border-gray-100 last:border-0 transition-colors"
+                        className="w-full text-left px-4 py-3 font-hanken hover:bg-[#fff5ec] border-b border-gray-100 last:border-0 transition-colors"
                       >
-                        <span className="font-semibold text-[#1a1a2e] text-sm">
+                        <span className="font-semibold text-[#0f1a3a] text-sm">
                           {c.prenom ? `${c.prenom} ${c.nom}` : c.nom}
                         </span>
                         {c.adresse && (
@@ -1175,7 +1176,7 @@ function NouveauDevisPage() {
 
             {/* Chantier / Prestation avec autocomplete */}
             <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Chantier / Prestation</label>
+              <label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Chantier / Prestation</label>
               <div className="relative">
                 <input
                   type="text"
@@ -1187,7 +1188,7 @@ function NouveauDevisPage() {
                   autoComplete="off"
                 />
                 {chantierDropdownOpen && chantierSuggestions.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#5ab4e0] shadow-2xl z-50 w-full max-h-56 overflow-y-auto">
+                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#ff7a1a]/30 shadow-2xl z-50 w-full max-h-56 overflow-y-auto">
                     {chantierSuggestions.map((nom, i) => (
                       <button
                         key={i}
@@ -1198,7 +1199,7 @@ function NouveauDevisPage() {
                           setChantierSuggestions([])
                           setChantierDropdownOpen(false)
                         }}
-                        className="w-full text-left px-4 py-3 text-sm font-manrope hover:bg-[#eef7fc] border-b border-gray-100 last:border-0 transition-colors text-[#1a1a2e] font-medium"
+                        className="w-full text-left px-4 py-3 text-sm font-hanken hover:bg-[#fff5ec] border-b border-gray-100 last:border-0 transition-colors text-[#0f1a3a] font-medium"
                       >
                         {nom}
                       </button>
@@ -1219,9 +1220,9 @@ function NouveauDevisPage() {
             {/* ── Mobile : cards + bottom sheet (V2 maquette validée) ── */}
             <div className="sm:hidden p-3 space-y-2">
               {lines.length === 0 && (
-                <div className="rounded-xl border-2 border-dashed border-[#5ab4e0]/40 bg-[#f8fbfd] px-4 py-6 text-center">
-                  <p className="text-sm font-manrope text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
-                  <p className="text-[12px] font-manrope text-gray-400 mt-1">Touchez <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
+                <div className="rounded-xl border-2 border-dashed border-gray-300 bg-[#fafbfc] px-4 py-6 text-center">
+                  <p className="text-sm font-hanken text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
+                  <p className="text-[12px] font-hanken text-gray-400 mt-1">Touchez <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
                 </div>
               )}
               {lines.map(line => (
@@ -1238,21 +1239,21 @@ function NouveauDevisPage() {
                 <button
                   type="button"
                   onClick={() => openCreateSheet('line')}
-                  className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-[#e8f4fb] border border-[#5ab4e0]/60 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#1a6fb5] active:scale-95 transition-all"
+                  className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"
                 >
                   <Plus size={16} /> Ligne
                 </button>
                 <button
                   type="button"
                   onClick={() => openCreateSheet('section')}
-                  className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#0f1a3a] active:scale-95 transition-all"
+                  className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"
                 >
                   <Plus size={16} /> Section
                 </button>
                 <button
                   type="button"
                   onClick={() => openCreateSheet('subsection')}
-                  className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#0f1a3a] active:scale-95 transition-all"
+                  className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"
                 >
                   <Plus size={16} /> Sous-section
                 </button>
@@ -1262,43 +1263,43 @@ function NouveauDevisPage() {
             {/* ── Desktop : table classique (≥ sm) ── */}
             <div className="hidden sm:block overflow-x-auto">
               {/* V2.5 — Colonne TVA par ligne (parite Obat). 7 colonnes au lieu de 6. */}
-              <div className="bg-[#5ab4e0] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
+              <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-hanken font-semibold uppercase">
                 <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
               </div>
               {lines.length === 0 && (
                 <div className="px-4 py-8 text-center border-b border-gray-100">
-                  <p className="text-sm font-manrope text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
-                  <p className="text-[12px] font-manrope text-gray-400 mt-1">Cliquez sur <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
+                  <p className="text-sm font-hanken text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
+                  <p className="text-[12px] font-hanken text-gray-400 mt-1">Cliquez sur <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
                 </div>
               )}
               {lines.map(line => (
-                <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#dceefa] border-l-4 border-l-[#5ab4e0]' : line.type === 'subsection' ? 'bg-[#e8f4fb] border-l-2 border-l-[#5ab4e0]/60' : ''}`}>
+                <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#fafbfc] border-l-4 border-l-[#ff7a1a]' : line.type === 'subsection' ? 'bg-white border-l-2 border-l-[#ff7a1a]/60' : ''}`}>
                   <textarea
                     value={line.designation}
                     onChange={e => { updateLine(line.id, 'designation', e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
-                    className={`text-sm font-manrope border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] px-2 py-1.5 mr-2 resize-none overflow-hidden min-h-[38px] ${line.type === 'section' ? 'font-bold text-[#1a6fb5]' : line.type === 'subsection' ? 'font-semibold text-[#0f1a3a]' : ''}`}
+                    className={`text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 mr-2 resize-none overflow-hidden min-h-[38px] ${line.type === 'section' ? 'font-bold text-[#0f1a3a]' : line.type === 'subsection' ? 'font-semibold text-[#0f1a3a]' : ''}`}
                     placeholder={line.type === 'section' ? 'Nom de la section (ex : Demolition, Maconnerie...)' : line.type === 'subsection' ? 'Nom de la sous-section (ex : Cuisine, Plomberie...)' : line.type === 'text' ? 'Texte libre...' : 'Désignation...'}
                     rows={1}
                   />
                   {line.type === 'line' ? (
                     <>
-                      <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mt-0.5 mx-1" min={0} />
-                      <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mt-0.5 mx-1 w-full">
+                      <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mt-0.5 mx-1" min={0} />
+                      <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mt-0.5 mx-1 w-full">
                         {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
-                      <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))} className="text-sm text-right border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 px-2 mt-0.5 mx-1" min={0} step={0.01} />
+                      <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))} className="text-sm text-right border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 px-2 mt-0.5 mx-1" min={0} step={0.01} />
                       {/* V2.5 — Selecteur TVA par ligne (parite Obat) */}
                       <select
                         value={line.tva}
                         onChange={e => updateLine(line.id, 'tva', Number(e.target.value))}
                         disabled={autoEntrepreneur}
-                        className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mt-0.5 mx-1 w-full disabled:bg-gray-50 disabled:text-gray-400"
+                        className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mt-0.5 mx-1 w-full disabled:bg-gray-50 disabled:text-gray-400"
                       >
                         {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? '0%' : r === 5.5 ? '5,5%' : `${r}%`}</option>)}
                       </select>
                       <span className="text-sm font-semibold text-right mt-1.5">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '--'}</span>
                     </>
-                  ) : (line.type === 'section' || line.type === 'subsection') ? (<><span /><span /><span /><span /><span className="text-sm font-bold text-right mt-1.5 text-[#1a6fb5]">{formatCurrency(computeSubtotal(lines.indexOf(line)))}</span></>) : <><span /><span /><span /><span /><span /></>}
+                  ) : (line.type === 'section' || line.type === 'subsection') ? (<><span /><span /><span /><span /><span className="text-sm font-bold text-right mt-1.5 text-[#0f1a3a]">{formatCurrency(computeSubtotal(lines.indexOf(line)))}</span></>) : <><span /><span /><span /><span /><span /></>}
                   <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 mt-1.5"><Trash2 size={14} /></button>
                 </div>
               ))}
@@ -1306,10 +1307,10 @@ function NouveauDevisPage() {
 
             {/* Boutons d'ajout */}
             <div className="flex flex-wrap gap-2 p-4 border-t border-gray-100">
-              <button onClick={() => addLine('line')} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-manrope hover:bg-gray-100"><Plus size={14} /> Ajouter une ligne</button>
-              <button onClick={() => addLine('section')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#1a6fb5] bg-[#dceefa] border border-[#5ab4e0]/30 rounded-lg hover:bg-[#cde4f5]"><Plus size={14} /> Section</button>
-              <button onClick={() => addLine('subsection')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#1a6fb5] bg-[#e8f4fb] border border-[#5ab4e0]/20 rounded-lg hover:bg-[#dceefa]"><Plus size={14} /> Sous-section</button>
-              <button onClick={() => addLine('text')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#6b7280] hover:text-[#1a1a2e]"><Plus size={14} /> Texte libre</button>
+              <button onClick={() => addLine('line')} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-hanken hover:bg-gray-100"><Plus size={14} /> Ajouter une ligne</button>
+              <button onClick={() => addLine('section')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-hanken text-[#0f1a3a] bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-lg"><Plus size={14} /> Section</button>
+              <button onClick={() => addLine('subsection')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-hanken text-[#0f1a3a] bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-lg"><Plus size={14} /> Sous-section</button>
+              <button onClick={() => addLine('text')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-hanken text-[#6b7280] hover:text-[#0f1a3a]"><Plus size={14} /> Texte libre</button>
             </div>
           </div>
 
@@ -1318,7 +1319,7 @@ function NouveauDevisPage() {
                 ce raccourci pousse la valeur sur TOUTES les lignes existantes. */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Appliquer à toutes les lignes :</label>
+                <label className="text-sm font-hanken font-medium text-[#0f1a3a]">Appliquer à toutes les lignes :</label>
                 <select
                   value={globalTvaRate}
                   onChange={e => {
@@ -1328,26 +1329,26 @@ function NouveauDevisPage() {
                     // V2.5 : pousse le taux sur TOUTES les lignes existantes
                     setLines(prev => prev.map(l => l.type === 'line' ? { ...l, tva: v } : l))
                   }}
-                  className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer"
+                  className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-hanken outline-none focus:border-[#ff7a1a] bg-white cursor-pointer"
                 >
                   <option value={0}>Sans TVA</option><option value={5.5}>5,5%</option><option value={10}>10%</option><option value={20}>20%</option>
                 </select>
               </div>
-              <span className="text-xs font-manrope text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
+              <span className="text-xs font-hanken text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
               {autoEntrepreneur && (
-                <span className="text-xs font-manrope text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>
+                <span className="text-xs font-hanken text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>
               )}
             </div>
           {/* Forfait option */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-sm font-manrope cursor-pointer">
-              <input type="checkbox" checked={useForfait} onChange={e => setUseForfait(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0]" />
+            <label className="flex items-center gap-2 text-sm font-hanken cursor-pointer">
+              <input type="checkbox" checked={useForfait} onChange={e => setUseForfait(e.target.checked)} className="w-4 h-4 rounded border-gray-300 accent-[#ff7a1a] focus:ring-[#ff7a1a]" />
               Appliquer un prix forfaitaire global
             </label>
             {useForfait && (
               <div className="flex items-center gap-2">
-                <input type="number" value={forfaitHT} onChange={e => setForfaitHT(Number(e.target.value))} className="w-32 h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] text-right" min={0} step={0.01} />
-                <span className="text-sm font-manrope text-[#6b7280]">€ HT</span>
+                <input type="number" value={forfaitHT} onChange={e => setForfaitHT(Number(e.target.value))} className="w-32 h-9 rounded-lg border border-gray-200 px-3 text-sm font-hanken outline-none focus:border-[#ff7a1a] text-right" min={0} step={0.01} />
+                <span className="text-sm font-hanken text-[#6b7280]">€ HT</span>
               </div>
             )}
           </div>
@@ -1358,14 +1359,14 @@ function NouveauDevisPage() {
           {/* Gestion des déchets (loi AGEC) */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-center gap-2 mb-3">
-              <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Gestion des déchets</label>
-              <span className="text-[9px] font-manrope text-[#e87a2a] border border-[#e87a2a]/40 px-1.5 py-0.5 rounded uppercase tracking-wide font-semibold">Loi AGEC</span>
+              <label className="text-sm font-hanken font-medium text-[#0f1a3a]">Gestion des déchets</label>
+              <span className="text-[9px] font-hanken text-[#ff7a1a] border border-[#ff7a1a]/40 px-1.5 py-0.5 rounded uppercase tracking-wide font-semibold">Loi AGEC</span>
             </div>
             {/* Nature + Quantité */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Nature des déchets</label>
-                <select value={dechetsNature} onChange={e => setDechetsNature(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+                <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Nature des déchets</label>
+                <select value={dechetsNature} onChange={e => setDechetsNature(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                   <option value="Déchets non dangereux (câbles, emballages)">Déchets non dangereux (câbles, emballages)</option>
                   <option value="Déchets d'équipements électriques (DEEE)">DEEE (équipements électriques)</option>
                   <option value="Déchets inertes (gravats, plâtre, béton)">Déchets inertes (gravats, plâtre)</option>
@@ -1374,45 +1375,45 @@ function NouveauDevisPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Quantité estimée</label>
-                <input type="text" value={dechetsQuantite} onChange={e => setDechetsQuantite(e.target.value)} placeholder="Ex : 0.5 tonne, 2 m³" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
+                <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Quantité estimée</label>
+                <input type="text" value={dechetsQuantite} onChange={e => setDechetsQuantite(e.target.value)} placeholder="Ex : 0.5 tonne, 2 m³" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
               </div>
             </div>
             {/* Enlèvement + Tri + Coût */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
               <div>
-                <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Enlèvement par</label>
-                <select value={dechetsResponsable} onChange={e => setDechetsResponsable(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+                <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Enlèvement par</label>
+                <select value={dechetsResponsable} onChange={e => setDechetsResponsable(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                   <option value="L'entreprise">L&apos;entreprise</option>
                   <option value="Le client (maître d'ouvrage)">Le client</option>
                   <option value="Prestataire externe">Prestataire externe</option>
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Tri</label>
-                <select value={dechetsTri} onChange={e => setDechetsTri(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+                <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Tri</label>
+                <select value={dechetsTri} onChange={e => setDechetsTri(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                   <option value="Tri sur le chantier">Tri sur le chantier</option>
                   <option value="Collecte séparée">Collecte séparée</option>
                   <option value="Évacuation en mélange">Évacuation en mélange</option>
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Coût estimé TTC (€)</label>
-                <input type="number" value={dechetsCout} onChange={e => setDechetsCout(e.target.value)} placeholder="0.00" min={0} step={0.01} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
+                <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Coût estimé TTC (€)</label>
+                <input type="number" value={dechetsCout} onChange={e => setDechetsCout(e.target.value)} placeholder="0.00" min={0} step={0.01} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                  <input type="checkbox" checked={dechetsInclureCout} onChange={e => setDechetsInclureCout(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0]" />
-                  <span className="text-sm font-manrope text-[#1a1a2e]">Inclure dans le prix total</span>
+                  <input type="checkbox" checked={dechetsInclureCout} onChange={e => setDechetsInclureCout(e.target.checked)} className="w-4 h-4 rounded border-gray-300 accent-[#ff7a1a] focus:ring-[#ff7a1a]" />
+                  <span className="text-sm font-hanken text-[#0f1a3a]">Inclure dans le prix total</span>
                 </label>
               </div>
             </div>
             {/* Point de collecte */}
             <div>
-              <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Point de collecte</label>
+              <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Point de collecte</label>
               {!dechetsCollecteNom && (pointsCollecte?.length > 0 || dechetteriesProches.length > 0) && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {pointsCollecte?.map(p => (
                     <button key={p.id} type="button" onClick={() => { setDechetsCollecteNom(p.nom); setDechetsCollecteAdresse(p.adresse || ''); setDechetsCollecteType(p.type_installation || 'Déchetterie') }}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-manrope bg-[#5ab4e0]/10 border border-[#5ab4e0]/30 text-[#5ab4e0] hover:bg-[#5ab4e0]/20 transition-colors font-medium">
+                      className="px-2.5 py-1 rounded-full text-[11px] font-hanken bg-[#fff5ec] border border-[#ff7a1a]/30 text-[#0f1a3a] hover:bg-[#ffeadb] transition-colors font-medium">
                       ★ {p.nom}
                     </button>
                   ))}
@@ -1423,14 +1424,14 @@ function NouveauDevisPage() {
                     return (
                       <div key={`api-${i}`} className="inline-flex items-center gap-1 rounded-full border border-gray-200 hover:border-gray-400 transition-colors overflow-hidden">
                         <button type="button" onClick={() => { setDechetsCollecteNom(d.nom); setDechetsCollecteAdresse(`${d.adresse}, ${d.code_postal} ${d.commune}`); setDechetsCollecteType('Déchetterie') }}
-                          className="px-2.5 py-1 text-[11px] font-manrope text-[#6b7280] hover:bg-gray-50 transition-colors">
-                          {d.nom} <span className="text-[#e87a2a] font-semibold">({d.distance_km} km)</span>
+                          className="px-2.5 py-1 text-[11px] font-hanken text-[#6b7280] hover:bg-gray-50 transition-colors">
+                          {d.nom} <span className="text-[#ff7a1a] font-semibold">({d.distance_km} km)</span>
                           {acceptePro && <span title="Accepte les professionnels" className="ml-1 px-1 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold">PRO</span>}
                           {d.accepte_construction && <span title="Accepte les déchets de construction (gravats)" className="ml-1 px-1 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold">GRAVATS</span>}
                           {d.accepte_deee && <span title="Accepte les équipements électriques et électroniques" className="ml-1 px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">DEEE</span>}
                         </button>
                         <a href={mapsUrl} target="_blank" rel="noopener noreferrer" title="Voir sur Google Maps"
-                          className="px-2 py-1 text-[#5ab4e0] hover:bg-[#5ab4e0]/10 transition-colors border-l border-gray-200">
+                          className="px-2 py-1 text-[#ff7a1a] hover:bg-[#fff5ec] transition-colors border-l border-gray-200">
                           ↗
                         </a>
                       </div>
@@ -1438,16 +1439,16 @@ function NouveauDevisPage() {
                   })}
                 </div>
               )}
-              {loadingDechetteries && !dechetsCollecteNom && <p className="text-[11px] font-manrope text-[#9ca3af] mb-2 animate-pulse">Recherche des déchetteries proches...</p>}
+              {loadingDechetteries && !dechetsCollecteNom && <p className="text-[11px] font-hanken text-[#9ca3af] mb-2 animate-pulse">Recherche des déchetteries proches...</p>}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="relative">
-                  <input type="text" value={dechetsCollecteNom} onChange={e => setDechetsCollecteNom(e.target.value)} placeholder="Nom / raison sociale" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
+                  <input type="text" value={dechetsCollecteNom} onChange={e => setDechetsCollecteNom(e.target.value)} placeholder="Nom / raison sociale" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
                   {dechetsCollecteNom && (
                     <button type="button" onClick={() => { setDechetsCollecteNom(''); setDechetsCollecteAdresse(''); setDechetsCollecteType('') }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>
                   )}
                 </div>
-                <input type="text" value={dechetsCollecteAdresse} onChange={e => setDechetsCollecteAdresse(e.target.value)} placeholder="Adresse" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
-                <select value={dechetsCollecteType} onChange={e => setDechetsCollecteType(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+                <input type="text" value={dechetsCollecteAdresse} onChange={e => setDechetsCollecteAdresse(e.target.value)} placeholder="Adresse" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
+                <select value={dechetsCollecteType} onChange={e => setDechetsCollecteType(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                   <option value="Déchetterie">Déchetterie</option>
                   <option value="Centre de tri">Centre de tri</option>
                   <option value="Plateforme de recyclage">Plateforme de recyclage</option>
@@ -1459,45 +1460,45 @@ function NouveauDevisPage() {
 
           {/* Totaux */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex justify-between py-2 text-sm font-manrope"><span className="text-[#6b7280]">Total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
+            <div className="flex justify-between py-2 text-sm font-hanken"><span className="text-[#6b7280]">Total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
             {!autoEntrepreneur && Object.entries(tvaGroups).filter(([r]) => Number(r) > 0).sort(([a], [b]) => Number(a) - Number(b)).map(([rate, group]) => (
-              <div key={rate} className="flex justify-between py-2 text-sm font-manrope"><span className="text-[#6b7280]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
+              <div key={rate} className="flex justify-between py-2 text-sm font-hanken"><span className="text-[#6b7280]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
             ))}
             {dechetsInclureCout && dechetsCoutNum > 0 && (
-              <div className="flex justify-between py-2 text-sm font-manrope"><span className="text-[#e87a2a]">Gestion déchets TTC</span><span className="font-medium text-[#e87a2a]">{formatCurrency(dechetsCoutNum)}</span></div>
+              <div className="flex justify-between py-2 text-sm font-hanken"><span className="text-[#ff7a1a]">Gestion déchets TTC</span><span className="font-medium text-[#ff7a1a]">{formatCurrency(dechetsCoutNum)}</span></div>
             )}
             <div className="border-t mt-2 pt-2 flex justify-between py-2"><span className="text-[#6b7280]">{autoEntrepreneur ? 'Total' : 'Total TTC'}</span><span className="font-semibold">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span></div>
             {autoEntrepreneur && <p className="text-xs text-[#6b7280] italic mt-1">TVA non applicable, art. 293 B du CGI</p>}
             {acompteMontant > 0 && (
               <>
-                <div className="flex justify-between py-1.5 text-sm font-manrope border-t mt-1 pt-2">
-                  <span className="text-[#5ab4e0] font-medium">Acompte à verser ({acomptePct}%)</span>
-                  <span className="text-[#5ab4e0] font-semibold">{formatCurrency(acompteMontant)}</span>
+                <div className="flex justify-between py-1.5 text-sm font-hanken border-t mt-1 pt-2">
+                  <span className="text-[#0f1a3a] font-medium">Acompte à verser ({acomptePct}%)</span>
+                  <span className="text-[#0f1a3a] font-semibold">{formatCurrency(acompteMontant)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 text-sm font-manrope">
+                <div className="flex justify-between py-1.5 text-sm font-hanken">
                   <span className="text-[#6b7280]">Reste à facturer</span>
-                  <span className="font-semibold text-[#1a1a2e]">{formatCurrency(resteAPayer)}</span>
+                  <span className="font-semibold text-[#0f1a3a]">{formatCurrency(resteAPayer)}</span>
                 </div>
               </>
             )}
-            <div className="bg-[#5ab4e0] text-white rounded-lg p-3 mt-3 flex justify-between items-center">
-              <span className="font-syne font-bold text-sm">NET À PAYER</span><span className="font-syne font-bold text-lg">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span>
+            <div className="bg-[#0f1a3a] text-white rounded-lg p-3 mt-3 flex justify-between items-center">
+              <span className="font-hanken font-bold text-sm">NET À PAYER</span><span className="font-hanken font-bold text-lg">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span>
             </div>
           </div>
         </div>
 
         {/* Conditions de paiement */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <label className="block text-sm font-manrope font-medium text-[#1a1a2e]">Conditions de paiement</label>
+          <label className="block text-sm font-hanken font-medium text-[#0f1a3a]">Conditions de paiement</label>
           <div className="flex flex-wrap gap-2">
             {PAYMENT_OPTIONS.map(opt => (
-              <button key={opt.id} onClick={() => togglePayment(opt.id)} className={`px-3 py-1.5 rounded-full text-sm font-manrope border transition-colors ${selectedPayments.has(opt.id) ? 'bg-[#5ab4e0]/10 border-[#5ab4e0] text-[#5ab4e0] font-medium' : 'border-gray-200 text-[#6b7280] hover:border-gray-400'}`}>
+              <button key={opt.id} onClick={() => togglePayment(opt.id)} className={`px-3 py-1.5 rounded-full text-sm font-hanken border transition-colors ${selectedPayments.has(opt.id) ? 'bg-[#fff5ec] border-[#ff7a1a] text-[#0f1a3a] font-medium' : 'border-gray-200 text-[#6b7280] hover:border-gray-400'}`}>
                 {selectedPayments.has(opt.id) ? '✓ ' : '☐ '}{opt.label}
               </button>
             ))}
             <div
               onClick={() => togglePayment('acompte')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-manrope border transition-colors cursor-pointer select-none ${selectedPayments.has('acompte') ? 'bg-[#5ab4e0]/10 border-[#5ab4e0] text-[#5ab4e0] font-medium' : 'border-gray-200 text-[#6b7280] hover:border-gray-400'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-hanken border transition-colors cursor-pointer select-none ${selectedPayments.has('acompte') ? 'bg-[#fff5ec] border-[#ff7a1a] text-[#0f1a3a] font-medium' : 'border-gray-200 text-[#6b7280] hover:border-gray-400'}`}>
               <span className="shrink-0">{selectedPayments.has('acompte') ? '✓' : '☐'}</span>
               <span className="shrink-0">Acompte de</span>
               <input
@@ -1514,19 +1515,19 @@ function NouveauDevisPage() {
             </div>
           </div>
           {/* "Conditions personnalisées" supprimé : doublon avec les conditions de paiement cochables et les notes personnalisées. */}
-          <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Notes personnalisées <span className="text-[10px] text-gray-400 font-normal">(visibles par le client)</span></label><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Écrire ici…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] resize-none" /></div>
+          <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Notes personnalisées <span className="text-[10px] text-gray-400 font-normal">(visibles par le client)</span></label><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Écrire ici…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a] resize-none" /></div>
         </div>
 
 
         {/* Bottom buttons */}
         <div className="flex flex-wrap items-center gap-3 justify-end pb-8">
           <button onClick={() => handleSave('brouillon')} disabled={saving}
-            className="h-12 px-6 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50">
+            className="h-12 px-6 rounded-xl border-2 border-gray-300 text-sm font-hanken font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Brouillon
           </button>
           <button onClick={() => handleSave('enregistrer')} disabled={saving}
-            className="h-12 px-8 rounded-xl bg-emerald-600 text-white font-syne font-bold text-sm hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50">
+            className="h-12 px-8 rounded-xl bg-emerald-600 text-white font-hanken font-bold text-sm hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             Enregistrer
           </button>
@@ -1534,7 +1535,7 @@ function NouveauDevisPage() {
       </div>
 
       {/* Toast */}
-      {toastMsg && <div className="fixed bottom-6 right-6 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-manrope z-50">{toastMsg}</div>}
+      {toastMsg && <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-hanken z-50">{toastMsg}</div>}
 
       {/* Voice Modal */}
       <VoiceModal open={voiceOpen} onClose={() => setVoiceOpen(false)} onResult={handleVoiceResult} />
@@ -1564,20 +1565,20 @@ function TopBar({ showPreview, setShowPreview, saving, onDraft, onFinish }: {
     <div className="sticky top-0 bg-white border-b border-gray-200 z-10 py-3 px-6 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <Link href="/dashboard/devis" className="p-1.5 rounded-md hover:bg-gray-100"><ArrowLeft size={18} className="text-[#6b7280]" /></Link>
-        <h2 className="hidden sm:block font-syne font-bold text-lg text-[#1a1a2e]">Nouveau devis</h2>
+        <h2 className="hidden sm:block font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em]">Nouveau devis</h2>
       </div>
       <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-0.5">
-        <button onClick={() => setShowPreview(false)} className={`px-4 py-1.5 rounded-md text-sm font-manrope font-medium transition-colors ${!showPreview ? 'bg-white shadow-sm text-[#1a1a2e]' : 'text-[#6b7280]'}`}>Édition</button>
-        <button onClick={() => setShowPreview(true)} className={`px-4 py-1.5 rounded-md text-sm font-manrope font-medium transition-colors ${showPreview ? 'bg-white shadow-sm text-[#1a1a2e]' : 'text-[#6b7280]'}`}>Aperçu</button>
+        <button onClick={() => setShowPreview(false)} className={`px-4 py-1.5 rounded-md text-sm font-hanken font-medium transition-colors ${!showPreview ? 'bg-white shadow-sm text-[#0f1a3a]' : 'text-[#6b7280]'}`}>Édition</button>
+        <button onClick={() => setShowPreview(true)} className={`px-4 py-1.5 rounded-md text-sm font-hanken font-medium transition-colors ${showPreview ? 'bg-white shadow-sm text-[#0f1a3a]' : 'text-[#6b7280]'}`}>Aperçu</button>
       </div>
       <div className="flex items-center gap-2">
         <button onClick={onDraft} disabled={saving}
-          className="h-9 px-4 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50">
+          className="h-9 px-4 rounded-xl border-2 border-gray-300 text-sm font-hanken font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Brouillon
         </button>
         <button onClick={onFinish} disabled={saving}
-          className="h-9 px-4 rounded-xl bg-emerald-600 text-white font-syne font-bold text-sm hover:bg-emerald-700 transition-all flex items-center gap-2 disabled:opacity-50">
+          className="h-9 px-4 rounded-xl bg-emerald-600 text-white font-hanken font-bold text-sm hover:bg-emerald-700 transition-all flex items-center gap-2 disabled:opacity-50">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Enregistrer
         </button>

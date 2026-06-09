@@ -2198,14 +2198,14 @@ function PlanningPageInner() {
   // ===================================================================
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb]">
+    <div className="min-h-screen">
       {/* V3.1 : banniere creation evenement depuis dictee vocale */}
       <PlanningVoiceBanner />
-      {/* ── HEADER ── */}
-      <header className="bg-white border-b border-[#e6ecf2] px-3 sm:px-6 py-3 sm:py-3.5 sticky top-0 z-30">
+      {/* ── HEADER V4 : sticky, fond blanc, ombre douce ── */}
+      <header className="bg-white border-b border-[#0f1a3a]/[0.06] px-3 sm:px-6 py-3 sm:py-3.5 sticky top-0 z-30 shadow-[0_1px_4px_rgba(15,26,58,0.04)]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <h1 className="text-lg sm:text-xl font-extrabold text-[#0f1a3a] tracking-tight font-jakarta shrink-0">
+            <h1 className="font-hanken font-extrabold text-lg sm:text-2xl text-[#0f1a3a] tracking-[-0.025em] shrink-0">
               {isSociete ? 'Planning' : 'Planning'}
             </h1>
             {/* Profile toggle — hidden when profile is filled, auto-detected */}
@@ -2262,7 +2262,7 @@ function PlanningPageInner() {
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); if (e.target.value.length >= 2) setSearchOpen(true); else setSearchOpen(false) }}
                 onFocus={() => { if (searchQuery.length >= 2) setSearchOpen(true) }}
-                className="w-full pl-10 pr-4 py-2 border border-[#e6ecf2] rounded-xl text-sm font-medium text-[#1e293b] bg-[#f6f8fb] focus:border-[#5ab4e0] focus:bg-white focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all placeholder:text-[#7b8ba3]" />
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200" />
               {searchOpen && searchResults.length > 0 && (
                 <div className="absolute top-full mt-1.5 left-0 right-0 bg-white border border-[#e6ecf2] rounded-xl shadow-lg max-h-72 overflow-y-auto z-50">
                   {searchResults.map((r, i) => (
@@ -2279,9 +2279,9 @@ function PlanningPageInner() {
               )}
             </div>
 
-            {/* New intervention */}
+            {/* CTA principal Nouvelle intervention — gradient orange V4 */}
             <button onClick={() => openModal()}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-xl text-xs sm:text-sm font-semibold shadow-[0_4px_15px_rgba(232,122,42,.3)] hover:shadow-[0_6px_20px_rgba(232,122,42,.4)] hover:-translate-y-0.5 transition-all">
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-xs sm:text-sm font-bold shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all duration-200">
               <Plus className="w-4 h-4" /><span className="hidden sm:inline">Nouvelle intervention</span><span className="sm:hidden">Ajouter</span>
             </button>
           </div>
@@ -2562,15 +2562,15 @@ function PlanningPageInner() {
                 d'afficher de bandeau. Les interventions s'affichent
                 directement dans l'agenda sans ligne intervenant. */}
             {isSociete && availableIntervenants.length === 0 && (
-              <div className="m-4 bg-cream/50 border border-gray-200 rounded-xl p-8 text-center">
+              <div className="m-4 bg-[#fafbfc] border border-gray-200 rounded-xl p-8 text-center">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <h3 className="font-syne text-lg text-[#0f1a3a] mb-2">Aucun membre d&apos;équipe configuré</h3>
-                <p className="text-sm font-manrope text-gray-600 mb-4 max-w-md mx-auto">
+                <h3 className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em] mb-2">Aucun membre d&apos;équipe configuré</h3>
+                <p className="font-hanken text-sm text-gray-600 mb-4 max-w-md mx-auto">
                   Pour planifier en mode Société, ajoutez vos collaborateurs dans la page Mon équipe.
                 </p>
                 <Link
                   href="/dashboard/equipe"
-                  className="inline-flex items-center gap-2 bg-orange hover:bg-orange-hover text-white font-syne font-bold px-4 py-2 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken font-bold px-5 py-2.5 rounded-xl shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 transition-all"
                 >
                   <Plus className="w-4 h-4" /> Aller à Mon équipe
                 </Link>
@@ -2716,7 +2716,7 @@ function PlanningPageInner() {
                                     {initials(fullLabel)}
                                   </div>
                                   <div className="min-w-0 flex-1 flex items-center gap-2">
-                                    <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-syne font-bold text-[#0f1a3a] truncate`}>
+                                    <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-hanken font-bold text-[#0f1a3a] truncate`}>
                                       {compactLabel}
                                     </div>
                                     {metierChip && (
@@ -3120,7 +3120,7 @@ function PlanningPageInner() {
                 {/* ── Titre travaux ── */}
                 {titre && (
                   <div className="px-5 pb-4">
-                    <div className="text-[17px] font-extrabold text-[#0f1a3a] font-syne leading-snug">
+                    <div className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em] leading-snug">
                       {titre}
                     </div>
                   </div>
@@ -3194,7 +3194,7 @@ function PlanningPageInner() {
                       href={buildGmapsLink(String(addrLine), String(addrCp), String(addrVille))}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-all"
+                      className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-xl font-hanken font-semibold text-sm shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 transition-all duration-200"
                     >
                       <Navigation className="w-4 h-4" /> Itinéraire GPS
                     </a>
@@ -3423,13 +3423,15 @@ function PlanningPageInner() {
         )
       })()}
 
-      {/* ── MODAL: New Intervention ── */}
+      {/* ── MODAL: New Intervention — restylé V4 (backdrop + radius + header Hanken) ── */}
       {showModal && (
-        <div className="fixed inset-0 bg-[#0f1a3a]/35 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) { setShowModal(false); setEditMode(false); setEditId(null) } }}>
-          <div className="bg-white rounded-2xl w-full max-w-[540px] mx-4 max-h-[85vh] overflow-y-auto shadow-lg animate-[modalIn_.3s_ease]">
-            <div className="px-6 py-5 border-b border-[#e6ecf2] flex items-center justify-between">
-              <h3 className="text-[17px] font-extrabold text-[#0f1a3a]">{editMode ? "Modifier l'intervention" : 'Nouvelle intervention'}</h3>
-              <button onClick={() => { setShowModal(false); setEditMode(false); setEditId(null) }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#f6f8fb] text-[#64748b] hover:bg-[#fee2e2] hover:text-[#ef4444] transition-all">
+        <div className="fixed inset-0 bg-[#0f1a3a]/40 backdrop-blur-sm z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) { setShowModal(false); setEditMode(false); setEditId(null) } }}>
+          <div className="relative bg-white rounded-3xl w-full max-w-[540px] mx-4 max-h-[85vh] overflow-y-auto shadow-[0_20px_50px_rgba(15,26,58,0.18)] border border-[#0f1a3a]/[0.06] animate-[modalIn_.3s_ease]">
+            {/* Accent line orange — signature V4 */}
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90 z-10" />
+            <div className="px-6 py-5 border-b border-[#0f1a3a]/[0.06] flex items-center justify-between sticky top-0 bg-white z-[2]">
+              <h3 className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em]">{editMode ? "Modifier l'intervention" : 'Nouvelle intervention'}</h3>
+              <button onClick={() => { setShowModal(false); setEditMode(false); setEditId(null) }} aria-label="Fermer" className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#fafbfc] text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -3455,8 +3457,8 @@ function PlanningPageInner() {
                 // Si rien à afficher (cas intervention libre sans client/chantier), on masque.
                 if (!hasAddr && !telephone) return null
                 return (
-                  <div className="bg-sky/5 border border-sky/20 rounded-xl px-4 py-3 space-y-2.5">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#1a6fb5]">Infos client</div>
+                  <div className="bg-[#fafbfc] border border-[#0f1a3a]/[0.06] rounded-xl px-4 py-3 space-y-2.5">
+                    <div className="font-hanken font-bold text-[10px] uppercase tracking-wider text-[#ff7a1a]">Infos client</div>
                     {hasAddr && (
                       <div className="flex items-start gap-1.5 text-[12px] text-[#0f1a3a]">
                         <MapPin className="w-3.5 h-3.5 text-[#5ab4e0] flex-shrink-0 mt-0.5" />
@@ -3475,7 +3477,7 @@ function PlanningPageInner() {
                           href={buildGmapsLink(addrLine, addrCp, addrVille)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-orange text-white rounded-lg text-[12px] font-semibold hover:bg-orange-hover transition-all"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-lg font-hanken font-semibold text-[12px] shadow-[0_4px_12px_rgba(255,122,26,0.25)] hover:-translate-y-0.5 hover:brightness-105 transition-all duration-200"
                           aria-label="Ouvrir l'itinéraire dans Google Maps"
                         >
                           <Navigation className="w-3.5 h-3.5" /> Itinéraire
@@ -3484,7 +3486,7 @@ function PlanningPageInner() {
                       {telephone && (
                         <a
                           href={`tel:${telephone}`}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-sky text-white rounded-lg text-[12px] font-semibold hover:bg-sky-light transition-all"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border-[1.5px] border-gray-200 text-[#0f1a3a] rounded-lg font-hanken font-semibold text-[12px] hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                           aria-label={`Appeler ${telephone}`}
                         >
                           <Phone className="w-3.5 h-3.5" /> Appeler
@@ -3689,7 +3691,7 @@ function PlanningPageInner() {
                           type="button"
                           onClick={handleEnregistrerCommeClient}
                           disabled={enregistrerClientSaving}
-                          className="text-xs text-sky hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="font-hanken text-xs text-[#ff7a1a] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {enregistrerClientSaving ? 'Enregistrement…' : '+ Enregistrer comme client (créer la fiche)'}
                         </button>
@@ -3976,10 +3978,19 @@ function PlanningPageInner() {
                 </div>
               </div>
             )}
-            <div className="px-6 py-4 border-t border-[#e6ecf2] flex justify-end gap-3">
-              <button onClick={() => { setShowModal(false); setEditMode(false); setEditId(null) }} className="px-5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#1e293b] hover:border-[#5ab4e0] hover:text-[#5ab4e0] transition-all">Annuler</button>
-              <button onClick={submitIntervention} disabled={submitting || !mDate || (isSociete && !mIntervenant)}
-                className="px-5 py-2.5 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-xl text-sm font-semibold shadow-[0_4px_15px_rgba(232,122,42,.3)] hover:shadow-[0_6px_20px_rgba(232,122,42,.4)] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            {/* Footer modal — boutons V4 (annuler secondaire + CTA primaire orange) */}
+            <div className="px-6 py-4 border-t border-[#0f1a3a]/[0.06] flex justify-end gap-3 sticky bottom-0 bg-white">
+              <button
+                onClick={() => { setShowModal(false); setEditMode(false); setEditId(null) }}
+                className="px-5 py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-gray-300 hover:bg-gray-50 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitIntervention}
+                disabled={submitting || !mDate || (isSociete && !mIntervenant)}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-hanken font-bold text-sm text-white bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              >
                 {submitting ? (editMode ? 'Modification...' : 'Creation...') : (editMode ? "Enregistrer les modifications" : "Creer l'intervention")}
               </button>
             </div>
@@ -4009,7 +4020,7 @@ function PlanningPageInner() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">
+              <h2 className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em]">
                 Ajouter un intervenant
               </h2>
               <button
@@ -4062,7 +4073,7 @@ function PlanningPageInner() {
               <select
                 value={mcTypeContrat}
                 onChange={(e) => setMcTypeContrat(e.target.value as typeof mcTypeContrat)}
-                className="w-full px-3.5 py-2.5 border border-gray-400 bg-gray-100 hover:border-gray-500 rounded-xl text-sm focus:border-sky focus:ring-1 focus:ring-sky/20 outline-none transition-all"
+                className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200 cursor-pointer"
               >
                 <option value="cdi">Employé (CDI)</option>
                 <option value="cdd">Employé (CDD)</option>
@@ -4079,7 +4090,7 @@ function PlanningPageInner() {
                 value={mcRole}
                 onChange={(e) => setMcRole(e.target.value)}
                 disabled={mcTypeContrat === 'apprenti'}
-                className="w-full px-3.5 py-2.5 border border-gray-400 bg-gray-100 hover:border-gray-500 rounded-xl text-sm focus:border-sky focus:ring-1 focus:ring-sky/20 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="">— Non défini</option>
                 <option value="Apprenti">Apprenti</option>
@@ -4098,7 +4109,7 @@ function PlanningPageInner() {
               <button
                 type="button"
                 onClick={closeMiniCreate}
-                className="h-10 px-5 rounded-lg border border-gray-200 text-sm font-syne font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                className="h-10 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken text-sm font-semibold text-[#0f1a3a] hover:border-gray-300 hover:bg-gray-50 transition-all"
               >
                 Annuler
               </button>
@@ -4106,7 +4117,7 @@ function PlanningPageInner() {
                 type="button"
                 onClick={handleMiniCreateSubmit}
                 disabled={mcSaving || !mcNom.trim()}
-                className="h-10 px-5 rounded-lg bg-orange hover:bg-orange-hover disabled:opacity-50 text-white text-sm font-syne font-bold transition-colors"
+                className="h-10 px-6 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] disabled:opacity-50 text-white font-hanken text-sm font-bold shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 transition-all"
               >
                 {mcSaving ? 'Création…' : 'Créer'}
               </button>

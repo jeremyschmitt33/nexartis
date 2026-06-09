@@ -19,8 +19,14 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+// V4 Light Premium — refonte visuelle (logique métier inchangée).
+// Composants V4 partagés (cf. DESIGN_SYSTEM_V4.md). On garde Input/Select
+// legacy hors imports (plus utilisés ici), au profit des composants V4.
+import {
+  PremiumInput,
+  PremiumSelect,
+  PremiumButton,
+} from '@/components/ui/v4'
 
 // -------------------------------------------------------------------
 // Types
@@ -72,16 +78,24 @@ const TYPE_LABELS: Record<string, string> = {
   'sous-traitant': 'Sous-traitant',
 }
 
+// V4 : palette sémantique conservée (employé/intérim/sous-traitant) mais
+// alignée sur les tons V4 light. L'employé bleu legacy (#5ab4e0) est remplacé
+// par un bleu V4 plus profond (#3b82f6 = blue-500) pour une meilleure lisibilité
+// sur fond clair. Intérim ambre / Sous-traitant emerald restent identiques car
+// ce sont des couleurs sémantiques (jaune attention / vert validé).
 const TYPE_COLORS: Record<string, { badge: string; bg: string }> = {
-  employe: { badge: '#5ab4e0', bg: 'bg-blue-100' },
+  employe: { badge: '#3b82f6', bg: 'bg-blue-100' },
   interimaire: { badge: '#f59e0b', bg: 'bg-amber-100' },
   'sous-traitant': { badge: '#10b981', bg: 'bg-emerald-100' },
 }
 
+// V4 : couleurs avatar harmonisées — l'orange Nexartis #ff7a1a remplace
+// l'ancien orange #e87a2a, et on retire le bleu sky legacy au profit
+// d'un bleu V4 cohérent.
 const AVATAR_COLORS = [
-  'bg-[#5ab4e0]',
+  'bg-[#3b82f6]',
   'bg-emerald-500',
-  'bg-[#e87a2a]',
+  'bg-[#ff7a1a]',
   'bg-violet-500',
   'bg-rose-500',
   'bg-amber-500',
@@ -176,78 +190,88 @@ function ModalHistorique({
 
   const isST = intervenant.type_contrat === 'sous-traitant'
 
+  // V4 : modal d'historique re-stylée — accent line orange, header sticky,
+  // typo Hanken, données en font-spline-mono (montants + dates).
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-5 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">
-            Historique &mdash; {intervenant.prenom} {intervenant.nom}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden">
+        <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+
+        <div className="sticky top-0 z-10 bg-white border-b border-[#0f1a3a]/[0.06] px-6 py-4 flex items-center justify-between">
+          <h2 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.02em] truncate pr-3">
+            Historique — {intervenant.prenom} {intervenant.nom}
           </h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={18} className="text-gray-500" />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-[#0f1a3a] hover:bg-gray-100 transition-colors shrink-0"
+            aria-label="Fermer"
+          >
+            <X size={20} />
           </button>
         </div>
 
-        {loading ? (
-          <p className="text-sm font-manrope text-gray-500 text-center py-8">Chargement...</p>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-syne font-bold text-[#0f1a3a] mb-2">
-                Chantiers ({data.chantiers.length})
-              </h3>
-              {data.chantiers.length === 0 ? (
-                <p className="text-xs font-manrope text-gray-400">Aucun chantier associe.</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {data.chantiers.map((c) => (
-                    <li key={c.id} className="flex items-center justify-between text-sm font-manrope">
-                      <a
-                        href={'/dashboard/chantiers/' + c.id}
-                        className="text-[#5ab4e0] hover:underline truncate flex-1"
-                      >
-                        {c.titre || 'Chantier sans titre'}
-                      </a>
-                      <span className="ml-2 text-xs text-gray-400 flex-shrink-0">
-                        {c.date_debut ? new Date(c.date_debut).toLocaleDateString('fr-FR') : '--'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {isST && (
+        <div className="px-6 py-5">
+          {loading ? (
+            <p className="text-sm font-hanken text-gray-500 text-center py-8">Chargement...</p>
+          ) : (
+            <div className="space-y-5">
               <div>
-                <h3 className="text-sm font-syne font-bold text-[#0f1a3a] mb-2">
-                  Paiements sous-traitant
+                <h3 className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-[#ff7a1a] mb-2">
+                  Chantiers ({data.chantiers.length})
                 </h3>
-                {data.paiements.length === 0 ? (
-                  <p className="text-xs font-manrope text-gray-400">Aucun paiement enregistre.</p>
+                {data.chantiers.length === 0 ? (
+                  <p className="text-xs font-hanken text-gray-400">Aucun chantier associé.</p>
                 ) : (
                   <ul className="space-y-1.5">
-                    {data.paiements.map((p) => (
-                      <li key={p.id} className="flex items-center justify-between text-sm font-manrope">
-                        <span className={p.statut === 'paye' ? 'text-emerald-600 font-semibold' : 'text-gray-500'}>
-                          {formatEuro(Number(p.montant_paye) || 0)}
+                    {data.chantiers.map((c) => (
+                      <li key={c.id} className="flex items-center justify-between text-sm">
+                        <a
+                          href={'/dashboard/chantiers/' + c.id}
+                          className="font-hanken font-semibold text-[#ff7a1a] hover:underline truncate flex-1"
+                        >
+                          {c.titre || 'Chantier sans titre'}
+                        </a>
+                        <span className="ml-2 text-xs font-spline-mono font-medium text-gray-400 flex-shrink-0">
+                          {c.date_debut ? new Date(c.date_debut).toLocaleDateString('fr-FR') : '--'}
                         </span>
-                        <span className="text-xs text-gray-400 capitalize">{p.statut}</span>
                       </li>
                     ))}
                   </ul>
                 )}
-                {data.totalPaye > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-sm font-syne font-bold text-[#0f1a3a]">Total paye</span>
-                    <span className="text-sm font-syne font-bold text-emerald-600">
-                      {formatEuro(data.totalPaye)}
-                    </span>
-                  </div>
-                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {isST && (
+                <div>
+                  <h3 className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-[#ff7a1a] mb-2">
+                    Paiements sous-traitant
+                  </h3>
+                  {data.paiements.length === 0 ? (
+                    <p className="text-xs font-hanken text-gray-400">Aucun paiement enregistré.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {data.paiements.map((p) => (
+                        <li key={p.id} className="flex items-center justify-between text-sm">
+                          <span className={`font-spline-mono font-semibold tracking-[0.3px] ${p.statut === 'paye' ? 'text-emerald-600' : 'text-gray-500'}`}>
+                            {formatEuro(Number(p.montant_paye) || 0)}
+                          </span>
+                          <span className="text-xs font-hanken text-gray-400 capitalize">{p.statut}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {data.totalPaye > 0 && (
+                    <div className="mt-3 pt-3 border-t border-[#0f1a3a]/[0.06] flex items-center justify-between">
+                      <span className="text-sm font-hanken font-bold text-[#0f1a3a]">Total payé</span>
+                      <span className="font-spline-mono font-semibold text-emerald-600 tracking-[0.3px]">
+                        {formatEuro(data.totalPaye)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -474,102 +498,111 @@ export default function EquipePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-syne font-bold text-[#0f1a3a]">Mon equipe</h1>
-        <button
+      {/* ============ Header de page — V4 ============ */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+          Mon équipe
+        </h1>
+        {/* CTA primaire — gradient orange V4 (≠ ambre legacy) */}
+        <PremiumButton
+          variant="primary"
+          icon={<Plus size={16} />}
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-[#f59e0b] hover:bg-[#f08c1c] text-white text-sm font-syne font-bold transition-colors"
         >
-          <Plus size={16} />
           Ajouter un membre
-        </button>
+        </PremiumButton>
       </div>
 
-      {/* Stats chips */}
+      {/* ============ Chips stats — V4 sémantique ============ */}
       <div className="flex flex-wrap gap-2">
-        <div className="px-3 py-1.5 rounded-full bg-blue-100 text-sm font-manrope text-[#0f1a3a]">
-          <span className="font-semibold">{employes.length}</span> employe{employes.length !== 1 ? 's' : ''}
+        <div className="px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200/60 text-sm font-hanken text-blue-800">
+          <span className="font-spline-mono font-semibold">{employes.length}</span> employé{employes.length !== 1 ? 's' : ''}
         </div>
-        <div className="px-3 py-1.5 rounded-full bg-amber-100 text-sm font-manrope text-[#0f1a3a]">
-          <span className="font-semibold">{interimaires.length}</span> interimaire{interimaires.length !== 1 ? 's' : ''}
+        <div className="px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200/60 text-sm font-hanken text-amber-800">
+          <span className="font-spline-mono font-semibold">{interimaires.length}</span> intérimaire{interimaires.length !== 1 ? 's' : ''}
         </div>
-        <div className="px-3 py-1.5 rounded-full bg-emerald-100 text-sm font-manrope text-[#0f1a3a]">
-          <span className="font-semibold">{sousTraitants.length}</span> sous-traitant{sousTraitants.length !== 1 ? 's' : ''}
+        <div className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-sm font-hanken text-emerald-800">
+          <span className="font-spline-mono font-semibold">{sousTraitants.length}</span> sous-traitant{sousTraitants.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* Filters */}
+      {/* ============ Filtres — V4 ============ */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-          <Input
+          <input
             type="text"
             placeholder="Rechercher un membre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="w-full py-2.5 pl-10 pr-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       placeholder:text-gray-400
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
           />
         </div>
 
-        <Select
+        <PremiumSelect
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as FilterType)}
-          containerClassName="sm:w-auto"
+          className="sm:w-auto"
         >
           <option value="tous">Tous les types</option>
-          <option value="employe">Employes</option>
-          <option value="interimaire">Interimaires</option>
+          <option value="employe">Employés</option>
+          <option value="interimaire">Intérimaires</option>
           <option value="sous-traitant">Sous-traitants</option>
-        </Select>
+        </PremiumSelect>
 
-        <Select
+        <PremiumSelect
           value={filterMetier}
           onChange={(e) => setFilterMetier(e.target.value)}
-          containerClassName="sm:w-auto"
+          className="sm:w-auto"
         >
-          <option value="tous">Tous les metiers</option>
+          <option value="tous">Tous les métiers</option>
           {uniqueMetiers.map((metier) => (
             <option key={metier} value={metier}>
               {metier}
             </option>
           ))}
-        </Select>
+        </PremiumSelect>
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* ============ Table desktop (≥ sm) — V4 ============ */}
+      <div className="hidden sm:block bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-hidden
+                      shadow-[0_8px_24px_rgba(15,26,58,0.04)]">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Nom</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Rôle</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Contrat</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Metier</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Email</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Telephone</th>
-              <th className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">Actions</th>
+            <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Nom</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Type</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Rôle</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Contrat</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Métier</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Email</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Téléphone</th>
+              <th className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((intervenant, idx) => {
+            {filtered.map((intervenant) => {
               const type = getTypeFromContrat(intervenant.type_contrat)
               const typeColor = TYPE_COLORS[type]
               return (
                 <tr
                   key={intervenant.id}
-                  className={'border-b border-gray-100 hover:bg-gray-50 transition-colors ' + (idx % 2 === 1 ? 'bg-[#f8f9fa]' : '')}
+                  className="border-b border-gray-100 hover:bg-[#fafbfc] transition-colors"
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-start gap-2">
                       <div>
-                        <p className="text-sm font-manrope font-semibold text-[#1a1a2e]">{intervenant.nom}</p>
-                        <p className="text-xs font-manrope text-gray-500">{intervenant.prenom}</p>
+                        <p className="text-sm font-hanken font-bold text-[#0f1a3a]">{intervenant.nom}</p>
+                        <p className="text-xs font-hanken text-gray-500">{intervenant.prenom}</p>
                       </div>
                       {intervenant.is_self === true && (
                         <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky/10 text-sky text-[10px] font-syne font-bold border border-sky/30"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#ff7a1a]/10 text-[#ff7a1a] text-[10px] font-hanken font-bold uppercase tracking-wider border border-[#ff7a1a]/30"
                           title="C'est vous (utilisateur connecté)"
                         >
                           Vous
@@ -578,35 +611,39 @@ export default function EquipePage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
+                    {/* Badge type sémantique (employé/intérim/sous-traitant) */}
                     <span
-                      className="px-2 py-1 rounded-full text-xs font-syne font-bold text-white"
+                      className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider text-white"
                       style={{ backgroundColor: typeColor.badge }}
                     >
                       {TYPE_LABELS[type]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">
+                  <td className="px-4 py-3 text-sm font-hanken text-gray-600">
                     {intervenant.role || ''}
                   </td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">
+                  <td className="px-4 py-3 text-sm font-hanken text-gray-600">
                     {CONTRAT_LABELS[intervenant.type_contrat] || intervenant.type_contrat}
                   </td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{intervenant.metier}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{intervenant.email}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{intervenant.telephone}</td>
+                  <td className="px-4 py-3 text-sm font-hanken text-gray-600">{intervenant.metier}</td>
+                  {/* Email + tél en mono : "data" */}
+                  <td className="px-4 py-3 text-[13px] font-spline-mono font-medium text-gray-600 tracking-[0.3px]">{intervenant.email}</td>
+                  <td className="px-4 py-3 text-[13px] font-spline-mono font-medium text-gray-600 tracking-[0.3px]">{intervenant.telephone}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => openEdit(intervenant)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#5ab4e0] hover:bg-blue-50 transition-colors"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#ff7a1a] hover:bg-[#ff7a1a]/10 transition-colors"
                         title="Modifier"
+                        aria-label="Modifier"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => setHistoriqueIntervenant(intervenant)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
                         title="Voir historique"
+                        aria-label="Voir historique"
                       >
                         <Clock size={14} />
                       </button>
@@ -614,13 +651,13 @@ export default function EquipePage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleDelete(intervenant.id)}
-                            className="px-2 py-1 rounded bg-red-500 text-white text-xs font-syne font-bold hover:bg-red-600 transition-colors"
+                            className="px-2 py-1 rounded-lg bg-red-600 text-white text-xs font-hanken font-bold hover:bg-red-700 transition-colors"
                           >
                             Confirmer
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(null)}
-                            className="px-2 py-1 rounded bg-gray-200 text-gray-600 text-xs font-syne font-bold hover:bg-gray-300 transition-colors"
+                            className="px-2 py-1 rounded-lg bg-gray-200 text-gray-700 text-xs font-hanken font-bold hover:bg-gray-300 transition-colors"
                           >
                             Annuler
                           </button>
@@ -628,8 +665,9 @@ export default function EquipePage() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirm(intervenant.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Supprimer"
+                          aria-label="Supprimer"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -644,12 +682,12 @@ export default function EquipePage() {
         {filtered.length === 0 && (
           <div className="py-12 text-center">
             <Users size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun membre trouve</p>
+            <p className="text-sm font-hanken text-gray-500">Aucun membre trouvé</p>
           </div>
         )}
       </div>
 
-      {/* Mobile cards */}
+      {/* ============ Cartes mobile (< sm) — V4 ============ */}
       <div className="sm:hidden space-y-3">
         {filtered.map((intervenant) => {
           const type = getTypeFromContrat(intervenant.type_contrat)
@@ -657,16 +695,17 @@ export default function EquipePage() {
           return (
             <div
               key={intervenant.id}
-              className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
+              className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-4 space-y-3
+                         shadow-[0_4px_12px_rgba(15,26,58,0.04)]"
             >
               <div className="flex items-start gap-3 justify-between">
                 <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-manrope font-semibold text-[#1a1a2e]">
+                  <p className="text-sm font-hanken font-bold text-[#0f1a3a]">
                     {intervenant.nom} {intervenant.prenom}
                   </p>
                   {intervenant.is_self === true && (
                     <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky/10 text-sky text-[10px] font-syne font-bold border border-sky/30"
+                      className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#ff7a1a]/10 text-[#ff7a1a] text-[10px] font-hanken font-bold uppercase tracking-wider border border-[#ff7a1a]/30"
                       title="C'est vous (utilisateur connecté)"
                     >
                       Vous
@@ -674,28 +713,29 @@ export default function EquipePage() {
                   )}
                 </div>
                 <span
-                  className="px-2 py-1 rounded-full text-xs font-syne font-bold text-white whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider text-white whitespace-nowrap"
                   style={{ backgroundColor: typeColor.badge }}
                 >
                   {TYPE_LABELS[type]}
                 </span>
               </div>
-              <div className="text-xs font-manrope text-gray-500">
-                {intervenant.metier} &middot; {CONTRAT_LABELS[intervenant.type_contrat] || intervenant.type_contrat}
+              <div className="text-xs font-hanken text-gray-500">
+                {intervenant.metier} · {CONTRAT_LABELS[intervenant.type_contrat] || intervenant.type_contrat}
               </div>
-              <div className="text-xs font-manrope text-gray-600">{intervenant.email}</div>
-              <div className="text-xs font-manrope text-gray-600">{intervenant.telephone}</div>
+              {/* Email + tél en mono */}
+              <div className="text-xs font-spline-mono font-medium text-gray-600 tracking-[0.3px]">{intervenant.email}</div>
+              <div className="text-xs font-spline-mono font-medium text-gray-600 tracking-[0.3px]">{intervenant.telephone}</div>
               <div className="flex items-center gap-2 pt-2">
                 <button
                   onClick={() => openEdit(intervenant)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#5ab4e0] text-[#5ab4e0] hover:bg-[#5ab4e0] hover:text-white text-xs font-syne font-bold transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border-[1.5px] border-[#ff7a1a] text-[#ff7a1a] hover:bg-[#ff7a1a] hover:text-white text-xs font-hanken font-bold transition-colors"
                 >
                   <Pencil size={13} />
                   Modifier
                 </button>
                 <button
                   onClick={() => setHistoriqueIntervenant(intervenant)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-400 text-violet-500 hover:bg-violet-500 hover:text-white text-xs font-syne font-bold transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border-[1.5px] border-violet-400 text-violet-600 hover:bg-violet-600 hover:text-white text-xs font-hanken font-bold transition-colors"
                 >
                   <Clock size={13} />
                   Historique
@@ -704,13 +744,13 @@ export default function EquipePage() {
                   <div className="flex items-center gap-1 flex-1">
                     <button
                       onClick={() => handleDelete(intervenant.id)}
-                      className="flex-1 px-2 py-1 rounded bg-red-500 text-white text-xs font-syne font-bold hover:bg-red-600 transition-colors"
+                      className="flex-1 px-2 py-1 rounded-lg bg-red-600 text-white text-xs font-hanken font-bold hover:bg-red-700 transition-colors"
                     >
                       Confirmer
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(null)}
-                      className="flex-1 px-2 py-1 rounded bg-gray-200 text-gray-600 text-xs font-syne font-bold hover:bg-gray-300 transition-colors"
+                      className="flex-1 px-2 py-1 rounded-lg bg-gray-200 text-gray-700 text-xs font-hanken font-bold hover:bg-gray-300 transition-colors"
                     >
                       Annuler
                     </button>
@@ -718,8 +758,9 @@ export default function EquipePage() {
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(intervenant.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                     title="Supprimer"
+                    aria-label="Supprimer"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -731,195 +772,219 @@ export default function EquipePage() {
         {filtered.length === 0 && (
           <div className="py-12 text-center">
             <Users size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun membre trouve</p>
+            <p className="text-sm font-hanken text-gray-500">Aucun membre trouvé</p>
           </div>
         )}
       </div>
 
-      {/* Modal: Ajouter un membre */}
+      {/* ============ Modale : ajouter un membre — V4 ============ */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">Ajouter un membre</h2>
-              <button onClick={() => { setShowModal(false); resetForm() }} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
-                <X size={18} className="text-gray-500" />
-              </button>
-            </div>
-            <Select
-              label="Type *"
-              value={form.type_contrat}
-              onChange={(e) => setForm({ ...form, type_contrat: e.target.value as IntervenantType })}
-            >
-              <option value="cdi">Employe (CDI)</option>
-              <option value="cdd">Employe (CDD)</option>
-              <option value="apprenti">Apprenti</option>
-              <option value="interimaire">Interimaire</option>
-              <option value="sous-traitant">Sous-traitant</option>
-            </Select>
-            {/* Session 13 V1 (29/05/2026) : liste fermée à 5 rôles hiérarchiques.
-                "Conducteur de travaux" et "Assistant" retirés (redondants/obsolètes
-                pour les TPE). Les anciennes valeurs en BDD restent affichées en
-                lecture seule dans la table (rétrocompat).
-                Auto-lock Apprenti maintenu si Type=Apprentissage. */}
-            <Select
-              label="Rôle"
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })}
-              disabled={form.type_contrat === 'apprenti'}
-              hint={form.type_contrat === 'apprenti' ? 'Verrouillé : un contrat d’apprentissage impose le rôle Apprenti.' : undefined}
-            >
-              <option value="">— Non défini</option>
-              <option value="Apprenti">Apprenti</option>
-              <option value="Ouvrier">Ouvrier</option>
-              <option value="Compagnon">Compagnon</option>
-              <option value="Chef d'équipe">Chef d&apos;équipe</option>
-              <option value="Dirigeant">Dirigeant</option>
-            </Select>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Prenom"
-                type="text"
-                value={form.prenom}
-                onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-              />
-              <Input
-                label="Nom"
-                type="text"
-                value={form.nom}
-                onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              />
-            </div>
-            <Input
-              label="Metier"
-              type="text"
-              value={form.metier}
-              onChange={(e) => setForm({ ...form, metier: e.target.value })}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-              <Input
-                label="Telephone"
-                type="text"
-                value={form.telephone}
-                onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+
+            <div className="sticky top-0 z-10 bg-white border-b border-[#0f1a3a]/[0.06] px-6 py-4 flex items-center justify-between">
+              <h2 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.02em]">Ajouter un membre</h2>
               <button
                 onClick={() => { setShowModal(false); resetForm() }}
-                className="h-10 px-5 rounded-lg border border-gray-200 text-sm font-syne font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-[#0f1a3a] hover:bg-gray-100 transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <PremiumSelect
+                label="Type *"
+                value={form.type_contrat}
+                onChange={(e) => setForm({ ...form, type_contrat: e.target.value as IntervenantType })}
+              >
+                <option value="cdi">Employé (CDI)</option>
+                <option value="cdd">Employé (CDD)</option>
+                <option value="apprenti">Apprenti</option>
+                <option value="interimaire">Intérimaire</option>
+                <option value="sous-traitant">Sous-traitant</option>
+              </PremiumSelect>
+
+              {/* Session 13 V1 : liste fermée à 5 rôles + auto-lock Apprenti.
+                  Hint affiché quand verrouillage actif. */}
+              <PremiumSelect
+                label="Rôle"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                disabled={form.type_contrat === 'apprenti'}
+                hint={form.type_contrat === 'apprenti' ? "Verrouillé : un contrat d'apprentissage impose le rôle Apprenti." : undefined}
+              >
+                <option value="">— Non défini</option>
+                <option value="Apprenti">Apprenti</option>
+                <option value="Ouvrier">Ouvrier</option>
+                <option value="Compagnon">Compagnon</option>
+                <option value="Chef d'équipe">Chef d&apos;équipe</option>
+                <option value="Dirigeant">Dirigeant</option>
+              </PremiumSelect>
+
+              <div className="grid grid-cols-2 gap-3">
+                <PremiumInput
+                  label="Prénom"
+                  type="text"
+                  value={form.prenom}
+                  onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+                />
+                <PremiumInput
+                  label="Nom"
+                  type="text"
+                  value={form.nom}
+                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
+                />
+              </div>
+              <PremiumInput
+                label="Métier"
+                type="text"
+                value={form.metier}
+                onChange={(e) => setForm({ ...form, metier: e.target.value })}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <PremiumInput
+                  label="Email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  mono
+                />
+                <PremiumInput
+                  label="Téléphone"
+                  type="text"
+                  value={form.telephone}
+                  onChange={(e) => setForm({ ...form, telephone: e.target.value })}
+                  mono
+                />
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-[#0f1a3a]/[0.06] px-6 py-4 flex justify-end gap-3">
+              <PremiumButton
+                variant="secondary"
+                onClick={() => { setShowModal(false); resetForm() }}
               >
                 Annuler
-              </button>
-              <button
+              </PremiumButton>
+              <PremiumButton
+                variant="primary"
                 onClick={handleCreate}
                 disabled={saving || !form.prenom || !form.nom}
-                className="h-10 px-5 rounded-lg bg-[#f59e0b] hover:bg-[#f08c1c] disabled:opacity-50 text-white text-sm font-syne font-bold transition-colors"
+                loading={saving}
               >
-                {saving ? 'Enregistrement...' : 'Creer'}
-              </button>
+                Créer
+              </PremiumButton>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal: Modifier un membre */}
+      {/* ============ Modale : modifier un membre — V4 ============ */}
       {editingIntervenant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">Modifier le membre</h2>
-              <button onClick={() => setEditingIntervenant(null)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
-                <X size={18} className="text-gray-500" />
-              </button>
-            </div>
-            <Select
-              label="Type *"
-              value={editForm.type_contrat}
-              onChange={(e) => setEditForm({ ...editForm, type_contrat: e.target.value as IntervenantType })}
-            >
-              <option value="cdi">Employe (CDI)</option>
-              <option value="cdd">Employe (CDD)</option>
-              <option value="apprenti">Apprenti</option>
-              <option value="interimaire">Interimaire</option>
-              <option value="sous-traitant">Sous-traitant</option>
-            </Select>
-            {/* Session 13 V1 : liste fermée à 5 rôles + auto-lock Apprenti.
-                Rétrocompat : si la valeur enregistrée est "Conducteur de travaux"
-                ou "Assistant" (ancienne liste), on l'expose comme option
-                additionnelle pour ne pas perdre la donnée. L'utilisateur peut
-                la conserver ou basculer sur la nouvelle liste. */}
-            <Select
-              label="Rôle"
-              value={editForm.role}
-              onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-              disabled={editForm.type_contrat === 'apprenti'}
-              hint={editForm.type_contrat === 'apprenti' ? 'Verrouillé : un contrat d’apprentissage impose le rôle Apprenti.' : undefined}
-            >
-              <option value="">— Non défini</option>
-              <option value="Apprenti">Apprenti</option>
-              <option value="Ouvrier">Ouvrier</option>
-              <option value="Compagnon">Compagnon</option>
-              <option value="Chef d'équipe">Chef d&apos;équipe</option>
-              <option value="Dirigeant">Dirigeant</option>
-              {(editForm.role === 'Conducteur de travaux' || editForm.role === 'Assistant') && (
-                <option value={editForm.role}>{editForm.role} (ancien rôle)</option>
-              )}
-            </Select>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Prenom"
-                type="text"
-                value={editForm.prenom}
-                onChange={(e) => setEditForm({ ...editForm, prenom: e.target.value })}
-              />
-              <Input
-                label="Nom"
-                type="text"
-                value={editForm.nom}
-                onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
-              />
-            </div>
-            <Input
-              label="Metier"
-              type="text"
-              value={editForm.metier}
-              onChange={(e) => setEditForm({ ...editForm, metier: e.target.value })}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Email"
-                type="email"
-                value={editForm.email}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-              />
-              <Input
-                label="Telephone"
-                type="text"
-                value={editForm.telephone}
-                onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+
+            <div className="sticky top-0 z-10 bg-white border-b border-[#0f1a3a]/[0.06] px-6 py-4 flex items-center justify-between">
+              <h2 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.02em]">Modifier le membre</h2>
               <button
                 onClick={() => setEditingIntervenant(null)}
-                className="h-10 px-5 rounded-lg border border-gray-200 text-sm font-syne font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-[#0f1a3a] hover:bg-gray-100 transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <PremiumSelect
+                label="Type *"
+                value={editForm.type_contrat}
+                onChange={(e) => setEditForm({ ...editForm, type_contrat: e.target.value as IntervenantType })}
+              >
+                <option value="cdi">Employé (CDI)</option>
+                <option value="cdd">Employé (CDD)</option>
+                <option value="apprenti">Apprenti</option>
+                <option value="interimaire">Intérimaire</option>
+                <option value="sous-traitant">Sous-traitant</option>
+              </PremiumSelect>
+
+              {/* Session 13 V1 : liste fermée + auto-lock Apprenti.
+                  Rétrocompat : on conserve les anciennes valeurs en option. */}
+              <PremiumSelect
+                label="Rôle"
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                disabled={editForm.type_contrat === 'apprenti'}
+                hint={editForm.type_contrat === 'apprenti' ? "Verrouillé : un contrat d'apprentissage impose le rôle Apprenti." : undefined}
+              >
+                <option value="">— Non défini</option>
+                <option value="Apprenti">Apprenti</option>
+                <option value="Ouvrier">Ouvrier</option>
+                <option value="Compagnon">Compagnon</option>
+                <option value="Chef d'équipe">Chef d&apos;équipe</option>
+                <option value="Dirigeant">Dirigeant</option>
+                {(editForm.role === 'Conducteur de travaux' || editForm.role === 'Assistant') && (
+                  <option value={editForm.role}>{editForm.role} (ancien rôle)</option>
+                )}
+              </PremiumSelect>
+
+              <div className="grid grid-cols-2 gap-3">
+                <PremiumInput
+                  label="Prénom"
+                  type="text"
+                  value={editForm.prenom}
+                  onChange={(e) => setEditForm({ ...editForm, prenom: e.target.value })}
+                />
+                <PremiumInput
+                  label="Nom"
+                  type="text"
+                  value={editForm.nom}
+                  onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
+                />
+              </div>
+              <PremiumInput
+                label="Métier"
+                type="text"
+                value={editForm.metier}
+                onChange={(e) => setEditForm({ ...editForm, metier: e.target.value })}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <PremiumInput
+                  label="Email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  mono
+                />
+                <PremiumInput
+                  label="Téléphone"
+                  type="text"
+                  value={editForm.telephone}
+                  onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
+                  mono
+                />
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-[#0f1a3a]/[0.06] px-6 py-4 flex justify-end gap-3">
+              <PremiumButton
+                variant="secondary"
+                onClick={() => setEditingIntervenant(null)}
               >
                 Annuler
-              </button>
-              <button
+              </PremiumButton>
+              <PremiumButton
+                variant="primary"
                 onClick={handleUpdate}
                 disabled={editSaving || !editForm.prenom || !editForm.nom}
-                className="h-10 px-5 rounded-lg bg-[#5ab4e0] hover:bg-[#4a9fc9] disabled:opacity-50 text-white text-sm font-syne font-bold transition-colors"
+                loading={editSaving}
               >
-                {editSaving ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
+                Enregistrer
+              </PremiumButton>
             </div>
           </div>
         </div>

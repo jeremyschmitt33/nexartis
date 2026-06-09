@@ -25,8 +25,8 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+// V4 light premium : on remplace Input/Select legacy par PremiumInput/PremiumSelect/PremiumButton.
+import { PremiumInput, PremiumSelect, PremiumButton, FieldLabel } from '@/components/ui/v4'
 
 // -------------------------------------------------------------------
 // Types
@@ -249,84 +249,67 @@ function AchatsPageInner() {
 
   return (
     <div className="space-y-6">
-      {/* Stats bar */}
+      {/* Stats bar V4 light : 3 cartes blanches avec icône premium + accent line orange à l'état actif */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-sky-50 flex items-center justify-center">
-              <ShoppingCart size={20} className="text-[#5ab4e0]" />
-            </div>
-            <div>
-              <p className="text-xs font-manrope text-[#6b7280] uppercase tracking-wider">D&eacute;penses ce mois</p>
-              <p className="text-xl font-syne font-bold text-[#0f1a3a]">{stats.depensesMois.toLocaleString('fr-FR')}&nbsp;&euro; HT</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <Euro size={20} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-xs font-manrope text-[#6b7280] uppercase tracking-wider">Total ann&eacute;e</p>
-              <p className="text-xl font-syne font-bold text-[#0f1a3a]">{stats.totalAnnee.toLocaleString('fr-FR')}&nbsp;&euro; HT</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-              <Building2 size={20} className="text-[#e87a2a]" />
-            </div>
-            <div>
-              <p className="text-xs font-manrope text-[#6b7280] uppercase tracking-wider">Fournisseurs actifs</p>
-              <p className="text-xl font-syne font-bold text-[#0f1a3a]">{stats.nbFournisseurs}</p>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          icon={<ShoppingCart size={20} />}
+          label="Dépenses ce mois"
+          value={`${stats.depensesMois.toLocaleString('fr-FR')} € HT`}
+          color="#ff7a1a"
+        />
+        <StatCard
+          icon={<Euro size={20} />}
+          label="Total année"
+          value={`${stats.totalAnnee.toLocaleString('fr-FR')} € HT`}
+          color="#15803d"
+        />
+        <StatCard
+          icon={<Building2 size={20} />}
+          label="Fournisseurs actifs"
+          value={String(stats.nbFournisseurs)}
+          color="#0f1a3a"
+        />
       </div>
 
-      {/* Action bar */}
+      {/* Action bar : recherche + filtre + CTA orange "Nouvel achat" */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        {/* Search */}
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-          <Input
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+          <PremiumInput
             type="text"
             placeholder="Rechercher un achat..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="[&_input]:pl-10"
           />
         </div>
 
-        {/* Filter */}
-        <Select
+        <PremiumSelect
           value={filter}
           onChange={(e) => setFilter(e.target.value as FilterPeriod)}
-          containerClassName="sm:w-auto"
+          className="sm:w-auto"
         >
           <option value="Tous">Tous</option>
           <option value="Ce mois">Ce mois</option>
           <option value="Ce trimestre">Ce trimestre</option>
-        </Select>
+        </PremiumSelect>
 
-        {/* New achat button */}
-        <button
+        <PremiumButton
+          variant="primary"
+          icon={<Plus size={16} />}
           onClick={() => { resetModal(); setShowModal(true) }}
-          className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors"
+          className="shrink-0"
         >
-          <Plus size={16} />
           Nouvel achat
-        </button>
+        </PremiumButton>
       </div>
 
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
+      {/* Cartes mobile V4 light : fond blanc, bord 2xl, montants en Spline Sans Mono. */}
+      <div className="md:hidden space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center bg-white rounded-xl border border-gray-200">
+          <div className="py-16 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             <ShoppingCart size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun achat trouvé</p>
+            <p className="font-hanken text-sm text-gray-500">Aucun achat trouvé</p>
           </div>
         ) : (
           filtered.map((a) => {
@@ -342,25 +325,27 @@ function AchatsPageInner() {
             return (
               <div
                 key={id}
-                className="bg-white rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] px-4 py-3.5 hover:border-[#ff7a1a]/40 active:bg-[#fafbfc] transition-all shadow-[0_2px_6px_rgba(15,26,58,0.04)]"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-manrope font-bold text-[#1a1a2e] truncate">{fournisseurNom}</p>
-                    <p className="text-xs font-manrope text-gray-500 truncate">{dateFormatted}</p>
+                    <p className="font-hanken font-bold text-[14.5px] text-[#0f1a3a] truncate">{fournisseurNom}</p>
+                    <p className="font-spline-mono text-[11px] text-gray-500 truncate">{dateFormatted}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-sm font-manrope font-bold text-[#0f1a3a]">{montantTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&nbsp;&euro;</p>
-                    <p className="text-xs font-manrope text-gray-500">{montantHT.toLocaleString('fr-FR')}&nbsp;&euro; HT</p>
+                    <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] tracking-[0.5px]">
+                      {montantTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&nbsp;€
+                    </p>
+                    <p className="font-spline-mono text-[11px] text-gray-500">{montantHT.toLocaleString('fr-FR')}&nbsp;€ HT</p>
                   </div>
                 </div>
                 {String(achat.description ?? '') && (
-                  <p className="text-xs font-manrope text-gray-600 mb-2 truncate">{String(achat.description ?? '')}</p>
+                  <p className="font-hanken text-xs text-gray-600 mb-2 truncate">{String(achat.description ?? '')}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-manrope text-gray-500">
+                  <div className="flex items-center gap-2">
                     {!!achat.justificatif_url && (
-                      <span className="inline-flex items-center gap-1 text-[#5ab4e0]">
+                      <span className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-[#ff7a1a]">
                         <Paperclip size={12} />
                         Justificatif
                       </span>
@@ -372,31 +357,24 @@ function AchatsPageInner() {
                         e.stopPropagation()
                         setOpenActionId(openActionId === id ? null : id)
                       }}
-                      className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Actions"
                     >
                       <MoreHorizontal size={16} />
                     </button>
                     {openActionId === id && (
-                      <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-gray-200 shadow-lg z-10 py-1 w-36">
+                      <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl z-10 py-1.5 w-40">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleEdit(achat)
-                          }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm font-manrope text-gray-600 hover:bg-gray-50"
+                          onClick={(e) => { e.stopPropagation(); handleEdit(achat) }}
+                          className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
                         >
-                          <Pencil size={14} />
-                          Modifier
+                          <Pencil size={14} /> Modifier
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(id)
-                          }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm font-manrope text-red-600 hover:bg-red-50"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(id) }}
+                          className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-red-600 hover:bg-red-50 transition-colors"
                         >
-                          <Trash2 size={14} />
-                          Supprimer
+                          <Trash2 size={14} /> Supprimer
                         </button>
                       </div>
                     )}
@@ -408,15 +386,15 @@ function AchatsPageInner() {
         )}
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      {/* Table desktop V4 light \u2014 fond blanc, ombre douce, hover ligne #fafbfc, chiffres Spline Sans Mono. */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-x-auto shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
         <table className="w-full min-w-[1100px]">
           <thead>
-            <tr className="bg-gray-50">
+            <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
               {['Date', 'Fournisseur', 'Description', 'Montant HT', 'TVA', 'Montant TTC', 'Chantier', 'Justificatif', 'Actions'].map((col) => (
                 <th
                   key={col}
-                  className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500"
+                  className="px-4 py-3.5 text-left font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-700"
                 >
                   {col}
                 </th>
@@ -424,7 +402,7 @@ function AchatsPageInner() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((a, idx) => {
+            {filtered.map((a) => {
               const achat = a as Record<string, unknown>
               const id = achat.id as string
               const montantHT = Number(achat.montant_ht ?? 0)
@@ -438,53 +416,53 @@ function AchatsPageInner() {
               return (
                 <tr
                   key={id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                    idx % 2 === 1 ? 'bg-[#f8f9fa]' : ''
-                  }`}
+                  className="border-b border-[#0f1a3a]/[0.04] last:border-b-0 hover:bg-[#fafbfc] transition-colors"
                 >
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{dateFormatted}</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-semibold text-[#1a1a2e]">{fournisseurNom}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{String(achat.description ?? '')}</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-semibold text-[#1a1a2e]">{montantHT.toLocaleString('fr-FR')}&nbsp;&euro;</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{tauxTva}%</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-bold text-[#0f1a3a]">{montantTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&nbsp;&euro;</td>
+                  <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{dateFormatted}</td>
+                  <td className="px-4 py-3 font-hanken text-[14px] font-semibold text-[#0f1a3a]">{fournisseurNom}</td>
+                  <td className="px-4 py-3 font-hanken text-sm text-gray-600">{String(achat.description ?? '')}</td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-[13.5px] text-[#0f1a3a]">{montantHT.toLocaleString('fr-FR')}&nbsp;\u20ac</td>
+                  <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{tauxTva}%</td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-[14px] text-[#0f1a3a]">
+                    {montantTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&nbsp;\u20ac
+                  </td>
                   <td className="px-4 py-3">
-                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium bg-gray-100 text-gray-600">
+                    {/* Badge chantier : couleur s\u00e9mantique pastel */}
+                    <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-semibold bg-[#fafbfc] border border-gray-200 text-[#0f1a3a]">
                       {chantierNom}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {achat.justificatif_url ? (
-                      <span className="inline-flex items-center gap-1 text-[#5ab4e0]">
+                      <span className="inline-flex items-center gap-1 text-[#ff7a1a]" title="Justificatif joint">
                         <Paperclip size={14} />
                       </span>
                     ) : (
-                      <span className="text-sm text-gray-300">&mdash;</span>
+                      <span className="font-spline-mono text-sm text-gray-300">\u2014</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="relative">
                       <button
                         onClick={() => setOpenActionId(openActionId === id ? null : id)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-500"
+                        aria-label="Actions"
                       >
                         <MoreHorizontal size={16} />
                       </button>
                       {openActionId === id && (
-                        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-gray-200 shadow-lg z-10 py-1 w-36">
+                        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl z-10 py-1.5 w-40">
                           <button
                             onClick={() => handleEdit(achat)}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-manrope text-gray-600 hover:bg-gray-50"
+                            className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
                           >
-                            <Pencil size={14} />
-                            Modifier
+                            <Pencil size={14} /> Modifier
                           </button>
                           <button
                             onClick={() => handleDelete(id)}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-manrope text-red-600 hover:bg-red-50"
+                            className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-red-600 hover:bg-red-50 transition-colors"
                           >
-                            <Trash2 size={14} />
-                            Supprimer
+                            <Trash2 size={14} /> Supprimer
                           </button>
                         </div>
                       )}
@@ -497,32 +475,37 @@ function AchatsPageInner() {
         </table>
 
         {filtered.length === 0 && (
-          <div className="py-12 text-center">
+          <div className="py-16 text-center">
             <ShoppingCart size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun achat trouv&eacute;</p>
+            <p className="font-hanken text-sm text-gray-500">Aucun achat trouv\u00e9</p>
           </div>
         )}
       </div>
 
-      {/* Add/Edit achat modal */}
+      {/* Modale ajout/modification achat — V4 light, backdrop blur, accent line orange */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-5">
-            {/* Modal header */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="relative bg-white rounded-3xl w-full max-w-lg mx-4 p-6 sm:p-8 space-y-5 overflow-hidden shadow-2xl border border-[#0f1a3a]/[0.06] max-h-[90vh] overflow-y-auto">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+            {/* Header de la modale */}
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">{editingId ? 'Modifier l\u0027achat' : 'Nouvel achat'}</h2>
-              <button onClick={() => { setShowModal(false); resetModal() }} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X size={20} />
+              <h2 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.025em]">{editingId ? 'Modifier l\u0027achat' : 'Nouvel achat'}</h2>
+              <button
+                onClick={() => { setShowModal(false); resetModal() }}
+                className="p-1.5 hover:bg-[#fafbfc] rounded-lg transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
 
             {/* Fournisseur */}
-            <Select
+            <PremiumSelect
               label="Fournisseur"
               value={modalFournisseur}
               onChange={(e) => setModalFournisseur(e.target.value)}
             >
-              <option value="">S&eacute;lectionner un fournisseur...</option>
+              <option value="">Sélectionner un fournisseur...</option>
               {fournisseurs.map((f) => {
                 const rec = f as Record<string, unknown>
                 return (
@@ -531,27 +514,29 @@ function AchatsPageInner() {
                   </option>
                 )
               })}
-            </Select>
+            </PremiumSelect>
 
-            {/* Date + Montant HT */}
+            {/* Date + Montant HT (chiffres en Spline Sans Mono) */}
             <div className="grid grid-cols-2 gap-3">
-              <Input
+              <PremiumInput
                 label="Date"
                 type="date"
                 value={modalDate}
                 onChange={(e) => setModalDate(e.target.value)}
+                mono
               />
-              <Input
+              <PremiumInput
                 label="Montant HT"
                 type="number"
                 value={modalMontant}
                 onChange={(e) => setModalMontant(e.target.value)}
                 placeholder="0,00 €"
+                mono
               />
             </div>
 
             {/* TVA */}
-            <Select
+            <PremiumSelect
               label="TVA"
               value={modalTva}
               onChange={(e) => setModalTva(e.target.value)}
@@ -559,24 +544,24 @@ function AchatsPageInner() {
               <option value="5.5">5,5%</option>
               <option value="10">10%</option>
               <option value="20">20%</option>
-            </Select>
+            </PremiumSelect>
 
             {/* Description */}
-            <Input
+            <PremiumInput
               label="Description"
               type="text"
               value={modalDescription}
               onChange={(e) => setModalDescription(e.target.value)}
-              placeholder="Ex: Tubes cuivre + raccords"
+              placeholder="Ex : Tubes cuivre + raccords"
             />
 
             {/* Chantier */}
-            <Select
+            <PremiumSelect
               label="Associer au chantier"
               value={modalChantier}
               onChange={(e) => setModalChantier(e.target.value)}
             >
-              <option value="">S&eacute;lectionner un chantier...</option>
+              <option value="">Sélectionner un chantier...</option>
               {chantiers.map((c) => {
                 const rec = c as Record<string, unknown>
                 return (
@@ -585,30 +570,32 @@ function AchatsPageInner() {
                   </option>
                 )
               })}
-            </Select>
+            </PremiumSelect>
 
-            {/* Upload justificatif */}
+            {/* Upload justificatif — wrapping V4 (logique d'upload non touchée). */}
             <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Justificatif</label>
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-[#5ab4e0] transition-colors cursor-pointer">
+              <FieldLabel>Justificatif</FieldLabel>
+              <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-[#ff7a1a] hover:bg-[#fff5ec]/30 transition-all cursor-pointer">
                 <Upload size={24} className="mx-auto text-gray-400 mb-2" />
-                <p className="text-sm font-manrope text-[#6b7280]">Glisser un fichier ou <span className="text-[#5ab4e0] font-medium">parcourir</span></p>
-                <p className="text-xs font-manrope text-gray-400 mt-1">PDF, JPG, PNG (max 5 Mo)</p>
+                <p className="font-hanken text-sm text-gray-600">
+                  Glisser un fichier ou <span className="text-[#ff7a1a] font-semibold">parcourir</span>
+                </p>
+                <p className="font-hanken text-xs text-gray-400 mt-1">PDF, JPG, PNG (max 5 Mo)</p>
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Actions : Annuler (outline) + Enregistrer (CTA orange) */}
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => { setShowModal(false); resetModal() }}
-                className="px-5 h-10 rounded-lg border border-gray-200 text-sm font-syne font-bold text-[#6b7280] hover:text-[#1a1a2e] hover:border-gray-300 transition-colors"
+                className="h-10 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken text-[13.5px] font-semibold text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
               >
                 Annuler
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-5 h-10 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors disabled:opacity-50"
+                className="h-10 px-5 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 transition-all"
               >
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
@@ -616,6 +603,34 @@ function AchatsPageInner() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// StatCard V4 light premium — carte statique avec icône colorée + chiffre Hanken/Spline.
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  color: string
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-4 sm:p-5 flex items-center gap-3 shadow-[0_2px_6px_rgba(15,26,58,0.04)]">
+      <div
+        className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-[#fafbfc] border border-[#0f1a3a]/[0.06]"
+        style={{ color }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-hanken text-[10.5px] font-semibold uppercase tracking-wider text-gray-700">{label}</p>
+        <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] mt-0.5 tracking-[0.5px] truncate">{value}</p>
+      </div>
     </div>
   )
 }

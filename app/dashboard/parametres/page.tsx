@@ -251,8 +251,8 @@ function SaveButton({ onClick, saving, disabled = false }: { onClick: () => void
 function SuccessMessage({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <div className="mt-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-      <p className="text-sm text-green-700 font-manrope">{message}</p>
+    <div className="mt-4 rounded-xl bg-emerald-50/80 border border-emerald-200/70 px-4 py-3">
+      <p className="font-hanken text-sm text-emerald-800">{message}</p>
     </div>
   )
 }
@@ -260,8 +260,8 @@ function SuccessMessage({ message }: { message: string | null }) {
 function ErrorMessage({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <div className="mt-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-      <p className="text-sm text-red-600 font-manrope">{message}</p>
+    <div className="mt-4 rounded-xl bg-red-50/80 border border-red-200/70 px-4 py-3">
+      <p className="font-hanken text-sm text-red-700">{message}</p>
     </div>
   )
 }
@@ -919,130 +919,207 @@ function DocumentsSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-6">
-        Documents
-      </h2>
+    // ============ DocumentsSection — V4 Light Premium ============
+    // Carte blanche premium avec accent line orange, header iconique,
+    // PremiumInput pour préfixes (mono), groupes thématiques avec GroupTitle.
+    <div
+      className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+    >
+      {/* Accent line orange en haut */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+      />
 
-      <div className="space-y-6">
-        {/* Numérotation devis */}
+      {/* Header iconique */}
+      <div className="flex items-start gap-4 mb-8">
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="9" y1="13" x2="15" y2="13" />
+            <line x1="9" y1="17" x2="15" y2="17" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Documents
+          </h2>
+          <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+            Numérotation, conditions, mentions légales et PDF chantier
+          </p>
+        </div>
+      </div>
+
+      {/* ============ NUMÉROTATION ============ */}
+      <GroupTitle mt="mt-8">Numérotation</GroupTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Préfixe devis */}
         <div>
-          <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-            Numérotation devis
-          </label>
-          <div className="flex items-center gap-3">
-            <span className="font-manrope text-sm text-[#6b7280]">Préfixe :</span>
-            <Input
-              type="text"
-              value={prefixDevis}
-              onChange={(e) => setPrefixDevis(e.target.value)}
-              containerClassName="w-20"
-              className="text-center"
-            />
-            <span className="font-manrope text-sm text-[#6b7280]">Format :</span>
-            <Input
-              type="text"
-              defaultValue="YYYY-NNNNN"
-              readOnly
-              containerClassName="w-40"
-            />
-          </div>
+          <FieldLabel>Préfixe devis</FieldLabel>
+          <input
+            type="text"
+            value={prefixDevis}
+            onChange={(e) => setPrefixDevis(e.target.value)}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4] tracking-[0.5px]
+                       placeholder:text-gray-400
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
+          />
+          <FieldHint>Format final : {prefixDevis}YYYY-NNNNN</FieldHint>
         </div>
 
-        {/* Numérotation factures */}
+        {/* Préfixe factures */}
         <div>
-          <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-            Numérotation factures
-          </label>
-          <div className="flex items-center gap-3">
-            <span className="font-manrope text-sm text-[#6b7280]">Préfixe :</span>
-            <Input
-              type="text"
-              value={prefixFactures}
-              onChange={(e) => setPrefixFactures(e.target.value)}
-              containerClassName="w-20"
-              className="text-center"
-            />
-            <span className="font-manrope text-sm text-[#6b7280]">Format :</span>
-            <Input
-              type="text"
-              defaultValue="YYYY-NNNNN"
-              readOnly
-              containerClassName="w-40"
-            />
-          </div>
+          <FieldLabel>Préfixe factures</FieldLabel>
+          <input
+            type="text"
+            value={prefixFactures}
+            onChange={(e) => setPrefixFactures(e.target.value)}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4] tracking-[0.5px]
+                       placeholder:text-gray-400
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
+          />
+          <FieldHint>Format final : {prefixFactures}YYYY-NNNNN</FieldHint>
         </div>
+      </div>
 
-        <TextAreaField
-          label="Conditions de paiement par défaut"
-          value={conditionsPaiement}
-          onChange={setConditionsPaiement}
-        />
+      {/* ============ MENTIONS LÉGALES ============ */}
+      <GroupTitle>Mentions légales</GroupTitle>
+      <div className="space-y-5">
+        <div>
+          <FieldLabel>Conditions de paiement par défaut</FieldLabel>
+          <textarea
+            value={conditionsPaiement}
+            onChange={(e) => setConditionsPaiement(e.target.value)}
+            rows={3}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5]
+                       placeholder:text-gray-400 resize-y
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
+          />
+        </div>
+        <div>
+          <FieldLabel>Mentions légales personnalisées</FieldLabel>
+          <textarea
+            value={mentionsLegales}
+            onChange={(e) => setMentionsLegales(e.target.value)}
+            rows={3}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5]
+                       placeholder:text-gray-400 resize-y
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
+          />
+        </div>
+      </div>
 
-        <TextAreaField
-          label="Mentions légales personnalisées"
-          value={mentionsLegales}
-          onChange={setMentionsLegales}
-        />
-
+      {/* ============ APPARENCE ============ */}
+      <GroupTitle>Apparence</GroupTitle>
+      <div className="space-y-5">
         {/* Couleur principale */}
         <div>
-          <label className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
-            Couleur principale documents
-          </label>
-          <div className="flex items-center gap-3">
+          <FieldLabel>Couleur principale documents</FieldLabel>
+          <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 w-fit">
             <input
               type="color"
               value={docColor}
               onChange={(e) => setDocColor(e.target.value)}
-              className="w-10 h-10 rounded-full border border-gray-200 cursor-pointer p-0.5"
+              className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white"
+              aria-label="Choisir la couleur principale"
             />
-            <span className="font-manrope text-sm text-[#6b7280]">{docColor}</span>
+            <span className="font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] tracking-[0.5px]">{docColor}</span>
           </div>
         </div>
 
-        <ToggleSwitch label="Logo sur les documents" checked={logoOnDocs} onChange={setLogoOnDocs} />
+        <PremiumToggle label="Logo sur les documents" checked={logoOnDocs} onChange={setLogoOnDocs} />
+      </div>
 
-        {/* === PDF CHANTIER V2 === */}
-        <div className="pt-6 mt-2 border-t border-gray-100">
-          <h3 className="font-syne font-bold text-base text-[#1a1a2e] mb-1">
-            PDF planification de chantier
-          </h3>
-          <p className="font-manrope text-xs text-[#6b7280] mb-4">
-            Ces paramètres apparaissent automatiquement sur tous vos PDF de planification chantier envoyés au client. Vous pouvez les écraser au cas par cas dans la fiche d&apos;un chantier spécifique.
-          </p>
+      {/* ============ PDF CHANTIER V2 ============ */}
+      <GroupTitle>PDF planification de chantier</GroupTitle>
+      <InfoBanner tone="info">
+        Ces paramètres apparaissent automatiquement sur tous vos PDF de planification chantier envoyés au client. Vous pouvez les écraser au cas par cas dans la fiche d&apos;un chantier spécifique.
+      </InfoBanner>
 
-          {/* Modalités d'intervention par défaut */}
-          <div className="mb-5">
-            <Textarea
-              label="Modalités d'intervention par défaut"
-              value={modalitesDefault}
-              onChange={(e) => setModalitesDefault(e.target.value)}
-              rows={5}
-              placeholder={'Horaires d\'intervention : généralement entre 8h et 18h, en semaine\nLes horaires peuvent varier selon les contraintes du chantier (livraisons, météo, etc.)\nEn cas de retard ou modification, vous serez prévenu(e) au plus tôt'}
-            />
-            <p className="mt-1.5 font-manrope text-xs text-[#94a3b8]">
-              Indiquez vos horaires habituels, jours d&apos;intervention, pauses, règles générales. Ce que vos clients doivent savoir avant le démarrage du chantier.
-            </p>
-          </div>
+      <div className="space-y-5 mt-4">
+        {/* Modalités d'intervention par défaut */}
+        <div>
+          <FieldLabel>Modalités d&apos;intervention par défaut</FieldLabel>
+          <textarea
+            value={modalitesDefault}
+            onChange={(e) => setModalitesDefault(e.target.value)}
+            rows={5}
+            placeholder={'Horaires d\'intervention : généralement entre 8h et 18h, en semaine\nLes horaires peuvent varier selon les contraintes du chantier (livraisons, météo, etc.)\nEn cas de retard ou modification, vous serez prévenu(e) au plus tôt'}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5]
+                       placeholder:text-gray-400 resize-y
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
+          />
+          <FieldHint>
+            Indiquez vos horaires habituels, jours d&apos;intervention, pauses, règles générales. Ce que vos clients doivent savoir avant le démarrage du chantier.
+          </FieldHint>
+        </div>
 
-          {/* Engagements qualité par défaut */}
-          <div className="mb-2">
-            <Textarea
-              label="Mes engagements qualité"
-              value={engagementsDefault}
-              onChange={(e) => setEngagementsDefault(e.target.value)}
-              rows={5}
-              placeholder={'• Site nettoyé chaque fin de journée\n• Photos d\'avancement envoyées régulièrement\n• Réponse à vos questions sous 24h ouvrées\n• Information immédiate par SMS en cas d\'imprévu\n• Respect des dates communiquées (sauf intempéries documentées)'}
-            />
-            <p className="mt-1.5 font-manrope text-xs text-[#94a3b8]">
-              Ce sur quoi vous vous engagez systématiquement (photos, propreté, communication). Affiché en évidence dans le PDF chantier — c&apos;est ce qui vous différencie d&apos;un concurrent qui n&apos;ose pas l&apos;écrire.
-            </p>
-          </div>
+        {/* Engagements qualité par défaut */}
+        <div>
+          <FieldLabel>Mes engagements qualité</FieldLabel>
+          <textarea
+            value={engagementsDefault}
+            onChange={(e) => setEngagementsDefault(e.target.value)}
+            rows={5}
+            placeholder={'• Site nettoyé chaque fin de journée\n• Photos d\'avancement envoyées régulièrement\n• Réponse à vos questions sous 24h ouvrées\n• Information immédiate par SMS en cas d\'imprévu\n• Respect des dates communiquées (sauf intempéries documentées)'}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5]
+                       placeholder:text-gray-400 resize-y
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
+          />
+          <FieldHint>
+            Ce sur quoi vous vous engagez systématiquement (photos, propreté, communication). Affiché en évidence dans le PDF chantier — c&apos;est ce qui vous différencie d&apos;un concurrent qui n&apos;ose pas l&apos;écrire.
+          </FieldHint>
         </div>
       </div>
 
-      <SaveButton onClick={handleSave} saving={saving} />
+      {/* ============ BOUTON ENREGISTRER — V4 Premium ============ */}
+      <div className="mt-10 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="
+            inline-flex items-center gap-2.5
+            h-[52px] px-9 rounded-[14px]
+            bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+            text-white font-hanken font-extrabold text-[15px] tracking-[-0.01em]
+            shadow-[0_8px_24px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.3)]
+            hover:-translate-y-0.5 hover:brightness-105
+            active:translate-y-0
+            transition-all duration-[250ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+          "
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+        </button>
+      </div>
+
       <SuccessMessage message={success} />
       <ErrorMessage message={errorMsg} />
     </div>
@@ -1109,73 +1186,134 @@ function FacturationSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-6">
-        Facturation
-      </h2>
+    // ============ FacturationSection — V4 Light Premium ============
+    // Carte blanche premium, header iconique Receipt, groupes Taux / Délais /
+    // Mentions légales. PremiumSelect natif stylé + PremiumInput.
+    <div
+      className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+    >
+      {/* Accent line orange */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+      />
 
-      <div className="space-y-6">
+      {/* Header iconique Receipt */}
+      <div className="flex items-start gap-4 mb-8">
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 2V2z" />
+            <line x1="8" y1="8" x2="16" y2="8" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+            <line x1="8" y1="16" x2="12" y2="16" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Facturation
+          </h2>
+          <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+            Taux de TVA, délais de paiement et mentions légales par défaut
+          </p>
+        </div>
+      </div>
+
+      {/* ============ TAUX & DÉLAIS ============ */}
+      <GroupTitle mt="mt-8">Taux & délais</GroupTitle>
+
+      <div className="space-y-5">
         {/* TVA par défaut — masqué si franchise TVA activée dans l'onglet Entreprise */}
         {entreprise.franchise_tva === true ? (
-          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
-            <p className="font-manrope text-sm text-blue-900">
-              <span className="font-semibold">TVA automatiquement à 0 %</span> — vous êtes en franchise de TVA (option activée dans l&apos;onglet <em>Entreprise</em>).
-              La mention <em>« TVA non applicable, art. 293 B du CGI »</em> est ajoutée automatiquement à vos devis et factures.
-            </p>
-            <p className="font-manrope text-xs text-blue-700 mt-2">
+          <InfoBanner tone="info">
+            <strong>TVA automatiquement à 0 %</strong> — vous êtes en franchise de TVA (option activée dans l&apos;onglet <em>Entreprise</em>).
+            La mention <em>« TVA non applicable, art. 293 B du CGI »</em> est ajoutée automatiquement à vos devis et factures.
+            <br />
+            <span className="text-xs opacity-80 mt-2 block">
               Pour activer un taux de TVA différent, désactivez d&apos;abord la franchise dans l&apos;onglet <em>Entreprise</em>.
-            </p>
-          </div>
+            </span>
+          </InfoBanner>
         ) : (
           <div>
-            <Select
-              label="Taux de TVA par défaut"
+            <FieldLabel>Taux de TVA par défaut</FieldLabel>
+            <select
               value={tvaDefaut}
               onChange={(e) => setTvaDefaut(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                         font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                         focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                         focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                         transition-all duration-200 cursor-pointer"
             >
               <option value="0">0 % (non applicable)</option>
               <option value="5.5">5,5 % (rénovation logement de + 2 ans)</option>
               <option value="10">10 % (travaux d&apos;amélioration)</option>
               <option value="20">20 % (taux standard)</option>
-            </Select>
-            <p className="font-manrope text-xs text-gray-500 mt-1.5">
+            </select>
+            <FieldHint>
               Ce taux sera pré-sélectionné sur vos nouveaux devis et factures. Vous pourrez toujours le modifier ligne par ligne.
-            </p>
+            </FieldHint>
           </div>
         )}
 
         {/* Delai de paiement */}
-        <Select
-          label="Délai de paiement par défaut"
-          value={delaiPaiement}
-          onChange={(e) => setDelaiPaiement(e.target.value)}
-        >
-          <option value="0">À réception</option>
-          <option value="15">15 jours</option>
-          <option value="30">30 jours</option>
-          <option value="45">45 jours</option>
-        </Select>
-
-        <InputField
-          label="Pénalités de retard"
-          value={penalites}
-          onChange={setPenalites}
-        />
-
-        <InputField
-          label="Indemnité forfaitaire"
-          value={indemnite}
-          onChange={setIndemnite}
-        />
-
-        <InputField
-          label="Escompte"
-          value={escompte}
-          onChange={setEscompte}
-        />
+        <div>
+          <FieldLabel>Délai de paiement par défaut</FieldLabel>
+          <select
+            value={delaiPaiement}
+            onChange={(e) => setDelaiPaiement(e.target.value)}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200 cursor-pointer"
+          >
+            <option value="0">À réception</option>
+            <option value="15">15 jours</option>
+            <option value="30">30 jours</option>
+            <option value="45">45 jours</option>
+          </select>
+        </div>
       </div>
 
-      <SaveButton onClick={handleSave} saving={saving} />
+      {/* ============ MENTIONS LÉGALES PAR DÉFAUT ============ */}
+      <GroupTitle>Mentions légales par défaut</GroupTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <PremiumInput label="Pénalités de retard" value={penalites} onChange={setPenalites} />
+        <PremiumInput label="Indemnité forfaitaire" value={indemnite} onChange={setIndemnite} mono />
+        <div className="md:col-span-2">
+          <PremiumInput label="Escompte" value={escompte} onChange={setEscompte} />
+        </div>
+      </div>
+
+      {/* ============ BOUTON ENREGISTRER — V4 Premium ============ */}
+      <div className="mt-10 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="
+            inline-flex items-center gap-2.5
+            h-[52px] px-9 rounded-[14px]
+            bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+            text-white font-hanken font-extrabold text-[15px] tracking-[-0.01em]
+            shadow-[0_8px_24px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.3)]
+            hover:-translate-y-0.5 hover:brightness-105
+            active:translate-y-0
+            transition-all duration-[250ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+          "
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+        </button>
+      </div>
+
       <SuccessMessage message={success} />
       <ErrorMessage message={errorMsg} />
     </div>
@@ -1184,40 +1322,94 @@ function FacturationSection({
 
 // Section "Apparence" : couleur sidebar + thème des devis/factures.
 // Le DocumentThemePicker gère sa propre persistence via /api/parametres/document-theme.
+// ============ ApparenceSection — V4 Light Premium ============
+// 2 cartes : (1) Thème dashboard + ThemeSelector ; (2) Installer Nexartis (PWA).
+// Les composants externes ThemeSelector, InstallPrompt, LogoThemeProposals,
+// LogoCustomization, DocumentThemePicker sont laissés tels quels (non touchés).
 function ApparenceSection() {
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="font-syne font-bold text-xl text-[#1a1a2e]">Apparence</h2>
-        <p className="text-sm text-[#6b7280] font-manrope mt-1">
-          Personnalise l&apos;apparence visuelle de ton tableau de bord et de tes documents.
+    <div className="space-y-6">
+      {/* ============ Carte principale Apparence ============ */}
+      <div
+        className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                   shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+      >
+        {/* Accent line orange */}
+        <div
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+        />
+
+        {/* Header iconique Palette */}
+        <div className="flex items-start gap-4 mb-8">
+          <div
+            className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                       bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                       shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" />
+              <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" />
+              <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" />
+              <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor" />
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+              Apparence
+            </h2>
+            <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+              Personnalisez votre tableau de bord et vos documents
+            </p>
+          </div>
+        </div>
+
+        {/* ============ Thème sidebar ============ */}
+        <GroupTitle mt="mt-8">Thème du tableau de bord</GroupTitle>
+        <ThemeSelector />
+        <p className="mt-3 font-hanken text-xs text-gray-400 italic">
+          Astuce : la couleur choisie s&apos;applique uniquement à la barre latérale et aux éléments actifs de votre tableau de bord.
         </p>
       </div>
-      <ThemeSelector />
-      <p className="text-xs text-[#9ca3af] font-manrope italic">
-        Astuce : la couleur de la sidebar ne s&apos;applique qu&apos;à la barre latérale et aux éléments actifs de ton tableau de bord.
-      </p>
 
-      {/* Sous-section "Installer Nexartis comme application" — PWA.
-          Le composant <InstallPrompt /> ne s'affiche que si le navigateur a
-          émis beforeinstallprompt (Chrome Android/Desktop, Edge). Si non
-          supporté (Safari iOS, Firefox Desktop) ou déjà installée, le bouton
-          est null mais on conserve le titre + description + footer texte
-          pour expliquer le pourquoi à l'artisan. */}
-      <section className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-        <div>
-          <h3 className="font-syne font-bold text-lg text-[#0f1a3a]">
-            Installer Nexartis comme application
-          </h3>
-          <p className="text-gray-600 text-sm mt-1">
-            Ajoutez Nexartis à votre écran d&apos;accueil pour y accéder en un clic, sans passer par le navigateur. Disponible sur Chrome Android, Edge, et la plupart des navigateurs modernes.
-          </p>
+      {/* ============ Carte Installer Nexartis (PWA) ============ */}
+      <div
+        className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                   shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+      >
+        {/* Accent line orange */}
+        <div
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+        />
+
+        {/* Header iconique Smartphone */}
+        <div className="flex items-start gap-4 mb-6">
+          <div
+            className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                       bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                       shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+              Installer Nexartis comme application
+            </h2>
+            <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+              Ajoutez Nexartis à votre écran d&apos;accueil pour y accéder en un clic, sans passer par le navigateur. Disponible sur Chrome Android, Edge, et la plupart des navigateurs modernes.
+            </p>
+          </div>
         </div>
         <InstallPrompt theme="dashboard" />
-        <p className="text-xs text-gray-500">
+        <p className="mt-4 font-hanken text-xs text-gray-500">
           Si le bouton ne s&apos;affiche pas, votre navigateur a peut-être déjà proposé l&apos;installation ou la prend en charge différemment (ex : Safari iOS via «&nbsp;Partager &gt; Sur l&apos;écran d&apos;accueil&nbsp;»).
         </p>
-      </section>
+      </div>
 
       {/* V3.1 : Themes auto-generes a partir des couleurs du logo */}
       <LogoThemeProposals />
@@ -1267,38 +1459,91 @@ function NotificationsSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-2">
-        Notifications
-      </h2>
-      <p className="text-sm text-[#6b7280] font-manrope mb-6">
-        Choisis les alertes que tu reçois par email. Tu peux les modifier à tout moment.
-      </p>
+    // ============ NotificationsSection — V4 Light Premium ============
+    // Carte blanche, header iconique Bell, PremiumToggle pour l'unique notif
+    // active, InfoBanner pour les notifs à venir.
+    <div
+      className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+    >
+      {/* Accent line orange */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+      />
 
-      <div className="divide-y divide-gray-100">
-        <div className="py-4">
-          <ToggleSwitch
-            label="Devis signé par un client"
-            checked={notifyDevisSigne}
-            onChange={setNotifyDevisSigne}
-          />
-          <p className="text-xs text-gray-500 font-manrope mt-1.5 ml-1">
-            Tu reçois un email dès qu&apos;un client signe ton devis en ligne. Recommandé.
+      {/* Header iconique Bell */}
+      <div className="flex items-start gap-4 mb-8">
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Notifications
+          </h2>
+          <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+            Choisissez les alertes que vous recevez par email. Modifiables à tout moment.
           </p>
         </div>
       </div>
 
-      <div className="mt-6 rounded-lg bg-blue-50/60 border border-blue-200 p-4">
-        <p className="text-sm font-semibold text-blue-900 font-manrope mb-2">
-          D&apos;autres notifications arrivent prochainement
-        </p>
-        <p className="text-xs text-blue-800 font-manrope leading-relaxed">
-          On travaille sur : <strong>rappels d&apos;impayés automatiques</strong>, <strong>confirmation de paiement de facture</strong>, <strong>récapitulatif hebdomadaire</strong>, et <strong>alertes de modification de planning</strong>.
-          On préfère te les livrer quand elles fonctionneront vraiment plutôt que de t&apos;afficher des cases qui ne font rien.
+      {/* ============ Notifications actives ============ */}
+      <GroupTitle mt="mt-8">Alertes email</GroupTitle>
+
+      <div className="space-y-2">
+        <PremiumToggle
+          label="Devis signé par un client"
+          checked={notifyDevisSigne}
+          onChange={setNotifyDevisSigne}
+        />
+        <p className="font-hanken text-xs text-gray-500 ml-1">
+          Vous recevez un email dès qu&apos;un client signe votre devis en ligne. Recommandé.
         </p>
       </div>
 
-      <SaveButton onClick={handleSave} saving={saving} />
+      {/* ============ Notifications à venir ============ */}
+      <div className="mt-8">
+        <InfoBanner tone="info">
+          <strong>D&apos;autres notifications arrivent prochainement</strong>
+          <br />
+          <span className="text-xs leading-relaxed block mt-1.5">
+            On travaille sur : <strong>rappels d&apos;impayés automatiques</strong>, <strong>confirmation de paiement de facture</strong>, <strong>récapitulatif hebdomadaire</strong>, et <strong>alertes de modification de planning</strong>.
+            On préfère vous les livrer quand elles fonctionneront vraiment plutôt que d&apos;afficher des cases qui ne font rien.
+          </span>
+        </InfoBanner>
+      </div>
+
+      {/* ============ BOUTON ENREGISTRER — V4 Premium ============ */}
+      <div className="mt-10 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="
+            inline-flex items-center gap-2.5
+            h-[52px] px-9 rounded-[14px]
+            bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+            text-white font-hanken font-extrabold text-[15px] tracking-[-0.01em]
+            shadow-[0_8px_24px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.3)]
+            hover:-translate-y-0.5 hover:brightness-105
+            active:translate-y-0
+            transition-all duration-[250ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+          "
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+        </button>
+      </div>
+
       <SuccessMessage message={success} />
       <ErrorMessage message={errorMsg} />
     </div>
@@ -1322,72 +1567,126 @@ function CompteSection({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-6">
-        Compte
-      </h2>
+    // ============ CompteSection — V4 Light Premium ============
+    // Carte blanche, header iconique User, groupes Identité / Visite guidée /
+    // Zone danger (suppression compte RGPD art. 17).
+    <div
+      className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+    >
+      {/* Accent line orange */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+      />
 
-      <div className="space-y-6">
-        <InputField
-          label="Email"
-          value={userEmail}
-          readOnly
-        />
+      {/* Header iconique User */}
+      <div className="flex items-start gap-4 mb-8">
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Compte
+          </h2>
+          <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+            Email, mot de passe, visite guidée et suppression
+          </p>
+        </div>
+      </div>
 
+      {/* ============ Identité ============ */}
+      <GroupTitle mt="mt-8">Identité</GroupTitle>
+      <div className="space-y-5">
+        {/* Email read-only — input direct, le composant PremiumInput local
+            n'expose pas de prop readOnly (volontairement minimal). */}
         <div>
-          <button className="h-12 px-8 rounded-lg font-syne font-bold text-[#1a1a2e] border border-gray-200 hover:bg-gray-50 transition-colors">
+          <FieldLabel>Email</FieldLabel>
+          <input
+            type="email"
+            value={userEmail}
+            readOnly
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       cursor-not-allowed opacity-90"
+          />
+          <FieldHint>L&apos;email de connexion ne peut pas être modifié ici.</FieldHint>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-xl font-hanken font-semibold text-sm text-[#0f1a3a]
+                       bg-white border-[1.5px] border-gray-200
+                       hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                       transition-all duration-200"
+          >
             Modifier le mot de passe
           </button>
         </div>
       </div>
 
-      {/* ===== Visite guidée (réactivation) ===== */}
-      <div className="mt-10 pt-6 border-t border-gray-100">
-        <h3 className="font-syne font-bold text-[15px] text-[#1a1a2e] mb-1">
-          Visite guidée
-        </h3>
-        <p className="font-manrope text-sm text-gray-500 mb-3">
-          Tu peux rejouer le tutoriel de découverte si tu veux le revoir ou le montrer à un confrère.
-          Tu seras redirigé sur le tableau de bord et le tutoriel se relancera automatiquement.
-        </p>
-        <button
-          onClick={handleReplayTour}
-          disabled={onboardingLoading || replaying}
-          className="inline-flex items-center gap-2 h-11 px-5 rounded-lg font-syne font-bold text-sm text-[#1a1a2e] border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <PlayCircle size={17} className="text-[#e87a2a]" />
-          {replaying ? 'Redirection…' : 'Revoir la visite guidée'}
-        </button>
-      </div>
+      {/* ============ Visite guidée ============ */}
+      <GroupTitle>Visite guidée</GroupTitle>
+      <p className="font-hanken text-sm text-gray-500 mb-3 leading-relaxed">
+        Vous pouvez rejouer le tutoriel de découverte pour le revoir ou le montrer à un confrère.
+        Vous serez redirigé sur le tableau de bord et le tutoriel se relancera automatiquement.
+      </p>
+      <button
+        onClick={handleReplayTour}
+        disabled={onboardingLoading || replaying}
+        className="inline-flex items-center gap-2 h-11 px-5 rounded-xl font-hanken font-semibold text-sm text-[#0f1a3a]
+                   bg-white border-[1.5px] border-gray-200
+                   hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                   transition-all duration-200
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <PlayCircle size={17} className="text-[#ff7a1a]" />
+        {replaying ? 'Redirection…' : 'Revoir la visite guidée'}
+      </button>
 
-      {/* Suppression de compte (RGPD art. 17 — droit à l'effacement).
-          Le bouton précédent était décoratif (aucun onClick). En attendant
+      {/* ============ Zone danger : Suppression compte (RGPD art. 17) ============ */}
+      {/* Le bouton précédent était décoratif (aucun onClick). En attendant
           l'implémentation d'un workflow de suppression automatisé (cascade
           Supabase + confirmation forte + délai d'annulation 24h), on
           fournit dès maintenant un canal humain conforme RGPD : email avec
           accusé de réception, réponse sous 30 jours maximum (art. 12.3 RGPD). */}
-      <div className="mt-12 pt-6 border-t border-gray-100">
-        <h3 className="font-syne font-bold text-base text-[#1a1a2e] mb-2">
+      <div className="mt-10 pt-6 border-t border-gray-100">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="font-hanken font-bold text-[11.5px] uppercase tracking-[0.12em] text-red-600">
+            Zone danger
+          </span>
+          <span className="flex-1 h-px bg-gradient-to-r from-red-200 to-transparent" />
+        </div>
+        <h3 className="font-hanken font-extrabold text-lg text-[#0f1a3a] mb-2">
           Supprimer mon compte
         </h3>
-        <p className="font-manrope text-sm text-gray-600 leading-relaxed mb-3">
+        <p className="font-hanken text-sm text-gray-600 leading-relaxed mb-4">
           Conformément à l&apos;article 17 du RGPD, vous pouvez demander la
           suppression définitive de votre compte et de toutes les données
           associées (clients, devis, factures, équipe, paramètres). Pour cela,
           envoyez un email depuis l&apos;adresse de votre compte à&nbsp;
           <a
             href="mailto:contact.nexartis@gmail.com?subject=Demande%20de%20suppression%20de%20mon%20compte%20Nexartis&body=Bonjour%2C%0A%0AJe%20souhaite%20supprimer%20d%C3%A9finitivement%20mon%20compte%20Nexartis%20ainsi%20que%20l%27ensemble%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AMerci%20de%20me%20confirmer%20la%20bonne%20prise%20en%20compte%20de%20cette%20demande.%0A%0ACordialement"
-            className="text-[#e87a2a] hover:underline font-semibold"
+            className="text-[#ff7a1a] hover:underline font-semibold"
           >
             contact.nexartis@gmail.com
           </a>.
           Votre demande sera traitée sous 30 jours maximum. Avant la suppression,
           pensez à exporter vos données (devis, factures) depuis vos pages
-          respectives (boutons « Télécharger PDF »).
+          respectives (boutons «&nbsp;Télécharger PDF&nbsp;»).
         </p>
         <a
           href="mailto:contact.nexartis@gmail.com?subject=Demande%20de%20suppression%20de%20mon%20compte%20Nexartis&body=Bonjour%2C%0A%0AJe%20souhaite%20supprimer%20d%C3%A9finitivement%20mon%20compte%20Nexartis%20ainsi%20que%20l%27ensemble%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AMerci%20de%20me%20confirmer%20la%20bonne%20prise%20en%20compte%20de%20cette%20demande.%0A%0ACordialement"
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-red-300 bg-white text-red-600 font-manrope font-semibold text-sm hover:bg-red-50 transition-colors"
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border-[1.5px] border-red-300 bg-white text-red-600 font-hanken font-semibold text-sm
+                     hover:bg-red-50 hover:border-red-400
+                     transition-all duration-200"
         >
           Demander la suppression par email
         </a>
@@ -1905,29 +2204,74 @@ function SignatureSection({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-2">
-        Signature / Tampon
-      </h2>
+    // ============ SignatureSection — V4 Light Premium ============
+    // Carte blanche, header iconique PenTool, badge configuré si signature ou
+    // tampon actif, aperçu, 2 options (dessin + upload tampon).
+    <div
+      className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+                 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+    >
+      {/* Accent line orange */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+      />
 
-      {/* Explication claire */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6">
-        <p className="text-sm text-blue-700 font-manrope">
-          <strong>Choisissez l&apos;un ou l&apos;autre</strong> : soit vous dessinez votre signature, soit vous uploadez une photo de votre tampon.
-          L&apos;élément choisi apparaîtra automatiquement sur vos devis et factures dans le cadre &quot;Signature artisan&quot;.
-        </p>
+      {/* Header iconique PenTool */}
+      <div className="flex items-start gap-4 mb-6">
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19l7-7 3 3-7 7-3-3z" />
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+            <path d="M2 2l7.586 7.586" />
+            <circle cx="11" cy="11" r="2" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Ma signature
+          </h2>
+          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+            <p className="font-hanken font-medium text-sm text-gray-500">
+              Signature dessinée ou tampon photo pour vos devis et factures
+            </p>
+            {activeMode && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                           bg-gradient-to-br from-emerald-100/80 to-emerald-50
+                           text-emerald-700 border border-emerald-200/60
+                           text-[11.5px] font-hanken font-bold tracking-wider uppercase"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Configuré
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Aperçu de l'élément actuel */}
+      {/* Explication */}
+      <InfoBanner tone="info">
+        <strong>Choisissez l&apos;un ou l&apos;autre</strong> : soit vous dessinez votre signature, soit vous uploadez une photo de votre tampon.
+        L&apos;élément choisi apparaîtra automatiquement sur vos devis et factures dans le cadre «&nbsp;Signature artisan&nbsp;».
+      </InfoBanner>
+
+      {/* ============ Aperçu actif ============ */}
       {activeMode && (
-        <div className="mb-6 p-4 rounded-lg border border-green-200 bg-green-50">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <p className="text-sm font-manrope font-medium text-green-800">
+        <div className="mt-6 p-4 rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/60 to-emerald-50/20">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <p className="font-hanken font-semibold text-sm text-emerald-800">
               {activeMode === 'signature' ? 'Signature dessinée active' : 'Tampon actif'}
             </p>
           </div>
-          <div className="h-16 w-56 rounded-lg border border-gray-200 bg-white flex items-center justify-center p-2">
+          <div className="h-20 w-64 rounded-xl border border-gray-200 bg-white flex items-center justify-center p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={String((activeMode === 'signature' ? currentSignature : currentTampon) || '')}
@@ -1938,68 +2282,79 @@ function SignatureSection({
           <button
             onClick={activeMode === 'signature' ? removeSignature : async () => { setSaving(true); await update({ tampon_base64: null }); setSaving(false); setSuccess(activeMode === 'tampon' ? 'Tampon supprimé.' : '') }}
             disabled={saving}
-            className="mt-2 text-xs text-red-500 hover:text-red-700 font-manrope"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-hanken font-semibold text-red-600 hover:text-red-700"
           >
             Supprimer {activeMode === 'signature' ? 'la signature' : 'le tampon'}
           </button>
         </div>
       )}
 
-      {/* ═══ OPTION 1 : Dessiner une signature ═══ */}
-      <div className="mb-8">
-        <h3 className="font-syne font-bold text-base text-[#1a1a2e] mb-1">Option 1 — Dessiner ma signature</h3>
-        <p className="text-xs font-manrope text-gray-400 mb-3">Utilisez votre souris ou votre doigt sur mobile.</p>
+      {/* ============ OPTION 1 : Dessiner ============ */}
+      <GroupTitle mt="mt-10">Option 1 — Dessiner ma signature</GroupTitle>
+      <p className="font-hanken text-xs text-gray-500 mb-3">Utilisez votre souris ou votre doigt sur mobile.</p>
 
-        <div className="relative">
-          <canvas
-            ref={canvasRef}
-            width={600}
-            height={250}
-            className="w-full max-w-[600px] h-[250px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-crosshair touch-none"
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
-          />
-          {!hasStrokes && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none max-w-[600px]">
-              <p className="font-manrope text-sm text-gray-400">Dessinez votre signature ici</p>
-            </div>
-          )}
-        </div>
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={250}
+          className="w-full max-w-[600px] h-[250px] rounded-2xl border-2 border-dashed border-gray-300 bg-[#fafbfc] cursor-crosshair touch-none"
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+        />
+        {!hasStrokes && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none max-w-[600px]">
+            <p className="font-hanken text-sm text-gray-400">Dessinez votre signature ici</p>
+          </div>
+        )}
+      </div>
 
-        <div className="mt-3 flex gap-3">
-          <button
-            onClick={saveSignature}
-            disabled={!hasStrokes || saving}
-            className="h-10 px-6 rounded-lg font-syne font-bold text-white bg-[#e87a2a] hover:bg-[#f09050] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? 'Enregistrement...' : 'Enregistrer la signature'}
-          </button>
-          <button
-            onClick={clearCanvas}
-            className="h-10 px-6 rounded-lg font-syne font-bold text-[#1a1a2e] border border-gray-200 hover:bg-gray-50 transition-colors text-sm"
-          >
-            Effacer
-          </button>
-        </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          onClick={saveSignature}
+          disabled={!hasStrokes || saving}
+          className="
+            inline-flex items-center gap-2.5
+            h-11 px-6 rounded-xl
+            bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+            text-white font-hanken font-bold text-sm tracking-[-0.01em]
+            shadow-[0_6px_18px_rgba(255,122,26,0.32),_inset_0_1px_0_rgba(255,255,255,0.3)]
+            hover:-translate-y-0.5 hover:brightness-105
+            active:translate-y-0
+            transition-all duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+          "
+        >
+          {saving ? 'Enregistrement…' : 'Enregistrer la signature'}
+        </button>
+        <button
+          onClick={clearCanvas}
+          className="inline-flex items-center gap-2 h-11 px-6 rounded-xl font-hanken font-semibold text-sm text-[#0f1a3a]
+                     bg-white border-[1.5px] border-gray-200
+                     hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                     transition-all duration-200"
+        >
+          Effacer
+        </button>
       </div>
 
       {/* Séparateur OU */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="flex-1 h-px bg-gray-200" />
-        <span className="font-syne font-bold text-sm text-gray-400 uppercase">ou</span>
-        <div className="flex-1 h-px bg-gray-200" />
+      <div className="flex items-center gap-4 my-10">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+        <span className="font-hanken font-bold text-[11.5px] uppercase tracking-[0.2em] text-gray-400">ou</span>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
       </div>
 
-      {/* ═══ OPTION 2 : Uploader un tampon ═══ */}
+      {/* ============ OPTION 2 : Uploader un tampon ============ */}
       <TamponUpload entreprise={entreprise} update={update} />
 
       <SuccessMessage message={success} />
-      {errorMsg && <p className="mt-3 text-sm text-red-600 font-manrope">{errorMsg}</p>}
+      {errorMsg && <p className="mt-3 font-hanken text-sm font-semibold text-red-600">{errorMsg}</p>}
     </div>
   )
 }

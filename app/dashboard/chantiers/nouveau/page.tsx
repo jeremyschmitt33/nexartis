@@ -3,9 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, HardHat } from 'lucide-react'
 import { useClients, useDevis, insertRow, updateRow, LoadingSkeleton } from '@/lib/hooks'
+import {
+  PremiumCard,
+  SectionHeader,
+  PremiumInput,
+  PremiumSelect,
+  PremiumTextarea,
+  PremiumButton,
+  InfoBanner,
+} from '@/components/ui/v4'
 
+// -------------------------------------------------------------------
+// Constantes locales — labels statut (logique métier inchangée).
+// -------------------------------------------------------------------
 const STATUT_OPTIONS = ['prospection', 'signe', 'en_cours', 'livre', 'cloture', 'archive']
 const STATUT_LABELS: Record<string, string> = {
   prospection: 'Prospection',
@@ -21,6 +33,7 @@ export default function NouveauChantierPage() {
   const { data: clients, loading: loadingClients } = useClients()
   const { data: allDevis } = useDevis()
 
+  // ── State formulaire — logique métier INTACTE ──
   const [nom, setNom] = useState('')
   const [clientId, setClientId] = useState('')
   const [adresse, setAdresse] = useState('')
@@ -88,54 +101,56 @@ export default function NouveauChantierPage() {
     }
   }
 
-  const inputClasses = 'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none transition-colors'
-
   if (loadingClients) {
     return <div className="space-y-6"><LoadingSkeleton rows={6} /></div>
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/chantiers" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <ArrowLeft size={20} className="text-gray-600" />
+    <div className="space-y-6 max-w-3xl">
+      {/* ── Header de page : bouton retour discret + titre Hanken extrabold ── */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard/chantiers"
+          aria-label="Retour à la liste des chantiers"
+          className="p-2 rounded-xl hover:bg-white border border-transparent hover:border-gray-200 transition-all"
+        >
+          <ArrowLeft size={18} className="text-gray-500" />
         </Link>
-        <h1 className="text-2xl font-syne font-bold text-[#0f1a3a]">Nouveau chantier</h1>
+        <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em]">
+          Nouveau chantier
+        </h1>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 max-w-2xl space-y-5">
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p className="text-sm text-red-600 font-manrope">{error}</p>
-          </div>
-        )}
+      {/* ── Carte principale V4 — formulaire de création ── */}
+      <PremiumCard>
+        <SectionHeader
+          icon={<HardHat size={20} />}
+          title="Informations du chantier"
+          subtitle="Renseignez les éléments clés du chantier à créer"
+        />
 
-        {/* Nom du chantier */}
-        <div>
-          <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Nom du chantier *
-          </label>
-          <input
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Erreur globale du formulaire — InfoBanner V4 variante danger */}
+          {error && (
+            <InfoBanner variant="danger">{error}</InfoBanner>
+          )}
+
+          {/* Nom du chantier — champ obligatoire */}
+          <PremiumInput
+            label="Nom du chantier *"
             type="text"
             value={nom}
             onChange={(e) => setNom(e.target.value)}
-            placeholder="Ex: Rénovation salle de bain"
+            placeholder="Ex : Rénovation salle de bain"
             required
-            className={inputClasses}
           />
-        </div>
 
-        {/* Client */}
-        <div>
-          <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Client
-          </label>
-          <select
+          {/* Client — auto-remplit l'adresse via useEffect ci-dessus */}
+          <PremiumSelect
+            label="Client"
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className={inputClasses}
+            hint="Sélectionner un client pré-rempli son adresse"
           >
             <option value="">Sélectionner un client...</option>
             {(clients as { id: string; prenom?: string; nom?: string }[]).map((c) => (
@@ -143,96 +158,73 @@ export default function NouveauChantierPage() {
                 {`${c.prenom ?? ''} ${c.nom ?? ''}`.trim()}
               </option>
             ))}
-          </select>
-        </div>
+          </PremiumSelect>
 
-        {/* Adresse */}
-        <div>
-          <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Adresse du chantier
-          </label>
-          <input
+          {/* Adresse — modifiable (flag adresseManuallyEdited) */}
+          <PremiumInput
+            label="Adresse du chantier"
             type="text"
             value={adresse}
             onChange={(e) => { setAdresse(e.target.value); setAdresseManuallyEdited(true) }}
             placeholder="12 rue des Lilas, 33000 Bordeaux"
-            className={inputClasses}
           />
-        </div>
 
-        {/* Dates */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-              Date de début
-            </label>
-            <input
+          {/* Dates en grille 2 colonnes — chiffrées donc mono */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <PremiumInput
+              label="Date de début"
               type="date"
               value={dateDebut}
               onChange={(e) => setDateDebut(e.target.value)}
-              className={inputClasses}
+              mono
             />
-          </div>
-          <div>
-            <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-              Date de fin prévue
-            </label>
-            <input
+            <PremiumInput
+              label="Date de fin prévue"
               type="date"
               value={dateFin}
               onChange={(e) => setDateFin(e.target.value)}
-              className={inputClasses}
+              mono
             />
           </div>
-        </div>
 
-        {/* Statut */}
-        <div>
-          <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Statut
-          </label>
-          <select
+          {/* Statut métier */}
+          <PremiumSelect
+            label="Statut"
             value={statut}
             onChange={(e) => setStatut(e.target.value)}
-            className={inputClasses}
           >
             {STATUT_OPTIONS.map((s) => (
               <option key={s} value={s}>{STATUT_LABELS[s]}</option>
             ))}
-          </select>
-        </div>
+          </PremiumSelect>
 
-        {/* Notes */}
-        <div>
-          <label className="block text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider mb-1">
-            Notes
-          </label>
-          <textarea
+          {/* Notes libres — textarea V4 */}
+          <PremiumTextarea
+            label="Notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Notes internes sur ce chantier..."
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0] outline-none resize-none transition-colors"
           />
-        </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-2">
-          <Link
-            href="/dashboard/chantiers"
-            className="h-10 px-5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-syne font-bold text-[#1a1a2e] transition-colors inline-flex items-center"
-          >
-            Annuler
-          </Link>
-          <button
-            type="submit"
-            disabled={saving}
-            className="h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] disabled:opacity-50 text-white text-sm font-syne font-bold transition-colors"
-          >
-            {saving ? 'Création...' : 'Créer le chantier'}
-          </button>
-        </div>
-      </form>
+          {/* Actions : annuler (secondaire) / créer (primaire orange) */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Link href="/dashboard/chantiers">
+              <PremiumButton variant="secondary" type="button">
+                Annuler
+              </PremiumButton>
+            </Link>
+            <PremiumButton
+              variant="primary"
+              type="submit"
+              disabled={saving}
+              loading={saving}
+            >
+              {saving ? 'Création...' : 'Créer le chantier'}
+            </PremiumButton>
+          </div>
+        </form>
+      </PremiumCard>
     </div>
   )
 }

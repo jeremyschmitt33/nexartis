@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Search, Wrench, Plus, X, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePrestations, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
-import { Input } from '@/components/ui/Input'
 
 // La table `prestations` utilise `designation` comme libellé principal.
 // Voir : SELECT * FROM information_schema.columns WHERE table_name='prestations'
@@ -212,23 +211,49 @@ export default function PrestationsPage() {
   }
 
   return (
+    // ============ Page Prestations — V4 Light Premium ============
+    // Header + barre de recherche + bouton primary V4. Carte "Mes prestations"
+    // en pills bleu→orange, suggestions par métier en accordéons V4.
     <div className="space-y-6">
+      {/* Header de page */}
+      <div>
+        <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+          Bibliothèque de prestations
+        </h1>
+        <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+          Vos prestations enregistrées et les suggestions par métier pour gagner du temps en devis
+        </p>
+      </div>
 
       {/* Barre de recherche + bouton ajouter */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-          <Input
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+          <input
             type="text"
             placeholder="Rechercher parmi mes prestations..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9"
+            className="w-full pl-10 py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       placeholder:text-gray-400
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
           />
         </div>
         <button
           onClick={() => { setNom(''); setFormError(null); setShowModal(true) }}
-          className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors"
+          className="
+            inline-flex items-center justify-center gap-2
+            h-11 px-5 rounded-xl
+            bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+            text-white font-hanken font-bold text-sm tracking-[-0.01em]
+            shadow-[0_6px_18px_rgba(255,122,26,0.32),_inset_0_1px_0_rgba(255,255,255,0.3)]
+            hover:-translate-y-0.5 hover:brightness-105
+            active:translate-y-0
+            transition-all duration-200
+          "
         >
           <Plus size={16} />
           Nouvelle prestation
@@ -240,33 +265,40 @@ export default function PrestationsPage() {
       {error && <ErrorBanner message={error} onRetry={refetch} />}
 
       {!loading && !error && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-            <Wrench size={15} className="text-[#5ab4e0]" />
-            <span className="text-sm font-syne font-bold text-[#1a1a2e]">Mes prestations enregistrées</span>
-            <span className="ml-auto text-xs font-manrope text-gray-400">{prestations.length} prestation{prestations.length > 1 ? 's' : ''}</span>
+        <div
+          className="relative bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-hidden
+                     shadow-[0_4px_16px_rgba(15,26,58,0.04),_0_1px_3px_rgba(15,26,58,0.04)]"
+        >
+          <div className="px-5 py-3.5 bg-[#fafbfc] border-b border-gray-100 flex items-center gap-2">
+            <Wrench size={15} className="text-[#ff7a1a]" />
+            <span className="font-hanken font-bold text-sm text-[#0f1a3a]">Mes prestations enregistrées</span>
+            <span className="ml-auto font-spline-mono font-medium text-xs text-gray-400">
+              {prestations.length} prestation{prestations.length > 1 ? 's' : ''}
+            </span>
           </div>
 
           {filtered.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-sm font-manrope text-gray-500 mb-1">Aucune prestation enregistrée pour l&apos;instant</p>
-              <p className="text-xs font-manrope text-gray-400">
+            <div className="py-12 text-center">
+              <p className="font-hanken text-sm text-gray-500 mb-1">Aucune prestation enregistrée pour l&apos;instant</p>
+              <p className="font-hanken text-xs text-gray-400 leading-relaxed">
                 Ajoutez des prestations depuis les suggestions ci-dessous,<br />
                 ou créez-en via le bouton orange.
               </p>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2 p-4">
+            <div className="flex flex-wrap gap-2 p-5">
               {filtered.map(p => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-[#eef7fc] border border-[#5ab4e0] rounded-full text-sm font-manrope text-[#1a1a2e] group"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-[#fff3e5] to-[#fff8ef]
+                             border border-[#ff7a1a]/40 rounded-full font-hanken text-sm text-[#0f1a3a] group"
                 >
                   <span>{p.designation}</span>
                   <button
                     onClick={() => handleDelete(p.id, p.designation)}
-                    className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     title="Supprimer"
+                    aria-label={`Supprimer ${p.designation}`}
                   >
                     <X size={13} />
                   </button>
@@ -279,10 +311,10 @@ export default function PrestationsPage() {
 
       {/* Suggestions par métier */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-[#e87a2a]" />
-          <h3 className="text-sm font-syne font-bold text-[#1a1a2e]">Suggestions par métier</h3>
-          <span className="text-xs font-manrope text-gray-400">— Cliquez sur « + » pour ajouter à vos prestations</span>
+        <div className="flex items-center gap-2 px-1">
+          <Sparkles size={16} className="text-[#ff7a1a]" />
+          <h3 className="font-hanken font-bold text-sm text-[#0f1a3a]">Suggestions par métier</h3>
+          <span className="font-hanken text-xs text-gray-500">— Cliquez sur «&nbsp;+&nbsp;» pour ajouter à vos prestations</span>
         </div>
 
         {SUGGESTIONS.map(({ categorie, emoji, items }) => {
@@ -290,17 +322,22 @@ export default function PrestationsPage() {
           const countAdded = items.filter(it => savedNoms.has(it.toLowerCase())).length
 
           return (
-            <div key={categorie} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div
+              key={categorie}
+              className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-hidden
+                         shadow-[0_4px_16px_rgba(15,26,58,0.04),_0_1px_3px_rgba(15,26,58,0.04)]"
+            >
               <button
                 onClick={() => toggleCategory(categorie)}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#fafbfc] transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{emoji}</span>
-                  <span className="text-sm font-syne font-bold text-[#1a1a2e]">{categorie}</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg" aria-hidden="true">{emoji}</span>
+                  <span className="font-hanken font-bold text-sm text-[#0f1a3a]">{categorie}</span>
                   {countAdded > 0 && (
-                    <span className="text-xs font-manrope bg-[#eef7fc] text-[#5ab4e0] border border-[#5ab4e0] px-2 py-0.5 rounded-full">
-                      {countAdded} ajoutée{countAdded > 1 ? 's' : ''}
+                    <span className="font-hanken font-semibold text-[11.5px] bg-gradient-to-br from-emerald-100/80 to-emerald-50
+                                     text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                      <span className="font-spline-mono font-medium">{countAdded}</span> ajoutée{countAdded > 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
@@ -308,7 +345,7 @@ export default function PrestationsPage() {
               </button>
 
               {isOpen && (
-                <div className="border-t border-gray-100 px-4 py-3 flex flex-wrap gap-2">
+                <div className="border-t border-gray-100 px-5 py-4 flex flex-wrap gap-2 bg-[#fafbfc]/40">
                   {items.map(item => {
                     const already = savedNoms.has(item.toLowerCase())
                     const isAdding = addingItem === item
@@ -317,16 +354,16 @@ export default function PrestationsPage() {
                         key={item}
                         onClick={() => !already && addPrestation(item)}
                         disabled={already || isAdding}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-manrope border transition-all min-h-[44px] ${
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full font-hanken text-sm border-[1.5px] transition-all min-h-[40px] ${
                           already
-                            ? 'bg-[#eef7fc] border-[#5ab4e0] text-[#5ab4e0] cursor-default'
+                            ? 'bg-gradient-to-br from-emerald-100/80 to-emerald-50 border-emerald-200/60 text-emerald-700 cursor-default'
                             : isAdding
                             ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-wait'
-                            : 'bg-white border-gray-200 text-[#1a1a2e] hover:border-[#5ab4e0] hover:bg-[#eef7fc] hover:text-[#5ab4e0] cursor-pointer'
+                            : 'bg-white border-gray-200 text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fff8ef] hover:text-[#ff7a1a] cursor-pointer'
                         }`}
                       >
                         {already ? (
-                          <span className="text-[#5ab4e0] font-bold">✓</span>
+                          <span className="text-emerald-600 font-bold">✓</span>
                         ) : (
                           <Plus size={12} />
                         )}
@@ -341,32 +378,81 @@ export default function PrestationsPage() {
         })}
       </div>
 
-      {/* Modal création manuelle */}
+      {/* Modal création manuelle — V4 Light Premium */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-syne font-bold text-[#0f1a3a]">Nouvelle prestation</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title-nouvelle-prestation"
+        >
+          <div
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden
+                       border border-[#0f1a3a]/[0.06]"
+          >
+            <div
+              aria-hidden
+              className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+            />
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <h2 id="modal-title-nouvelle-prestation" className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.025em]">
+                Nouvelle prestation
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-[#0f1a3a] transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="px-6 py-4 space-y-4">
+            <div className="px-6 py-5 space-y-4">
               {formError && <ErrorBanner message={formError} />}
-              <Input
-                label="Désignation"
-                type="text"
-                value={nom}
-                onChange={e => setNom(e.target.value)}
-                placeholder="Ex. : Salle de bain, Pose carrelage..."
-                autoFocus
-                onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
-              />
+              <div>
+                <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+                  Désignation
+                </label>
+                <input
+                  type="text"
+                  value={nom}
+                  onChange={e => setNom(e.target.value)}
+                  placeholder="Ex. : Salle de bain, Pose carrelage..."
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
+                  className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                             font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                             placeholder:text-gray-400
+                             focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                             focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                             transition-all duration-200"
+                />
+              </div>
             </div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
-              <button onClick={() => setShowModal(false)} className="h-10 px-5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-syne font-bold text-[#1a1a2e] transition-colors">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-[#fafbfc]/40">
+              <button
+                onClick={() => setShowModal(false)}
+                className="h-11 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white
+                           font-hanken font-semibold text-sm text-[#0f1a3a]
+                           hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200"
+              >
                 Annuler
               </button>
-              <button onClick={handleCreate} disabled={saving || !nom.trim()} className="h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] disabled:opacity-50 text-white text-sm font-syne font-bold transition-colors">
-                {saving ? 'Enregistrement...' : 'Ajouter'}
+              <button
+                onClick={handleCreate}
+                disabled={saving || !nom.trim()}
+                className="
+                  inline-flex items-center justify-center gap-2
+                  h-11 px-5 rounded-xl
+                  bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+                  text-white font-hanken font-bold text-sm tracking-[-0.01em]
+                  shadow-[0_6px_18px_rgba(255,122,26,0.32),_inset_0_1px_0_rgba(255,255,255,0.3)]
+                  hover:-translate-y-0.5 hover:brightness-105
+                  active:translate-y-0
+                  transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                "
+              >
+                {saving ? 'Enregistrement…' : 'Ajouter'}
               </button>
             </div>
           </div>

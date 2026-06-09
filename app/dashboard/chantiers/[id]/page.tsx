@@ -598,98 +598,135 @@ export default function ChantierDetailPage() {
   // ===================================================================
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb]">
-      {/* ── HEADER ── */}
-      <header className="bg-white border-b border-[#e6ecf2] px-6 py-4 sticky top-0 z-30 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/dashboard/chantiers')} className="flex items-center gap-1.5 text-sm text-[#64748b] hover:text-[#0f1a3a] transition-colors font-medium mr-1">
+    <div className="min-h-screen">
+      {/* ── HEADER V4 : sticky, fond blanc, typo Hanken ── */}
+      <header className="bg-white border-b border-[#0f1a3a]/[0.06] px-4 sm:px-6 py-4 sticky top-0 z-30 flex items-center justify-between gap-4 shadow-[0_1px_4px_rgba(15,26,58,0.04)]">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => router.push('/dashboard/chantiers')}
+            aria-label="Retour à la liste des chantiers"
+            className="flex items-center gap-1.5 font-hanken font-semibold text-sm text-gray-500 hover:text-[#0f1a3a] transition-colors mr-1"
+          >
             <ArrowLeft className="w-4 h-4" />Retour
           </button>
-          <h1 className="text-xl font-extrabold text-[#0f1a3a] tracking-tight font-jakarta">
+          <h1 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.025em] truncate">
             {String(chantier.titre ?? '')}
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/planning" className="flex items-center gap-2 px-4 py-2 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#1e293b] hover:border-[#5ab4e0] hover:text-[#5ab4e0] transition-all">
+          <Link
+            href="/dashboard/planning"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-[#ff7a1a] hover:text-[#ff7a1a] transition-all"
+          >
             <Clock className="w-4 h-4" />Planning
           </Link>
-          <button onClick={openExportModal} disabled={exportingPdf}
-            className="flex items-center gap-2 px-4 py-2 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#1e293b] hover:border-[#5ab4e0] hover:text-[#5ab4e0] transition-all disabled:opacity-50">
+          <button
+            onClick={openExportModal}
+            disabled={exportingPdf}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-[#ff7a1a] hover:text-[#ff7a1a] transition-all disabled:opacity-50"
+          >
             <Download className="w-4 h-4" />{exportingPdf ? 'Export...' : 'Exporter PDF'}
           </button>
-          <button onClick={handleExportRecap} disabled={exportingRecap}
+          <button
+            onClick={handleExportRecap}
+            disabled={exportingRecap}
             title="Document de récap 2 pages destiné au client : travaux, financier, timeline, garanties, SAV"
-            className="flex items-center gap-2 px-4 py-2 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#1e293b] hover:border-[#059669] hover:text-[#059669] transition-all disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-emerald-500 hover:text-emerald-600 transition-all disabled:opacity-50"
+          >
             <FileText className="w-4 h-4" />{exportingRecap ? 'Génération...' : 'Récap client'}
           </button>
-          <button onClick={openEditMode}
-            className="flex items-center gap-2 px-4 py-2 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#1e293b] hover:border-[#e87a2a] hover:text-[#e87a2a] transition-all">
+          <button
+            onClick={openEditMode}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl font-hanken font-bold text-sm text-white bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] shadow-[0_4px_12px_rgba(255,122,26,0.25),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 transition-all"
+          >
             <Pencil className="w-4 h-4" />Modifier
           </button>
         </div>
       </header>
 
-      <div className="px-6 py-5">
-        {/* ── HERO ── */}
-        <div className="bg-white border border-[#e6ecf2] rounded-2xl p-6 mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statutCls}`}>
+      <div className="px-4 sm:px-6 py-5">
+        {/* ── HERO V4 : PremiumCard avec accent line + badge statut + tabs ── */}
+        <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)] p-6 sm:p-8 mb-5">
+          {/* Accent line orange — signature V4 */}
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider ${statutCls}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-current" />{statutLabel}
             </span>
-            <div className="flex bg-[#f6f8fb] rounded-xl p-1 gap-0.5">
+            {/* Onglets — pill toggle V4 */}
+            <div className="flex bg-[#fafbfc] rounded-xl p-1 gap-0.5 border border-gray-200/60">
               {TABS.map(t => (
-                <button key={t.key} onClick={() => setActiveTab(t.key)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === t.key ? 'bg-white text-[#0f1a3a] shadow-sm' : 'text-[#64748b] hover:text-[#0f1a3a]'}`}>
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`px-4 py-1.5 rounded-lg font-hanken text-xs font-bold transition-all ${
+                    activeTab === t.key
+                      ? 'bg-white text-[#0f1a3a] shadow-[0_2px_6px_rgba(15,26,58,0.08)]'
+                      : 'text-gray-500 hover:text-[#0f1a3a]'
+                  }`}
+                >
                   {t.label}
                 </button>
               ))}
             </div>
           </div>
-          <h2 className="text-[22px] font-extrabold text-[#0f1a3a] tracking-tight mt-2">
+
+          {/* Titre & sous-titre du hero */}
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
             {String(chantier.titre ?? '')} — {client ? String(`${client.prenom ?? ''} ${client.nom ?? ''}`).trim() : 'Client'}
           </h2>
-          <div className="text-sm text-[#7b8ba3] font-medium mb-4">
+          <div className="font-hanken text-sm text-gray-500 mb-5 mt-1.5">
             {String(chantier.description ?? '')} • {String(chantier.adresse_chantier ?? '')}, {String(chantier.ville_chantier ?? '')}
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            <div className="flex items-center gap-2 text-[13px] text-[#64748b]">
-              <Calendar className="w-4 h-4 text-[#7b8ba3] flex-shrink-0" />
-              Début : <strong className="text-[#0f1a3a]">{formatDate(chantier.date_debut as string)}</strong>
+
+          {/* Méta — 4 colonnes desktop, 2 mobile. Dates et téléphone en mono. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="flex items-center gap-2 font-hanken text-[13px] text-gray-500">
+              <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              Début : <strong className="font-spline-mono font-medium text-[#0f1a3a]">{formatDate(chantier.date_debut as string)}</strong>
             </div>
-            <div className="flex items-center gap-2 text-[13px] text-[#64748b]">
-              <Clock className="w-4 h-4 text-[#7b8ba3] flex-shrink-0" />
-              Fin prévue : <strong className="text-[#0f1a3a]">{formatDate(chantier.date_fin_prevue as string)}</strong>
+            <div className="flex items-center gap-2 font-hanken text-[13px] text-gray-500">
+              <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              Fin prévue : <strong className="font-spline-mono font-medium text-[#0f1a3a]">{formatDate(chantier.date_fin_prevue as string)}</strong>
             </div>
-            <div className="flex items-center gap-2 text-[13px] text-[#64748b]">
-              <User className="w-4 h-4 text-[#7b8ba3] flex-shrink-0" />
+            <div className="flex items-center gap-2 font-hanken text-[13px] text-gray-500">
+              <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
               Client : <strong className="text-[#0f1a3a]">{client ? String(`${client.prenom ?? ''} ${client.nom ?? ''}`).trim() : '—'}</strong>
             </div>
             {(() => { const tel = client?.telephone as string | undefined; return tel ? (
-              <div className="flex items-center gap-2 text-[13px] text-[#64748b]">
-                <Phone className="w-4 h-4 text-[#7b8ba3] flex-shrink-0" />
-                Tél : <a href={`tel:${tel}`} className="text-[#5ab4e0] font-semibold hover:underline">{tel}</a>
+              <div className="flex items-center gap-2 font-hanken text-[13px] text-gray-500">
+                <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                Tél : <a href={`tel:${tel}`} className="font-spline-mono font-medium text-[#ff7a1a] hover:underline">{tel}</a>
               </div>
             ) : null })()}
           </div>
         </div>
 
-        {/* ── FINANCE ROW ── */}
-        <div className="grid grid-cols-4 gap-3.5 mb-5">
+        {/* ── FINANCE ROW V4 : 4 tuiles chiffrées (Spline Mono) ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
           {[
             { label: 'Devisé TTC', value: formatEur(finances.deviseTotal) },
             { label: 'Facturé TTC', value: formatEur(finances.factureTotal) },
-            { label: 'Encaissé', value: formatEur(finances.encaisse), cls: 'text-[#22c55e]' },
-            { label: 'Reste à facturer', value: formatEur(finances.reste), cls: 'text-[#e87a2a]' },
+            { label: 'Encaissé', value: formatEur(finances.encaisse), cls: 'text-emerald-600' },
+            { label: 'Reste à facturer', value: formatEur(finances.reste), cls: 'text-[#ff7a1a]' },
           ].map((f, i) => (
-            <div key={i} className="text-center py-4 px-4 bg-[#f6f8fb] rounded-xl">
-              <div className={`text-xl font-extrabold tracking-tight ${f.cls ?? 'text-[#0f1a3a]'}`}>{f.value}</div>
-              <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">{f.label}</div>
+            <div
+              key={i}
+              className="text-center py-5 px-4 bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_2px_6px_rgba(15,26,58,0.04)]"
+            >
+              <div className={`font-spline-mono font-semibold text-xl tracking-[-0.01em] ${f.cls ?? 'text-[#0f1a3a]'}`}>
+                {f.value}
+              </div>
+              <div className="font-hanken text-[11.5px] uppercase tracking-wider font-semibold text-gray-500 mt-1.5">
+                {f.label}
+              </div>
             </div>
           ))}
         </div>
 
         {/* ── PROGRESS BARS ── */}
-        <div className="bg-white border border-[#e6ecf2] rounded-2xl p-5 mb-5 space-y-4">
+        <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] p-5 mb-5 space-y-4">
           <ProgressBar label="Avancement par devis" value={`${finances.devisFactures} / ${finances.devisCount} devis • ${finances.pctDevis}%`} pct={finances.pctDevis} color="bg-[#5ab4e0]" sub={`${finances.devisFactures} devis facturés / ${finances.devisCount} total`} />
           <ProgressBar label="Avancement en valeur" value={`${formatEur(finances.factureTotal)} / ${formatEur(finances.deviseTotal)} • ${finances.pctValeur}%`} pct={finances.pctValeur} color="bg-[#e87a2a]" sub={`${formatEur(finances.factureTotal)} facturés / ${formatEur(finances.deviseTotal)} TTC`} />
           <ProgressBar label="Encaissement" value={`${formatEur(finances.encaisse)} / ${formatEur(finances.deviseTotal)} • ${finances.pctEncaissement}%`} pct={finances.pctEncaissement} color="bg-[#22c55e]" sub={`${formatEur(finances.encaisse)} encaissés / ${formatEur(finances.deviseTotal)} TTC`} />
@@ -697,9 +734,9 @@ export default function ChantierDetailPage() {
 
         {/* ── GANTT CHART ── */}
         {(activeTab === 'resume') && (
-        <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden mb-5">
+        <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
           <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
-            <h3 className="text-[15px] font-extrabold text-[#0f1a3a] tracking-tight">Planning des phases</h3>
+            <h3 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em]">Planning des phases</h3>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { const d = new Date(ganttStart); d.setDate(d.getDate() - 5); setGanttStart(d) }}
@@ -845,7 +882,7 @@ export default function ChantierDetailPage() {
 
         {/* ── EQUIPE DU CHANTIER ── */}
         {(activeTab === 'resume') && (
-        <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden mb-5">
+        <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
           <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-[#5ab4e0]" />
@@ -953,7 +990,7 @@ export default function ChantierDetailPage() {
         {activeTab === 'resume' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* Notes */}
-          <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden">
+          <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
               <h3 className="text-[15px] font-extrabold text-[#0f1a3a]">Notes & rappels</h3>
               <span className="text-[11px] text-[#7b8ba3] font-semibold">{(chantierNotes as R[]).filter(n => !n.fait).length} tâches</span>
@@ -991,13 +1028,13 @@ export default function ChantierDetailPage() {
                   onKeyDown={e => { if (e.key === 'Enter') addNote() }}
                   placeholder={NOTE_PLACEHOLDERS[newNoteCat] || 'Ajouter une note ou un rappel...'}
                   className="flex-1 px-3 py-2 border-2 border-dashed border-[#e6ecf2] rounded-lg text-[13px] focus:border-[#5ab4e0] focus:bg-[#5ab4e0]/[.03] outline-none transition-all placeholder:text-[#7b8ba3]" />
-                <button onClick={addNote} className="px-3 py-2 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-lg text-xs font-bold hover:shadow-md transition-all">+</button>
+                <button onClick={addNote} aria-label="Ajouter la note" className="px-3.5 py-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-lg font-hanken text-xs font-bold shadow-[0_4px_12px_rgba(255,122,26,0.25),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 transition-all">+</button>
               </div>
             </div>
           </div>
 
           {/* Sous-traitants */}
-          <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden">
+          <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
               <h3 className="text-[15px] font-extrabold text-[#0f1a3a]">Sous-traitants</h3>
               <button className="flex items-center gap-1 text-xs text-[#64748b] font-semibold hover:text-[#5ab4e0] transition-all">
@@ -1065,11 +1102,11 @@ export default function ChantierDetailPage() {
 
         {/* ── DEVIS LIES + FACTURATION ── */}
         {(activeTab === 'resume' || activeTab === 'devis' || activeTab === 'factures') && chantierDevis.length > 0 && (
-          <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden mb-5">
+          <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
             <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-[#e87a2a]" />
-                <h3 className="text-[15px] font-extrabold text-[#0f1a3a]">Devis & Facturation</h3>
+                <Receipt className="w-4 h-4 text-[#ff7a1a]" />
+                <h3 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em]">Devis &amp; Facturation</h3>
               </div>
               <span className="text-[11px] text-[#7b8ba3] font-semibold">
                 {chantierDevis.filter(d => d.statut === 'facture').length} / {chantierDevis.length} devis facturés
@@ -1082,7 +1119,7 @@ export default function ChantierDetailPage() {
                 return (
                   <div key={d.id as string} className="flex items-center gap-4 px-5 py-4 hover:bg-[#f6f8fb]/50 transition-all">
                     <div className="w-10 h-10 rounded-xl bg-[#fff7f0] flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-5 h-5 text-[#e87a2a]" />
+                      <FileText className="w-5 h-5 text-[#ff7a1a]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -1132,7 +1169,7 @@ export default function ChantierDetailPage() {
 
         {/* ── FACTURES DÉTAILLÉES (onglet factures) ── */}
         {activeTab === 'factures' && chantierFactures.length > 0 && (
-          <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden mb-5">
+          <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
             <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-[#22c55e]" />
@@ -1168,21 +1205,21 @@ export default function ChantierDetailPage() {
 
         {/* ── MARGE NETTE ── */}
         {(activeTab === 'resume' || activeTab === 'factures') && (
-        <div className="bg-white border border-[#e6ecf2] rounded-2xl overflow-hidden mb-5">
+        <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
           <div className="px-5 py-4 border-b border-[#e6ecf2]">
             <h3 className="text-[15px] font-extrabold text-[#0f1a3a]">Rentabilité du chantier</h3>
           </div>
           <div className="grid grid-cols-3 border-b border-[#e6ecf2]">
             <div className="text-center py-5 px-4 border-r border-[#e6ecf2]">
-              <div className="text-[22px] font-extrabold text-[#22c55e] tracking-tight">{formatEur(finances.factureTotal)}</div>
+              <div className="font-spline-mono font-semibold text-2xl text-emerald-600 tracking-[-0.01em]">{formatEur(finances.factureTotal)}</div>
               <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Facturé client (TTC)</div>
             </div>
             <div className="text-center py-5 px-4 border-r border-[#e6ecf2]">
-              <div className="text-[22px] font-extrabold text-[#ef4444] tracking-tight">- {formatEur(finances.depenses)}</div>
+              <div className="font-spline-mono font-semibold text-2xl text-red-500 tracking-[-0.01em]">- {formatEur(finances.depenses)}</div>
               <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Dépenses (ST + achats)</div>
             </div>
             <div className="text-center py-5 px-4">
-              <div className="text-[22px] font-extrabold text-[#0f1a3a] tracking-tight">{formatEur(finances.marge)} <span className="text-sm font-bold text-[#7b8ba3]">({finances.margePct}%)</span></div>
+              <div className="font-spline-mono font-semibold text-2xl text-[#0f1a3a] tracking-[-0.01em]">{formatEur(finances.marge)} <span className="text-sm font-bold text-[#7b8ba3]">({finances.margePct}%)</span></div>
               <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Marge nette</div>
             </div>
           </div>
@@ -1222,8 +1259,8 @@ export default function ChantierDetailPage() {
           <div className="bg-white rounded-2xl w-full max-w-[640px] shadow-lg animate-[modalIn_.3s_ease] flex flex-col max-h-[92vh]">
             <div className="px-6 py-5 border-b border-[#e6ecf2] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="text-[17px] font-extrabold text-[#0f1a3a]">Exporter le PDF de planification</h3>
-                <p className="text-[12px] text-[#7b8ba3] mt-0.5">Choisissez les options avant la génération</p>
+                <h3 className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em]">Exporter le PDF de planification</h3>
+                <p className="font-hanken text-xs text-gray-500 mt-0.5">Choisissez les options avant la génération</p>
               </div>
               <button
                 onClick={() => setShowExportModal(false)}
@@ -1246,7 +1283,7 @@ export default function ChantierDetailPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[14px] font-bold text-[#0f1a3a]">Inclure le Pacte de chantier</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#e87a2a]/15 text-[#e87a2a]">Recommandé gros chantier</span>
+                      <span className="font-hanken text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#ff7a1a]/15 text-[#ff7a1a]">Recommandé gros chantier</span>
                     </div>
                     <p className="text-[12px] text-[#64748b] leading-snug">
                       Ajoute une page de garde signée par les deux parties (engagement mutuel artisan + client). Idéal pour rassurer le client sur les chantiers de rénovation lourde. Décoché par défaut.
@@ -1303,7 +1340,7 @@ export default function ChantierDetailPage() {
                       value={exportPacteTexte}
                       onChange={(e) => setExportPacteTexte(e.target.value)}
                       rows={14}
-                      className="w-full rounded-lg border border-[#e6ecf2] bg-white px-3 py-2.5 text-[12px] leading-snug font-mono focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0]/20 outline-none transition-all resize-y"
+                      className="w-full rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2.5 font-spline-mono font-medium text-[12px] text-[#0f1a3a] leading-snug focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12)] transition-all duration-200 resize-y"
                     />
                     <p className="mt-1.5 text-[10px] text-[#94a3b8] italic leading-snug">
                       Pré-rempli automatiquement à partir de votre profil et du chantier. Le texte est sauvegardé pour vos prochains exports — utilisez «&nbsp;Réinitialiser&nbsp;» pour repartir du modèle.
@@ -1331,14 +1368,14 @@ export default function ChantierDetailPage() {
               <button
                 onClick={() => setShowExportModal(false)}
                 disabled={exportingPdf}
-                className="px-4 py-2.5 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#64748b] hover:border-[#ef4444] hover:text-[#ef4444] transition-all disabled:opacity-40"
+                className="px-5 py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-40"
               >
                 Annuler
               </button>
               <button
                 onClick={handleExportPDF}
                 disabled={exportingPdf || (exportWithPacte && !exportPacteTexte.trim())}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-xl text-sm font-bold hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-hanken font-bold text-sm text-white bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 <Download className="w-4 h-4" />
                 {exportingPdf ? 'Génération en cours...' : 'Générer le PDF'}
@@ -1353,7 +1390,7 @@ export default function ChantierDetailPage() {
         <div className="fixed inset-0 bg-[#0f1a3a]/35 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) setEditMode(false) }}>
           <div className="bg-white rounded-2xl w-full max-w-[540px] mx-4 shadow-lg animate-[modalIn_.3s_ease]">
             <div className="px-6 py-5 border-b border-[#e6ecf2] flex items-center justify-between">
-              <h3 className="text-[17px] font-extrabold text-[#0f1a3a]">Modifier le chantier</h3>
+              <h3 className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em]">Modifier le chantier</h3>
               <button onClick={() => setEditMode(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#f6f8fb] text-[#64748b] hover:bg-[#fee2e2] hover:text-[#ef4444] transition-all">
                 <X className="w-4 h-4" />
               </button>
@@ -1362,35 +1399,35 @@ export default function ChantierDetailPage() {
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-1.5 block">Titre du chantier</label>
                 <input type="text" value={editTitre} onChange={e => setEditTitre(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all" />
+                  className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200" />
               </div>
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-1.5 block">Description</label>
                 <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={2}
-                  className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all resize-none" />
+                  className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200 resize-y" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-1.5 block">Date début</label>
                   <input type="date" value={editDateDebut} onChange={e => setEditDateDebut(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] outline-none transition-all" />
+                    className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4] tracking-[0.5px] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200" />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-1.5 block">Date fin prévue</label>
                   <input type="date" value={editDateFin} onChange={e => setEditDateFin(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] outline-none transition-all" />
+                    className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4] tracking-[0.5px] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-1.5 block">Adresse chantier</label>
                   <input type="text" value={editAdresse} onChange={e => setEditAdresse(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] outline-none transition-all" />
+                    className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4] tracking-[0.5px] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200" />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-1.5 block">Ville</label>
                   <input type="text" value={editVille} onChange={e => setEditVille(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] outline-none transition-all" />
+                    className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4] tracking-[0.5px] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200" />
                 </div>
               </div>
 
@@ -1409,7 +1446,7 @@ export default function ChantierDetailPage() {
                       onChange={e => setEditPreparationClient(e.target.value)}
                       rows={3}
                       placeholder={'Ex :\n• Vider la pièce des meubles\n• Couper le compteur d\'eau\n• Prévoir un stationnement pour le camion'}
-                      className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all resize-none"
+                      className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200 resize-y"
                     />
                     <p className="mt-1 text-[10px] text-[#94a3b8]">
                       S&apos;affiche dans la section &laquo;&nbsp;Préparation à votre charge&nbsp;&raquo; du PDF.
@@ -1425,7 +1462,7 @@ export default function ChantierDetailPage() {
                       onChange={e => setEditNonInclus(e.target.value)}
                       rows={3}
                       placeholder={'Ex :\n• Peinture du portail\n• Évacuation des gravats hors démolition\n• Modification du système d\'arrosage'}
-                      className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all resize-none"
+                      className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200 resize-y"
                     />
                     <p className="mt-1 text-[10px] text-[#94a3b8]">
                       Ce que le client pourrait imaginer comme inclus mais qui ne l&apos;est PAS. Source n°1 des litiges.
@@ -1441,7 +1478,7 @@ export default function ChantierDetailPage() {
                       onChange={e => setEditModalitesPerso(e.target.value)}
                       rows={2}
                       placeholder="Laisser vide pour utiliser les modalités par défaut de votre profil."
-                      className="w-full px-3.5 py-2.5 border border-[#e6ecf2] rounded-xl text-sm focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/10 outline-none transition-all resize-none"
+                      className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.5] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200 resize-y"
                     />
                     <p className="mt-1 text-[10px] text-[#94a3b8]">
                       Si rempli, écrase les modalités par défaut de votre profil pour ce chantier uniquement.
@@ -1451,12 +1488,17 @@ export default function ChantierDetailPage() {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-[#e6ecf2] flex justify-end gap-3">
-              <button onClick={() => setEditMode(false)}
-                className="px-4 py-2.5 border border-[#e6ecf2] rounded-xl text-sm font-semibold text-[#64748b] hover:border-[#ef4444] hover:text-[#ef4444] transition-all">
+              <button
+                onClick={() => setEditMode(false)}
+                className="px-5 py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-gray-300 hover:bg-gray-50 transition-all"
+              >
                 Annuler
               </button>
-              <button onClick={saveEdit} disabled={editSaving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#e87a2a] to-[#f09050] text-white rounded-xl text-sm font-bold hover:shadow-md transition-all disabled:opacity-50">
+              <button
+                onClick={saveEdit}
+                disabled={editSaving}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-hanken font-bold text-sm text-white bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+              >
                 {editSaving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
             </div>
@@ -1465,8 +1507,8 @@ export default function ChantierDetailPage() {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0f1a3a] text-white px-7 py-3.5 rounded-xl text-sm font-semibold shadow-lg z-[999] flex items-center gap-2.5 animate-[slideUp_.4s_ease]">
-          <Check className="w-5 h-5 text-[#22c55e]" />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0f1a3a] text-white px-7 py-3.5 rounded-2xl font-hanken text-sm font-semibold shadow-[0_20px_50px_rgba(15,26,58,0.25)] z-[999] flex items-center gap-2.5 animate-[slideUp_.4s_ease]">
+          <Check className="w-5 h-5 text-emerald-400" />
           {toast}
         </div>
       )}

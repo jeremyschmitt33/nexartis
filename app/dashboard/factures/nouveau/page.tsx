@@ -41,7 +41,8 @@ function formatCurrency(n: number): string {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
-const inputCls = 'w-full h-11 rounded-xl border-2 border-[#5ab4e0]/40 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/20 transition-all bg-white placeholder:text-gray-400'
+// V4 light : style input premium (fond #fafbfc, bordure 1.5px, halo orange au focus).
+const inputCls = 'w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200'
 
 // ─── Page ─────────────────────────────────────────────────────────────────
 
@@ -452,22 +453,28 @@ export default function NouvelleFacturePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Top bar */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-10 py-3 px-6 flex items-center justify-between">
+      {/* Top bar V4 light : sticky en haut, fond blanc, CTA orange à droite. */}
+      <div className="sticky top-0 bg-white border-b border-[#0f1a3a]/[0.06] z-10 py-3 px-6 flex items-center justify-between backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/factures" className="p-1.5 rounded-md hover:bg-gray-100">
-            <ArrowLeft size={18} className="text-[#6b7280]" />
+          <Link href="/dashboard/factures" className="p-2 rounded-xl hover:bg-[#fafbfc] transition-colors" aria-label="Retour">
+            <ArrowLeft size={18} className="text-gray-600" />
           </Link>
-          <h2 className="hidden sm:block font-syne font-bold text-lg text-[#1a1a2e]">Nouvelle facture</h2>
+          <h2 className="hidden sm:block font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.025em]">Nouvelle facture</h2>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => handleSave('brouillon')} disabled={saving}
-            className="h-9 px-4 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all disabled:opacity-50">
+          <button
+            onClick={() => handleSave('brouillon')}
+            disabled={saving}
+            className="h-9 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken text-[13px] font-semibold text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all disabled:opacity-50"
+          >
             Brouillon
           </button>
           {!fromVoice && (
-            <button onClick={() => handleSave('envoyee')} disabled={saving}
-              className="h-9 px-5 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] transition-all disabled:opacity-50">
+            <button
+              onClick={() => handleSave('envoyee')}
+              disabled={saving}
+              className="h-9 px-5 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 transition-all"
+            >
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           )}
@@ -475,35 +482,44 @@ export default function NouvelleFacturePage() {
       </div>
 
       <div className="p-6 space-y-6">
-        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-manrope">{error}</p></div>}
+        {error && (
+          <div className="bg-red-50/80 border border-red-200/70 rounded-xl px-4 py-3">
+            <p className="font-hanken text-sm text-red-700">{error}</p>
+          </div>
+        )}
         {fromVoice && (
-          <div className="bg-sky/10 border-2 border-sky/30 rounded-xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-blue-50/80 border border-blue-200/70 rounded-xl px-4 py-3.5 flex items-start gap-3">
             <span className="text-xl" aria-hidden>🎤</span>
             <div>
-              <p className="font-syne font-bold text-sm text-navy mb-1">Facture générée par la voix</p>
-              <p className="text-xs font-manrope text-navy/80 leading-relaxed">
+              <p className="font-hanken font-bold text-sm text-blue-800 mb-1">Facture générée par la voix</p>
+              <p className="font-hanken text-xs text-blue-800/90 leading-relaxed">
                 Cette facture sera enregistrée <strong>modifiable</strong> pour que tu puisses corriger les erreurs vocales et compléter les infos manquantes.
-                Tu pourras l'émettre définitivement depuis la page détail après vérification (l'émission verrouille la facture, obligation légale art. L441-9 C. comm.).
+                Tu pourras l&apos;émettre définitivement depuis la page détail après vérification (l&apos;émission verrouille la facture, obligation légale art. L441-9 C. comm.).
               </p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Dates + Objet */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          {/* Carte Dates + Objet — V4 light */}
+          <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 space-y-4 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
             <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date de facture</label>
-              <input type="date" value={dateFacture} onChange={e => setDateFacture(e.target.value)} className={inputCls} />
+              <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">Date de facture</label>
+              <input type="date" value={dateFacture} onChange={e => setDateFacture(e.target.value)} className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'} />
             </div>
             <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date d&apos;échéance</label>
-              <input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} className={inputCls} />
+              <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">Date d&apos;échéance</label>
+              <input type="date" value={dateEcheance} onChange={e => setDateEcheance(e.target.value)} className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'} />
             </div>
             <div className="relative">
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">
+              <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
                 Objet / Chantier
-                {chantierId && <span className="ml-2 text-[10px] font-syne font-bold text-[#1a6fb5] bg-[#e8f4fb] px-2 py-0.5 rounded uppercase tracking-wider">Lié au chantier</span>}
+                {chantierId && (
+                  <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-br from-emerald-100/80 to-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10px] font-hanken font-bold tracking-wider uppercase">
+                    Lié au chantier
+                  </span>
+                )}
               </label>
               <input
                 type="text"
@@ -515,66 +531,74 @@ export default function NouvelleFacturePage() {
                 autoComplete="off"
               />
               {chantierDropdownOpen && chantierSuggestions.length > 0 && (
-                <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#5ab4e0] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
-                  <div className="px-3 py-1.5 text-[10px] font-syne font-bold text-[#1a6fb5] uppercase tracking-wider border-b border-gray-100 bg-[#e8f4fb]">Chantiers existants</div>
+                <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
+                  <div className="px-3 py-1.5 font-hanken text-[10px] font-bold text-[#ff7a1a] uppercase tracking-wider border-b border-gray-100 bg-[#fff5ec]">
+                    Chantiers existants
+                  </div>
                   {chantierSuggestions.map(c => (
-                    <button key={c.id} type="button" onMouseDown={e => { e.preventDefault(); selectChantier(c) }}
-                      className="w-full text-left px-4 py-2.5 font-manrope hover:bg-[#eef7fc] border-b border-gray-100 last:border-0 transition-colors">
-                      <span className="font-semibold text-[#1a1a2e] text-sm">{c.nom || c.titre || c.objet || 'Chantier'}</span>
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={e => { e.preventDefault(); selectChantier(c) }}
+                      className="w-full text-left px-4 py-2.5 font-hanken hover:bg-[#fafbfc] border-b border-gray-100 last:border-0 transition-colors"
+                    >
+                      <span className="font-semibold text-[#0f1a3a] text-sm">{c.nom || c.titre || c.objet || 'Chantier'}</span>
                     </button>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] font-manrope text-gray-400 mt-1">Tapez pour rechercher un chantier existant, ou saisissez librement.</p>
+              <p className="mt-1.5 font-hanken text-xs text-gray-500">Tapez pour rechercher un chantier existant, ou saisissez librement.</p>
             </div>
 
-            {/* V3.0c.17 — Type de facture */}
+            {/* Type de facture (standard / acompte / situation / avoir) */}
             <div>
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Type de facture</label>
+              <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">Type de facture</label>
               <select
                 value={factureType}
                 onChange={e => setFactureType(e.target.value as 'standard' | 'acompte' | 'situation' | 'avoir')}
-                className={inputCls}
+                className={inputCls + ' cursor-pointer'}
               >
                 <option value="standard">Facture standard</option>
                 <option value="acompte">Facture d&apos;acompte</option>
                 <option value="situation">Facture de situation</option>
                 <option value="avoir">Avoir (facture negative)</option>
               </select>
-              <p className="text-[11px] font-manrope text-gray-400 mt-1">
+              <p className="mt-1.5 font-hanken text-xs text-gray-500">
                 Une <strong>facture de situation</strong> facture une tranche d&apos;un chantier en cours (#1, #2, #3...).
               </p>
             </div>
 
             {factureType === 'situation' && (
-              <div className="rounded-xl border-2 border-[#5ab4e0]/30 bg-[#f8fbfd] p-4 space-y-3">
+              <div className="rounded-2xl border border-[#0f1a3a]/[0.06] bg-[#fafbfc] p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-syne font-bold text-[#1a6fb5] bg-[#e8f4fb] px-2 py-0.5 rounded uppercase tracking-wider">Facture de situation</span>
+                  <span className="font-hanken text-[10px] font-bold text-[#ff7a1a] bg-[#fff5ec] px-2 py-0.5 rounded uppercase tracking-wider">
+                    Facture de situation
+                  </span>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Reference du devis</label>
+                  <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">Référence du devis</label>
                   <input
                     type="text"
                     value={devisRef}
                     onChange={e => setDevisRef(e.target.value)}
                     placeholder="Ex. : D-2026-12345"
-                    className={inputCls}
+                    className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
                   />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">N&deg; de situation</label>
+                    <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">N° de situation</label>
                     <input
                       type="number"
                       min={1}
                       step={1}
                       value={numeroSituation}
                       onChange={e => setNumeroSituation(Math.max(1, Number(e.target.value) || 1))}
-                      className={inputCls}
+                      className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">% d&apos;avancement</label>
+                    <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">% d&apos;avancement</label>
                     <input
                       type="number"
                       min={0}
@@ -582,40 +606,55 @@ export default function NouvelleFacturePage() {
                       step={1}
                       value={pourcentageSituation}
                       onChange={e => setPourcentageSituation(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                      className={inputCls}
+                      className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
                     />
                   </div>
                 </div>
-                <p className="text-[11px] font-manrope text-gray-400">
-                  Indicatif pour cette version. Le calcul automatique du reste a facturer arrivera plus tard.
+                <p className="font-hanken text-xs text-gray-500">
+                  Indicatif pour cette version. Le calcul automatique du reste à facturer arrivera plus tard.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Client */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <label className="block text-sm font-manrope font-semibold text-[#1a1a2e] mb-3">Client</label>
+          {/* Carte Client — V4 light */}
+          <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+            <h3 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.025em] mb-4">Client</h3>
             <div className="space-y-3">
               <div className="relative">
                 <div className="flex gap-2">
-                  <select value={clientCivilite} onChange={e => setClientCivilite(e.target.value)} className="w-24 h-11 shrink-0 rounded-xl border-2 border-gray-200 px-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white">
+                  <select
+                    value={clientCivilite}
+                    onChange={e => setClientCivilite(e.target.value)}
+                    className="w-28 shrink-0 py-2.5 px-3 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken text-[14.5px] text-[#0f1a3a] cursor-pointer focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all"
+                  >
                     <option value="">—</option>
                     <option value="M.">M.</option>
                     <option value="Mme">Mme</option>
                     <option value="Société">Société</option>
                   </select>
-                  <input type="text" value={clientNom} onChange={e => handleClientNomChange(e.target.value)}
+                  <input
+                    type="text"
+                    value={clientNom}
+                    onChange={e => handleClientNomChange(e.target.value)}
                     onBlur={() => setTimeout(() => { setClientDropdownOpen(false); setClientSuggestions([]) }, 200)}
-                    placeholder="Nom (tapez pour rechercher)" className={inputCls} autoComplete="off" />
+                    placeholder="Nom (tapez pour rechercher)"
+                    className={inputCls}
+                    autoComplete="off"
+                  />
                 </div>
                 {clientDropdownOpen && clientSuggestions.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#5ab4e0] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
+                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
                     {clientSuggestions.map(c => (
-                      <button key={c.id} type="button" onMouseDown={e => { e.preventDefault(); selectClient(c) }}
-                        className="w-full text-left px-4 py-3 font-manrope hover:bg-[#eef7fc] border-b border-gray-100 last:border-0 transition-colors">
-                        <span className="font-semibold text-[#1a1a2e] text-sm">{c.prenom ? `${c.prenom} ${c.nom}` : c.nom}</span>
-                        {c.adresse && <span className="text-[#6b7280] text-xs block mt-0.5">{c.adresse}</span>}
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={e => { e.preventDefault(); selectClient(c) }}
+                        className="w-full text-left px-4 py-3 font-hanken hover:bg-[#fafbfc] border-b border-gray-100 last:border-0 transition-colors"
+                      >
+                        <span className="font-semibold text-[#0f1a3a] text-sm">{c.prenom ? `${c.prenom} ${c.nom}` : c.nom}</span>
+                        {c.adresse && <span className="text-gray-500 text-xs block mt-0.5">{c.adresse}</span>}
                       </button>
                     ))}
                   </div>
@@ -623,26 +662,39 @@ export default function NouvelleFacturePage() {
               </div>
               <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
               <input type="text" value={clientAdresse} onChange={e => setClientAdresse(e.target.value)} placeholder="Adresse" className={inputCls} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input type="text" value={clientCodePostal} onChange={e => setClientCodePostal(e.target.value)} placeholder="Code postal" className={inputCls} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={clientCodePostal}
+                  onChange={e => setClientCodePostal(e.target.value)}
+                  placeholder="Code postal"
+                  className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
+                />
                 <input type="text" value={clientVille} onChange={e => setClientVille(e.target.value)} placeholder="Ville" className={inputCls} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input type="tel" value={clientTelephone} onChange={e => setClientTelephone(e.target.value)} placeholder="Téléphone" className={inputCls} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="tel"
+                  value={clientTelephone}
+                  onChange={e => setClientTelephone(e.target.value)}
+                  placeholder="Téléphone"
+                  className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
+                />
                 <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="Email" className={inputCls} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tableau des lignes */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          {/* ─── Mobile : cards + bottom sheet (V2 maquette validée) ─── */}
+        {/* Tableau des lignes — V4 light. Mobile = cards + bottom sheet, desktop = grille. */}
+        <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+          {/* Mobile : cards + bottom sheet (composant LineCard non modifié) */}
           <div className="sm:hidden p-3 space-y-2">
             {lines.length === 0 && (
-              <div className="rounded-xl border-2 border-dashed border-[#5ab4e0]/40 bg-[#f8fbfd] px-4 py-6 text-center">
-                <p className="text-sm font-manrope text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
-                <p className="text-[12px] font-manrope text-gray-400 mt-1">Touchez <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
+              <div className="rounded-xl border-2 border-dashed border-gray-200 bg-[#fafbfc] px-4 py-6 text-center">
+                <p className="font-hanken text-sm text-gray-600">Aucune ligne pour l&apos;instant.</p>
+                <p className="font-hanken text-[12px] text-gray-400 mt-1">Touchez <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
               </div>
             )}
             {lines.map((line, idx) => (
@@ -655,91 +707,125 @@ export default function NouvelleFacturePage() {
                 formatCurrency={formatCurrency}
               />
             ))}
-            {/* Barre d'ajout : 3 boutons sous la liste */}
+            {/* Barre d'ajout mobile : 3 boutons sous la liste — CTA orange + outline secondaires */}
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => openCreateSheet('line')}
-                className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-[#e8f4fb] border border-[#5ab4e0]/60 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#1a6fb5] active:scale-95 transition-all"
+                className="flex-1 min-w-[44%] inline-flex items-center justify-center gap-1.5 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-sm font-bold rounded-full px-4 py-2.5 shadow-[0_4px_12px_rgba(255,122,26,0.25)] active:scale-95 transition-all"
               >
                 <Plus size={16} /> Ligne
               </button>
               <button
                 type="button"
                 onClick={() => openCreateSheet('section')}
-                className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#0f1a3a] active:scale-95 transition-all"
+                className="flex-1 min-w-[44%] inline-flex items-center justify-center gap-1.5 bg-white border-[1.5px] border-gray-200 rounded-full px-4 py-2.5 font-hanken text-sm font-semibold text-[#0f1a3a] hover:border-[#ff7a1a] active:scale-95 transition-all"
               >
                 <Plus size={16} /> Section
               </button>
               <button
                 type="button"
                 onClick={() => openCreateSheet('subsection')}
-                className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#0f1a3a] active:scale-95 transition-all"
+                className="flex-1 min-w-[44%] inline-flex items-center justify-center gap-1.5 bg-white border-[1.5px] border-gray-200 rounded-full px-4 py-2.5 font-hanken text-sm font-semibold text-[#0f1a3a] hover:border-[#ff7a1a] active:scale-95 transition-all"
               >
                 <Plus size={16} /> Sous-section
               </button>
             </div>
           </div>
 
-          {/* Desktop : table — bandeau navy (parité PDF/aperçu) */}
-          {/* V2.5 — Colonne TVA par ligne (parite Obat) : 7 colonnes au lieu de 6 */}
+          {/* Desktop : table grille 7 colonnes (designation, qté, unité, prix HT, TVA, total, supprimer). */}
           <div className="hidden sm:block overflow-x-auto">
-            <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
+            <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 font-hanken text-[11px] font-semibold uppercase tracking-wider">
               <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
             </div>
             {lines.length === 0 && (
               <div className="px-4 py-8 text-center border-b border-gray-100">
-                <p className="text-sm font-manrope text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
-                <p className="text-[12px] font-manrope text-gray-400 mt-1">Cliquez sur <strong>+ Ajouter une ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
+                <p className="font-hanken text-sm text-gray-600">Aucune ligne pour l&apos;instant.</p>
+                <p className="font-hanken text-[12px] text-gray-400 mt-1">Cliquez sur <strong>+ Ajouter une ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
               </div>
             )}
             {lines.map((line, idx) => {
-              // Section : bandeau sky foncé pleine largeur
+              // Section : bandeau orange clair, designation gras uppercase
               if (line.type === 'section') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_36px] min-w-[500px] items-center px-4 py-2 bg-[#a8d4ec] border-l-4 border-[#1a6fb5] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)}
-                      className="text-sm font-bold text-[#0f1a3a] uppercase border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#1a6fb5]/60" placeholder="Nom de la section (ex : Demolition, Maconnerie...)" />
+                  <div key={line.id} className="grid grid-cols-[1fr_36px] min-w-[500px] items-center px-4 py-2 bg-[#fff5ec] border-l-4 border-[#ff7a1a] border-b border-gray-100">
+                    <input
+                      type="text"
+                      value={line.designation}
+                      onChange={e => updateLine(line.id, 'designation', e.target.value)}
+                      className="font-hanken text-sm font-bold text-[#0f1a3a] uppercase border-[1.5px] border-transparent hover:border-[#ff7a1a]/30 rounded-lg outline-none bg-white/70 focus:border-[#ff7a1a] focus:bg-white px-2 h-9 placeholder-[#ff7a1a]/50 transition-all"
+                      placeholder="Nom de la section (ex : Démolition, Maçonnerie...)"
+                    />
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-sm font-bold text-[#1a6fb5]">{formatCurrency(subtotalAt(idx))}</span>
-                      <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                      <span className="font-spline-mono font-medium text-sm text-[#ff7a1a]">{formatCurrency(subtotalAt(idx))}</span>
+                      <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors" aria-label="Supprimer">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 )
               }
-              // Sous-section : bandeau sky pâle
+              // Sous-section : bandeau orange pâle
               if (line.type === 'subsection') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_36px] min-w-[500px] items-center px-4 py-2 bg-[#dceefa] border-l-4 border-[#5ab4e0] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)}
-                      className="text-sm font-semibold text-[#0f1a3a] border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#5ab4e0]/70" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
+                  <div key={line.id} className="grid grid-cols-[1fr_36px] min-w-[500px] items-center px-4 py-2 bg-[#fff9f2] border-l-4 border-[#ff9d4d] border-b border-gray-100">
+                    <input
+                      type="text"
+                      value={line.designation}
+                      onChange={e => updateLine(line.id, 'designation', e.target.value)}
+                      className="font-hanken text-sm font-semibold text-[#0f1a3a] border-[1.5px] border-transparent hover:border-[#ff9d4d]/30 rounded-lg outline-none bg-white/70 focus:border-[#ff9d4d] focus:bg-white px-2 h-9 placeholder-[#ff9d4d]/60 transition-all"
+                      placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)"
+                    />
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-sm font-semibold text-[#1a6fb5]">{formatCurrency(subtotalAt(idx))}</span>
-                      <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                      <span className="font-spline-mono font-medium text-sm text-[#ff7a1a]">{formatCurrency(subtotalAt(idx))}</span>
+                      <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors" aria-label="Supprimer">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 )
               }
-              // Ligne classique de prestation
+              // Ligne de prestation classique
               return (
                 <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
-                  <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)}
-                    className="text-sm font-manrope border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] px-2 h-9 mr-2" placeholder="Désignation..." />
-                  <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))}
-                    className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1" min={0} />
-                  <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)}
-                    className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1 w-full">
+                  <input
+                    type="text"
+                    value={line.designation}
+                    onChange={e => updateLine(line.id, 'designation', e.target.value)}
+                    className="font-hanken text-sm text-[#0f1a3a] border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] px-2 h-9 mr-2 transition-all"
+                    placeholder="Désignation..."
+                  />
+                  <input
+                    type="number"
+                    value={line.qty}
+                    onChange={e => updateLine(line.id, 'qty', Number(e.target.value))}
+                    className="font-spline-mono font-medium text-sm text-center border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] h-9 mx-1 transition-all"
+                    min={0}
+                  />
+                  <select
+                    value={line.unit}
+                    onChange={e => updateLine(line.id, 'unit', e.target.value)}
+                    className="font-hanken text-sm text-center border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] h-9 mx-1 w-full cursor-pointer transition-all"
+                  >
                     {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
-                  <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))}
-                    className="text-sm text-right border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 px-2 mx-1" min={0} step={0.01} />
-                  {/* V2.5 — Selecteur TVA par ligne (parite Obat) */}
-                  <select value={line.tva} onChange={e => updateLine(line.id, 'tva', Number(e.target.value))}
-                    className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1 w-full">
+                  <input
+                    type="number"
+                    value={line.priceHT}
+                    onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))}
+                    className="font-spline-mono font-medium text-sm text-right border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] h-9 px-2 mx-1 transition-all"
+                    min={0}
+                    step={0.01}
+                  />
+                  <select
+                    value={line.tva}
+                    onChange={e => updateLine(line.id, 'tva', Number(e.target.value))}
+                    className="font-spline-mono font-medium text-sm text-center border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] h-9 mx-1 w-full cursor-pointer transition-all"
+                  >
                     {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? '0%' : r === 5.5 ? '5,5%' : `${r}%`}</option>)}
                   </select>
-                  <span className="text-sm font-semibold text-right">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '—'}</span>
-                  <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500">
+                  <span className="font-spline-mono font-medium text-sm text-right text-[#0f1a3a]">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '—'}</span>
+                  <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 transition-colors" aria-label="Supprimer">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -747,154 +833,212 @@ export default function NouvelleFacturePage() {
             })}
           </div>
 
+          {/* Boutons "ajouter" desktop — CTA orange + outline secondaires */}
           <div className="flex flex-wrap gap-2 p-4 border-t border-gray-100">
-            <button onClick={() => addLine('line')} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-manrope hover:bg-gray-100">
+            <button
+              onClick={() => addLine('line')}
+              className="inline-flex items-center gap-1.5 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-sm font-bold rounded-xl px-4 py-2 shadow-[0_4px_12px_rgba(255,122,26,0.25)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            >
               <Plus size={14} /> Ajouter une ligne
             </button>
-            <button onClick={() => addLine('section')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#1a6fb5] bg-[#dceefa] border border-[#5ab4e0]/30 rounded-lg hover:bg-[#cde4f5]">
+            <button
+              onClick={() => addLine('section')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 font-hanken text-sm font-semibold text-[#0f1a3a] bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
+            >
               <Plus size={14} /> Section
             </button>
-            <button onClick={() => addLine('subsection')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#1a6fb5] bg-[#e8f4fb] border border-[#5ab4e0]/20 rounded-lg hover:bg-[#dceefa]">
+            <button
+              onClick={() => addLine('subsection')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 font-hanken text-sm font-semibold text-[#0f1a3a] bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
+            >
               <Plus size={14} /> Sous-section
             </button>
           </div>
         </div>
 
-        {/* V2.5 — Selecteur global = raccourci "Appliquer a toutes les lignes". */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
-          <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Appliquer à toutes les lignes :</label>
+        {/* Sélecteur TVA global — raccourci pour appliquer un taux à toutes les lignes. */}
+        <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-4 sm:p-5 flex flex-wrap items-center gap-4 shadow-[0_2px_6px_rgba(15,26,58,0.04)]">
+          <label className="font-hanken text-sm font-semibold text-[#0f1a3a]">Appliquer à toutes les lignes :</label>
           <select
             value={globalTvaRate}
             onChange={e => {
               const v = Number(e.target.value)
               setTvaUserOverride(true)
               setGlobalTvaRate(v)
-              // V2.5 : pousse le taux sur TOUTES les lignes existantes
               setLines(prev => prev.map(l => l.type === 'line' ? { ...l, tva: v } : l))
             }}
-            className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer">
+            className="py-2 px-3 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[13.5px] text-[#0f1a3a] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12)] cursor-pointer transition-all"
+          >
             {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? 'Sans TVA' : `${r}%`}</option>)}
           </select>
-          <span className="text-xs font-manrope text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
+          <span className="font-hanken text-xs text-gray-500 italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
           {globalTvaRate === 0 && (
-            <span className="text-xs font-manrope text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>
+            <span className="font-hanken text-xs text-gray-500 italic">TVA non applicable, art. 293 B du CGI</span>
           )}
         </div>
 
-        {/* V4 — Forfait global (parité devis) */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-2 text-sm font-manrope cursor-pointer">
-            <input type="checkbox" checked={useForfait} onChange={e => setUseForfait(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0]" />
+        {/* Forfait global — alternative au calcul ligne par ligne */}
+        <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-4 sm:p-5 flex flex-wrap items-center gap-4 shadow-[0_2px_6px_rgba(15,26,58,0.04)]">
+          <label className="inline-flex items-center gap-2 font-hanken text-sm font-semibold text-[#0f1a3a] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useForfait}
+              onChange={e => setUseForfait(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a]"
+            />
             Appliquer un prix forfaitaire global
           </label>
           {useForfait && (
             <div className="flex items-center gap-2">
-              <input type="number" value={forfaitHT} onChange={e => setForfaitHT(Number(e.target.value))} className="w-32 h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] text-right" min={0} step={0.01} />
-              <span className="text-sm font-manrope text-[#6b7280]">€ HT</span>
-              <span className="text-[11px] font-manrope text-gray-400">(remplace le calcul ligne par ligne)</span>
+              <input
+                type="number"
+                value={forfaitHT}
+                onChange={e => setForfaitHT(Number(e.target.value))}
+                className="w-32 py-2 px-3 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[13.5px] text-right text-[#0f1a3a] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12)] transition-all"
+                min={0}
+                step={0.01}
+              />
+              <span className="font-hanken text-sm text-gray-600">€ HT</span>
+              <span className="font-hanken text-[11px] text-gray-400">(remplace le calcul ligne par ligne)</span>
             </div>
           )}
         </div>
 
-        {/* Acompte versé — checkbox simple */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        {/* Acompte versé — option pour afficher acompte → reste à payer dans le récap */}
+        <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={acompteActive}
               onChange={e => setAcompteActive(e.target.checked)}
-              className="mt-1 w-5 h-5 rounded border-2 border-[#5ab4e0] text-[#1a6fb5] focus:ring-2 focus:ring-[#5ab4e0]/30 cursor-pointer accent-[#1a6fb5]"
+              className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/30 cursor-pointer accent-[#ff7a1a]"
             />
             <div>
-              <span className="block text-sm font-manrope font-semibold text-[#1a1a2e]">Un acompte a déjà été versé</span>
-              <span className="block text-[11px] font-manrope text-gray-400 mt-0.5">Cochez si le client a versé un acompte (souvent via un devis signé). Il sera affiché dans le récapitulatif (sous-total brut → acompte → reste à payer).</span>
+              <span className="block font-hanken text-[15px] font-semibold text-[#0f1a3a]">Un acompte a déjà été versé</span>
+              <span className="block font-hanken text-xs text-gray-500 mt-1">
+                Cochez si le client a versé un acompte (souvent via un devis signé). Il sera affiché dans le récapitulatif (sous-total brut → acompte → reste à payer).
+              </span>
             </div>
           </label>
           {acompteActive && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
               <div>
-                <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Pourcentage (%)</label>
-                <input type="number" value={acomptePourcent} min={0} max={100} step={1}
+                <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">Pourcentage (%)</label>
+                <input
+                  type="number"
+                  value={acomptePourcent}
+                  min={0}
+                  max={100}
+                  step={1}
                   onChange={e => { setAcomptePourcent(Number(e.target.value)); setAcompteMontantTTC(0) }}
-                  className={inputCls} />
+                  className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
+                />
               </div>
               <div>
-                <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Ou montant TTC (€)</label>
-                <input type="number" value={acompteMontantTTC} min={0} step={0.01}
+                <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">Ou montant TTC (€)</label>
+                <input
+                  type="number"
+                  value={acompteMontantTTC}
+                  min={0}
+                  step={0.01}
                   onChange={e => setAcompteMontantTTC(Number(e.target.value))}
-                  className={inputCls} />
+                  className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
+                />
               </div>
               <div>
-                <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Libellé (optionnel)</label>
-                <input type="text" value={acompteLabel} onChange={e => setAcompteLabel(e.target.value)}
+                <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">Libellé (optionnel)</label>
+                <input
+                  type="text"
+                  value={acompteLabel}
+                  onChange={e => setAcompteLabel(e.target.value)}
                   placeholder="Ex. : versé le 02/05/2026"
-                  className={inputCls} />
+                  className={inputCls}
+                />
               </div>
             </div>
           )}
         </div>
 
-        {/* Totaux */}
+        {/* Totaux — récap V4 light, NET À PAYER en gradient orange (signature CTA). */}
         <div className="flex justify-end">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 w-80">
-            <div className="flex justify-between py-1.5 text-sm font-manrope">
-              <span className="text-[#5f6c80]">Sous-total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span>
+          <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 w-full sm:w-96 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+            <div className="flex justify-between py-1.5">
+              <span className="font-hanken text-sm text-gray-500">Sous-total HT</span>
+              <span className="font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{formatCurrency(totalHT)}</span>
             </div>
-            {/* V2.5 — Ventilation TVA par taux (multi-taux Obat) */}
             {Object.entries(tvaGroups).filter(([r, g]) => Number(r) > 0 && g.tva > 0.005).sort(([a], [b]) => Number(a) - Number(b)).map(([rate, group]) => (
-              <div key={rate} className="flex justify-between py-1.5 text-sm font-manrope">
-                <span className="text-[#5f6c80]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span>
+              <div key={rate} className="flex justify-between py-1.5">
+                <span className="font-hanken text-sm text-gray-500">TVA {rate}%</span>
+                <span className="font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{formatCurrency(group.tva)}</span>
               </div>
             ))}
-            <div className="border-t mt-2 pt-2 flex justify-between py-1.5 text-sm font-manrope">
-              <span className="text-[#0f1a3a] font-bold">Total TTC</span><span className="font-bold">{formatCurrency(totalTTC)}</span>
+            <div className="border-t border-gray-100 mt-2 pt-3 flex justify-between py-1.5">
+              <span className="font-hanken font-bold text-[15px] text-[#0f1a3a]">Total TTC</span>
+              <span className="font-spline-mono font-medium text-[15px] text-[#0f1a3a]">{formatCurrency(totalTTC)}</span>
             </div>
             {acompteActive && acompteTTCcalc > 0 && (
-              <div className="flex justify-between py-1.5 text-sm font-manrope border-t mt-0.5 pt-2">
-                <span className="text-[#15803d] font-bold">Acompte versé</span>
-                <span className="text-[#15803d] font-bold">- {formatCurrency(acompteTTCcalc)}</span>
+              <div className="flex justify-between py-1.5 border-t border-gray-100 mt-0.5 pt-2">
+                <span className="font-hanken font-bold text-sm text-emerald-700">Acompte versé</span>
+                <span className="font-spline-mono font-medium text-[14px] text-emerald-700">- {formatCurrency(acompteTTCcalc)}</span>
               </div>
             )}
-            <div className="bg-[#1a6fb5] text-white rounded-lg p-3 mt-2 flex justify-between items-center">
-              <span className="font-syne font-bold text-sm">NET À PAYER</span>
-              <span className="font-syne font-bold text-lg">{formatCurrency(netAPayer)}</span>
+            <div className="bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-xl p-3.5 mt-3 flex justify-between items-center shadow-[0_8px_20px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)]">
+              <span className="font-hanken font-extrabold text-sm uppercase tracking-wider">Net à payer</span>
+              <span className="font-spline-mono font-medium text-lg tracking-[0.5px]">{formatCurrency(netAPayer)}</span>
             </div>
           </div>
         </div>
 
-        {/* Conditions de paiement + Notes personnalisées */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        {/* Conditions de paiement + Notes personnalisées — V4 light */}
+        <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 space-y-4 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
           <div>
-            <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
               Conditions de paiement
-              <span className="ml-2 text-[10px] font-manrope text-gray-400 font-normal">(pre-rempli, modifiable)</span>
+              <span className="ml-2 font-hanken text-[10px] text-gray-400 font-normal normal-case tracking-normal">(pré-rempli, modifiable)</span>
             </label>
-            <textarea value={conditions} onChange={e => setConditions(e.target.value)} rows={2}
+            <textarea
+              value={conditions}
+              onChange={e => setConditions(e.target.value)}
+              rows={2}
               placeholder={DEFAULT_CONDITIONS_PAIEMENT}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] resize-none" />
-            <p className="text-[11px] font-manrope text-gray-400 mt-1">Visible sur la facture (PDF + apercu).</p>
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken text-[14.5px] text-[#0f1a3a] leading-[1.4] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] resize-none transition-all"
+            />
+            <p className="mt-1.5 font-hanken text-xs text-gray-500">Visible sur la facture (PDF + aperçu).</p>
           </div>
           <div>
-            <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">
-              Notes personnalisees
-              <span className="ml-2 text-[10px] font-manrope text-gray-400 font-normal">(visibles par le client)</span>
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Notes personnalisées
+              <span className="ml-2 font-hanken text-[10px] text-gray-400 font-normal normal-case tracking-normal">(visibles par le client)</span>
             </label>
-            <textarea value={notesPerso} onChange={e => setNotesPerso(e.target.value)} rows={3}
+            <textarea
+              value={notesPerso}
+              onChange={e => setNotesPerso(e.target.value)}
+              rows={3}
               placeholder="Écrire ici…"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] resize-none" />
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken text-[14.5px] text-[#0f1a3a] leading-[1.4] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] resize-none transition-all"
+            />
           </div>
         </div>
 
-        {/* Boutons bas */}
+        {/* Boutons bas — actions de sauvegarde finales (V4 : CTA orange + outline) */}
         <div className="flex flex-wrap items-center gap-3 justify-end pb-8">
-          <button onClick={() => handleSave('brouillon')} disabled={saving}
-            className="h-12 px-6 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] shadow-md hover:shadow-lg transition-all disabled:opacity-50">
+          <button
+            onClick={() => handleSave('brouillon')}
+            disabled={saving}
+            className="h-12 px-6 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[14.5px] font-bold shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 transition-all"
+          >
             {fromVoice ? (saving ? 'Enregistrement...' : 'Enregistrer (modifiable)') : 'Sauvegarder en brouillon'}
           </button>
           {!fromVoice && (
-            <button onClick={() => handleSave('envoyee')} disabled={saving}
-              className="h-12 px-8 rounded-xl border-2 border-[#e87a2a] text-[#e87a2a] font-syne font-bold text-sm hover:bg-[#fef5ee] transition-all disabled:opacity-50">
-              {saving ? 'Enregistrement...' : 'Emettre la facture (verrouillee)'}
+            <button
+              onClick={() => handleSave('envoyee')}
+              disabled={saving}
+              className="h-12 px-8 rounded-xl border-[1.5px] border-[#ff7a1a] bg-white text-[#ff7a1a] font-hanken text-[14.5px] font-bold hover:bg-[#fff5ec] transition-all disabled:opacity-50"
+            >
+              {saving ? 'Enregistrement...' : 'Émettre la facture (verrouillée)'}
             </button>
           )}
         </div>

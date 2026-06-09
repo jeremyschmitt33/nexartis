@@ -378,7 +378,7 @@ export default function DevisDetailPage() {
         <Link href="/dashboard/devis" className="p-1.5 rounded-md hover:bg-gray-100 transition-colors inline-flex items-center gap-2 text-sm text-gray-500">
           <ArrowLeft size={18} /> Retour
         </Link>
-        <p className="text-sm font-manrope text-gray-500 mt-4">Devis introuvable.</p>
+        <p className="text-sm font-hanken text-gray-500 mt-4">Devis introuvable.</p>
       </div>
     )
   }
@@ -515,25 +515,29 @@ export default function DevisDetailPage() {
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 no-print">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/devis" className="p-1.5 rounded-md hover:bg-gray-100 transition-colors">
-            <ArrowLeft size={18} className="text-[#6b7280]" />
+          {/* V4 : retour + titre extrabold + status pill premium uppercase tracking */}
+          <Link href="/dashboard/devis" className="p-2 rounded-xl hover:bg-[#fafbfc] border border-transparent hover:border-gray-200 transition-colors">
+            <ArrowLeft size={18} className="text-gray-500" />
           </Link>
-          <h1 className="font-syne font-bold text-xl text-[#1a1a2e]">Devis {devis.numero}</h1>
-          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium ${statutStyle}`}>
+          <h1 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em]">
+            Devis <span className="font-spline-mono font-bold">{devis.numero}</span>
+          </h1>
+          <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider ${statutStyle}`}>
             {STATUT_LABELS[devis.statut] ?? devis.statut}
           </span>
         </div>
+        {/* V4 : barre d'actions — boutons secondaires sauf "Envoyer email" en primary orange */}
         <div className="flex items-center gap-2 relative flex-wrap">
-          <button onClick={handleDownloadDevisPdf} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">
+          <button onClick={handleDownloadDevisPdf} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a]">
             <Download size={14} /> <span className="hidden xs:inline">Télécharger</span> PDF
           </button>
-          <button onClick={() => setSendModalOpen(true)} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">
+          <button onClick={() => setSendModalOpen(true)} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-bold text-white rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all duration-200">
             <SendHorizonal size={14} /> <span className="hidden xs:inline">Envoyer par</span> email
           </button>
-          <button onClick={() => router.push(`/dashboard/devis/${id}/modifier`)} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">
+          <button onClick={() => router.push(`/dashboard/devis/${id}/modifier`)} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a]">
             <Pencil size={14} /> Modifier
           </button>
-          <button onClick={() => handleConvertToFacture(false)} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]">
+          <button onClick={() => handleConvertToFacture(false)} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a]">
             <FileText size={14} /> <span className="hidden xs:inline">Convertir en</span> facture
           </button>
           {devis.signature_token && devis.statut === 'envoye' && (
@@ -543,12 +547,12 @@ export default function DevisDetailPage() {
                 setToastMsg('Lien de signature copié !')
                 setTimeout(() => setToastMsg(null), 3000)
               }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-[#1a1a2e]"
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a]"
             >
               <Link2 size={14} /> <span className="hidden xs:inline">Copier lien</span> signature
             </button>
           )}
-          <button onClick={handleDeleteDevis} className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-manrope bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors text-red-600">
+          <button onClick={handleDeleteDevis} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-red-600">
             <Trash2 size={14} /> <span className="hidden xs:inline">Supprimer</span>
           </button>
         </div>
@@ -559,29 +563,29 @@ export default function DevisDetailPage() {
           sur le profil entreprise. Ne s'imprime pas (classe no-print). */}
       <ProfilIncompletBanner entreprise={entreprise as Record<string, unknown> | null | undefined} className="mb-5" />
 
-      {/* ── Banderole "À planifier" — visible uniquement si devis accepté sans chantier ── */}
+      {/* V4 : Banderole "Devis accepté — à planifier" — bandeau success premium */}
       {devis.statut === 'signe' && !devis.chantier_id && (
-        <div className="no-print mb-5 flex items-start gap-4 bg-[#f0fdf4] border border-[#86efac] rounded-xl px-5 py-4">
-          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#22c55e]/20 flex items-center justify-center mt-0.5">
-            <CheckCircle2 size={18} className="text-[#16a34a]" />
+        <div className="no-print mb-5 flex items-start gap-4 bg-emerald-50/80 border border-emerald-200/70 rounded-xl px-5 py-4">
+          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center mt-0.5">
+            <CheckCircle2 size={18} className="text-emerald-700" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="text-sm font-syne font-bold text-[#15803d]">Devis accepté — à planifier</span>
-              <span className="text-[11px] font-manrope font-semibold bg-[#dcfce7] text-[#16a34a] px-2 py-0.5 rounded-full">● Signé</span>
+              <span className="text-sm font-hanken font-extrabold text-emerald-800">Devis accepté — à planifier</span>
+              <span className="text-[11px] font-hanken font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Signé</span>
             </div>
-            <p className="text-[13px] font-manrope text-[#166534] mb-3 leading-relaxed">
+            <p className="text-[13px] font-hanken text-emerald-800 mb-3 leading-relaxed">
               <strong>{clientNom}</strong>
               {devis.objet && <> · {devis.objet}</>}
-              {' '}· <strong>{formatCurrency(totalTTC)}</strong>
+              {' '}· <strong className="font-spline-mono">{formatCurrency(totalTTC)}</strong>
               <br />
-              <span className="text-[#4ade80] text-[12px]">Ce devis est signé. Créez le chantier associé pour suivre l&apos;avancement et planifier les interventions.</span>
+              <span className="text-emerald-700/80 text-[12px]">Ce devis est signé. Créez le chantier associé pour suivre l&apos;avancement et planifier les interventions.</span>
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleCreateChantier}
                 disabled={chantierCreating}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#16a34a] hover:bg-[#15803d] text-white text-[13px] font-manrope font-semibold rounded-lg transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-hanken font-bold rounded-xl shadow-[0_4px_12px_rgba(5,150,105,0.25)] hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {chantierCreating ? (
                   <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Création...</>
@@ -591,7 +595,7 @@ export default function DevisDetailPage() {
               </button>
               <Link
                 href="/dashboard/planning"
-                className="inline-flex items-center gap-2 px-4 py-2 border border-[#86efac] bg-white hover:bg-[#f0fdf4] text-[#16a34a] text-[13px] font-manrope font-semibold rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border-[1.5px] border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-700 text-[13px] font-hanken font-bold rounded-xl transition-colors"
               >
                 <CalendarDays size={14} /> Voir le planning <ArrowRight size={13} />
               </Link>
@@ -609,48 +613,48 @@ export default function DevisDetailPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-full lg:w-80 flex-shrink-0 space-y-6 lg:sticky lg:top-24 lg:self-start no-print">
-          {/* Infos */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        {/* V4 : Sidebar — 2 cartes secondaires (rounded-2xl, bordure subtile, ombre douce) */}
+        <div className="w-full lg:w-80 flex-shrink-0 space-y-5 lg:sticky lg:top-24 lg:self-start no-print">
+          {/* Carte Infos */}
+          <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 space-y-4 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-manrope text-[#6b7280]">Statut</span>
-              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium ${statutStyle}`}>
+              <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Statut</span>
+              <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider ${statutStyle}`}>
                 {STATUT_LABELS[devis.statut] ?? devis.statut}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-manrope text-[#6b7280]">Client</span>
-              <span className="text-sm font-manrope font-medium text-[#1a1a2e]">{clientNom}</span>
+              <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Client</span>
+              <span className="text-sm font-hanken font-semibold text-[#0f1a3a] truncate ml-3">{clientNom}</span>
             </div>
             <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-              <span className="text-sm font-manrope text-[#6b7280]">Créé le</span>
-              <span className="text-sm font-manrope text-[#1a1a2e]">{formatDate(devis.created_at)}</span>
+              <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Créé le</span>
+              <span className="text-sm font-spline-mono text-[#0f1a3a]">{formatDate(devis.created_at)}</span>
             </div>
             <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-              <span className="text-sm font-manrope text-[#6b7280]">Total TTC</span>
-              <span className="text-lg font-syne font-bold text-[#1a1a2e]">{formatCurrency(totalTTC)}</span>
+              <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Total TTC</span>
+              <span className="text-lg font-spline-mono font-bold text-[#0f1a3a] tabular-nums">{formatCurrency(totalTTC)}</span>
             </div>
           </div>
 
-          {/* Changer le statut manuellement */}
+          {/* Carte "Changer le statut" */}
           {devis.statut !== 'facture' && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <p className="text-xs font-manrope font-semibold text-[#6b7280] uppercase tracking-wider mb-3">Changer le statut</p>
+            <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+              <p className="text-[11.5px] font-hanken font-bold text-[#ff7a1a] uppercase tracking-[0.12em] mb-3">Changer le statut</p>
               <div className="space-y-2">
                 {devis.statut !== 'signe' && (
                   <button
                     onClick={() => handleChangeStatut('signe')}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-green-200 bg-green-50 text-green-700 text-sm font-manrope hover:bg-green-100 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50/80 text-emerald-700 text-sm font-hanken font-semibold hover:bg-emerald-100 hover:border-emerald-300 transition-colors"
                   >
-                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
                     Marquer Accepté
                   </button>
                 )}
                 {devis.statut !== 'refuse' && (
                   <button
                     onClick={() => handleChangeStatut('refuse')}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-manrope hover:bg-red-100 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border-[1.5px] border-red-200 bg-red-50/80 text-red-700 text-sm font-hanken font-semibold hover:bg-red-100 hover:border-red-300 transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
                     Marquer Refuse
@@ -659,10 +663,10 @@ export default function DevisDetailPage() {
                 {devis.statut !== 'envoye' && devis.statut !== 'brouillon' && (
                   <button
                     onClick={() => handleChangeStatut('envoye')}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-manrope hover:bg-blue-100 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border-[1.5px] border-blue-200 bg-blue-50/80 text-blue-700 text-sm font-hanken font-semibold hover:bg-blue-100 hover:border-blue-300 transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                    Remettre en Envoye
+                    Remettre en Envoyé
                   </button>
                 )}
               </div>
@@ -671,7 +675,12 @@ export default function DevisDetailPage() {
         </div>
       </div>
 
-      {toastMsg && <div className="fixed bottom-6 right-6 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-manrope z-50">{toastMsg}</div>}
+      {/* V4 : toast premium, navy fond, ombre douce */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-5 py-3 rounded-xl shadow-[0_12px_32px_rgba(15,26,58,0.25)] text-sm font-hanken font-semibold z-50">
+          {toastMsg}
+        </div>
+      )}
 
       {devis && (
         <EnvoyerDevisModal

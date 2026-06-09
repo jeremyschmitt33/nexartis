@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useDevis, useFactures, usePlanning, useChantiers, useClients, useIntervenants, useEntreprise, useChantierNotes, LoadingSkeleton } from "@/lib/hooks";
 import { createClient } from "@/lib/supabase/client";
+import { InfoBanner } from "@/components/ui/v4";
 
 // Type pour un rappel artisan (note privée datée à afficher dans "À faire")
 interface ArtisanReminder {
@@ -619,44 +620,60 @@ export default function DashboardPage() {
     <div className="min-h-screen" style={{background: '#f6f8fb'}}>
       <div className="max-w-[1360px] mx-auto px-4 py-5 sm:px-6 sm:py-8 lg:px-9 lg:py-9">
 
-        {/* ══════════════ PROFIL INCOMPLET ALERT ══════════════ */}
+        {/* V4 : bannière "Profil entreprise incomplet" via InfoBanner warn.
+            Affiche les champs obligatoires manquants + CTA vers /parametres. */}
         {profilIncomplet && (
-          <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5" style={stagger(0)}>
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div className="mb-6" style={stagger(0)}>
+            <InfoBanner
+              variant="warn"
+              icon={
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              }
+            >
+              <p className="font-hanken font-bold text-[15px] text-amber-900 mb-1">
+                Profil entreprise incomplet
+              </p>
+              <p className="font-hanken text-sm text-amber-800 mb-3">
+                Vos devis et factures ne sont pas conformes à la loi tant que ces informations ne sont pas renseignées.
+                Risque d&apos;amende jusqu&apos;à <strong>75 000 €</strong>.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {champsManquants.map(c => (
+                  <span key={c.champ} className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-hanken text-xs font-semibold">
+                    {c.label}
+                  </span>
+                ))}
               </div>
-              <div className="flex-1">
-                <h3 className="font-syne font-bold text-[15px] text-amber-800 mb-1">Profil entreprise incomplet</h3>
-                <p className="font-manrope text-sm text-amber-700 mb-3">
-                  Vos devis et factures ne sont pas conformes à la loi tant que ces informations ne sont pas renseignées.
-                  Risque d&apos;amende jusqu&apos;à <strong>75 000 €</strong>.
-                </p>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {champsManquants.map(c => (
-                    <span key={c.champ} className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-manrope text-xs font-medium">
-                      {c.label}
-                    </span>
-                  ))}
-                </div>
-                <Link href="/dashboard/parametres" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 text-white font-syne font-bold text-sm hover:bg-amber-700 transition-colors">
-                  Compléter mon profil
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                </Link>
-              </div>
-            </div>
+              <Link
+                href="/dashboard/parametres"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+                           bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white
+                           font-hanken font-bold text-sm
+                           shadow-[0_4px_12px_rgba(255,122,26,0.25)]
+                           hover:-translate-y-0.5 hover:brightness-105 transition-all duration-200"
+              >
+                Compléter mon profil
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </Link>
+            </InfoBanner>
           </div>
         )}
 
         {/* ═══════════════════ GREETING ═══════════════════ */}
         <div style={stagger(0)} className="mb-5 sm:mb-9 flex items-end justify-between flex-wrap gap-3 sm:gap-5">
           <div>
-            <p className="font-jakarta text-[13px] font-semibold tracking-[0.05em] uppercase mb-2" style={{color: '#7b8ba3'}}>
-              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {/* V4 : ligne date avec petit point orange pour l'accent visuel */}
+            <p className="font-hanken text-[12px] font-bold tracking-[0.08em] uppercase mb-2 flex items-center gap-2" style={{color: '#6b7280'}}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff7a1a]" aria-hidden="true" />
+              <span className="font-spline-mono">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </p>
-            <h1 className="font-syne font-extrabold leading-[1.2] text-2xl sm:text-[34px]" style={{letterSpacing: '-0.025em'}}>
+            <h1 className="font-hanken font-extrabold leading-[1.2] text-2xl sm:text-[34px]" style={{letterSpacing: '-0.025em'}}>
               <span className="inline-block" style={{
-                background: 'linear-gradient(135deg, #5ab4e0, #2d8bc9)',
+                background: 'linear-gradient(135deg, #0f1a3a 0%, #1f2d5e 60%, #ff7a1a 130%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 opacity: mounted ? 1 : 0,
@@ -670,15 +687,15 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-2.5 w-full sm:flex sm:w-auto sm:gap-2.5">
             <Link href="/dashboard/devis/nouveau"
               aria-label="Créer un nouveau devis"
-              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-jakarta font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
+              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-hanken font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
               style={{background: '#0f1a3a', boxShadow: '0 8px 24px -10px rgba(15,26,58,0.35)'}}>
               <svg width="22" height="22" className="sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Nouveau devis
             </Link>
             <Link href="/dashboard/factures/nouveau"
               aria-label="Créer une nouvelle facture"
-              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-jakarta font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
-              style={{background: 'linear-gradient(135deg, #e87a2a, #f09050)', boxShadow: '0 8px 24px -10px rgba(232,122,42,0.45)'}}>
+              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-hanken font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
+              style={{background: 'linear-gradient(135deg, #ff7a1a, #ff9d4d)', boxShadow: '0 8px 20px rgba(255,122,26,0.35), inset 0 1px 0 rgba(255,255,255,0.25)'}}>
               <svg width="22" height="22" className="sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Nouvelle facture
             </Link>
@@ -693,12 +710,12 @@ export default function DashboardPage() {
               style={stagger(i + 1)}
               className="relative overflow-hidden rounded-[20px] border transition-all duration-300 hover:-translate-y-0.5 group"
             >
-              {/* Card background + shadow via style to avoid Tailwind purge issues */}
+              {/* V4 : fond carte + bordure subtile + ombre douce signature V4 (inline pour Tailwind purge) */}
               <div className="absolute inset-0" style={{
                 background: '#ffffff',
-                border: '1px solid #e6ecf2',
+                border: '1px solid rgba(15,26,58,0.06)',
                 borderRadius: '20px',
-                boxShadow: '0 1px 2px rgba(15,26,58,0.02), 0 4px 16px rgba(15,26,58,0.045)',
+                boxShadow: '0 8px 24px rgba(15,26,58,0.06), 0 1px 4px rgba(15,26,58,0.04)',
               }} />
 
               {/* Decorative circle */}
@@ -711,11 +728,11 @@ export default function DashboardPage() {
                 {/* Label with dot */}
                 <div className="flex items-center gap-1.5 sm:gap-2.5 mb-2 sm:mb-5">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: kpi.color}} />
-                  <span className="font-jakarta text-[11px] sm:text-[13px] font-bold tracking-[0.01em]" style={{color: '#445068'}}>{kpi.label}</span>
+                  <span className="font-hanken text-[11px] sm:text-[13px] font-bold tracking-[0.01em]" style={{color: '#445068'}}>{kpi.label}</span>
                 </div>
 
                 {/* Big value */}
-                <p className="font-jakarta font-extrabold leading-none mb-1 sm:mb-1.5 text-[22px] sm:text-[32px] lg:text-[40px]" style={{
+                <p className="font-hanken font-extrabold leading-none mb-1 sm:mb-1.5 text-[22px] sm:text-[32px] lg:text-[40px]" style={{
                   letterSpacing: '-0.04em',
                   fontVariantNumeric: 'tabular-nums',
                   color: kpi.valueColor || '#0f1a3a',
@@ -725,7 +742,7 @@ export default function DashboardPage() {
                 </p>
 
                 {/* Sub text */}
-                <p className="font-jakarta text-[10px] sm:text-[13px] font-medium mb-2 sm:mb-[18px] truncate" style={{color: '#7b8ba3'}}>{kpi.sub}</p>
+                <p className="font-hanken text-[10px] sm:text-[13px] font-medium mb-2 sm:mb-[18px] truncate" style={{color: '#7b8ba3'}}>{kpi.sub}</p>
 
                 {/* Progress bar with shimmer */}
                 <div className="h-1 rounded-full overflow-hidden" style={{background: '#eef1f6'}}>
@@ -769,8 +786,8 @@ export default function DashboardPage() {
               {/* Header */}
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <div>
-                  <h2 className="font-syne font-bold text-[17px]">À faire</h2>
-                  <p className="font-jakarta text-[13px] font-medium mt-0.5" style={{color: '#7b8ba3'}}>
+                  <h2 className="font-hanken font-extrabold text-[18px] text-[#0f1a3a] tracking-[-0.025em]">À faire</h2>
+                  <p className="font-hanken text-[13px] font-medium mt-0.5" style={{color: '#7b8ba3'}}>
                     Actions qui nécessitent votre attention
                   </p>
                 </div>
@@ -794,7 +811,7 @@ export default function DashboardPage() {
                     <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{background: '#f1f5f9'}}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <p className="font-jakarta text-sm font-medium" style={{color: '#7b8ba3'}}>Tout est à jour !</p>
+                    <p className="font-hanken text-sm font-medium" style={{color: '#7b8ba3'}}>Tout est à jour !</p>
                   </div>
                 ) : (
                   todoItems.slice(0, 6).map((item, i) => (
@@ -811,11 +828,11 @@ export default function DashboardPage() {
                     >
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: item.dotColor}} />
                       <div className="flex-1 min-w-0">
-                        <p className="font-jakarta text-sm font-bold truncate" style={{color: '#0f1a3a'}}>{item.title}</p>
-                        <p className="font-jakarta text-xs font-medium mt-0.5 truncate" style={{color: '#7b8ba3'}}>{item.desc}</p>
+                        <p className="font-hanken text-sm font-bold truncate" style={{color: '#0f1a3a'}}>{item.title}</p>
+                        <p className="font-hanken text-xs font-medium mt-0.5 truncate" style={{color: '#7b8ba3'}}>{item.desc}</p>
                       </div>
                       <div className="text-right flex-shrink-0" onClick={e => e.stopPropagation()}>
-                        <p className="font-jakarta font-extrabold text-[15px]" style={{
+                        <p className="font-hanken font-extrabold text-[15px]" style={{
                           color: item.amountColor,
                           fontVariantNumeric: 'tabular-nums',
                           letterSpacing: '-0.02em',
@@ -843,19 +860,19 @@ export default function DashboardPage() {
           {/* ── Graphique CA ── */}
           <div
             style={stagger(6)}
-            className="rounded-[20px] border border-[#e6ecf2] bg-white shadow-[0_1px_2px_rgba(15,26,58,0.02),0_4px_16px_rgba(15,26,58,0.045)] hover:shadow-[0_2px_6px_rgba(15,26,58,0.06),0_12px_32px_rgba(15,26,58,0.08)] transition-shadow duration-300"
+            className="rounded-[20px] border border-[#0f1a3a]/[0.06] bg-white shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)] hover:shadow-[0_12px_32px_rgba(15,26,58,0.08),_0_2px_6px_rgba(15,26,58,0.06)] transition-shadow duration-300"
           >
             <div className="p-4 sm:p-7">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <div>
-                  <h2 className="font-syne font-bold text-[17px]">Chiffre d&apos;affaires</h2>
-                  <p className="font-jakarta text-[13px] font-medium mt-0.5" style={{color: '#7b8ba3'}}>
+                  <h2 className="font-hanken font-extrabold text-[18px] text-[#0f1a3a] tracking-[-0.025em]">Chiffre d&apos;affaires</h2>
+                  <p className="font-hanken text-[13px] font-medium mt-0.5" style={{color: '#7b8ba3'}}>
                     12 mois · {currentYear}
                   </p>
                 </div>
                 <Link href="/dashboard/statistiques"
-                  className="inline-flex items-center gap-1 font-jakarta text-[13px] font-bold px-3.5 py-2.5 rounded-[10px] transition-all duration-200 hover:bg-[rgba(90,180,224,0.06)]"
-                  style={{color: '#5ab4e0', minHeight: '44px'}}>
+                  className="inline-flex items-center gap-1 font-hanken text-[13px] font-bold px-3.5 py-2.5 rounded-[10px] transition-all duration-200 hover:bg-[rgba(255,122,26,0.06)]"
+                  style={{color: '#ff7a1a', minHeight: '44px'}}>
                   Statistiques
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
                 </Link>
@@ -865,11 +882,11 @@ export default function DashboardPage() {
               <div className="flex gap-5 mb-6">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded" style={{background: '#0f1a3a'}} />
-                  <span className="font-jakarta text-[13px] font-semibold" style={{color: '#445068'}}>Facturé</span>
+                  <span className="font-hanken text-[13px] font-semibold" style={{color: '#445068'}}>Facturé</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded" style={{background: '#22c55e'}} />
-                  <span className="font-jakarta text-[13px] font-semibold" style={{color: '#445068'}}>Encaissé</span>
+                  <span className="font-hanken text-[13px] font-semibold" style={{color: '#445068'}}>Encaissé</span>
                 </div>
               </div>
 
@@ -911,7 +928,7 @@ export default function DashboardPage() {
                           }}
                         />
                       </div>
-                      <span className="font-jakarta text-xs font-semibold mt-3.5" style={{
+                      <span className="font-hanken text-xs font-semibold mt-3.5" style={{
                         color: isCurrentMonth ? '#0f1a3a' : '#a8b5c5',
                         fontWeight: isCurrentMonth ? 800 : 600,
                       }}>
@@ -931,19 +948,19 @@ export default function DashboardPage() {
           {/* ── Planning semaine (detailed) ── */}
           <div
             style={stagger(7)}
-            className="rounded-[20px] border border-[#e6ecf2] bg-white shadow-[0_1px_2px_rgba(15,26,58,0.02),0_4px_16px_rgba(15,26,58,0.045)] hover:shadow-[0_2px_6px_rgba(15,26,58,0.06),0_12px_32px_rgba(15,26,58,0.08)] transition-shadow duration-300"
+            className="rounded-[20px] border border-[#0f1a3a]/[0.06] bg-white shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)] hover:shadow-[0_12px_32px_rgba(15,26,58,0.08),_0_2px_6px_rgba(15,26,58,0.06)] transition-shadow duration-300"
           >
             <div className="p-4 sm:p-7">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <div>
-                  <h2 className="font-syne font-bold text-[17px]">Planning de la semaine</h2>
-                  <p className="font-jakarta text-[13px] font-medium mt-0.5" style={{color: '#7b8ba3'}}>
+                  <h2 className="font-hanken font-extrabold text-[18px] text-[#0f1a3a] tracking-[-0.025em]">Planning de la semaine</h2>
+                  <p className="font-hanken text-[13px] font-medium mt-0.5" style={{color: '#7b8ba3'}}>
                     Semaine du {monday.getDate()} au {friday.getDate()} {monday.toLocaleDateString('fr-FR', {month: 'long'})}
                   </p>
                 </div>
                 <Link href="/dashboard/planning"
-                  className="inline-flex items-center gap-1 font-jakarta text-[13px] font-bold px-3.5 py-2.5 rounded-[10px] transition-all duration-200 hover:bg-[rgba(90,180,224,0.06)]"
-                  style={{color: '#5ab4e0', minHeight: '44px'}}>
+                  className="inline-flex items-center gap-1 font-hanken text-[13px] font-bold px-3.5 py-2.5 rounded-[10px] transition-all duration-200 hover:bg-[rgba(255,122,26,0.06)]"
+                  style={{color: '#ff7a1a', minHeight: '44px'}}>
                   Tout voir
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
                 </Link>
@@ -953,20 +970,20 @@ export default function DashboardPage() {
               <div>
                 {visibleDays.length === 0 ? (
                   <div className="text-center py-8 border-2 border-dashed rounded-[14px]" style={{borderColor: '#e8ecf1'}}>
-                    <p className="font-jakarta text-[13px] font-medium" style={{color: '#7b8ba3'}}>Aucune intervention cette semaine</p>
+                    <p className="font-hanken text-[13px] font-medium" style={{color: '#7b8ba3'}}>Aucune intervention cette semaine</p>
                   </div>
                 ) : (
                   visibleDays.map((day, di) => (
                     <div key={day.day} className="mb-4 last:mb-0">
                       {/* Day header */}
                       <div className="flex items-center gap-2.5 mb-3">
-                        <span className="font-syne text-xs font-bold uppercase tracking-[0.06em] px-3.5 py-1.5 rounded-[10px]" style={{
+                        <span className="font-hanken text-xs font-bold uppercase tracking-[0.06em] px-3.5 py-1.5 rounded-[10px]" style={{
                           background: day.isToday ? '#0f1a3a' : '#f0f3f7',
                           color: day.isToday ? '#fff' : '#7b8ba3',
                         }}>
                           {day.day}
                         </span>
-                        <span className="font-jakarta text-[13px] font-medium" style={{color: '#7b8ba3'}}>
+                        <span className="font-hanken text-[13px] font-medium" style={{color: '#7b8ba3'}}>
                           {day.dateStr}{day.isToday ? ' (aujourd\'hui)' : ''}
                         </span>
                       </div>
@@ -974,7 +991,7 @@ export default function DashboardPage() {
                       {/* Events */}
                       {day.entries.length === 0 ? (
                         <div className="text-center py-5 border-2 border-dashed rounded-[14px] mb-2" style={{borderColor: '#e8ecf1'}}>
-                          <span className="font-jakarta text-[13px] font-medium" style={{color: '#a8b5c5'}}>Aucune intervention</span>
+                          <span className="font-hanken text-[13px] font-medium" style={{color: '#a8b5c5'}}>Aucune intervention</span>
                         </div>
                       ) : (
                         day.entries.map((entry: Record<string, unknown>, ei: number) => {
@@ -1003,13 +1020,13 @@ export default function DashboardPage() {
                             >
                               {/* Time */}
                               <div className="flex-shrink-0" style={{width: '58px'}}>
-                                <p className="font-jakarta font-extrabold text-[17px]" style={{
+                                <p className="font-hanken font-extrabold text-[17px]" style={{
                                   color: '#0f1a3a',
                                   fontVariantNumeric: 'tabular-nums',
                                   letterSpacing: '-0.02em',
                                 }}>{hour}</p>
                                 {durationStr && (
-                                  <p className="font-jakarta text-[11px] font-semibold mt-0.5" style={{color: '#7b8ba3'}}>{durationStr}</p>
+                                  <p className="font-hanken text-[11px] font-semibold mt-0.5" style={{color: '#7b8ba3'}}>{durationStr}</p>
                                 )}
                               </div>
 
@@ -1018,10 +1035,10 @@ export default function DashboardPage() {
 
                               {/* Details */}
                               <div className="flex-1 min-w-0">
-                                {cName && <p className="font-jakarta text-[15px] font-bold" style={{color: '#0f1a3a'}}>{cName}</p>}
-                                {titre && <p className="font-jakarta text-[13px] mt-0.5" style={{color: '#445068'}}>{titre}</p>}
+                                {cName && <p className="font-hanken text-[15px] font-bold" style={{color: '#0f1a3a'}}>{cName}</p>}
+                                {titre && <p className="font-hanken text-[13px] mt-0.5" style={{color: '#445068'}}>{titre}</p>}
                                 {adresse && (
-                                  <p className="flex items-center gap-1.5 font-jakarta text-xs mt-1.5" style={{color: '#7b8ba3'}}>
+                                  <p className="flex items-center gap-1.5 font-hanken text-xs mt-1.5" style={{color: '#7b8ba3'}}>
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a8b5c5" strokeWidth="2" className="flex-shrink-0" aria-hidden="true">
                                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                                     </svg>
@@ -1043,14 +1060,14 @@ export default function DashboardPage() {
           {/* ── Activité récente ── */}
           <div
             style={stagger(8)}
-            className="rounded-[20px] border border-[#e6ecf2] bg-white shadow-[0_1px_2px_rgba(15,26,58,0.02),0_4px_16px_rgba(15,26,58,0.045)] hover:shadow-[0_2px_6px_rgba(15,26,58,0.06),0_12px_32px_rgba(15,26,58,0.08)] transition-shadow duration-300"
+            className="rounded-[20px] border border-[#0f1a3a]/[0.06] bg-white shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)] hover:shadow-[0_12px_32px_rgba(15,26,58,0.08),_0_2px_6px_rgba(15,26,58,0.06)] transition-shadow duration-300"
           >
             <div className="p-4 sm:p-7">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="font-syne font-bold text-[17px]">Activité récente</h2>
+                <h2 className="font-hanken font-extrabold text-[18px] text-[#0f1a3a] tracking-[-0.025em]">Activité récente</h2>
                 <Link href="/dashboard/devis"
-                  className="inline-flex items-center gap-1 font-jakarta text-[13px] font-bold px-3.5 py-2.5 rounded-[10px] transition-all duration-200 hover:bg-[rgba(90,180,224,0.06)]"
-                  style={{color: '#5ab4e0', minHeight: '44px'}}>
+                  className="inline-flex items-center gap-1 font-hanken text-[13px] font-bold px-3.5 py-2.5 rounded-[10px] transition-all duration-200 hover:bg-[rgba(255,122,26,0.06)]"
+                  style={{color: '#ff7a1a', minHeight: '44px'}}>
                   Tout voir
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
                 </Link>
@@ -1089,21 +1106,21 @@ export default function DashboardPage() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-jakarta text-sm font-bold truncate" style={{color: '#0f1a3a'}}>
+                        <p className="font-hanken text-sm font-bold truncate" style={{color: '#0f1a3a'}}>
                           <span className="inline-block w-[7px] h-[7px] rounded-full mr-1.5 align-middle" style={{background: item.dotColor}} />
                           {item.desc || item.detail}
                         </p>
-                        {item.desc && <p className="font-jakarta text-xs font-medium truncate mt-0.5" style={{color: '#a8b5c5'}}>{item.detail}</p>}
+                        {item.desc && <p className="font-hanken text-xs font-medium truncate mt-0.5" style={{color: '#a8b5c5'}}>{item.detail}</p>}
                       </div>
 
                       {/* Amount + time */}
                       <div className="text-right flex-shrink-0 ml-2">
-                        <p className="font-jakarta font-extrabold text-[15px]" style={{
+                        <p className="font-hanken font-extrabold text-[15px]" style={{
                           color: isPaid ? '#22c55e' : '#0f1a3a',
                           fontVariantNumeric: 'tabular-nums',
                           letterSpacing: '-0.02em',
                         }}>{item.amount}</p>
-                        <p className="font-jakarta text-[11px] font-medium mt-0.5" style={{color: '#a8b5c5'}}>{item.time}</p>
+                        <p className="font-hanken text-[11px] font-medium mt-0.5" style={{color: '#a8b5c5'}}>{item.time}</p>
                       </div>
                     </div>
                   );
@@ -1113,7 +1130,7 @@ export default function DashboardPage() {
                     <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{background: '#f1f5f9'}}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" aria-hidden={true}><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" strokeLinecap="round" /></svg>
                     </div>
-                    <p className="font-jakarta text-sm font-medium" style={{color: '#7b8ba3'}}>Aucune activité récente</p>
+                    <p className="font-hanken text-sm font-medium" style={{color: '#7b8ba3'}}>Aucune activité récente</p>
                   </div>
                 )}
               </div>

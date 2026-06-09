@@ -155,19 +155,20 @@ function Toast({
   }, [onClose])
 
   const Icon = type === 'success' ? CheckCircle2 : XCircle
+  // V4 : tons sémantiques translucides + bordure assortie, font Hanken.
   const colors =
     type === 'success'
-      ? 'bg-green-50 border-green-200 text-green-900'
-      : 'bg-red-50 border-red-200 text-red-900'
-  const iconColor = type === 'success' ? 'text-green-600' : 'text-red-600'
+      ? 'bg-emerald-50/80 border-emerald-200/70 text-emerald-900'
+      : 'bg-red-50/80 border-red-200/70 text-red-900'
+  const iconColor = type === 'success' ? 'text-emerald-600' : 'text-red-600'
 
   return (
-    <div className={`mb-6 rounded-xl border-2 ${colors} px-5 py-4 flex items-start gap-3`}>
+    <div className={`mb-6 rounded-2xl border ${colors} px-5 py-4 flex items-start gap-3`}>
       <Icon size={22} className={`${iconColor} flex-shrink-0 mt-0.5`} />
-      <p className="font-manrope text-sm font-medium flex-1">{message}</p>
+      <p className="font-hanken text-sm font-medium flex-1">{message}</p>
       <button
         onClick={onClose}
-        className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+        className="text-gray-400 hover:text-[#0f1a3a] transition-colors flex-shrink-0"
         aria-label="Fermer"
       >
         <XCircle size={18} />
@@ -222,8 +223,9 @@ function AbonnementPageContent() {
 
   if (!entreprise || !user) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-        <p className="font-manrope text-gray-500">
+      <div className="bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-8 text-center
+                      shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+        <p className="font-hanken text-gray-500">
           Impossible de charger votre profil. Veuillez recharger la page.
         </p>
       </div>
@@ -287,25 +289,35 @@ function AbonnementPageContent() {
     }
   }
 
-  // ─── Couleurs badge ───
+  // ─── Couleurs badge (V4 light premium — fonds translucides, contours assortis) ───
   const badgeColorMap: Record<AbonnementStatus['badge']['color'], string> = {
-    green: 'bg-green-100 text-green-700 border-green-200',
-    orange: 'bg-orange-100 text-orange-700 border-orange-200',
-    red: 'bg-red-100 text-red-700 border-red-200',
-    purple: 'bg-purple-100 text-purple-700 border-purple-200',
-    blue: 'bg-blue-100 text-blue-700 border-blue-200',
+    green: 'bg-gradient-to-br from-emerald-100/80 to-emerald-50 text-emerald-700 border-emerald-200/60',
+    orange: 'bg-gradient-to-br from-orange-100/80 to-orange-50 text-orange-700 border-orange-200/60',
+    red: 'bg-gradient-to-br from-red-100/80 to-red-50 text-red-700 border-red-200/60',
+    purple: 'bg-gradient-to-br from-purple-100/80 to-purple-50 text-purple-700 border-purple-200/60',
+    blue: 'bg-gradient-to-br from-blue-100/80 to-blue-50 text-blue-700 border-blue-200/60',
   }
 
   // ─── Cas spécial : ADMIN ───
   if (isAdmin) {
     return (
       <div className="max-w-4xl">
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-8 text-center">
-          <Shield size={48} className="text-purple-600 mx-auto mb-4" />
-          <h2 className="font-syne font-bold text-2xl text-[#1a1a2e] mb-2">
+        <div
+          className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-10 text-center overflow-hidden
+                     shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+        >
+          <div
+            aria-hidden
+            className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500 opacity-90"
+          />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white mx-auto mb-4
+                          shadow-[0_8px_20px_rgba(168,85,247,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]">
+            <Shield size={28} />
+          </div>
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] mb-2">
             Accès Administrateur
           </h2>
-          <p className="font-manrope text-gray-600 max-w-xl mx-auto">
+          <p className="font-hanken text-gray-600 max-w-xl mx-auto">
             Le compte administrateur n&apos;a pas d&apos;abonnement. Aucune limite, aucun blocage,
             aucune facturation.
           </p>
@@ -318,16 +330,26 @@ function AbonnementPageContent() {
   if (status.type === 'lifetime') {
     return (
       <div className="max-w-4xl">
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-10 text-center">
-          <Award size={56} className="text-purple-600 mx-auto mb-4" />
-          <h2 className="font-syne font-bold text-3xl text-[#1a1a2e] mb-3">
+        <div
+          className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-10 text-center overflow-hidden
+                     shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+        >
+          <div
+            aria-hidden
+            className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500 opacity-90"
+          />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white mx-auto mb-4
+                          shadow-[0_8px_20px_rgba(168,85,247,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]">
+            <Award size={32} />
+          </div>
+          <h2 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] mb-3">
             Accès à vie
           </h2>
-          <p className="font-manrope text-gray-700 text-lg max-w-2xl mx-auto mb-6">
+          <p className="font-hanken text-gray-700 text-lg max-w-2xl mx-auto mb-6 leading-relaxed">
             Vous bénéficiez d&apos;un accès illimité et gratuit à Nexartis, pour toujours.
             Aucune facturation ne sera jamais émise sur votre compte.
           </p>
-          <p className="font-manrope text-sm text-gray-500 italic">
+          <p className="font-hanken text-sm text-gray-500 italic">
             Merci pour votre soutien — c&apos;est grâce à vous que Nexartis grandit.
           </p>
         </div>
@@ -358,16 +380,18 @@ function AbonnementPageContent() {
           à une fonctionnalité réservée à l'offre Complet. Le message exact
           dépend de ?upgrade=<feature> dans l'URL. */}
       {upgradeInfo && (
-        <div className="mb-6 rounded-2xl border-2 border-orange/40 bg-gradient-to-br from-orange/10 to-orange/5 p-5 sm:p-6 shadow-sm">
+        <div className="mb-6 rounded-2xl border border-[#ff7a1a]/30 bg-gradient-to-br from-[#fff3e5] to-[#fff8ef] p-5 sm:p-6
+                        shadow-[0_4px_16px_rgba(255,122,26,0.08)]">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-orange to-orange-hover flex items-center justify-center shadow-lg">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] flex items-center justify-center
+                            shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]">
               <Sparkles size={24} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-syne font-bold text-lg sm:text-xl text-[#1a1a2e] mb-1.5">
+              <h2 className="font-hanken font-extrabold text-lg sm:text-xl text-[#0f1a3a] tracking-[-0.025em] mb-1.5">
                 {upgradeInfo.title}
               </h2>
-              <p className="font-manrope text-sm text-gray-700 leading-relaxed">
+              <p className="font-hanken text-sm text-gray-700 leading-relaxed">
                 {upgradeInfo.description}
               </p>
             </div>
@@ -377,21 +401,23 @@ function AbonnementPageContent() {
 
       {/* Bannière de blocage : UTILISATEUR EXPIRÉ */}
       {(isUserBlocked || isExpiredFlow) && (
-        <div className="mb-6 rounded-2xl border-2 border-red-300 bg-gradient-to-br from-red-50 to-orange-50 p-5 sm:p-6 shadow-sm">
+        <div className="mb-6 rounded-2xl border border-red-300/60 bg-gradient-to-br from-red-50 to-orange-50/60 p-5 sm:p-6
+                        shadow-[0_4px_16px_rgba(220,38,38,0.08)]">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shadow-lg">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center
+                            shadow-[0_8px_20px_rgba(220,38,38,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]">
               <Lock size={24} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-syne font-bold text-lg sm:text-xl text-red-900 mb-1.5">
+              <h2 className="font-hanken font-extrabold text-lg sm:text-xl text-red-900 tracking-[-0.025em] mb-1.5">
                 Accès suspendu — Souscrivez pour continuer
               </h2>
-              <p className="font-manrope text-sm text-red-800 leading-relaxed mb-2">
+              <p className="font-hanken text-sm text-red-800 leading-relaxed mb-2">
                 Toutes les pages de votre dashboard sont temporairement bloquées.
                 Vos données (devis, factures, chantiers, clients) sont en sécurité et resteront
                 accessibles dès la souscription.
               </p>
-              <p className="font-manrope text-xs text-red-700 italic">
+              <p className="font-hanken text-xs text-red-700 italic">
                 Cliquez sur «&nbsp;Souscrire maintenant&nbsp;» ci-dessous pour réactiver votre compte
                 en moins d&apos;une minute.
               </p>
@@ -402,23 +428,31 @@ function AbonnementPageContent() {
 
       {/* Erreur */}
       {errorMsg && (
-        <div className="mb-6 rounded-xl bg-red-50 border-2 border-red-200 px-5 py-4 flex items-start gap-3">
+        <div className="mb-6 rounded-2xl bg-red-50/80 border border-red-200/70 px-5 py-4 flex items-start gap-3">
           <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="font-manrope text-sm text-red-900 flex-1">{errorMsg}</p>
+          <p className="font-hanken text-sm text-red-900 flex-1">{errorMsg}</p>
         </div>
       )}
 
       {/* ──────────────────────────────────────────────────────────── */}
-      {/* CARTE STATUT — toujours visible en haut                    */}
+      {/* CARTE STATUT — V4 Light Premium avec accent line orange   */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 mb-6 shadow-sm">
+      <div
+        className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 mb-6 overflow-hidden
+                   shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+      >
+        <div
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+        />
+
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
           <div>
-            <p className="font-manrope text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">
+            <p className="font-hanken font-semibold text-[11.5px] uppercase tracking-wider text-gray-500 mb-2">
               Votre statut actuel
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-syne font-bold text-2xl sm:text-3xl text-[#1a1a2e]">
+              <h1 className="font-hanken font-extrabold text-2xl sm:text-3xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
                 {status.type === 'trial' && status.joursRestants !== null && status.joursRestants >= 0
                   ? 'Période d’essai en cours'
                   : status.type === 'trial'
@@ -428,7 +462,7 @@ function AbonnementPageContent() {
                       : 'Abonnement suspendu'}
               </h1>
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full border font-manrope text-xs font-semibold ${badgeColorMap[status.badge.color]}`}
+                className={`inline-flex items-center px-3 py-1 rounded-full border font-hanken text-[11.5px] font-bold tracking-wider uppercase ${badgeColorMap[status.badge.color]}`}
               >
                 {status.badge.label}
               </span>
@@ -438,12 +472,15 @@ function AbonnementPageContent() {
             <button
               onClick={handlePortal}
               disabled={loadingPortal}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border-2 border-[#1a1a2e] bg-white hover:bg-gray-50 text-[#1a1a2e] font-syne font-bold text-sm transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white
+                         font-hanken font-semibold text-sm text-[#0f1a3a]
+                         hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                         transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loadingPortal ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Ouverture...
+                  Ouverture…
                 </>
               ) : (
                 <>
@@ -455,16 +492,16 @@ function AbonnementPageContent() {
           )}
         </div>
 
-        {/* Infos contextuelles selon le statut */}
+        {/* Infos contextuelles selon le statut (banners V4) */}
         {status.type === 'trial' && status.expireAt && status.joursRestants !== null && status.joursRestants >= 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="rounded-xl bg-blue-50/80 border border-blue-200/70 p-4 flex items-start gap-3">
             <Calendar size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-manrope text-sm text-blue-900 font-medium">
+              <p className="font-hanken text-sm text-blue-900 font-medium">
                 Votre essai gratuit se termine le{' '}
-                <span className="font-bold">{formatDateFr(status.expireAt)}</span>.
+                <span className="font-spline-mono font-medium">{formatDateFr(status.expireAt)}</span>.
               </p>
-              <p className="font-manrope text-xs text-blue-700 mt-1">
+              <p className="font-hanken text-xs text-blue-700 mt-1">
                 Souscrivez avant cette date pour ne perdre aucune donnée.
                 Aucune carte bancaire requise pour l&apos;essai.
               </p>
@@ -473,13 +510,13 @@ function AbonnementPageContent() {
         )}
 
         {status.type === 'trial' && status.joursRestants !== null && status.joursRestants < 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="rounded-xl bg-red-50/80 border border-red-200/70 p-4 flex items-start gap-3">
             <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-manrope text-sm text-red-900 font-medium">
+              <p className="font-hanken text-sm text-red-900 font-medium">
                 Votre période d&apos;essai est terminée.
               </p>
-              <p className="font-manrope text-xs text-red-700 mt-1">
+              <p className="font-hanken text-xs text-red-700 mt-1">
                 Vos données sont conservées en sécurité. Souscrivez maintenant pour retrouver l&apos;accès
                 immédiat à votre dashboard.
               </p>
@@ -488,13 +525,13 @@ function AbonnementPageContent() {
         )}
 
         {status.type === 'actif' && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
-            <CheckCircle2 size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/70 p-4 flex items-start gap-3">
+            <CheckCircle2 size={20} className="text-emerald-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-manrope text-sm text-green-900 font-medium">
+              <p className="font-hanken text-sm text-emerald-900 font-medium">
                 Merci pour votre confiance ! Votre abonnement Nexartis est actif.
               </p>
-              <p className="font-manrope text-xs text-green-700 mt-1">
+              <p className="font-hanken text-xs text-emerald-700 mt-1">
                 Pour modifier votre carte, télécharger vos factures ou résilier, cliquez sur «&nbsp;Gérer
                 mon abonnement&nbsp;». Vous serez redirigé vers le portail sécurisé Stripe.
               </p>
@@ -503,14 +540,14 @@ function AbonnementPageContent() {
         )}
 
         {status.type === 'suspendu' && status.expireAt && status.joursRestants !== null && status.joursRestants > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
-            <AlertTriangle size={20} className="text-orange-600 flex-shrink-0 mt-0.5" />
+          <div className="rounded-xl bg-amber-50/80 border border-amber-200/70 p-4 flex items-start gap-3">
+            <AlertTriangle size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-manrope text-sm text-orange-900 font-medium">
+              <p className="font-hanken text-sm text-amber-900 font-medium">
                 Abonnement résilié — accès jusqu&apos;au{' '}
-                <span className="font-bold">{formatDateFr(status.expireAt)}</span>.
+                <span className="font-spline-mono font-medium">{formatDateFr(status.expireAt)}</span>.
               </p>
-              <p className="font-manrope text-xs text-orange-700 mt-1">
+              <p className="font-hanken text-xs text-amber-700 mt-1">
                 Réactivez votre abonnement avant cette date pour ne perdre aucune donnée.
               </p>
             </div>
@@ -518,13 +555,13 @@ function AbonnementPageContent() {
         )}
 
         {status.type === 'suspendu' && status.joursRestants !== null && status.joursRestants <= 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="rounded-xl bg-red-50/80 border border-red-200/70 p-4 flex items-start gap-3">
             <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-manrope text-sm text-red-900 font-medium">
+              <p className="font-hanken text-sm text-red-900 font-medium">
                 Votre abonnement est suspendu.
               </p>
-              <p className="font-manrope text-xs text-red-700 mt-1">
+              <p className="font-hanken text-xs text-red-700 mt-1">
                 Réactivez-le pour retrouver l&apos;accès à toutes vos données.
               </p>
             </div>
@@ -533,67 +570,80 @@ function AbonnementPageContent() {
       </div>
 
       {/* ──────────────────────────────────────────────────────────── */}
-      {/* CARTE PLAN + CTA — UNIQUEMENT si pas encore actif          */}
+      {/* CARTE PLAN + CTA — V4 Light Premium (carte blanche)        */}
+      {/* UNIQUEMENT si pas encore actif                             */}
       {/* ──────────────────────────────────────────────────────────── */}
       {status.type !== 'actif' && (
-        <div className="bg-gradient-to-br from-[#0f1a3a] via-[#0f1a3a] to-[#1a2554] rounded-2xl p-6 sm:p-10 shadow-[0_20px_60px_rgba(15,26,58,0.25)] relative overflow-hidden">
-          {/* Décoration de fond */}
-          <div className="absolute -top-20 -right-20 w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(90,180,224,0.15)_0%,transparent_70%)] pointer-events-none" />
-          <div className="absolute -bottom-20 -left-20 w-[250px] h-[250px] rounded-full bg-[radial-gradient(circle,rgba(232,122,42,0.08)_0%,transparent_70%)] pointer-events-none" />
+        <div
+          className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-10 overflow-hidden
+                     shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+        >
+          {/* Accent line orange */}
+          <div
+            aria-hidden
+            className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+          />
+
+          {/* Décoration subtile orange en haut à droite */}
+          <div className="absolute -top-20 -right-20 w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(255,122,26,0.08)_0%,transparent_70%)] pointer-events-none" />
 
           <div className="relative">
             <div className="flex flex-col items-center text-center mb-8">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] px-3 py-1 rounded-full mb-4 bg-[rgba(232,122,42,0.15)] text-[#e87a2a]">
+              <span
+                className="inline-flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full
+                           bg-gradient-to-br from-[#fff3e5] to-[#fff8ef] border border-[#ff7a1a]/30
+                           text-[#ff7a1a] font-hanken font-bold text-[11.5px] uppercase tracking-[0.12em]"
+              >
                 <Sparkles size={12} />
                 Plan Nexartis
               </span>
 
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="font-syne font-extrabold text-white text-5xl sm:text-6xl tabular-nums leading-none">
+                <span className="font-spline-mono font-medium text-[#0f1a3a] text-5xl sm:text-6xl tracking-[-0.02em] leading-none">
                   {PRICE_HT}€
                 </span>
-                <span className="font-manrope text-white/60 text-lg font-semibold">
+                <span className="font-hanken text-gray-500 text-lg font-semibold">
                   / mois HT
                 </span>
               </div>
-              <p className="font-manrope text-white/50 text-sm">
-                soit {PRICE_TTC.toFixed(2).replace('.', ',')}&nbsp;€&nbsp;TTC&nbsp;·&nbsp;Sans engagement&nbsp;·&nbsp;Résiliable à tout moment
+              <p className="font-hanken text-gray-500 text-sm">
+                soit <span className="font-spline-mono font-medium">{PRICE_TTC.toFixed(2).replace('.', ',')}</span>&nbsp;€&nbsp;TTC&nbsp;·&nbsp;Sans engagement&nbsp;·&nbsp;Résiliable à tout moment
               </p>
             </div>
 
-            <div className="h-px w-full bg-white/10 mb-8" />
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-8" />
 
-            {/* Liste features */}
+            {/* Liste features — V4 Light : checks orange, texte navy */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 mb-8">
               {FEATURES_INCLUDED.map((feature) => (
                 <div
                   key={feature}
-                  className="flex items-start gap-2.5 text-[14px] text-white/80 font-manrope"
+                  className="flex items-start gap-2.5 text-[14px] text-[#0f1a3a] font-hanken"
                 >
                   <Check
                     size={16}
                     strokeWidth={2.5}
-                    className="text-[#5ab4e0] flex-shrink-0 mt-0.5"
+                    className="text-[#ff7a1a] flex-shrink-0 mt-0.5"
                   />
                   <span>{feature}</span>
                 </div>
               ))}
             </div>
 
-            {/* Profil incomplet : alerte */}
+            {/* Profil incomplet : alerte V4 ambre */}
             {profilIncomplet && (
-              <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-                <AlertTriangle size={20} className="text-orange-400 flex-shrink-0 mt-0.5" />
+              <div className="rounded-xl bg-amber-50/80 border border-amber-200/70 p-4 mb-6 flex items-start gap-3">
+                <AlertTriangle size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-manrope text-sm text-white font-medium mb-1">
+                  <p className="font-hanken text-sm text-amber-900 font-semibold mb-1">
                     Complétez votre profil avant de souscrire
                   </p>
-                  <p className="font-manrope text-xs text-white/60">
+                  <p className="font-hanken text-xs text-amber-800 leading-relaxed">
                     Nexartis a besoin de votre nom d&apos;entreprise, SIRET et adresse pour générer
                     une facture conforme. Rendez-vous dans{' '}
                     <a
                       href="/dashboard/parametres"
-                      className="underline hover:text-white transition-colors"
+                      className="underline hover:text-amber-950 transition-colors font-semibold"
                     >
                       Paramètres → Entreprise
                     </a>
@@ -603,16 +653,26 @@ function AbonnementPageContent() {
               </div>
             )}
 
-            {/* CTA principal */}
+            {/* CTA principal V4 — gradient orange, lift au hover */}
             <button
               onClick={handleSubscribe}
               disabled={loadingCheckout || profilIncomplet}
-              className="w-full h-14 sm:h-16 rounded-xl bg-[#e87a2a] hover:bg-[#f09050] disabled:bg-[#e87a2a]/50 disabled:cursor-not-allowed text-white font-syne font-bold text-base sm:text-lg transition-colors flex items-center justify-center gap-2 shadow-lg"
+              className="
+                w-full h-14 sm:h-16 rounded-2xl
+                bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+                text-white font-hanken font-bold text-base sm:text-lg tracking-[-0.01em]
+                shadow-[0_8px_24px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.3)]
+                hover:-translate-y-0.5 hover:brightness-105
+                active:translate-y-0
+                transition-all duration-[250ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                flex items-center justify-center gap-2
+              "
             >
               {loadingCheckout ? (
                 <>
                   <Loader2 size={20} className="animate-spin" />
-                  Préparation de votre paiement...
+                  Préparation de votre paiement…
                 </>
               ) : (
                 <>
@@ -622,7 +682,7 @@ function AbonnementPageContent() {
               )}
             </button>
 
-            <p className="text-center text-[12px] text-white/40 mt-4 font-manrope">
+            <p className="text-center text-[12px] text-gray-500 mt-4 font-hanken">
               Paiement sécurisé via Stripe&nbsp;·&nbsp;CB ou prélèvement&nbsp;·&nbsp;TVA collectée automatiquement
             </p>
           </div>
@@ -630,36 +690,42 @@ function AbonnementPageContent() {
       )}
 
       {/* ──────────────────────────────────────────────────────────── */}
-      {/* CARTE FAQ + LIENS UTILES                                   */}
+      {/* CARTE FAQ + LIENS UTILES — 3 mini-cards V4                 */}
       {/* ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-syne font-bold text-sm text-[#1a1a2e] mb-2">
+        <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5
+                        shadow-[0_4px_16px_rgba(15,26,58,0.04),_0_1px_3px_rgba(15,26,58,0.04)]
+                        transition-all duration-200 hover:-translate-y-0.5">
+          <h3 className="font-hanken font-bold text-sm text-[#0f1a3a] mb-2">
             Sans engagement
           </h3>
-          <p className="font-manrope text-xs text-gray-500 leading-relaxed">
+          <p className="font-hanken text-xs text-gray-500 leading-relaxed">
             Résiliez en un clic depuis le portail. Vos données restent accessibles
             pendant 30 jours après la résiliation.
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-syne font-bold text-sm text-[#1a1a2e] mb-2">
+        <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5
+                        shadow-[0_4px_16px_rgba(15,26,58,0.04),_0_1px_3px_rgba(15,26,58,0.04)]
+                        transition-all duration-200 hover:-translate-y-0.5">
+          <h3 className="font-hanken font-bold text-sm text-[#0f1a3a] mb-2">
             Paiement sécurisé
           </h3>
-          <p className="font-manrope text-xs text-gray-500 leading-relaxed">
+          <p className="font-hanken text-xs text-gray-500 leading-relaxed">
             Stripe est certifié PCI-DSS niveau 1. Vos informations bancaires
             ne sont jamais stockées sur nos serveurs.
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="font-syne font-bold text-sm text-[#1a1a2e] mb-2">
+        <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5
+                        shadow-[0_4px_16px_rgba(15,26,58,0.04),_0_1px_3px_rgba(15,26,58,0.04)]
+                        transition-all duration-200 hover:-translate-y-0.5">
+          <h3 className="font-hanken font-bold text-sm text-[#0f1a3a] mb-2">
             Une question ?
           </h3>
-          <p className="font-manrope text-xs text-gray-500 leading-relaxed">
+          <p className="font-hanken text-xs text-gray-500 leading-relaxed">
             Écrivez-nous à{' '}
             <a
               href="mailto:contact.nexartis@gmail.com"
-              className="text-[#5ab4e0] underline hover:text-[#3a94c0] transition-colors"
+              className="text-[#ff7a1a] underline hover:text-[#ff9d4d] transition-colors font-semibold"
             >
               contact.nexartis@gmail.com
             </a>

@@ -94,12 +94,12 @@ export default function ClientDetailPage() {
       <div className="space-y-6">
         <Link
           href="/dashboard/clients"
-          className="inline-flex items-center gap-1.5 text-sm font-manrope text-[#6b7280] hover:text-[#1a1a2e] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-hanken font-semibold text-gray-500 hover:text-[#0f1a3a] transition-colors"
         >
           <ArrowLeft size={16} />
           Retour aux clients
         </Link>
-        <p className="text-sm font-manrope text-gray-500">Client introuvable.</p>
+        <p className="text-sm font-hanken text-gray-500">Client introuvable.</p>
       </div>
     )
   }
@@ -108,87 +108,104 @@ export default function ClientDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back link */}
+      {/* ============ Retour ============ */}
       <Link
         href="/dashboard/clients"
-        className="inline-flex items-center gap-1.5 text-sm font-manrope text-[#6b7280] hover:text-[#1a1a2e] transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm font-hanken font-semibold text-gray-500 hover:text-[#0f1a3a] transition-colors"
       >
         <ArrowLeft size={16} />
         Retour aux clients
       </Link>
 
-      {/* Header */}
+      {/* ============ Header : nom + badge + bouton modifier (V4) ============ */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-syne font-bold text-[#0f1a3a]">{`${client.prenom ?? ''} ${client.nom}`.trim()}</h1>
-          <span className="inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium bg-gray-100 text-gray-600">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            {`${client.prenom ?? ''} ${client.nom}`.trim()}
+          </h1>
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200/60">
             {client.type || 'Particulier'}
           </span>
         </div>
         <button
           onClick={() => router.push(`/dashboard/clients/${id}/modifier`)}
-          className="inline-flex items-center gap-2 h-10 px-5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-syne font-bold text-[#1a1a2e] transition-colors"
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-white border-[1.5px] border-gray-200
+                     font-hanken font-semibold text-sm text-[#0f1a3a]
+                     shadow-[0_2px_6px_rgba(15,26,58,0.04)]
+                     hover:-translate-y-0.5 hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                     active:translate-y-0 transition-all duration-200"
         >
           <Pencil size={14} />
           Modifier
         </button>
       </div>
 
-      {/* Info + Metrics */}
+      {/* ============ Info + Metrics — PremiumCard ============ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Contact info */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h2 className="text-sm font-syne font-bold text-[#0f1a3a] uppercase tracking-wider">Coordonnées</h2>
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5 text-sm font-manrope text-[#1a1a2e]">
-              <MapPin size={16} className="text-[#6b7280] flex-shrink-0" />
-              {client.adresse || 'Non renseignée'}
+        {/* Coordonnées — carte V4 avec accent line orange */}
+        <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 overflow-hidden
+                        shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+          <h2 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em] mb-4">Coordonnées</h2>
+          <div className="space-y-3">
+            <div className="flex items-start gap-2.5 text-sm font-hanken text-[#0f1a3a]">
+              <MapPin size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+              <span>{client.adresse || <span className="text-gray-400">Non renseignée</span>}</span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm font-manrope text-[#1a1a2e]">
-              <Mail size={16} className="text-[#6b7280] flex-shrink-0" />
-              {client.email || 'Non renseigné'}
+            {/* Email + tél en font-spline-mono (data) */}
+            <div className="flex items-center gap-2.5 text-sm text-[#0f1a3a]">
+              <Mail size={16} className="text-gray-400 flex-shrink-0" />
+              <span className="font-spline-mono font-medium tracking-[0.3px]">
+                {client.email || <span className="text-gray-400 font-hanken">Non renseigné</span>}
+              </span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm font-manrope text-[#1a1a2e]">
-              <Phone size={16} className="text-[#6b7280] flex-shrink-0" />
-              {client.telephone || 'Non renseigné'}
+            <div className="flex items-center gap-2.5 text-sm text-[#0f1a3a]">
+              <Phone size={16} className="text-gray-400 flex-shrink-0" />
+              <span className="font-spline-mono font-medium tracking-[0.3px]">
+                {client.telephone || <span className="text-gray-400 font-hanken">Non renseigné</span>}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Metrics */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h2 className="text-sm font-syne font-bold text-[#0f1a3a] uppercase tracking-wider">Chiffres</h2>
+        {/* Métriques — carte V4 */}
+        <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 overflow-hidden
+                        shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+          <h2 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em] mb-4">Chiffres</h2>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs font-manrope text-[#6b7280]">CA total</p>
-              <p className="text-xl font-syne font-bold text-[#1a1a2e]">{caTotal.toLocaleString('fr-FR')} &euro;</p>
+              <p className="text-[11.5px] font-hanken font-semibold uppercase tracking-wider text-gray-500 mb-1">CA total</p>
+              <p className="font-spline-mono font-semibold text-2xl text-[#0f1a3a] tracking-[-0.01em]">
+                {caTotal.toLocaleString('fr-FR')} <span className="text-gray-400">€</span>
+              </p>
             </div>
             <div>
-              <p className="text-xs font-manrope text-[#6b7280]">Chantiers</p>
-              <p className="text-xl font-syne font-bold text-[#1a1a2e]">{chantiers.length}</p>
+              <p className="text-[11.5px] font-hanken font-semibold uppercase tracking-wider text-gray-500 mb-1">Chantiers</p>
+              <p className="font-spline-mono font-semibold text-2xl text-[#0f1a3a]">{chantiers.length}</p>
             </div>
             <div>
-              <p className="text-xs font-manrope text-[#6b7280]">Devis</p>
-              <p className="text-xl font-syne font-bold text-[#1a1a2e]">{devis.length}</p>
+              <p className="text-[11.5px] font-hanken font-semibold uppercase tracking-wider text-gray-500 mb-1">Devis</p>
+              <p className="font-spline-mono font-semibold text-2xl text-[#0f1a3a]">{devis.length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main content + Sidebar */}
+      {/* ============ Contenu principal + Sidebar (V4) ============ */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Tabs & content */}
+        {/* Onglets & contenu */}
         <div className="lg:col-span-3 space-y-4">
-          {/* Tab bar */}
-          <div className="flex gap-1 border-b border-gray-200">
+          {/* Barre d'onglets — accent orange V4 */}
+          <div className="flex gap-1 border-b border-[#0f1a3a]/[0.08]">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-syne font-bold -mb-px border-b-2 transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-hanken font-bold -mb-px border-b-2 transition-colors ${
                   activeTab === tab.key
-                    ? 'text-[#0f1a3a] border-[#5ab4e0]'
-                    : 'text-[#6b7280] border-transparent hover:text-[#1a1a2e]'
+                    ? 'text-[#0f1a3a] border-[#ff7a1a]'
+                    : 'text-gray-500 border-transparent hover:text-[#0f1a3a]'
                 }`}
               >
                 <tab.icon size={15} />
@@ -197,20 +214,20 @@ export default function ClientDetailPage() {
             ))}
           </div>
 
-          {/* Tab content */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Contenu d'onglet */}
+          <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.04)]">
             {activeTab === 'chantiers' && (
               loadingChantiers ? <div className="p-4"><LoadingSkeleton rows={2} /></div> : chantiers.length === 0 ? (
                 <div className="py-12 text-center">
                   <HardHat size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-sm font-manrope text-gray-500">Aucun chantier</p>
+                  <p className="text-sm font-hanken text-gray-500">Aucun chantier</p>
                 </div>
               ) : (
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
                       {['Chantier', 'Statut', 'Progression'].map((col) => (
-                        <th key={col} className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">
+                        <th key={col} className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">
                           {col}
                         </th>
                       ))}
@@ -218,22 +235,23 @@ export default function ClientDetailPage() {
                   </thead>
                   <tbody>
                     {chantiers.map((ch) => (
-                      <tr key={ch.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-manrope font-semibold text-[#1a1a2e]">{ch.nom}</td>
+                      <tr key={ch.id} className="border-b border-gray-100 hover:bg-[#fafbfc] transition-colors">
+                        <td className="px-4 py-3 text-sm font-hanken font-bold text-[#0f1a3a]">{ch.nom}</td>
                         <td className="px-4 py-3">
-                          <span className="inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium bg-blue-50 text-blue-700">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/60">
                             {ch.statut}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              {/* Barre orange — couleur signature V4 */}
                               <div
-                                className="h-full bg-[#5ab4e0] rounded-full"
+                                className="h-full rounded-full bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d]"
                                 style={{ width: `${ch.progression ?? 0}%` }}
                               />
                             </div>
-                            <span className="text-xs font-manrope text-[#6b7280]">{ch.progression ?? 0}%</span>
+                            <span className="text-xs font-spline-mono font-medium text-gray-500">{ch.progression ?? 0}%</span>
                           </div>
                         </td>
                       </tr>
@@ -247,14 +265,14 @@ export default function ClientDetailPage() {
               loadingDevis ? <div className="p-4"><LoadingSkeleton rows={2} /></div> : devis.length === 0 ? (
                 <div className="py-12 text-center">
                   <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-sm font-manrope text-gray-500">Aucun devis</p>
+                  <p className="text-sm font-hanken text-gray-500">Aucun devis</p>
                 </div>
               ) : (
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
                       {['Numéro', 'Statut', 'Date', 'Total TTC'].map((col) => (
-                        <th key={col} className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">
+                        <th key={col} className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">
                           {col}
                         </th>
                       ))}
@@ -262,18 +280,19 @@ export default function ClientDetailPage() {
                   </thead>
                   <tbody>
                     {devis.map((d) => (
-                      <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-manrope font-semibold text-[#1a1a2e]">{d.numero}</td>
+                      <tr key={d.id} className="border-b border-gray-100 hover:bg-[#fafbfc] transition-colors">
+                        {/* Numéro en mono : c'est un identifiant "data" */}
+                        <td className="px-4 py-3 text-sm font-spline-mono font-semibold text-[#0f1a3a] tracking-[0.3px]">{d.numero}</td>
                         <td className="px-4 py-3">
-                          <span className="inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium bg-blue-50 text-blue-700">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/60">
                             {d.statut}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm font-manrope text-gray-600">
+                        <td className="px-4 py-3 text-[13px] font-spline-mono font-medium text-gray-600 tracking-[0.3px]">
                           {d.created_at ? new Date(d.created_at).toLocaleDateString('fr-FR') : ''}
                         </td>
-                        <td className="px-4 py-3 text-sm font-manrope font-bold text-[#1a1a2e]">
-                          {(d.montant_ttc ?? 0).toLocaleString('fr-FR')} &euro;
+                        <td className="px-4 py-3 text-sm font-spline-mono font-semibold text-[#0f1a3a]">
+                          {(d.montant_ttc ?? 0).toLocaleString('fr-FR')} <span className="text-gray-400">€</span>
                         </td>
                       </tr>
                     ))}
@@ -286,14 +305,14 @@ export default function ClientDetailPage() {
               loadingFactures ? <div className="p-4"><LoadingSkeleton rows={2} /></div> : factures.length === 0 ? (
                 <div className="py-12 text-center">
                   <Receipt size={40} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-sm font-manrope text-gray-500">Aucune facture</p>
+                  <p className="text-sm font-hanken text-gray-500">Aucune facture</p>
                 </div>
               ) : (
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
                       {['Numéro', 'Statut', 'Date', 'Total TTC'].map((col) => (
-                        <th key={col} className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">
+                        <th key={col} className="px-4 py-3 text-left text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-700">
                           {col}
                         </th>
                       ))}
@@ -301,18 +320,18 @@ export default function ClientDetailPage() {
                   </thead>
                   <tbody>
                     {factures.map((f) => (
-                      <tr key={f.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-manrope font-semibold text-[#1a1a2e]">{f.numero}</td>
+                      <tr key={f.id} className="border-b border-gray-100 hover:bg-[#fafbfc] transition-colors">
+                        <td className="px-4 py-3 text-sm font-spline-mono font-semibold text-[#0f1a3a] tracking-[0.3px]">{f.numero}</td>
                         <td className="px-4 py-3">
-                          <span className="inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium bg-blue-50 text-blue-700">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/60">
                             {f.statut}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm font-manrope text-gray-600">
+                        <td className="px-4 py-3 text-[13px] font-spline-mono font-medium text-gray-600 tracking-[0.3px]">
                           {f.created_at ? new Date(f.created_at).toLocaleDateString('fr-FR') : ''}
                         </td>
-                        <td className="px-4 py-3 text-sm font-manrope font-bold text-[#1a1a2e]">
-                          {(f.montant_ttc ?? 0).toLocaleString('fr-FR')} &euro;
+                        <td className="px-4 py-3 text-sm font-spline-mono font-semibold text-[#0f1a3a]">
+                          {(f.montant_ttc ?? 0).toLocaleString('fr-FR')} <span className="text-gray-400">€</span>
                         </td>
                       </tr>
                     ))}
@@ -324,26 +343,35 @@ export default function ClientDetailPage() {
             {activeTab === 'historique' && (
               <div className="py-12 text-center">
                 <History size={40} className="mx-auto text-gray-300 mb-3" />
-                <p className="text-sm font-manrope text-gray-500">Aucune donnée</p>
+                <p className="text-sm font-hanken text-gray-500">Aucune donnée</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar - Quick actions */}
+        {/* ============ Sidebar — actions rapides V4 ============ */}
         <div className="space-y-3">
-          <h2 className="text-sm font-syne font-bold text-[#0f1a3a] uppercase tracking-wider">Actions rapides</h2>
+          <h2 className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-[#ff7a1a]">Actions rapides</h2>
+          {/* CTA primaire — gradient orange V4 */}
           <Link
             href={`/dashboard/devis/nouveau?client_id=${id}`}
-            className="w-full flex items-center gap-2 h-10 px-4 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors"
+            className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl
+                       bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white text-sm font-hanken font-bold
+                       shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.4)]
+                       hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0
+                       transition-all duration-200"
           >
             <Plus size={16} />
-            Créer un devis pour ce client
+            Créer un devis
           </Link>
           {client.telephone && (
             <a
               href={`tel:${client.telephone.replace(/\s/g, '')}`}
-              className="w-full flex items-center gap-2 h-10 px-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-syne font-bold text-[#1a1a2e] transition-colors"
+              className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl
+                         bg-white border-[1.5px] border-gray-200 text-sm font-hanken font-semibold text-[#0f1a3a]
+                         shadow-[0_2px_6px_rgba(15,26,58,0.04)]
+                         hover:-translate-y-0.5 hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                         active:translate-y-0 transition-all duration-200"
             >
               <Phone size={16} />
               Appeler
@@ -352,7 +380,11 @@ export default function ClientDetailPage() {
           {client.email && (
             <a
               href={`mailto:${client.email}`}
-              className="w-full flex items-center gap-2 h-10 px-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-syne font-bold text-[#1a1a2e] transition-colors"
+              className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl
+                         bg-white border-[1.5px] border-gray-200 text-sm font-hanken font-semibold text-[#0f1a3a]
+                         shadow-[0_2px_6px_rgba(15,26,58,0.04)]
+                         hover:-translate-y-0.5 hover:border-[#ff7a1a] hover:bg-[#fafbfc]
+                         active:translate-y-0 transition-all duration-200"
             >
               <Mail size={16} />
               Envoyer un email

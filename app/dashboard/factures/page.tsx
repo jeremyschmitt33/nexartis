@@ -21,7 +21,9 @@ import {
 import { useFactures, useClients, softDeleteRow, insertRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
-import { Input } from '@/components/ui/Input'
+// V4 light premium : on remplace l'Input legacy par PremiumInput pour le champ recherche
+// et on utilise PremiumButton pour les actions principales.
+import { PremiumInput, PremiumButton } from '@/components/ui/v4'
 
 type FactureFilter = 'Toutes' | 'Encaissées' | 'Partielles' | 'En attente' | 'En retard' | 'Archivées'
 
@@ -268,16 +270,15 @@ export default function FacturesListPage() {
 
   return (
     <div className="space-y-6">
-      {/* V3.0d.2 : StatCards cliquables = filtres (parité devis). Dropdown filter
-          HTML supprimé. Cliquer sur la card active la déselectionne (→ Toutes). */}
+      {/* V4 light premium : StatCards cliquables = filtres. Refonte visuelle (fond
+          blanc, accent orange à l'état actif, halo orange discret, typo Hanken). */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           icon={<Layers size={22} />}
           label="Toutes"
           value={String(totalCount)}
           sub={`${formatCurrency(totalHT)} HT`}
-          gradient="from-sky/20 to-sky/10"
-          color="#2d8bc9"
+          color="#0f1a3a"
           active={filter === 'Toutes'}
           onClick={() => setFilter('Toutes')}
         />
@@ -286,7 +287,6 @@ export default function FacturesListPage() {
           label="Encaissées"
           value={String(encaissees.length)}
           sub={`${formatCurrency(encaisseesHT)} HT`}
-          gradient="from-green-200 to-green-100"
           color="#15803d"
           active={filter === 'Encaissées'}
           onClick={() => setFilter(filter === 'Encaissées' ? 'Toutes' : 'Encaissées')}
@@ -296,8 +296,7 @@ export default function FacturesListPage() {
           label="En attente"
           value={String(resteList.length)}
           sub={`${formatCurrency(resteHT)} HT`}
-          gradient="from-orange/30 to-orange/10"
-          color="#e87a2a"
+          color="#ff7a1a"
           active={filter === 'En attente'}
           onClick={() => setFilter(filter === 'En attente' ? 'Toutes' : 'En attente')}
         />
@@ -306,80 +305,107 @@ export default function FacturesListPage() {
           label="En retard"
           value={String(retardList.length)}
           sub={`${formatCurrency(retardHT)} HT`}
-          gradient="from-red-200 to-red-100"
           color="#dc2626"
           active={filter === 'En retard'}
           onClick={() => setFilter(filter === 'En retard' ? 'Toutes' : 'En retard')}
         />
       </div>
 
+      {/* V4 light : barre de recherche + CTA "Nouvelle facture" — input premium + bouton gradient orange. */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-          <Input type="text" placeholder="Rechercher une facture..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+          <PremiumInput
+            type="text"
+            placeholder="Rechercher une facture..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="[&_input]:pl-10"
+          />
         </div>
-        <Link href="/dashboard/factures/nouveau" className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white text-sm font-syne font-bold transition-colors shrink-0">
-          <Plus size={16} /> Nouvelle facture
+        <Link href="/dashboard/factures/nouveau" className="shrink-0">
+          <PremiumButton variant="primary" icon={<Plus size={16} />}>
+            Nouvelle facture
+          </PremiumButton>
         </Link>
       </div>
 
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
-          <span className="text-sm font-manrope font-semibold text-blue-700">{selected.size} facture{selected.size > 1 ? 's' : ''} sélectionnée{selected.size > 1 ? 's' : ''}</span>
-          <button onClick={handleBulkDelete} disabled={bulkDeleting} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-manrope font-semibold transition-colors disabled:opacity-50">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-blue-50/80 border border-blue-200/70 rounded-xl">
+          <span className="font-hanken text-sm font-semibold text-blue-800">
+            {selected.size} facture{selected.size > 1 ? 's' : ''} sélectionnée{selected.size > 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-hanken font-semibold transition-colors disabled:opacity-50 shadow-[0_4px_12px_rgba(220,38,38,0.25)]"
+          >
             <Trash2 size={13} /> {bulkDeleting ? 'Suppression...' : 'Supprimer la sélection'}
           </button>
-          <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-manrope font-medium text-gray-600 hover:bg-gray-50 transition-colors">Tout désélectionner</button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="px-3 py-1.5 rounded-lg bg-white border-[1.5px] border-gray-200 text-xs font-hanken font-semibold text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
+          >
+            Tout désélectionner
+          </button>
         </div>
       )}
 
-      {/* Mobile cards (visible < md) */}
-      <div className="md:hidden space-y-2">
+      {/* V4 light : cartes mobile (cards empilées sous md) — fond blanc, bord arrondi 2xl,
+          ombre douce, tap zone confortable, montants en Spline Sans Mono. */}
+      <div className="md:hidden space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center bg-white rounded-xl border border-gray-200">
+          <div className="py-16 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucune facture trouvée</p>
+            <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
           </div>
         ) : (
           filtered.map((facture) => {
             const id = facture.id as string
             const restant = facture.montantTtc - facture.montantPaye
             const retardLabel = facture.category === 'En retard' && facture.overdue > 0 ? `En retard ${facture.overdue}j` : undefined
-            const paidColor = facture.paidPercent === 100 ? '#22c55e' : facture.category === 'En retard' ? '#ef4444' : '#5ab4e0'
+            // Couleur de la barre de paiement (sémantique) : vert payé, rouge en retard, orange partiel.
+            const paidColor = facture.paidPercent === 100 ? '#15803d' : facture.category === 'En retard' ? '#dc2626' : '#ff7a1a'
             return (
               <div
                 key={id}
                 onClick={() => router.push(`/dashboard/factures/${id}`)}
-                className="bg-white rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] px-4 py-3.5 cursor-pointer hover:border-[#ff7a1a]/40 active:bg-[#fafbfc] transition-all shadow-[0_2px_6px_rgba(15,26,58,0.04)]"
               >
-                {/* V3.0d.2 : police Hanken sur montant + numero facture en pastille
-                    Spline Sans Mono (cohérence PDF) */}
-                <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-start justify-between gap-2 mb-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-manrope font-bold text-navy truncate">{facture.clientName || (facture.numero as string)}</p>
-                    <p className="text-xs font-manrope text-gray-500 mt-0.5 truncate">{(facture.objet as string) || (facture.numero as string)}</p>
+                    <p className="font-hanken font-bold text-[14.5px] text-[#0f1a3a] truncate">{facture.clientName || (facture.numero as string)}</p>
+                    <p className="font-hanken text-xs text-gray-500 mt-0.5 truncate">{(facture.objet as string) || (facture.numero as string)}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="font-hanken font-extrabold text-[15px] text-navy tabular-nums">{formatCurrency(facture.montantTtc)}</p>
-                    {retardLabel && <p className="text-xs font-manrope text-red-500 font-medium mt-0.5">{retardLabel}</p>}
+                    <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] tracking-[0.5px]">{formatCurrency(facture.montantTtc)}</p>
+                    {retardLabel && <p className="font-hanken text-xs text-red-600 font-semibold mt-0.5">{retardLabel}</p>}
                     {!retardLabel && facture.paidPercent < 100 && facture.paidPercent > 0 && (
-                      <p className="text-xs font-manrope text-sky mt-0.5">{formatCurrency(restant)} restants</p>
+                      <p className="font-spline-mono text-[11px] text-[#ff7a1a] mt-0.5">{formatCurrency(restant)} restants</p>
                     )}
                   </div>
                 </div>
-                {/* Barre de paiement */}
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{width: `${facture.paidPercent}%`, background: paidColor}} />
+                {/* Barre de paiement (couleur sémantique) */}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${facture.paidPercent}%`, background: paidColor }} />
                   </div>
-                  <span className="text-xs font-manrope text-gray-500 tabular-nums">{facture.paidPercent}%</span>
-                  <button onClick={(e) => { e.stopPropagation(); openMenu(e, id) }} className="p-1.5 rounded-md hover:bg-gray-100 ml-1">
+                  <span className="font-spline-mono text-[11px] text-gray-500">{facture.paidPercent}%</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openMenu(e, id) }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 ml-1 transition-colors"
+                    aria-label="Actions"
+                  >
                     <MoreHorizontal size={15} className="text-gray-500" />
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-spline-mono text-[11px] text-navy bg-cream px-2 py-0.5 rounded">{String(facture.numero || '')}</span>
-                  <span className="text-xs font-manrope text-gray-400">{formatDate((facture.date_emission || facture.created_at) as string | null)}</span>
+                  <span className="font-spline-mono text-[11px] text-[#0f1a3a] bg-[#fafbfc] border border-gray-200 px-2 py-0.5 rounded-md">
+                    {String(facture.numero || '')}
+                  </span>
+                  <span className="font-spline-mono text-[11px] text-gray-400">
+                    {formatDate((facture.date_emission || facture.created_at) as string | null)}
+                  </span>
                 </div>
               </div>
             )
@@ -387,34 +413,58 @@ export default function FacturesListPage() {
         )}
       </div>
 
-      {/* Desktop table (visible ≥ md) */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      {/* V4 light : tableau desktop — fond blanc, ombre douce, en-tête uppercase Hanken,
+          chiffres Spline Sans Mono, hover ligne avec fond #fafbfc. */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-x-auto shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
         <table className="w-full min-w-[900px]">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-3 w-10"><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0] cursor-pointer" /></th>
+            <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
+              <th className="px-3 py-3.5 w-10">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selected.size === filtered.length}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a] cursor-pointer"
+                />
+              </th>
               {['Numéro', 'Règlements', 'Client / Chantier', 'Modifié', 'Date', 'Net à payer', 'Actions'].map((col) => (
-                <th key={col} className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500">{col}</th>
+                <th key={col} className="px-4 py-3.5 text-left font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-700">{col}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((facture, idx) => {
+            {filtered.map((facture) => {
               const id = facture.id as string
               const restant = facture.montantTtc - facture.montantPaye
               const restantLabel = facture.paidPercent > 0 && facture.paidPercent < 100 ? `${formatCurrency(restant)} restants` : undefined
               const retardLabel = facture.category === 'En retard' && facture.overdue > 0 ? `En retard ${facture.overdue}j` : undefined
               return (
-                <tr key={id} onClick={() => router.push(`/dashboard/factures/${id}`)} className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-[#f8f9fa]' : ''}`}>
-                  <td className="px-3 py-3 w-10" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(id)} onChange={() => toggleSelect(id)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0] cursor-pointer" /></td>
-                  <td className="px-4 py-3 text-sm font-manrope font-semibold text-[#1a1a2e]">{(facture.numero as string) ?? '\u2014'}</td>
+                <tr
+                  key={id}
+                  onClick={() => router.push(`/dashboard/factures/${id}`)}
+                  className="border-b border-[#0f1a3a]/[0.04] last:border-b-0 hover:bg-[#fafbfc] cursor-pointer transition-colors"
+                >
+                  <td className="px-3 py-3 w-10" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(id)}
+                      onChange={() => toggleSelect(id)}
+                      className="w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a] cursor-pointer"
+                    />
+                  </td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-[13px] tracking-[0.5px] text-[#0f1a3a]">{(facture.numero as string) ?? '\u2014'}</td>
                   <td className="px-4 py-3"><PaymentBar percent={facture.paidPercent} restant={restantLabel} retard={retardLabel} /></td>
-                  <td className="px-4 py-3"><div className="text-sm font-manrope font-medium text-[#1a1a2e]">{facture.clientName}</div><div className="text-xs font-manrope text-gray-500">{(facture.objet as string) ?? ''}</div></td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{formatDate(facture.updated_at as string | null)}</td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{formatDate((facture.date_emission || facture.created_at) as string | null)}</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-bold text-[#1a1a2e]">{formatCurrency(facture.montantTtc)}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-hanken text-[14px] font-semibold text-[#0f1a3a]">{facture.clientName}</div>
+                    <div className="font-hanken text-xs text-gray-500">{(facture.objet as string) ?? ''}</div>
+                  </td>
+                  <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{formatDate(facture.updated_at as string | null)}</td>
+                  <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{formatDate((facture.date_emission || facture.created_at) as string | null)}</td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{formatCurrency(facture.montantTtc)}</td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={(e) => openMenu(e, id)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"><MoreHorizontal size={16} className="text-gray-500" /></button>
+                    <button onClick={(e) => openMenu(e, id)} className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all" aria-label="Actions">
+                      <MoreHorizontal size={16} className="text-gray-500" />
+                    </button>
                   </td>
                 </tr>
               )
@@ -422,35 +472,74 @@ export default function FacturesListPage() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-12 text-center"><FileText size={40} className="mx-auto text-gray-300 mb-3" /><p className="text-sm font-manrope text-gray-500">Aucune facture trouvée</p></div>
+          <div className="py-16 text-center">
+            <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+            <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
+          </div>
         )}
       </div>
 
-      {/* Menu flottant en position fixed — sort du conteneur */}
+      {/* Menu flottant V4 light — fond blanc, ombre 2xl, séparateurs gris ultra-fins. */}
       {openActions && menuPos && activeFacture && (
         <div
-          className="fixed z-[9999] w-44 bg-white rounded-lg shadow-2xl border border-gray-200 py-1"
+          className="fixed z-[9999] w-48 bg-white rounded-xl shadow-2xl border border-[#0f1a3a]/[0.08] py-1.5"
           style={{ top: menuPos.top, left: menuPos.left }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button onClick={() => { closeMenu(); router.push(`/dashboard/factures/${activeFacture.id}`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Eye size={14} /> Voir</button>
+          <button
+            onClick={() => { closeMenu(); router.push(`/dashboard/factures/${activeFacture.id}`) }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"
+          >
+            <Eye size={14} /> Voir
+          </button>
           {(activeFacture.statut as string) === 'brouillon' ? (
-            <button onClick={() => { closeMenu(); router.push(`/dashboard/factures/${activeFacture.id}/modifier`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Pencil size={14} /> Modifier</button>
+            <button
+              onClick={() => { closeMenu(); router.push(`/dashboard/factures/${activeFacture.id}/modifier`) }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"
+            >
+              <Pencil size={14} /> Modifier
+            </button>
           ) : (
-            <button disabled title="Facture émise : modification interdite (art. L441-9 C. comm.)" className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope text-gray-400 cursor-not-allowed"><Pencil size={14} /> Modifier (verrouillée)</button>
+            <button
+              disabled
+              title="Facture émise : modification interdite (art. L441-9 C. comm.)"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-gray-400 cursor-not-allowed"
+            >
+              <Pencil size={14} /> Modifier (verrouillée)
+            </button>
           )}
-          <button onClick={() => { handleDuplicate(activeFacture.id as string) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Copy size={14} /> Dupliquer</button>
-          <button onClick={() => { handleSend(activeFacture) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><SendHorizonal size={14} /> Envoyer</button>
-          <button onClick={() => { handleDelete(activeFacture.id as string) }} disabled={deleting === (activeFacture.id as string)} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-red-600"><Trash2 size={14} /> {deleting === (activeFacture.id as string) ? 'Suppression...' : 'Supprimer'}</button>
+          <button
+            onClick={() => { handleDuplicate(activeFacture.id as string) }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"
+          >
+            <Copy size={14} /> Dupliquer
+          </button>
+          <button
+            onClick={() => { handleSend(activeFacture) }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"
+          >
+            <SendHorizonal size={14} /> Envoyer
+          </button>
+          <button
+            onClick={() => { handleDelete(activeFacture.id as string) }}
+            disabled={deleting === (activeFacture.id as string)}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-red-50 transition-colors text-red-600"
+          >
+            <Trash2 size={14} /> {deleting === (activeFacture.id as string) ? 'Suppression...' : 'Supprimer'}
+          </button>
         </div>
       )}
 
       {duplicating && (
-        <div className="fixed bottom-6 right-6 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-manrope z-50">Duplication en cours...</div>
+        <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2.5 rounded-xl shadow-xl font-hanken text-sm z-50">
+          Duplication en cours...
+        </div>
       )}
 
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-manrope z-50">{toastMsg}</div>
+        <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2.5 rounded-xl shadow-xl font-hanken text-sm z-50">
+          {toastMsg}
+        </div>
       )}
 
       {sendTarget && (
@@ -474,31 +563,34 @@ export default function FacturesListPage() {
   )
 }
 
+// PaymentBar V4 light — barre de progression de paiement avec couleur sémantique
+// (vert payé, orange partiel, gris vide). Chiffres en Spline Sans Mono.
 function PaymentBar({ percent, restant, retard }: { percent: number; restant?: string; retard?: string }) {
-  let barColor = 'bg-gray-300'
-  if (percent === 100) barColor = 'bg-green-500'
-  else if (percent > 0) barColor = 'bg-[#5ab4e0]'
+  let barColor = 'bg-gray-200'
+  if (percent === 100) barColor = 'bg-emerald-500'
+  else if (percent > 0) barColor = 'bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d]'
   return (
     <div className="min-w-[120px]">
       <div className="flex items-center gap-2 mb-1">
-        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${barColor}`} style={{ width: `${percent}%` }} /></div>
-        <span className="text-xs font-manrope text-gray-500 whitespace-nowrap">{percent}%</span>
+        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${percent}%` }} />
+        </div>
+        <span className="font-spline-mono text-[11px] text-gray-500 whitespace-nowrap">{percent}%</span>
       </div>
-      {restant && <p className="text-xs font-manrope text-[#5ab4e0]">{restant}</p>}
-      {retard && <p className="text-xs font-manrope text-red-500 font-medium">{retard}</p>}
+      {restant && <p className="font-spline-mono text-[11px] text-[#ff7a1a]">{restant}</p>}
+      {retard && <p className="font-hanken text-[11px] text-red-600 font-semibold">{retard}</p>}
     </div>
   )
 }
 
-// V3.0d.2 — StatCard premium parite devis : cliquable (filtre la liste), icone
-// 44x44 avec gradient + ombre interne, chiffres en Hanken Grotesk extrabold
-// tabular-nums, etat actif = bordure orange + fond cream gradient + indicateur barre.
+// StatCard V4 light premium — cliquable (filtre la liste). Bordure subtile,
+// halo orange à l'état actif, icône colorée par couleur sémantique, chiffres
+// en Hanken Grotesk extrabold, total/sous-total en Spline Sans Mono.
 function StatCard({
   icon,
   label,
   value,
   sub,
-  gradient,
   color,
   active = false,
   onClick,
@@ -507,7 +599,6 @@ function StatCard({
   label: string
   value: string
   sub?: string
-  gradient: string
   color: string
   active?: boolean
   onClick?: () => void
@@ -520,26 +611,27 @@ function StatCard({
       onClick={onClick}
       className={`relative w-full text-left bg-white rounded-2xl border-[1.5px] p-3 md:p-4 flex items-start gap-3 transition-all duration-200 overflow-hidden ${
         active
-          ? 'border-orange bg-gradient-to-br from-orange/5 to-orange/10 shadow-[0_14px_30px_-14px_rgba(232,122,42,0.35)] -translate-y-px'
-          : 'border-gray-200 hover:border-orange/40 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-16px_rgba(15,26,58,0.25)]'
+          ? 'border-[#ff7a1a] shadow-[0_0_0_4px_rgba(255,122,26,0.10),_0_12px_24px_-12px_rgba(255,122,26,0.30)] -translate-y-px'
+          : 'border-[#0f1a3a]/[0.06] hover:border-[#ff7a1a]/40 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-12px_rgba(15,26,58,0.20)]'
       }`}
     >
+      {/* Indicateur barre haute à l'état actif (signature V4) */}
       {active && (
         <span
           aria-hidden="true"
-          className="absolute top-0 left-4 w-9 h-[3px] bg-orange rounded-b"
+          className="absolute top-0 left-4 w-10 h-[3px] bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d] rounded-b"
         />
       )}
       <div
-        className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${gradient} shadow-[inset_0_-2px_0_rgba(15,26,58,0.06),inset_0_1px_0_rgba(255,255,255,0.6)]`}
+        className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-[#fafbfc] border border-[#0f1a3a]/[0.06]"
         style={{ color }}
       >
         {icon}
       </div>
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-[10.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">{label}</span>
-        <span className="font-hanken font-extrabold text-2xl text-navy leading-none mt-0.5 tabular-nums">{value}</span>
-        {sub && <span className="text-[11px] font-spline-mono text-gray-500 mt-1 tabular-nums">{sub}</span>}
+        <span className="font-hanken text-[10.5px] font-semibold uppercase tracking-wider text-gray-700">{label}</span>
+        <span className="font-hanken font-extrabold text-2xl text-[#0f1a3a] leading-none mt-0.5 tracking-[-0.025em]">{value}</span>
+        {sub && <span className="font-spline-mono text-[11px] text-gray-500 mt-1">{sub}</span>}
       </div>
     </Wrapper>
   )

@@ -16,11 +16,10 @@ import {
   Archive,
 } from 'lucide-react'
 import { useChantiers, useClients, useFactures, useDevis, deleteRow, updateRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+import { PremiumButton } from '@/components/ui/v4'
 
 // -------------------------------------------------------------------
-// Types & Helpers
+// Types & Helpers — logique métier INTACTE (refonte visuelle uniquement)
 // -------------------------------------------------------------------
 
 type ChantierFilter = 'Tous' | 'En cours' | 'Terminés' | 'Archivés'
@@ -53,7 +52,7 @@ function getInitials(name: string): string {
 }
 
 // -------------------------------------------------------------------
-// Page
+// Page principale — Liste des chantiers V4 light premium
 // -------------------------------------------------------------------
 
 export default function ChantiersListPage() {
@@ -144,10 +143,11 @@ export default function ChantiersListPage() {
     return true
   })
 
+  // Couleur de la barre d'avancement (gardée — sémantique métier)
   function getProgressColor(percent: number) {
-    if (percent >= 75) return 'bg-green-500'
+    if (percent >= 75) return 'bg-emerald-500'
     if (percent >= 25) return 'bg-[#5ab4e0]'
-    return 'bg-[#e87a2a]'
+    return 'bg-[#ff7a1a]'
   }
 
   function computeAvancement(c: Record<string, unknown>): number {
@@ -188,56 +188,79 @@ export default function ChantiersListPage() {
   if (loading) return <div className="space-y-6"><LoadingSkeleton rows={6} /></div>
   if (error) return <div className="space-y-6"><ErrorBanner message={error} onRetry={refetch} /></div>
 
+  // Petit helper visuel pour le badge de statut (mêmes 3 statuts métier)
+  const statutBadgeCls = (s: ChantierFilter) =>
+    s === 'En cours'
+      ? 'bg-blue-50 text-blue-700 border border-blue-100'
+      : s === 'Terminés'
+        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+        : 'bg-gray-100 text-gray-600 border border-gray-200'
+
   return (
     <div className="space-y-6">
-      {/* Action bar */}
+      {/* ── Action bar : titre + recherche + filtre + bouton "Nouveau chantier" ── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-syne font-bold text-[#0f1a3a]">Chantiers</h1>
-          <span className="text-sm font-manrope text-gray-500">({chantiers.length})</span>
+          <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em]">
+            Chantiers
+          </h1>
+          <span className="font-spline-mono font-medium text-sm text-gray-500">
+            ({chantiers.length})
+          </span>
         </div>
 
         <div className="flex-1" />
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-          <Input
+        {/* Recherche — input V4 (small avec icône à gauche) */}
+        <div className="relative w-full sm:w-72">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+          <input
             type="text"
             placeholder="Rechercher..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="w-full py-2.5 pl-10 pr-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       placeholder:text-gray-400
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200"
           />
         </div>
 
-        {/* Filter */}
-        <Select
+        {/* Filtre statut — select V4 inline */}
+        <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          containerClassName="sm:w-auto"
+          className="py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                     font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                     cursor-pointer
+                     focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                     focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                     transition-all duration-200"
         >
           {FILTER_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
-        </Select>
+        </select>
 
-        {/* New button */}
-        <Link
-          href="/dashboard/chantiers/nouveau"
-          className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors"
-        >
-          <Plus size={16} />
-          Nouveau chantier
+        {/* CTA "Nouveau chantier" — PremiumButton primaire */}
+        <Link href="/dashboard/chantiers/nouveau">
+          <PremiumButton variant="primary" icon={<Plus size={16} />}>
+            Nouveau chantier
+          </PremiumButton>
         </Link>
       </div>
 
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
+      {/* ── Mobile : cards empilées (sm:hidden) — pattern dual layout ── */}
+      <div className="md:hidden space-y-3">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center bg-white rounded-xl border border-gray-200">
-            <HardHat size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun chantier trouvé</p>
+          <div className="py-16 text-center bg-white rounded-3xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white inline-flex items-center justify-center mb-4 shadow-[0_8px_20px_rgba(255,122,26,0.35)]">
+              <HardHat size={28} />
+            </div>
+            <p className="font-hanken font-semibold text-[#0f1a3a] text-base">Aucun chantier trouvé</p>
+            <p className="font-hanken text-sm text-gray-500 mt-1">Essayez d&apos;ajuster vos filtres ou créez-en un nouveau.</p>
           </div>
         ) : (
           filtered.map((chantier: Record<string, unknown>) => {
@@ -251,26 +274,22 @@ export default function ChantiersListPage() {
               <div
                 key={String(chantier.id)}
                 onClick={() => router.push(`/dashboard/chantiers/${chantier.id}`)}
-                className="bg-white rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] px-4 py-3.5 cursor-pointer hover:border-[#ff7a1a]/30 active:bg-gray-50 transition-all shadow-[0_2px_6px_rgba(15,26,58,0.04)]"
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-manrope font-bold text-[#1a1a2e] truncate">{clientName}</p>
-                    <p className="text-xs font-manrope text-gray-500 truncate">{String(chantier.titre || '')}</p>
+                    <p className="font-hanken font-bold text-[14.5px] text-[#0f1a3a] truncate">{clientName}</p>
+                    <p className="font-hanken text-xs text-gray-500 truncate mt-0.5">{String(chantier.titre || '')}</p>
                   </div>
-                  <span className={`flex-shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium whitespace-nowrap ${
-                    statut === 'En cours' ? 'bg-blue-50 text-blue-700' :
-                    statut === 'Terminés' ? 'bg-green-50 text-green-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
+                  <span className={`flex-shrink-0 inline-block px-2.5 py-1 rounded-full font-hanken text-[11px] font-bold whitespace-nowrap ${statutBadgeCls(statut)}`}>
                     {statut}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden mr-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${getProgressColor(avancement)}`} style={{ width: `${avancement}%` }} />
                   </div>
-                  <p className="text-xs font-manrope font-semibold text-[#1a1a2e] whitespace-nowrap">{montantDevis}</p>
+                  <p className="font-spline-mono font-semibold text-xs text-[#0f1a3a] whitespace-nowrap">{montantDevis}</p>
                 </div>
               </div>
             )
@@ -278,15 +297,15 @@ export default function ChantiersListPage() {
         )}
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      {/* ── Desktop : table dans PremiumCard (rounded-2xl, sans accent line) ── */}
+      <div className="hidden md:block bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-x-auto">
         <table className="w-full min-w-[1100px]">
           <thead>
-            <tr className="bg-gray-50">
+            <tr className="bg-[#fafbfc] border-b border-[#0f1a3a]/[0.06]">
               {['Client / Chantier', 'Avancement', 'Date début', 'Statut', 'Devisé TTC', 'Facturé TTC', 'Encaissé', 'Équipe', 'Actions'].map((col) => (
                 <th
                   key={col}
-                  className="px-4 py-3 text-left text-xs font-manrope font-semibold uppercase tracking-wider text-gray-500"
+                  className="px-4 py-3 text-left font-hanken font-semibold text-[11.5px] uppercase tracking-wider text-gray-700"
                 >
                   {col}
                 </th>
@@ -299,57 +318,60 @@ export default function ChantiersListPage() {
               const clientName = client ? `${client.prenom ?? ''} ${client.nom ?? ''}`.trim() : '—'
               const avancement = computeAvancement(chantier)
               const initials = clientName !== '—' ? getInitials(clientName) : '?'
+              const statut = statutToFilter(chantier.statut as string)
 
               return (
                 <tr
                   key={String(chantier.id)}
                   onClick={() => router.push(`/dashboard/chantiers/${chantier.id}`)}
-                  className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                    idx % 2 === 1 ? 'bg-[#f8f9fa]' : ''
-                  } ${avancement === 100 ? 'bg-green-50/30' : ''}`}
+                  className={`border-b border-gray-100 hover:bg-[#fafbfc] cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-[#fcfcfd]' : ''} ${avancement === 100 ? 'bg-emerald-50/30' : ''}`}
                 >
                   <td className="px-4 py-3">
-                    <div className="text-sm font-manrope font-medium text-[#1a1a2e]">{clientName}</div>
-                    <div className="text-xs font-manrope text-gray-500">{String(chantier.titre || '')}</div>
+                    <div className="font-hanken font-semibold text-[14px] text-[#0f1a3a]">{clientName}</div>
+                    <div className="font-hanken text-xs text-gray-500 mt-0.5">{String(chantier.titre || '')}</div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="min-w-[100px]">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${getProgressColor(avancement)}`} style={{ width: `${avancement}%` }} />
                         </div>
-                        <span className="text-xs font-manrope text-gray-500 whitespace-nowrap">{avancement}%</span>
+                        <span className="font-spline-mono font-medium text-xs text-gray-500 whitespace-nowrap">{avancement}%</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm font-manrope text-gray-600">{formatDate(chantier.date_debut as string)}</td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-sm text-gray-600">
+                    {formatDate(chantier.date_debut as string)}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-manrope font-medium ${
-                      statutToFilter(chantier.statut as string) === 'En cours' ? 'bg-blue-50 text-blue-700' :
-                      statutToFilter(chantier.statut as string) === 'Terminés' ? 'bg-green-50 text-green-700' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {statutToFilter(chantier.statut as string)}
+                    <span className={`inline-block px-2.5 py-1 rounded-full font-hanken text-[11px] font-bold ${statutBadgeCls(statut)}`}>
+                      {statut}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm font-manrope font-medium text-[#1a1a2e]">
-                    <div>{formatMoney(getChantierDevisTTC(chantier))}</div>
+                  <td className="px-4 py-3">
+                    <div className="font-spline-mono font-semibold text-sm text-[#0f1a3a]">
+                      {formatMoney(getChantierDevisTTC(chantier))}
+                    </div>
                     {(() => {
                       const counts = devisCountParChantier.get(chantier.id as string)
                       if (!counts || counts.total === 0) return null
                       return (
-                        <div className="text-[11px] text-[#7b8ba3] font-normal mt-0.5">
+                        <div className="font-hanken text-[11px] text-gray-400 font-normal mt-0.5">
                           {counts.enCours}/{counts.total} devis {counts.enCours === counts.total ? 'en cours' : counts.enCours > 0 ? 'en cours' : 'facturé' + (counts.total > 1 ? 's' : '')}
                         </div>
                       )
                     })()}
                   </td>
-                  <td className="px-4 py-3 text-sm font-manrope font-medium text-[#1a1a2e]">{formatMoney(getChantierFactureTTC(chantier))}</td>
-                  <td className="px-4 py-3 text-sm font-manrope font-medium text-[#1a1a2e]">{formatMoney(getChantierEncaisse(chantier))}</td>
+                  <td className="px-4 py-3 font-spline-mono font-semibold text-sm text-[#0f1a3a]">
+                    {formatMoney(getChantierFactureTTC(chantier))}
+                  </td>
+                  <td className="px-4 py-3 font-spline-mono font-semibold text-sm text-[#0f1a3a]">
+                    {formatMoney(getChantierEncaisse(chantier))}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex -space-x-2">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-manrope font-bold border-2 border-white"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-hanken text-xs font-bold border-2 border-white shadow-sm"
                         style={{ backgroundColor: (chantier.couleur as string) || '#5ab4e0' }}
                         title={initials}
                       >
@@ -358,7 +380,11 @@ export default function ChantiersListPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={(e) => openMenu(e, chantier.id as string)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors">
+                    <button
+                      onClick={(e) => openMenu(e, chantier.id as string)}
+                      aria-label="Actions"
+                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
                       <MoreHorizontal size={16} className="text-gray-500" />
                     </button>
                   </td>
@@ -369,39 +395,42 @@ export default function ChantiersListPage() {
         </table>
 
         {filtered.length === 0 && (
-          <div className="py-12 text-center">
-            <HardHat size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-manrope text-gray-500">Aucun chantier trouvé</p>
+          <div className="py-16 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white inline-flex items-center justify-center mb-4 shadow-[0_8px_20px_rgba(255,122,26,0.35)]">
+              <HardHat size={28} />
+            </div>
+            <p className="font-hanken font-semibold text-[#0f1a3a] text-base">Aucun chantier trouvé</p>
+            <p className="font-hanken text-sm text-gray-500 mt-1">Essayez d&apos;ajuster vos filtres ou créez-en un nouveau.</p>
           </div>
         )}
       </div>
 
-      {/* Menu flottant en position fixed — sort du conteneur */}
+      {/* ── Menu flottant fixed — actions Voir/Modifier/Archiver/Supprimer ── */}
       {openActions && menuPos && (() => {
         const activeChantier = filtered.find(c => (c.id as string) === openActions)
         if (!activeChantier) return null
         const statut = activeChantier.statut as string
         return (
           <div
-            className="fixed z-[9999] w-48 bg-white rounded-lg shadow-2xl border border-gray-200 py-1"
+            className="fixed z-[9999] w-52 bg-white rounded-xl shadow-[0_20px_50px_rgba(15,26,58,0.15)] border border-[#0f1a3a]/[0.06] py-1.5"
             style={{ top: menuPos.top, left: menuPos.left }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={() => { closeMenu(); router.push(`/dashboard/chantiers/${activeChantier.id}`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Eye size={14} /> Voir</button>
-            <button onClick={() => { closeMenu(); router.push(`/dashboard/chantiers/${activeChantier.id}`) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Pencil size={14} /> Modifier</button>
+            <button onClick={() => { closeMenu(); router.push(`/dashboard/chantiers/${activeChantier.id}`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Eye size={14} /> Voir</button>
+            <button onClick={() => { closeMenu(); router.push(`/dashboard/chantiers/${activeChantier.id}`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Pencil size={14} /> Modifier</button>
             {statut === 'en_cours' && (
-              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'livre' }); refetch() }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><CheckCircle size={14} /> Marquer terminé</button>
+              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'livre' }); refetch() }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><CheckCircle size={14} /> Marquer terminé</button>
             )}
             {(statut === 'livre' || statut === 'cloture') && (
-              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'en_cours' }); refetch() }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Calendar size={14} /> Remettre en cours</button>
+              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'en_cours' }); refetch() }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Calendar size={14} /> Remettre en cours</button>
             )}
             {statut !== 'archive' && (
-              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'archive' }); refetch() }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-gray-500"><Archive size={14} /> Archiver</button>
+              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'archive' }); refetch() }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-gray-500 hover:bg-[#fafbfc] transition-colors"><Archive size={14} /> Archiver</button>
             )}
             {statut === 'archive' && (
-              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'en_cours' }); refetch() }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-[#1a1a2e]"><Calendar size={14} /> Désarchiver</button>
+              <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'en_cours' }); refetch() }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Calendar size={14} /> Désarchiver</button>
             )}
-            <button onClick={() => { closeMenu(); handleDelete(activeChantier.id as string) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-manrope hover:bg-gray-50 transition-colors text-red-600"><Trash2 size={14} /> Supprimer</button>
+            <button onClick={() => { closeMenu(); handleDelete(activeChantier.id as string) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-red-600 hover:bg-red-50 transition-colors"><Trash2 size={14} /> Supprimer</button>
           </div>
         )
       })()}

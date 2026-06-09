@@ -111,7 +111,8 @@ function formatCurrency(n: number): string {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
-const inputCls = 'w-full h-11 rounded-xl border-2 border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-2 focus:ring-[#5ab4e0]/20 transition-all bg-white placeholder:text-gray-400'
+// V4 : style input partagé sur cette page — bordure 1.5px, bg #fafbfc, focus halo orange
+const inputCls = 'w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200'
 
 export default function ModifierDevisPage() {
   const params = useParams()
@@ -558,55 +559,57 @@ export default function ModifierDevisPage() {
           <Link href={`/dashboard/devis/${id}`} className="p-1.5 rounded-md hover:bg-gray-100 shrink-0">
             <ArrowLeft size={18} className="text-[#6b7280]" />
           </Link>
-          <h2 className="hidden sm:block font-syne font-bold text-lg text-[#1a1a2e] truncate">Modifier devis N° {devis.numero}</h2>
+          <h2 className="hidden sm:block font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] truncate">
+            Modifier devis <span className="font-spline-mono font-bold">{devis.numero}</span>
+          </h2>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => handleSave('brouillon')} disabled={saving} className="h-9 px-3 sm:px-4 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all disabled:opacity-50">Brouillon</button>
-          <button onClick={() => handleSave('enregistrer')} disabled={saving} className="h-9 px-3 sm:px-5 rounded-xl bg-emerald-600 text-white font-syne font-bold text-sm hover:bg-emerald-700 transition-all disabled:opacity-50">{saving ? '...' : 'Enregistrer'}</button>
-          <button onClick={() => handleSave('envoyer')} disabled={saving} className="h-9 px-3 sm:px-4 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] transition-all disabled:opacity-50 flex items-center gap-1.5"><Send size={14} /><span className="hidden sm:inline">Envoyer</span></button>
+          <button onClick={() => handleSave('brouillon')} disabled={saving} className="h-9 px-3 sm:px-4 rounded-xl border-2 border-gray-300 text-sm font-hanken font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all disabled:opacity-50">Brouillon</button>
+          <button onClick={() => handleSave('enregistrer')} disabled={saving} className="h-9 px-3 sm:px-5 rounded-xl bg-emerald-600 text-white font-hanken font-bold text-sm hover:bg-emerald-700 transition-all disabled:opacity-50">{saving ? '...' : 'Enregistrer'}</button>
+          <button onClick={() => handleSave('envoyer')} disabled={saving} className="h-9 px-3 sm:px-4 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken font-bold text-sm shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:brightness-100 flex items-center gap-1.5"><Send size={14} /><span className="hidden sm:inline">Envoyer</span></button>
         </div>
       </div>
 
       <div className="p-4 sm:p-6 space-y-6">
-        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-manrope">{error}</p></div>}
+        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-hanken">{error}</p></div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date d&apos;émission</label><input type="date" value={dateDevis} onChange={e => setDateDevis(e.target.value)} className={inputCls} /></div>
-            <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Valable jusqu&apos;au</label><input type="date" value={dateValidite} onChange={e => setDateValidite(e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Date d&apos;émission</label><input type="date" value={dateDevis} onChange={e => setDateDevis(e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Valable jusqu&apos;au</label><input type="date" value={dateValidite} onChange={e => setDateValidite(e.target.value)} className={inputCls} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date des travaux</label><input type="date" value={dateTravaux} onChange={e => setDateTravaux(e.target.value)} className={inputCls} /></div>
-              <div><label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Durée estimée</label><input type="text" value={duree} onChange={e => setDuree(e.target.value)} placeholder="Ex. : 3 jours" className={inputCls} /></div>
+              <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Date des travaux</label><input type="date" value={dateTravaux} onChange={e => setDateTravaux(e.target.value)} className={inputCls} /></div>
+              <div><label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Durée estimée</label><input type="text" value={duree} onChange={e => setDuree(e.target.value)} placeholder="Ex. : 3 jours" className={inputCls} /></div>
             </div>
             <div className="relative">
-              <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Chantier / Prestation{chantierId && <span className="ml-2 text-[10px] font-syne font-bold text-[#1a6fb5] bg-[#e8f4fb] px-2 py-0.5 rounded uppercase tracking-wider">Lié au chantier</span>}</label>
+              <label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Chantier / Prestation{chantierId && <span className="ml-2 text-[10px] font-hanken font-bold text-[#0f1a3a] bg-[#fff5ec] px-2 py-0.5 rounded uppercase tracking-wider">Lié au chantier</span>}</label>
               <input type="text" value={chantierDesc} onChange={e => handleChantierDescChange(e.target.value)} onBlur={() => setTimeout(() => setChantierDropdownOpen(false), 150)} placeholder="Description de la prestation / chantier..." className={inputCls} autoComplete="off" />
               {chantierDropdownOpen && chantierSuggestions.length > 0 && (
-                <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#5ab4e0] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
+                <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#ff7a1a]/30 shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
                   {chantierSuggestions.map((nom, i) => (
-                    <button key={i} type="button" onMouseDown={e => { e.preventDefault(); selectChantierSuggestion(nom) }} className="w-full text-left px-4 py-3 text-sm font-manrope hover:bg-[#eef7fc] border-b border-gray-100 last:border-0 transition-colors text-[#1a1a2e] font-medium">{nom}</button>
+                    <button key={i} type="button" onMouseDown={e => { e.preventDefault(); selectChantierSuggestion(nom) }} className="w-full text-left px-4 py-3 text-sm font-hanken hover:bg-[#fff5ec] border-b border-gray-100 last:border-0 transition-colors text-[#0f1a3a] font-medium">{nom}</button>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] font-manrope text-gray-400 mt-1">Tapez pour rechercher un chantier existant, ou saisissez librement.</p>
+              <p className="text-[11px] font-hanken text-gray-400 mt-1">Tapez pour rechercher un chantier existant, ou saisissez librement.</p>
             </div>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <label className="block text-sm font-manrope font-semibold text-[#1a1a2e] mb-3">Client</label>
+            <label className="block text-sm font-hanken font-semibold text-[#0f1a3a] mb-3">Client</label>
             <div className="space-y-3">
               <div className="relative">
                 <div className="flex gap-2">
-                  <select value={clientCivilite} onChange={e => setClientCivilite(e.target.value)} className="w-24 h-11 shrink-0 rounded-xl border-2 border-gray-200 px-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white">
+                  <select value={clientCivilite} onChange={e => setClientCivilite(e.target.value)} className="w-24 h-11 shrink-0 rounded-xl border-2 border-gray-200 px-2 text-sm font-hanken outline-none focus:border-[#ff7a1a] bg-white">
                     <option value="">—</option><option value="M.">M.</option><option value="Mme">Mme</option><option value="Société">Société</option>
                   </select>
                   <input type="text" value={clientNom} onChange={e => handleClientNomChange(e.target.value)} onBlur={() => setTimeout(() => { setClientDropdownOpen(false); setClientSuggestions([]) }, 200)} placeholder="Nom (tapez pour rechercher)" className={inputCls} autoComplete="off" />
                 </div>
                 {clientDropdownOpen && clientSuggestions.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#5ab4e0] shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
+                  <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border-2 border-[#ff7a1a]/30 shadow-2xl z-50 w-full max-h-60 overflow-y-auto">
                     {clientSuggestions.map(c => (
-                      <button key={c.id} type="button" onMouseDown={e => { e.preventDefault(); selectClientSuggestion(c) }} className="w-full text-left px-4 py-3 font-manrope hover:bg-[#eef7fc] border-b border-gray-100 last:border-0 transition-colors">
-                        <span className="font-semibold text-[#1a1a2e] text-sm">{c.prenom ? `${c.prenom} ${c.nom}` : c.nom}</span>
+                      <button key={c.id} type="button" onMouseDown={e => { e.preventDefault(); selectClientSuggestion(c) }} className="w-full text-left px-4 py-3 font-hanken hover:bg-[#fff5ec] border-b border-gray-100 last:border-0 transition-colors">
+                        <span className="font-semibold text-[#0f1a3a] text-sm">{c.prenom ? `${c.prenom} ${c.nom}` : c.nom}</span>
                         {c.adresse && <span className="text-[#6b7280] text-xs block mt-0.5">{c.adresse}{c.code_postal || c.ville ? ` · ${c.code_postal ?? ''} ${c.ville ?? ''}`.trim() : ''}</span>}
                       </button>
                     ))}
@@ -630,47 +633,47 @@ export default function ModifierDevisPage() {
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="sm:hidden p-3 space-y-2">
             {lines.length === 0 && (
-              <div className="rounded-xl border-2 border-dashed border-[#5ab4e0]/40 bg-[#f8fbfd] px-4 py-6 text-center">
-                <p className="text-sm font-manrope text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
-                <p className="text-[12px] font-manrope text-gray-400 mt-1">Touchez <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
+              <div className="rounded-xl border-2 border-dashed border-gray-300 bg-[#fafbfc] px-4 py-6 text-center">
+                <p className="text-sm font-hanken text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
+                <p className="text-[12px] font-hanken text-gray-400 mt-1">Touchez <strong>+ Ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
               </div>
             )}
             {lines.map((line, idx) => (
               <LineCard key={line.id} line={line} subtotal={subtotalAt(idx)} onTap={() => openEditSheet(line)} onDelete={() => removeLine(line.id)} formatCurrency={formatCurrency} />
             ))}
             <div className="flex flex-wrap gap-2 pt-2">
-              <button type="button" onClick={() => openCreateSheet('line')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-[#e8f4fb] border border-[#5ab4e0]/60 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#1a6fb5] active:scale-95 transition-all"><Plus size={16} /> Ligne</button>
-              <button type="button" onClick={() => openCreateSheet('section')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#0f1a3a] active:scale-95 transition-all"><Plus size={16} /> Section</button>
-              <button type="button" onClick={() => openCreateSheet('subsection')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-syne font-semibold text-[#0f1a3a] active:scale-95 transition-all"><Plus size={16} /> Sous-section</button>
+              <button type="button" onClick={() => openCreateSheet('line')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"><Plus size={16} /> Ligne</button>
+              <button type="button" onClick={() => openCreateSheet('section')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"><Plus size={16} /> Section</button>
+              <button type="button" onClick={() => openCreateSheet('subsection')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"><Plus size={16} /> Sous-section</button>
             </div>
           </div>
 
           <div className="hidden sm:block overflow-x-auto">
             {/* V2.5 — Colonne TVA par ligne (parite Obat) */}
-            <div className="bg-[#5ab4e0] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-manrope font-semibold uppercase">
+            <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-hanken font-semibold uppercase">
               <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
             </div>
             {lines.length === 0 && (
               <div className="px-4 py-8 text-center border-b border-gray-100">
-                <p className="text-sm font-manrope text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
-                <p className="text-[12px] font-manrope text-gray-400 mt-1">Cliquez sur <strong>+ Ajouter une ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
+                <p className="text-sm font-hanken text-[#5f6c80]">Aucune ligne pour l&apos;instant.</p>
+                <p className="text-[12px] font-hanken text-gray-400 mt-1">Cliquez sur <strong>+ Ajouter une ligne</strong> ou <strong>+ Section</strong> ci-dessous pour commencer.</p>
               </div>
             )}
             {lines.map((line, idx) => {
               if (line.type === 'section') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-[#a8d4ec] border-l-4 border-[#1a6fb5] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#1a6fb5]/60 [grid-column:span_5]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
-                    <span className="text-sm font-bold text-[#1a6fb5] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
+                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-[#fafbfc] border-l-4 border-[#ff7a1a] border-b border-gray-100">
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_5]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
+                    <span className="text-sm font-bold text-[#0f1a3a] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-end"><Trash2 size={14} /></button>
                   </div>
                 )
               }
               if (line.type === 'subsection') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-[#dceefa] border-l-4 border-[#5ab4e0] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white/60 focus:border-[#5ab4e0] px-2 h-9 placeholder-[#5ab4e0]/70 [grid-column:span_5]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
-                    <span className="text-sm font-semibold text-[#1a6fb5] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
+                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-white border-l-4 border-[#ff7a1a]/60 border-b border-gray-100">
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_5]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
+                    <span className="text-sm font-semibold text-[#0f1a3a] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-end"><Trash2 size={14} /></button>
                   </div>
                 )
@@ -678,21 +681,21 @@ export default function ModifierDevisPage() {
               if (line.type === 'text') {
                 return (
                   <div key={line.id} className="grid grid-cols-[1fr_36px] min-w-[500px] items-center px-4 py-2 bg-gray-50 border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm italic text-gray-600 border border-gray-200 rounded-md outline-none bg-white focus:border-[#5ab4e0] px-2 h-9" placeholder="Texte libre (note, remarque...)" />
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm italic text-gray-600 border border-gray-200 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 h-9" placeholder="Texte libre (note, remarque...)" />
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>
                   </div>
                 )
               }
               return (
                 <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
-                  <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-manrope border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] px-2 h-9 mr-2" placeholder="Désignation..." />
-                  <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1" min={0} />
-                  <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1 w-full">
+                  <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 h-9 mr-2" placeholder="Désignation..." />
+                  <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1" min={0} />
+                  <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1 w-full">
                     {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
-                  <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))} className="text-sm text-right border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 px-2 mx-1" min={0} step={0.01} />
+                  <input type="number" value={line.priceHT} onChange={e => updateLine(line.id, 'priceHT', Number(e.target.value))} className="text-sm text-right border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 px-2 mx-1" min={0} step={0.01} />
                   {/* V2.5 — Selecteur TVA par ligne (parite Obat) */}
-                  <select value={line.tva} onChange={e => updateLine(line.id, 'tva', Number(e.target.value))} disabled={autoEntrepreneur} className="text-sm text-center border border-[#5ab4e0]/25 hover:border-[#5ab4e0]/50 rounded-md outline-none bg-white focus:border-[#5ab4e0] h-9 mx-1 w-full disabled:bg-gray-50 disabled:text-gray-400">
+                  <select value={line.tva} onChange={e => updateLine(line.id, 'tva', Number(e.target.value))} disabled={autoEntrepreneur} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1 w-full disabled:bg-gray-50 disabled:text-gray-400">
                     {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? '0%' : r === 5.5 ? '5,5%' : `${r}%`}</option>)}
                   </select>
                   <span className="text-sm font-semibold text-right">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '—'}</span>
@@ -703,17 +706,17 @@ export default function ModifierDevisPage() {
           </div>
 
           <div className="hidden sm:flex flex-wrap gap-2 p-4 border-t border-gray-100">
-            <button onClick={() => addLine('line')} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-manrope hover:bg-gray-100"><Plus size={14} /> Ajouter une ligne</button>
-            <button onClick={() => addLine('section')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#1a6fb5] bg-[#dceefa] border border-[#5ab4e0]/30 rounded-lg hover:bg-[#cde4f5]"><Plus size={14} /> Section</button>
-            <button onClick={() => addLine('subsection')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#1a6fb5] bg-[#e8f4fb] border border-[#5ab4e0]/20 rounded-lg hover:bg-[#dceefa]"><Plus size={14} /> Sous-section</button>
-            <button onClick={() => addLine('text')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-manrope text-[#6b7280] hover:text-[#1a1a2e]"><Plus size={14} /> Texte libre</button>
+            <button onClick={() => addLine('line')} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-hanken hover:bg-gray-100"><Plus size={14} /> Ajouter une ligne</button>
+            <button onClick={() => addLine('section')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-hanken text-[#0f1a3a] bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-lg"><Plus size={14} /> Section</button>
+            <button onClick={() => addLine('subsection')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-hanken text-[#0f1a3a] bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-lg"><Plus size={14} /> Sous-section</button>
+            <button onClick={() => addLine('text')} className="flex items-center gap-1.5 px-4 py-2 text-sm font-hanken text-[#6b7280] hover:text-[#0f1a3a]"><Plus size={14} /> Texte libre</button>
           </div>
         </div>
 
         {/* V2.5 — Selecteur global = raccourci "Appliquer a toutes les lignes". */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Appliquer à toutes les lignes :</label>
+            <label className="text-sm font-hanken font-medium text-[#0f1a3a]">Appliquer à toutes les lignes :</label>
             <select
               value={globalTvaRate}
               onChange={e => {
@@ -724,45 +727,45 @@ export default function ModifierDevisPage() {
                 // V2.5 : pousse le taux sur TOUTES les lignes existantes
                 setLines(prev => prev.map(l => l.type === 'line' ? { ...l, tva: v } : l))
               }}
-              className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] bg-white cursor-pointer"
+              className="h-9 rounded-lg border border-gray-200 px-3 text-sm font-hanken outline-none focus:border-[#ff7a1a] bg-white cursor-pointer"
             >
               {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? 'Sans TVA' : `${r}%`}</option>)}
             </select>
           </div>
-          <span className="text-xs font-manrope text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
-          {autoEntrepreneur && <span className="text-xs font-manrope text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>}
+          <span className="text-xs font-hanken text-[#6b7280] italic">Astuce : modifiable aussi ligne par ligne dans le tableau.</span>
+          {autoEntrepreneur && <span className="text-xs font-hanken text-[#6b7280] italic">TVA non applicable, art. 293 B du CGI</span>}
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-2 text-sm font-manrope cursor-pointer">
-            <input type="checkbox" checked={useForfait} onChange={e => setUseForfait(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0]" />
+          <label className="flex items-center gap-2 text-sm font-hanken cursor-pointer">
+            <input type="checkbox" checked={useForfait} onChange={e => setUseForfait(e.target.checked)} className="w-4 h-4 rounded border-gray-300 accent-[#ff7a1a] focus:ring-[#ff7a1a]" />
             Appliquer un prix forfaitaire global
           </label>
           {useForfait && (
             <div className="flex items-center gap-2">
-              <input type="number" value={forfaitHT} onChange={e => setForfaitHT(Number(e.target.value))} className="w-32 h-9 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] text-right" min={0} step={0.01} />
-              <span className="text-sm font-manrope text-[#6b7280]">€ HT</span>
-              <span className="text-[11px] font-manrope text-gray-400">(remplace le calcul ligne par ligne)</span>
+              <input type="number" value={forfaitHT} onChange={e => setForfaitHT(Number(e.target.value))} className="w-32 h-9 rounded-lg border border-gray-200 px-3 text-sm font-hanken outline-none focus:border-[#ff7a1a] text-right" min={0} step={0.01} />
+              <span className="text-sm font-hanken text-[#6b7280]">€ HT</span>
+              <span className="text-[11px] font-hanken text-gray-400">(remplace le calcul ligne par ligne)</span>
             </div>
           )}
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={acompteActive} onChange={e => setAcompteActive(e.target.checked)} className="mt-1 w-5 h-5 rounded border-2 border-[#5ab4e0] text-[#1a6fb5] focus:ring-2 focus:ring-[#5ab4e0]/30 cursor-pointer accent-[#1a6fb5]" />
+            <input type="checkbox" checked={acompteActive} onChange={e => setAcompteActive(e.target.checked)} className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#0f1a3a] focus:ring-2 focus:ring-[#ff7a1a]/30 cursor-pointer accent-[#ff7a1a]" />
             <div>
-              <span className="block text-sm font-manrope font-semibold text-[#1a1a2e]">Demander un acompte</span>
-              <span className="block text-[11px] font-manrope text-gray-400 mt-0.5">Cochez si vous souhaitez demander un acompte à la signature du devis. Il sera affiché dans le récapitulatif.</span>
+              <span className="block text-sm font-hanken font-semibold text-[#0f1a3a]">Demander un acompte</span>
+              <span className="block text-[11px] font-hanken text-gray-400 mt-0.5">Cochez si vous souhaitez demander un acompte à la signature du devis. Il sera affiché dans le récapitulatif.</span>
             </div>
           </label>
           {acompteActive && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               <div>
-                <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Pourcentage (%)</label>
+                <label className="block text-[11px] font-hanken font-medium text-gray-500 uppercase tracking-wider mb-1">Pourcentage (%)</label>
                 <input type="number" value={acomptePercent} min={0} max={100} step={1} onChange={e => setAcomptePercent(e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className="block text-[11px] font-manrope font-medium text-gray-500 uppercase tracking-wider mb-1">Libellé (optionnel)</label>
+                <label className="block text-[11px] font-hanken font-medium text-gray-500 uppercase tracking-wider mb-1">Libellé (optionnel)</label>
                 <input type="text" value={acompteLabel} onChange={e => setAcompteLabel(e.target.value)} placeholder="Ex. : à la commande" className={inputCls} />
               </div>
             </div>
@@ -770,29 +773,29 @@ export default function ModifierDevisPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <label className="block text-sm font-manrope font-medium text-[#1a1a2e]">Conditions de paiement</label>
+          <label className="block text-sm font-hanken font-medium text-[#0f1a3a]">Conditions de paiement</label>
           <div className="flex flex-wrap gap-2">
             {PAYMENT_OPTIONS.map(opt => (
-              <button key={opt.id} type="button" onClick={() => togglePayment(opt.id)} className={`px-3 py-1.5 rounded-full text-sm font-manrope border transition-colors ${selectedPayments.has(opt.id) ? 'bg-[#5ab4e0]/10 border-[#5ab4e0] text-[#5ab4e0] font-medium' : 'border-gray-200 text-[#6b7280] hover:border-gray-400'}`}>
+              <button key={opt.id} type="button" onClick={() => togglePayment(opt.id)} className={`px-3 py-1.5 rounded-full text-sm font-hanken border transition-colors ${selectedPayments.has(opt.id) ? 'bg-[#fff5ec] border-[#ff7a1a] text-[#0f1a3a] font-medium' : 'border-gray-200 text-[#6b7280] hover:border-gray-400'}`}>
                 {selectedPayments.has(opt.id) ? '✓ ' : '☐ '}{opt.label}
               </button>
             ))}
           </div>
           <div>
-            <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Conditions libres<span className="ml-2 text-[10px] font-manrope text-gray-400 font-normal">(éditable, contient les conditions existantes du devis)</span></label>
-            <textarea value={conditionsLibres} onChange={e => setConditionsLibres(e.target.value)} rows={3} placeholder="Ex : Acompte 30% à la commande, solde à réception..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] resize-none" />
+            <label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Conditions libres<span className="ml-2 text-[10px] font-hanken text-gray-400 font-normal">(éditable, contient les conditions existantes du devis)</span></label>
+            <textarea value={conditionsLibres} onChange={e => setConditionsLibres(e.target.value)} rows={3} placeholder="Ex : Acompte 30% à la commande, solde à réception..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a] resize-none" />
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-3">
-            <label className="text-sm font-manrope font-medium text-[#1a1a2e]">Gestion des déchets</label>
-            <span className="text-[9px] font-manrope text-[#e87a2a] border border-[#e87a2a]/40 px-1.5 py-0.5 rounded uppercase tracking-wide font-semibold">Loi AGEC</span>
+            <label className="text-sm font-hanken font-medium text-[#0f1a3a]">Gestion des déchets</label>
+            <span className="text-[9px] font-hanken text-[#ff7a1a] border border-[#ff7a1a]/40 px-1.5 py-0.5 rounded uppercase tracking-wide font-semibold">Loi AGEC</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Nature des déchets</label>
-              <select value={dechetsNature} onChange={e => setDechetsNature(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+              <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Nature des déchets</label>
+              <select value={dechetsNature} onChange={e => setDechetsNature(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                 <option value="Déchets non dangereux (câbles, emballages)">Déchets non dangereux (câbles, emballages)</option>
                 <option value="Déchets d'équipements électriques (DEEE)">DEEE (équipements électriques)</option>
                 <option value="Déchets inertes (gravats, plâtre, béton)">Déchets inertes (gravats, plâtre)</option>
@@ -801,68 +804,68 @@ export default function ModifierDevisPage() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Quantité estimée</label>
-              <input type="text" value={dechetsQuantite} onChange={e => setDechetsQuantite(e.target.value)} placeholder="Ex : 0.5 tonne, 2 m³" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
+              <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Quantité estimée</label>
+              <input type="text" value={dechetsQuantite} onChange={e => setDechetsQuantite(e.target.value)} placeholder="Ex : 0.5 tonne, 2 m³" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div>
-              <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Enlèvement par</label>
-              <select value={dechetsResponsable} onChange={e => setDechetsResponsable(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+              <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Enlèvement par</label>
+              <select value={dechetsResponsable} onChange={e => setDechetsResponsable(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                 <option value="L'entreprise">L&apos;entreprise</option>
                 <option value="Le client (maître d'ouvrage)">Le client</option>
                 <option value="Prestataire externe">Prestataire externe</option>
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Tri</label>
-              <select value={dechetsTri} onChange={e => setDechetsTri(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+              <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Tri</label>
+              <select value={dechetsTri} onChange={e => setDechetsTri(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                 <option value="Tri sur le chantier">Tri sur le chantier</option>
                 <option value="Collecte séparée">Collecte séparée</option>
                 <option value="Évacuation en mélange">Évacuation en mélange</option>
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Coût estimé TTC (€)</label>
-              <input type="number" value={dechetsCout} onChange={e => setDechetsCout(e.target.value)} placeholder="0.00" min={0} step={0.01} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
+              <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Coût estimé TTC (€)</label>
+              <input type="number" value={dechetsCout} onChange={e => setDechetsCout(e.target.value)} placeholder="0.00" min={0} step={0.01} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
               <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                <input type="checkbox" checked={dechetsInclureCout} onChange={e => setDechetsInclureCout(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-[#5ab4e0] focus:ring-[#5ab4e0]" />
-                <span className="text-sm font-manrope text-[#1a1a2e]">Inclure dans le prix total</span>
+                <input type="checkbox" checked={dechetsInclureCout} onChange={e => setDechetsInclureCout(e.target.checked)} className="w-4 h-4 rounded border-gray-300 accent-[#ff7a1a] focus:ring-[#ff7a1a]" />
+                <span className="text-sm font-hanken text-[#0f1a3a]">Inclure dans le prix total</span>
               </label>
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-manrope text-[#6b7280] mb-1">Point de collecte</label>
+            <label className="block text-[11px] font-hanken text-[#6b7280] mb-1">Point de collecte</label>
             {!dechetsCollecteNom && ((pointsCollecte && pointsCollecte.length > 0) || dechetteriesProches.length > 0) && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {pointsCollecte?.map(p => (
-                  <button key={p.id} type="button" onClick={() => { setDechetsCollecteNom(p.nom); setDechetsCollecteAdresse(p.adresse || ''); setDechetsCollecteType(p.type_installation || 'Déchetterie') }} className="px-2.5 py-1 rounded-full text-[11px] font-manrope bg-[#5ab4e0]/10 border border-[#5ab4e0]/30 text-[#5ab4e0] hover:bg-[#5ab4e0]/20 transition-colors font-medium">★ {p.nom}</button>
+                  <button key={p.id} type="button" onClick={() => { setDechetsCollecteNom(p.nom); setDechetsCollecteAdresse(p.adresse || ''); setDechetsCollecteType(p.type_installation || 'Déchetterie') }} className="px-2.5 py-1 rounded-full text-[11px] font-hanken bg-[#fff5ec] border border-[#ff7a1a]/30 text-[#0f1a3a] hover:bg-[#ffeadb] transition-colors font-medium">★ {p.nom}</button>
                 ))}
                 {dechetteriesProches.slice(0, 3).map((d, i) => {
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${d.nom} ${d.adresse} ${d.code_postal} ${d.commune}`)}`
                   const acceptePro = d.accepte_pro && d.accepte_pro !== 'Non renseigné' && d.accepte_pro.toLowerCase() !== 'non'
                   return (
                     <div key={`api-${i}`} className="inline-flex items-center gap-1 rounded-full border border-gray-200 hover:border-gray-400 transition-colors overflow-hidden">
-                      <button type="button" onClick={() => { setDechetsCollecteNom(d.nom); setDechetsCollecteAdresse(`${d.adresse}, ${d.code_postal} ${d.commune}`); setDechetsCollecteType('Déchetterie') }} className="px-2.5 py-1 text-[11px] font-manrope text-[#6b7280] hover:bg-gray-50 transition-colors">
-                        {d.nom} <span className="text-[#e87a2a] font-semibold">({d.distance_km} km)</span>
+                      <button type="button" onClick={() => { setDechetsCollecteNom(d.nom); setDechetsCollecteAdresse(`${d.adresse}, ${d.code_postal} ${d.commune}`); setDechetsCollecteType('Déchetterie') }} className="px-2.5 py-1 text-[11px] font-hanken text-[#6b7280] hover:bg-gray-50 transition-colors">
+                        {d.nom} <span className="text-[#ff7a1a] font-semibold">({d.distance_km} km)</span>
                         {acceptePro && <span title="Accepte les professionnels" className="ml-1 px-1 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold">PRO</span>}
                         {d.accepte_construction && <span title="Accepte les déchets de construction (gravats)" className="ml-1 px-1 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold">GRAVATS</span>}
                         {d.accepte_deee && <span title="Accepte les équipements électriques et électroniques" className="ml-1 px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">DEEE</span>}
                       </button>
-                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer" title="Voir sur Google Maps" className="px-2 py-1 text-[#5ab4e0] hover:bg-[#5ab4e0]/10 transition-colors border-l border-gray-200">↗</a>
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer" title="Voir sur Google Maps" className="px-2 py-1 text-[#ff7a1a] hover:bg-[#fff5ec] transition-colors border-l border-gray-200">↗</a>
                     </div>
                   )
                 })}
               </div>
             )}
-            {loadingDechetteries && !dechetsCollecteNom && <p className="text-[11px] font-manrope text-[#9ca3af] mb-2 animate-pulse">Recherche des déchetteries proches...</p>}
+            {loadingDechetteries && !dechetsCollecteNom && <p className="text-[11px] font-hanken text-[#9ca3af] mb-2 animate-pulse">Recherche des déchetteries proches...</p>}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="relative">
-                <input type="text" value={dechetsCollecteNom} onChange={e => setDechetsCollecteNom(e.target.value)} placeholder="Nom / raison sociale" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
+                <input type="text" value={dechetsCollecteNom} onChange={e => setDechetsCollecteNom(e.target.value)} placeholder="Nom / raison sociale" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
                 {dechetsCollecteNom && <button type="button" onClick={() => { setDechetsCollecteNom(''); setDechetsCollecteAdresse(''); setDechetsCollecteType('Déchetterie') }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
               </div>
-              <input type="text" value={dechetsCollecteAdresse} onChange={e => setDechetsCollecteAdresse(e.target.value)} placeholder="Adresse" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]" />
-              <select value={dechetsCollecteType} onChange={e => setDechetsCollecteType(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0]">
+              <input type="text" value={dechetsCollecteAdresse} onChange={e => setDechetsCollecteAdresse(e.target.value)} placeholder="Adresse" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]" />
+              <select value={dechetsCollecteType} onChange={e => setDechetsCollecteType(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a]">
                 <option value="Déchetterie">Déchetterie</option>
                 <option value="Centre de tri">Centre de tri</option>
                 <option value="Plateforme de recyclage">Plateforme de recyclage</option>
@@ -873,47 +876,47 @@ export default function ModifierDevisPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Notes personnalisées<span className="ml-2 text-[10px] text-gray-400 font-normal">(visibles par le client)</span></label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Écrire ici…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-manrope outline-none focus:border-[#5ab4e0] resize-none" />
+          <label className="block text-sm font-hanken font-medium text-[#0f1a3a] mb-1">Notes personnalisées<span className="ml-2 text-[10px] text-gray-400 font-normal">(visibles par le client)</span></label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Écrire ici…" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-hanken outline-none focus:border-[#ff7a1a] resize-none" />
         </div>
 
         <div className="flex justify-end">
           <div className="bg-white rounded-xl border border-gray-200 p-6 w-full sm:w-80">
-            <div className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#5f6c80]">Sous-total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
+            <div className="flex justify-between py-1.5 text-sm font-hanken"><span className="text-[#5f6c80]">Sous-total HT</span><span className="font-medium">{formatCurrency(totalHT)}</span></div>
             {/* V2.5 — Ventilation TVA par taux (multi-taux Obat) */}
             {!autoEntrepreneur && Object.entries(tvaGroups).filter(([r, g]) => Number(r) > 0 && g.tva > 0.005).sort(([a], [b]) => Number(a) - Number(b)).map(([rate, group]) => (
-              <div key={rate} className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#5f6c80]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
+              <div key={rate} className="flex justify-between py-1.5 text-sm font-hanken"><span className="text-[#5f6c80]">TVA {rate}%</span><span className="font-medium">{formatCurrency(group.tva)}</span></div>
             ))}
-            {dechetsInclureCout && dechetsCoutNum > 0 && <div className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#e87a2a]">Gestion déchets TTC</span><span className="font-medium text-[#e87a2a]">{formatCurrency(dechetsCoutNum)}</span></div>}
-            <div className="border-t mt-2 pt-2 flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#0f1a3a] font-bold">{autoEntrepreneur ? 'Total' : 'Total TTC'}</span><span className="font-bold">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span></div>
+            {dechetsInclureCout && dechetsCoutNum > 0 && <div className="flex justify-between py-1.5 text-sm font-hanken"><span className="text-[#ff7a1a]">Gestion déchets TTC</span><span className="font-medium text-[#ff7a1a]">{formatCurrency(dechetsCoutNum)}</span></div>}
+            <div className="border-t mt-2 pt-2 flex justify-between py-1.5 text-sm font-hanken"><span className="text-[#0f1a3a] font-bold">{autoEntrepreneur ? 'Total' : 'Total TTC'}</span><span className="font-bold">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span></div>
             {autoEntrepreneur && <p className="text-xs text-[#6b7280] italic mt-1">TVA non applicable, art. 293 B du CGI</p>}
             {acompteMontant > 0 && (
               <>
-                <div className="flex justify-between py-1.5 text-sm font-manrope border-t mt-1 pt-2"><span className="text-[#5ab4e0] font-medium">Acompte à verser ({acomptePct}%)</span><span className="text-[#5ab4e0] font-semibold">{formatCurrency(acompteMontant)}</span></div>
-                <div className="flex justify-between py-1.5 text-sm font-manrope"><span className="text-[#6b7280]">Reste à facturer</span><span className="font-semibold text-[#1a1a2e]">{formatCurrency(resteAPayer)}</span></div>
+                <div className="flex justify-between py-1.5 text-sm font-hanken border-t mt-1 pt-2"><span className="text-[#0f1a3a] font-medium">Acompte à verser ({acomptePct}%)</span><span className="text-[#0f1a3a] font-semibold">{formatCurrency(acompteMontant)}</span></div>
+                <div className="flex justify-between py-1.5 text-sm font-hanken"><span className="text-[#6b7280]">Reste à facturer</span><span className="font-semibold text-[#0f1a3a]">{formatCurrency(resteAPayer)}</span></div>
               </>
             )}
-            <div className="bg-[#5ab4e0] text-white rounded-lg p-3 mt-3 flex justify-between items-center">
-              <span className="font-syne font-bold text-sm">NET À PAYER</span>
-              <span className="font-syne font-bold text-lg">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span>
+            <div className="bg-[#0f1a3a] text-white rounded-lg p-3 mt-3 flex justify-between items-center">
+              <span className="font-hanken font-bold text-sm">NET À PAYER</span>
+              <span className="font-hanken font-bold text-lg">{formatCurrency(autoEntrepreneur ? totalHT : totalTTC)}</span>
             </div>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 justify-end pb-8">
-          <button onClick={() => handleSave('brouillon')} disabled={saving} className="h-12 px-6 rounded-xl border-2 border-gray-300 text-sm font-syne font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50">Brouillon</button>
-          <button onClick={() => handleSave('enregistrer')} disabled={saving} className="h-12 px-8 rounded-xl bg-emerald-600 text-white font-syne font-bold text-sm hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50">
+          <button onClick={() => handleSave('brouillon')} disabled={saving} className="h-12 px-6 rounded-xl border-2 border-gray-300 text-sm font-hanken font-semibold text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2 disabled:opacity-50">Brouillon</button>
+          <button onClick={() => handleSave('enregistrer')} disabled={saving} className="h-12 px-8 rounded-xl bg-emerald-600 text-white font-hanken font-bold text-sm hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
             Enregistrer
           </button>
           <div className="w-px h-8 bg-gray-200 mx-1" />
-          <button onClick={() => handleSave('envoyer')} disabled={saving} className="h-12 px-8 rounded-xl bg-[#e87a2a] text-white font-syne font-bold text-sm hover:bg-[#f09050] shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50">
+          <button onClick={() => handleSave('envoyer')} disabled={saving} className="h-12 px-8 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken font-bold text-sm shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all flex items-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:brightness-100">
             <Send size={16} /> Envoyer
           </button>
         </div>
       </div>
 
-      {toastMsg && <div className="fixed bottom-6 right-6 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-manrope z-50">{toastMsg}</div>}
+      {toastMsg && <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-hanken z-50">{toastMsg}</div>}
 
       <LineSheet open={sheetOpen} onClose={() => setSheetOpen(false)} line={sheetLine as SheetLine | null} onSave={handleSheetSave} onSaveAndNew={handleSheetSaveAndNew} defaultType={sheetDefaultType} unitOptions={UNIT_SUGGESTIONS} />
 

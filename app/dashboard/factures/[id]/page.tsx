@@ -97,14 +97,15 @@ interface LigneRecord {
   numero?: string
 }
 
+// V4 light : badges statut avec couleurs sémantiques douces, bordure 1.5px, fond pastel.
 const STATUT_STYLES: Record<string, string> = {
-  'Encaissée': 'bg-green-50 text-green-700 border-green-200',
-  'payee': 'bg-green-50 text-green-700 border-green-200',
-  'Partiellement payée': 'bg-blue-50 text-blue-700 border-blue-200',
-  'partielle': 'bg-blue-50 text-blue-700 border-blue-200',
-  'En attente': 'bg-orange-50 text-orange-700 border-orange-200',
-  'En retard': 'bg-red-50 text-red-700 border-red-200',
-  'en_retard': 'bg-red-50 text-red-700 border-red-200',
+  'Encaissée': 'bg-emerald-50/80 text-emerald-700 border-emerald-200/70',
+  'payee': 'bg-emerald-50/80 text-emerald-700 border-emerald-200/70',
+  'Partiellement payée': 'bg-[#fff5ec] text-[#ff7a1a] border-[#ffd4b0]',
+  'partielle': 'bg-[#fff5ec] text-[#ff7a1a] border-[#ffd4b0]',
+  'En attente': 'bg-amber-50/80 text-amber-800 border-amber-200/70',
+  'En retard': 'bg-red-50/80 text-red-700 border-red-200/70',
+  'en_retard': 'bg-red-50/80 text-red-700 border-red-200/70',
   'archivee': 'bg-gray-100 text-gray-500 border-gray-200',
   'brouillon': 'bg-gray-100 text-gray-600 border-gray-200',
 }
@@ -216,10 +217,13 @@ export default function FactureDetailPage() {
   if (!facture) {
     return (
       <div className="space-y-6">
-        <Link href="/dashboard/factures" className="p-2 rounded-lg hover:bg-gray-100 transition-colors inline-flex items-center gap-2 text-sm text-gray-500">
-          <ArrowLeft size={20} /> Retour
+        <Link
+          href="/dashboard/factures"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#fafbfc] transition-colors font-hanken text-sm text-gray-600"
+        >
+          <ArrowLeft size={18} /> Retour
         </Link>
-        <p className="text-sm font-manrope text-gray-500">Facture introuvable.</p>
+        <p className="font-hanken text-sm text-gray-500">Facture introuvable.</p>
       </div>
     )
   }
@@ -388,30 +392,50 @@ export default function FactureDetailPage() {
     <div className="space-y-6">
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
 
-      {/* Header */}
+      {/* Header V4 light : titre Hanken extrabold + badge statut + boutons d'actions. */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/factures" className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
+          <Link
+            href="/dashboard/factures"
+            className="p-2 rounded-xl hover:bg-[#fafbfc] transition-colors flex-shrink-0"
+            aria-label="Retour à la liste"
+          >
             <ArrowLeft size={20} className="text-gray-600" />
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-syne font-bold text-[#0f1a3a]">Facture {facture.numero}</h1>
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-manrope font-medium border ${statutStyle}`}>{statutLabel}</span>
+              <h1 className="font-hanken font-extrabold text-xl sm:text-2xl text-[#0f1a3a] tracking-[-0.025em]">
+                Facture <span className="font-spline-mono font-medium tracking-[0.5px]">{facture.numero}</span>
+              </h1>
+              <span className={`inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border ${statutStyle}`}>
+                {statutLabel}
+              </span>
             </div>
-            <p className="text-sm font-manrope text-gray-500 mt-1">{resolvedClientName}</p>
+            <p className="font-hanken text-sm text-gray-500 mt-1">{resolvedClientName}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={handleDownloadPdf} disabled={downloading} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-manrope text-[#1a1a2e] transition-colors disabled:opacity-50">
+          {/* Action principale : télécharger PDF */}
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloading}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all disabled:opacity-50"
+          >
             <Download size={14} /> {downloading ? 'Téléchargement...' : 'Télécharger PDF'}
           </button>
-          <button onClick={() => setSendModalOpen(true)} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#1a6fb5] hover:bg-[#2d8bc9] text-white text-sm font-manrope transition-colors">
+          {/* CTA primaire orange : envoyer par email */}
+          <button
+            onClick={() => setSendModalOpen(true)}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all"
+          >
             <Send size={14} /> Envoyer par email
           </button>
           {facture.statut === 'brouillon' ? (
-            <Link href={`/dashboard/factures/${facture.id}/modifier`} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-manrope text-[#1a1a2e] transition-colors">
+            <Link
+              href={`/dashboard/factures/${facture.id}/modifier`}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all"
+            >
               <Pencil size={14} /> Modifier
             </Link>
           ) : (
@@ -419,28 +443,43 @@ export default function FactureDetailPage() {
               type="button"
               disabled
               title="Facture émise : modification interdite par la loi (art. L441-9 C. comm.). Créez un avoir pour corriger."
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-gray-50 text-sm font-manrope text-gray-400 cursor-not-allowed"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-gray-50 font-hanken text-[13.5px] font-semibold text-gray-400 cursor-not-allowed"
             >
               <Pencil size={14} /> Modifier (verrouillée)
             </button>
           )}
           {facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
-            <button onClick={handleMarkPaid} disabled={updating} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 text-sm font-manrope text-green-700 transition-colors disabled:opacity-50">
+            <button
+              onClick={handleMarkPaid}
+              disabled={updating}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 hover:bg-emerald-100 font-hanken text-[13.5px] font-semibold text-emerald-700 transition-colors disabled:opacity-50"
+            >
               <CreditCard size={14} /> Marquer payée
             </button>
           )}
           {(facture.statut === 'payee' || facture.statut === 'Encaissée') && (
-            <button onClick={handleArchive} disabled={updating} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-manrope text-[#1a1a2e] transition-colors disabled:opacity-50">
+            <button
+              onClick={handleArchive}
+              disabled={updating}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-colors disabled:opacity-50"
+            >
               <RotateCcw size={14} /> Archiver
             </button>
           )}
           {facture.statut === 'archivee' && (
-            <button onClick={handleUnarchive} disabled={updating} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-manrope text-blue-700 transition-colors disabled:opacity-50">
+            <button
+              onClick={handleUnarchive}
+              disabled={updating}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-blue-200 bg-blue-50 hover:bg-blue-100 font-hanken text-[13.5px] font-semibold text-blue-700 transition-colors disabled:opacity-50"
+            >
               <RotateCcw size={14} /> Désarchiver
             </button>
           )}
           {facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
-            <button onClick={() => setSendModalOpen(true)} className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 text-sm font-manrope text-orange-700 transition-colors">
+            <button
+              onClick={() => setSendModalOpen(true)}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-amber-200 bg-amber-50 hover:bg-amber-100 font-hanken text-[13.5px] font-semibold text-amber-800 transition-colors"
+            >
               <AlertTriangle size={14} /> Relancer
             </button>
           )}
@@ -453,115 +492,135 @@ export default function FactureDetailPage() {
       <ProfilIncompletBanner entreprise={entreprise as Record<string, unknown> | null | undefined} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main: Invoice preview */}
+        {/* Main : aperçu facture rendu par DocumentRender (NE PAS modifier ce composant).
+            Carte V4 light : fond blanc, bord 2xl, ombre douce. */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-8 print-zone">
+          <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-3 sm:p-8 print-zone shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} logoConfig={logoConfigFromEntreprise(entreprise)} />
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar : informations + suivi paiements (cartes V4 light). */}
         <div className="space-y-4 sidebar-col">
-          {/* Metadata */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-syne font-bold text-[#0f1a3a] uppercase tracking-wider">Informations</h3>
+          {/* Carte Informations — métadonnées de la facture */}
+          <div className="relative bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 space-y-4 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            {/* Accent line orange V4 */}
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+            <h3 className="font-hanken font-extrabold text-[13px] text-[#0f1a3a] uppercase tracking-wider">
+              Informations
+            </h3>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <Calendar size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                <Calendar size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-manrope text-gray-500">Date de facture</p>
-                  <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{formatDate(facture.date_emission || facture.created_at)}</p>
+                  <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Date de facture</p>
+                  <p className="font-spline-mono font-medium text-[13px] text-[#0f1a3a] mt-0.5">{formatDate(facture.date_emission || facture.created_at)}</p>
                 </div>
               </div>
               {facture.date_echeance && (
                 <div className="flex items-start gap-3">
-                  <Calendar size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <Calendar size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-manrope text-gray-500">Échéance</p>
-                    <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{formatDate(facture.date_echeance)}</p>
+                    <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Échéance</p>
+                    <p className="font-spline-mono font-medium text-[13px] text-[#0f1a3a] mt-0.5">{formatDate(facture.date_echeance)}</p>
                   </div>
                 </div>
               )}
               {facture.date_envoi && (
                 <div className="flex items-start gap-3">
-                  <Send size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <Send size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-manrope text-gray-500">Envoyée le</p>
-                    <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{formatDate(facture.date_envoi)}</p>
+                    <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Envoyée le</p>
+                    <p className="font-spline-mono font-medium text-[13px] text-[#0f1a3a] mt-0.5">{formatDate(facture.date_envoi)}</p>
                   </div>
                 </div>
               )}
               <div className="flex items-start gap-3">
-                <User size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                <User size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-manrope text-gray-500">Client</p>
-                  <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{resolvedClientName}</p>
+                  <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Client</p>
+                  <p className="font-hanken font-semibold text-[14px] text-[#0f1a3a] mt-0.5">{resolvedClientName}</p>
                 </div>
               </div>
               {client?.adresse && (
                 <div className="flex items-start gap-3">
-                  <MapPin size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <MapPin size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-manrope text-gray-500">Adresse</p>
-                    <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{client.adresse}{client.code_postal ? `, ${client.code_postal}` : ''} {client.ville || ''}</p>
+                    <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Adresse</p>
+                    <p className="font-hanken text-[13.5px] text-[#0f1a3a] mt-0.5">
+                      {client.adresse}{client.code_postal ? `, ` : ''}
+                      {client.code_postal && <span className="font-spline-mono font-medium">{client.code_postal}</span>}
+                      {client.ville && ` ${client.ville}`}
+                    </p>
                   </div>
                 </div>
               )}
               {client?.telephone && (
                 <div className="flex items-start gap-3">
-                  <Phone size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <Phone size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-manrope text-gray-500">Téléphone</p>
-                    <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{client.telephone}</p>
+                    <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Téléphone</p>
+                    <p className="font-spline-mono font-medium text-[13px] text-[#0f1a3a] mt-0.5">{client.telephone}</p>
                   </div>
                 </div>
               )}
               {client?.email && (
                 <div className="flex items-start gap-3">
-                  <Mail size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-manrope text-gray-500">Email</p>
-                    <p className="text-sm font-manrope font-medium text-[#1a1a2e]">{client.email}</p>
+                  <Mail size={16} className="text-[#ff7a1a] mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-hanken text-[11px] uppercase tracking-wider font-semibold text-gray-500">Email</p>
+                    <p className="font-hanken text-[13.5px] text-[#0f1a3a] mt-0.5 truncate">{client.email}</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Payment tracking */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-syne font-bold text-[#0f1a3a] uppercase tracking-wider">Paiements</h3>
+          {/* Carte Paiements — barre de progression + récap + CTA orange */}
+          <div className="relative bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 space-y-4 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+            <h3 className="font-hanken font-extrabold text-[13px] text-[#0f1a3a] uppercase tracking-wider">
+              Paiements
+            </h3>
             <div>
-              <div className="flex justify-between text-sm font-manrope mb-2">
-                <span className="text-gray-500">Progression</span>
-                <span className={`font-medium ${paymentPercent >= 100 ? 'text-green-600' : 'text-blue-600'}`}>{paymentPercent}%</span>
+              <div className="flex justify-between mb-2">
+                <span className="font-hanken text-[13px] text-gray-500">Progression</span>
+                <span className={`font-spline-mono font-medium text-[13px] ${paymentPercent >= 100 ? 'text-emerald-600' : 'text-[#ff7a1a]'}`}>
+                  {paymentPercent}%
+                </span>
               </div>
-              <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${paymentPercent >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(paymentPercent, 100)}%` }} />
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${paymentPercent >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d]'}`}
+                  style={{ width: `${Math.min(paymentPercent, 100)}%` }}
+                />
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm font-manrope">
-                <span className="text-gray-500">Total</span>
-                <span className="font-medium text-[#1a1a2e]">{fmt(totalTTC)}</span>
+              <div className="flex justify-between">
+                <span className="font-hanken text-[13px] text-gray-500">Total</span>
+                <span className="font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{fmt(totalTTC)}</span>
               </div>
-              <div className="flex justify-between text-sm font-manrope">
-                <span className="text-gray-500">Payé</span>
-                <span className="font-medium text-green-600">{fmt(totalPaye)}</span>
+              <div className="flex justify-between">
+                <span className="font-hanken text-[13px] text-gray-500">Payé</span>
+                <span className="font-spline-mono font-medium text-[14px] text-emerald-600">{fmt(totalPaye)}</span>
               </div>
-              <div className="flex justify-between text-sm font-manrope">
-                <span className="text-gray-500">Reste</span>
-                <span className="font-medium text-[#1a1a2e]">{fmt(resteAPayer)}</span>
+              <div className="flex justify-between">
+                <span className="font-hanken text-[13px] text-gray-500">Reste</span>
+                <span className="font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{fmt(resteAPayer)}</span>
               </div>
             </div>
             {paymentPercent < 100 && (
-              <button onClick={() => setPaymentModalOpen(true)} className="w-full h-9 rounded-lg bg-[#e87a2a] hover:bg-[#f09050] text-white text-sm font-syne font-bold transition-colors">
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="w-full h-10 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all"
+              >
                 Enregistrer un paiement
               </button>
             )}
             {paymentPercent >= 100 && (
               <div className="text-center py-1">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-manrope font-medium">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-br from-emerald-100/80 to-emerald-50 text-emerald-700 border border-emerald-200/60 font-hanken text-[11.5px] font-bold uppercase tracking-wider">
                   <CreditCard size={12} /> Intégralement payée
                 </span>
               </div>
@@ -571,7 +630,9 @@ export default function FactureDetailPage() {
       </div>
 
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-[#1a1a2e] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-manrope z-50">{toastMsg}</div>
+        <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2.5 rounded-xl shadow-xl font-hanken text-sm z-50">
+          {toastMsg}
+        </div>
       )}
 
       {facture && (
@@ -641,31 +702,63 @@ function PaymentModal({
 
   const fmtLocal = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
 
+  // Modale V4 light : backdrop sombre, carte blanche radius 3xl, accent line orange en haut.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl w-full max-w-md mx-4 p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="relative bg-white rounded-3xl w-full max-w-md mx-4 p-8 overflow-hidden shadow-2xl border border-[#0f1a3a]/[0.06]">
+        <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-syne font-bold text-xl text-[#1a1a2e]">Enregistrer un paiement</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
+          <h3 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.025em]">
+            Enregistrer un paiement
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-[#fafbfc] rounded-lg transition-colors"
+            aria-label="Fermer"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
         </div>
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <div className="flex justify-between text-sm font-manrope">
-            <span className="text-gray-500">Reste à payer</span>
-            <span className="font-bold text-[#1a1a2e]">{fmtLocal(resteAPayer)}</span>
+        {/* Rappel reste à payer (mono pour le montant) */}
+        <div className="mb-5 p-3.5 bg-[#fafbfc] rounded-xl border border-gray-200">
+          <div className="flex justify-between items-center">
+            <span className="font-hanken text-sm text-gray-500">Reste à payer</span>
+            <span className="font-spline-mono font-medium text-[15px] text-[#0f1a3a]">{fmtLocal(resteAPayer)}</span>
           </div>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Montant reçu</label>
-            <input type="number" step="0.01" value={montant} onChange={(e) => setMontant(e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0]" />
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Montant reçu
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={montant}
+              onChange={(e) => setMontant(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200"
+            />
           </div>
           <div>
-            <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Date de paiement</label>
-            <input type="date" value={datePaiement} onChange={(e) => setDatePaiement(e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0]" />
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Date de paiement
+            </label>
+            <input
+              type="date"
+              value={datePaiement}
+              onChange={(e) => setDatePaiement(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200"
+            />
           </div>
           <div>
-            <label className="block text-sm font-manrope font-medium text-[#1a1a2e] mb-1">Mode de paiement</label>
-            <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm font-manrope outline-none focus:border-[#5ab4e0] focus:ring-1 focus:ring-[#5ab4e0]">
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Mode de paiement
+            </label>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] cursor-pointer focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200"
+            >
               <option>Virement</option>
               <option>Cheque</option>
               <option>Especes</option>
@@ -674,13 +767,22 @@ function PaymentModal({
           </div>
         </div>
         {error && (
-          <div className="mt-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p className="text-sm text-red-600 font-manrope">{error}</p>
+          <div className="mt-4 bg-red-50/80 border border-red-200/70 rounded-xl px-4 py-3">
+            <p className="font-hanken text-sm text-red-700">{error}</p>
           </div>
         )}
         <div className="flex gap-3 justify-end mt-6">
-          <button onClick={onClose} className="h-10 px-6 rounded-lg border border-gray-200 text-sm font-manrope hover:bg-gray-50">Annuler</button>
-          <button onClick={handleConfirm} disabled={saving} className="h-10 px-6 rounded-lg bg-[#e87a2a] text-white text-sm font-syne font-bold hover:bg-[#f09050] disabled:opacity-50 flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="h-10 px-6 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving}
+            className="h-10 px-6 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 transition-all"
+          >
             {saving ? 'Enregistrement...' : 'Confirmer le paiement'}
           </button>
         </div>
