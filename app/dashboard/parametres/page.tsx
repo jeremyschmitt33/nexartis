@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Building2,
@@ -270,6 +270,129 @@ function ErrorMessage({ message }: { message: string | null }) {
 // Sections
 // -------------------------------------------------------------------
 
+// ====================================================================
+// Sous-composants V4 LIGHT PREMIUM — utilisés UNIQUEMENT par EntrepriseSection.
+// Déclarés au niveau module (et non DANS le composant) pour éviter la perte
+// de focus à chaque keystroke (React remount sinon).
+// ====================================================================
+
+/** Label premium : SMALL CAPS, gras, espacé */
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+      {children}
+    </label>
+  )
+}
+
+/** Hint discret sous l'input */
+function FieldHint({ children }: { children: ReactNode }) {
+  return <p className="mt-1.5 font-hanken text-xs text-gray-500">{children}</p>
+}
+
+/** Message d'erreur sous l'input */
+function FieldError({ children }: { children: ReactNode }) {
+  return <p className="mt-1.5 font-hanken text-xs font-semibold text-red-600">{children}</p>
+}
+
+/** Input V4 Light Premium — local à la section Entreprise uniquement */
+function PremiumInput({
+  label, value, onChange, type = 'text', placeholder, hint, error, mono = false,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  placeholder?: string
+  hint?: string | null
+  error?: string | null
+  mono?: boolean
+}) {
+  const [touched, setTouched] = useState(false)
+  const displayedError = touched ? error : null
+  return (
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setTouched(true)}
+        placeholder={placeholder}
+        className={`
+          w-full py-2.5 px-4 rounded-xl
+          border-[1.5px] ${displayedError ? 'border-red-300' : 'border-gray-200'}
+          bg-[#fafbfc]
+          font-hanken font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4]
+          placeholder:text-gray-400
+          focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+          focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+          transition-all duration-200
+          ${mono ? 'font-spline-mono font-semibold tracking-[0.5px]' : ''}
+        `}
+      />
+      {displayedError ? <FieldError>{displayedError}</FieldError> : hint ? <FieldHint>{hint}</FieldHint> : null}
+    </div>
+  )
+}
+
+/** Toggle V4 Light Premium — local à la section Entreprise */
+function PremiumToggle({
+  label, checked, onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200">
+      <span className="font-hanken font-medium text-[14.5px] text-[#0f1a3a]">{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={`relative w-11 h-6 rounded-full transition-colors ${
+          checked
+            ? 'bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d] shadow-[0_2px_8px_rgba(255,122,26,0.35)]'
+            : 'bg-gray-300'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
+/** Sous-titre de groupe (Identité / Coordonnées / etc.) avec ligne dégradée */
+function GroupTitle({ children, mt = 'mt-10' }: { children: ReactNode; mt?: string }) {
+  return (
+    <div className={`${mt} mb-4 flex items-center gap-3`}>
+      <span className="font-hanken font-bold text-[11.5px] uppercase tracking-[0.12em] text-[#ff7a1a]">
+        {children}
+      </span>
+      <span className="flex-1 h-px bg-gradient-to-r from-[#ff7a1a]/20 to-transparent" />
+    </div>
+  )
+}
+
+/** Bandeau d'info (bleu = info, ambre = obligation légale) */
+function InfoBanner({ tone = 'info', children }: { tone?: 'info' | 'warn'; children: ReactNode }) {
+  return (
+    <div
+      className={`mb-4 rounded-xl px-4 py-3 border ${
+        tone === 'warn'
+          ? 'bg-amber-50/80 border-amber-200/70 text-amber-800'
+          : 'bg-blue-50/80 border-blue-200/70 text-blue-800'
+      }`}
+    >
+      <p className="font-hanken text-sm leading-relaxed">{children}</p>
+    </div>
+  )
+}
+
 function EntrepriseSection({
   entreprise,
   update,
@@ -414,128 +537,327 @@ function EntrepriseSection({
     }
   }
 
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-8">
-      <h2 className="font-syne font-bold text-xl text-[#1a1a2e] mb-6">
-        Informations de l&apos;entreprise
-      </h2>
+  // ------------------------------------------------------------------
+  // Détection : l'entreprise a-t-elle déjà été configurée ? (pour badge)
+  // On considère qu'elle l'est si au moins le SIRET est rempli.
+  // ------------------------------------------------------------------
+  const isConfigured = !!(entreprise?.siret && (entreprise.siret as string).trim() !== '')
 
-      {/* Logo upload with background removal */}
+  return (
+    <div
+      className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-8 overflow-hidden
+                 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
+    >
+      {/* Accent line orange en haut de la card */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
+      />
+
+      {/* ============ HEADER : icône + titre + sous-titre + badge ============ */}
+      <div className="flex items-start gap-4 mb-8">
+        {/* Icône Building (40px, gradient orange, ombre douce) */}
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                     bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                     shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1" />
+          </svg>
+        </div>
+
+        {/* Titre + sous-titre + badge éventuel */}
+        <div className="flex-1 min-w-0">
+          <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+            Profil entreprise
+          </h2>
+          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+            <p className="font-hanken font-medium text-sm text-gray-500">
+              Vos informations légales et coordonnées professionnelles
+            </p>
+            {isConfigured && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                           bg-gradient-to-br from-emerald-100/80 to-emerald-50
+                           text-emerald-700 border border-emerald-200/60
+                           text-[11.5px] font-hanken font-bold tracking-wider uppercase"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Configuré
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ============ LOGO UPLOAD (composant existant, non touché) ============ */}
       <LogoUploadSection entreprise={entreprise} update={update} />
 
-            {/* Identité de l'entreprise */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-2">Identité</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InputField label="Nom de l'entreprise" value={nom} onChange={setNom} />
-        <Select
-          label="Forme juridique"
-          value={formeJuridique}
-          onChange={(e) => {
-            const newForme = e.target.value
-            setFormeJuridique(newForme)
-            // Auto : micro-entrepreneurs sont quasi toujours en franchise de TVA
-            // (sauf si dépassement du seuil). On coche automatiquement pour gagner du temps.
-            if (newForme === 'Micro-entreprise' || newForme === 'EI') {
-              setFranchiseTva(true)
-            }
-          }}
-        >
-          <option value="">-- Choisir --</option>
-          <option value="EI">EI (Entreprise Individuelle)</option>
-          <option value="Micro-entreprise">Micro-entreprise (Auto-entrepreneur)</option>
-          <option value="EURL">EURL</option>
-          <option value="SARL">SARL</option>
-          <option value="SAS">SAS</option>
-          <option value="SASU">SASU</option>
-        </Select>
-        <InputField label="SIRET" value={siret} onChange={setSiret} placeholder="123 456 789 00012" error={validateSiret(siret)} hint="14 chiffres (espaces tolérés)" />
-        <InputField label="N° TVA intracommunautaire" value={tva} onChange={setTva} placeholder="FR 12 345678901" error={validateTva(tva)} hint="FR + 11 chiffres" />
-        <InputField label="Code NAF" value={naf} onChange={setNaf} placeholder="4322A" error={validateNaf(naf)} hint="4 chiffres + 1 lettre (ex : 4322A)" />
-        <InputField label="RCS / RM (n° + ville)" value={rcsRm} onChange={setRcsRm} placeholder="RM Bordeaux 123456789" error={validateRcsRm(rcsRm)} hint='"RCS" ou "RM" + ville + SIREN (9 chiffres)' />
-        <InputField label="Capital social" value={capitalSocial} onChange={setCapitalSocial} placeholder="10 000 € (laisser vide si EI)" />
-        <InputField label="Métier / activité" value={metier} onChange={setMetier} />
-        {/* Qualification professionnelle retirée — champ inutile pour l'artisan */}
+      {/* ============ IDENTITÉ ============ */}
+      <GroupTitle mt="mt-8">Identité</GroupTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <PremiumInput label="Nom de l'entreprise" value={nom} onChange={setNom} />
+
+        {/* Forme juridique : Select natif stylé V4 (on garde le <Select> partagé serait visuel non cohérent, on inline ici) */}
+        <div>
+          <FieldLabel>Forme juridique</FieldLabel>
+          <select
+            value={formeJuridique}
+            onChange={(e) => {
+              const newForme = e.target.value
+              setFormeJuridique(newForme)
+              // Auto : micro-entrepreneurs / EI sont quasi toujours en franchise de TVA
+              if (newForme === 'Micro-entreprise' || newForme === 'EI') {
+                setFranchiseTva(true)
+              }
+            }}
+            className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                       font-hanken font-medium text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                       focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                       focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                       transition-all duration-200 cursor-pointer"
+          >
+            <option value="">-- Choisir --</option>
+            <option value="EI">EI (Entreprise Individuelle)</option>
+            <option value="Micro-entreprise">Micro-entreprise (Auto-entrepreneur)</option>
+            <option value="EURL">EURL</option>
+            <option value="SARL">SARL</option>
+            <option value="SAS">SAS</option>
+            <option value="SASU">SASU</option>
+          </select>
+        </div>
+
+        {/* SIRET — police mono "chiffres comptables" */}
+        <PremiumInput
+          label="SIRET"
+          value={siret}
+          onChange={setSiret}
+          placeholder="123 456 789 00012"
+          error={validateSiret(siret)}
+          hint="14 chiffres (espaces tolérés)"
+          mono
+        />
+
+        <PremiumInput
+          label="N° TVA intracommunautaire"
+          value={tva}
+          onChange={setTva}
+          placeholder="FR 12 345678901"
+          error={validateTva(tva)}
+          hint="FR + 11 chiffres"
+          mono
+        />
+
+        {/* Code NAF/APE — police mono également */}
+        <PremiumInput
+          label="Code NAF"
+          value={naf}
+          onChange={setNaf}
+          placeholder="4322A"
+          error={validateNaf(naf)}
+          hint="4 chiffres + 1 lettre (ex : 4322A)"
+          mono
+        />
+
+        <PremiumInput
+          label="RCS / RM (n° + ville)"
+          value={rcsRm}
+          onChange={setRcsRm}
+          placeholder="RM Bordeaux 123456789"
+          error={validateRcsRm(rcsRm)}
+          hint='"RCS" ou "RM" + ville + SIREN (9 chiffres)'
+        />
+
+        <PremiumInput
+          label="Capital social"
+          value={capitalSocial}
+          onChange={setCapitalSocial}
+          placeholder="10 000 € (laisser vide si EI)"
+        />
+
+        <PremiumInput
+          label="Métier / activité"
+          value={metier}
+          onChange={setMetier}
+        />
+        {/* qualificationPro conservé en state (rétro-compat handleSave) mais UI retirée */}
       </div>
 
-      {/* TVA */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Régime TVA</p>
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4">
-        <p className="text-sm text-blue-700 font-manrope">Si vous êtes en franchise de TVA (micro-entreprise sous les seuils, ou EI non assujettie), activez cette option. La mention légale &quot;TVA non applicable — art. 293 B du CGI&quot; sera ajoutée automatiquement sur tous vos devis et factures.</p>
-      </div>
-      <div className="flex items-center">
-        <ToggleSwitch label="Franchise en base de TVA (non assujetti)" checked={franchiseTva} onChange={setFranchiseTva} />
+      {/* ============ RÉGIME TVA ============ */}
+      <GroupTitle>Régime TVA</GroupTitle>
+      <InfoBanner tone="info">
+        Si vous êtes en franchise de TVA (micro-entreprise sous les seuils, ou EI non assujettie),
+        activez cette option. La mention légale «&nbsp;TVA non applicable — art. 293 B du CGI&nbsp;»
+        sera ajoutée automatiquement sur tous vos devis et factures.
+      </InfoBanner>
+      <PremiumToggle
+        label="Franchise en base de TVA (non assujetti)"
+        checked={franchiseTva}
+        onChange={setFranchiseTva}
+      />
+
+      {/* ============ COORDONNÉES ============ */}
+      <GroupTitle>Coordonnées</GroupTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <PremiumInput label="Adresse" value={adresse} onChange={setAdresse} />
+        <PremiumInput
+          label="Code postal"
+          value={codePostal}
+          onChange={setCodePostal}
+          error={validateCodePostal(codePostal)}
+          hint="5 chiffres"
+          mono
+        />
+        <PremiumInput label="Ville" value={ville} onChange={setVille} />
+        <PremiumInput
+          label="Téléphone"
+          value={telephone}
+          onChange={setTelephone}
+          error={validateTelephone(telephone)}
+          hint="06 12 34 56 78 ou +33..."
+        />
+        <PremiumInput
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          error={validateEmail(email)}
+        />
       </div>
 
-      {/* Coordonnées */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Coordonnées</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InputField label="Adresse" value={adresse} onChange={setAdresse} />
-        <InputField label="Code postal" value={codePostal} onChange={setCodePostal} error={validateCodePostal(codePostal)} hint="5 chiffres" />
-        <InputField label="Ville" value={ville} onChange={setVille} />
-        <InputField label="Téléphone" value={telephone} onChange={setTelephone} error={validateTelephone(telephone)} hint="06 12 34 56 78 ou +33..." />
-        <InputField label="Email" value={email} onChange={setEmail} error={validateEmail(email)} />
-      </div>
-
-      {/* Assurance décennale */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Assurance décennale</p>
-      <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
-        <p className="text-sm text-amber-700 font-manrope">Obligatoire sur tous vos devis et factures (amende jusqu’à 75 000 €). Ces informations apparaîtront automatiquement sur vos documents.</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InputField label="Nom de l'assureur" value={assuranceNom} onChange={setAssuranceNom} placeholder="AXA, MAAF, SMABTP..." />
-        <InputField label="N° de police" value={decennale} onChange={setDecennale} placeholder="POL-2024-XXXXX" />
-        <InputField label="Zone géographique couverte" value={assuranceZone} onChange={setAssuranceZone} placeholder="France entière" />
+      {/* ============ ASSURANCE DÉCENNALE ============ */}
+      <GroupTitle>Assurance décennale</GroupTitle>
+      <InfoBanner tone="warn">
+        Obligatoire sur tous vos devis et factures (amende jusqu&apos;à 75&nbsp;000&nbsp;€).
+        Ces informations apparaîtront automatiquement sur vos documents.
+      </InfoBanner>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <PremiumInput
+          label="Nom de l'assureur"
+          value={assuranceNom}
+          onChange={setAssuranceNom}
+          placeholder="AXA, MAAF, SMABTP..."
+        />
+        <PremiumInput
+          label="N° de police"
+          value={decennale}
+          onChange={setDecennale}
+          placeholder="POL-2024-XXXXX"
+        />
+        <PremiumInput
+          label="Zone géographique couverte"
+          value={assuranceZone}
+          onChange={setAssuranceZone}
+          placeholder="France entière"
+        />
         <div className="flex items-end">
-          <ToggleSwitch label="Certification RGE" checked={rge} onChange={setRge} />
+          <div className="w-full">
+            <PremiumToggle label="Certification RGE" checked={rge} onChange={setRge} />
+          </div>
         </div>
       </div>
 
-      {/* Horaires de travail par défaut — propagés au planning (créneaux matin/après-midi/journée) */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Horaires de travail par défaut</p>
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4">
-        <p className="text-sm text-blue-700 font-manrope">Ces horaires sont utilisés par défaut pour les créneaux Matin / Après-midi / Journée entière du planning. Tu peux les modifier ici.</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InputField label="Début matin" type="time" value={heureDebutMatin} onChange={setHeureDebutMatin} />
-        <InputField label="Fin matin" type="time" value={heureFinMatin} onChange={setHeureFinMatin} />
-        <InputField label="Début après-midi" type="time" value={heureDebutAm} onChange={setHeureDebutAm} />
-        <InputField label="Fin après-midi" type="time" value={heureFinAm} onChange={setHeureFinAm} />
+      {/* ============ HORAIRES DE TRAVAIL ============ */}
+      <GroupTitle>Horaires de travail par défaut</GroupTitle>
+      <InfoBanner tone="info">
+        Ces horaires sont utilisés par défaut pour les créneaux Matin / Après-midi / Journée entière
+        du planning. Vous pouvez les modifier ici.
+      </InfoBanner>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <PremiumInput label="Début matin" type="time" value={heureDebutMatin} onChange={setHeureDebutMatin} mono />
+        <PremiumInput label="Fin matin" type="time" value={heureFinMatin} onChange={setHeureFinMatin} mono />
+        <PremiumInput label="Début après-midi" type="time" value={heureDebutAm} onChange={setHeureDebutAm} mono />
+        <PremiumInput label="Fin après-midi" type="time" value={heureFinAm} onChange={setHeureFinAm} mono />
       </div>
 
-      {/* Médiateur — 4 champs séparés pour faciliter la saisie et l'affichage propre sur PDF */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Médiateur de la consommation</p>
-      <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
-        <p className="text-sm text-amber-700 font-manrope">Obligatoire depuis 2016 sur tous vos documents commerciaux (art. L612-1 du Code de la consommation).</p>
+      {/* ============ MÉDIATEUR DE LA CONSOMMATION ============ */}
+      <GroupTitle>Médiateur de la consommation</GroupTitle>
+      <InfoBanner tone="warn">
+        Obligatoire depuis 2016 sur tous vos documents commerciaux
+        (art. L612-1 du Code de la consommation).
+      </InfoBanner>
+      <div className="grid grid-cols-1 gap-5">
+        <PremiumInput
+          label="Nom du médiateur"
+          value={mediateurNom}
+          onChange={setMediateurNom}
+          placeholder="Ex : Médiation de la consommation — CM2C"
+        />
       </div>
-      <div className="grid grid-cols-1 gap-6">
-        <InputField label="Nom du médiateur" value={mediateurNom} onChange={setMediateurNom} placeholder="Ex : Médiation de la consommation — CM2C" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <InputField label="Adresse" value={mediateurAdresse} onChange={setMediateurAdresse} placeholder="14 rue Saint-Jean" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+        <PremiumInput
+          label="Adresse"
+          value={mediateurAdresse}
+          onChange={setMediateurAdresse}
+          placeholder="14 rue Saint-Jean"
+        />
         <div className="grid grid-cols-2 gap-4">
-          <InputField label="Code postal" value={mediateurCodePostal} onChange={setMediateurCodePostal} placeholder="75017" />
-          <InputField label="Ville" value={mediateurVille} onChange={setMediateurVille} placeholder="Paris" />
+          <PremiumInput
+            label="Code postal"
+            value={mediateurCodePostal}
+            onChange={setMediateurCodePostal}
+            placeholder="75017"
+            mono
+          />
+          <PremiumInput
+            label="Ville"
+            value={mediateurVille}
+            onChange={setMediateurVille}
+            placeholder="Paris"
+          />
         </div>
       </div>
 
-      {/* Bancaire */}
-      <p className="text-xs font-manrope text-gray-400 uppercase tracking-wider mb-3 mt-8">Informations bancaires</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InputField label="IBAN" type="password" value={iban} onChange={setIban} />
-        <InputField label="BIC" value={bic} onChange={setBic} />
+      {/* ============ INFORMATIONS BANCAIRES ============ */}
+      <GroupTitle>Informations bancaires</GroupTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <PremiumInput label="IBAN" type="password" value={iban} onChange={setIban} mono />
+        <PremiumInput label="BIC" value={bic} onChange={setBic} mono />
       </div>
 
+      {/* ============ ERREURS DE VALIDATION (récap) ============ */}
       {hasValidationErrors && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm font-manrope font-bold text-red-700 mb-1">
+        <div className="mt-8 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-red-50/50 px-5 py-4">
+          <p className="text-sm font-hanken font-bold text-red-700 mb-2">
             {validationErrors.length} erreur{validationErrors.length > 1 ? 's' : ''} à corriger avant d&apos;enregistrer
           </p>
-          <ul className="list-disc list-inside text-xs text-red-600 font-manrope space-y-0.5">
+          <ul className="list-disc list-inside text-xs text-red-600 font-hanken space-y-0.5">
             {validationErrors.map((e, i) => <li key={i}>{e}</li>)}
           </ul>
         </div>
       )}
-      <SaveButton onClick={handleSave} saving={saving} disabled={hasValidationErrors} />
+
+      {/* ============ BOUTON ENREGISTRER — V4 Premium ============ */}
+      <div className="mt-10 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving || hasValidationErrors}
+          title={hasValidationErrors ? 'Corrigez les erreurs avant d\'enregistrer' : ''}
+          className="
+            inline-flex items-center gap-2.5
+            h-[52px] px-9 rounded-[14px]
+            bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
+            text-white font-hanken font-extrabold text-[15px] tracking-[-0.01em]
+            shadow-[0_8px_24px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.3)]
+            hover:-translate-y-0.5 hover:brightness-105
+            hover:shadow-[0_12px_32px_rgba(255,122,26,0.45),_inset_0_1px_0_rgba(255,255,255,0.4)]
+            active:translate-y-0
+            transition-all duration-[250ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+            disabled:hover:shadow-[0_8px_24px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.3)]
+          "
+        >
+          {/* Icône check */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
+        </button>
+      </div>
+
       <SuccessMessage message={success} />
       <ErrorMessage message={errorMsg} />
     </div>
