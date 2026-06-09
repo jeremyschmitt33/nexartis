@@ -12,6 +12,7 @@ import {
   PenTool,
   Palette,
   PlayCircle,
+  Smartphone,
 } from 'lucide-react'
 import {
   useEntreprise,
@@ -40,6 +41,7 @@ type Section =
   | 'compte'
   | 'signature'
   | 'apparence'
+  | 'application'
 
 interface NavItem {
   id: Section
@@ -53,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'facturation', label: 'Facturation', icon: Receipt },
   { id: 'signature', label: 'Ma signature', icon: PenTool },
   { id: 'apparence', label: 'Apparence', icon: Palette },
+  { id: 'application', label: 'Application', icon: Smartphone },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'compte', label: 'Compte', icon: User },
 ]
@@ -1323,9 +1326,11 @@ function FacturationSection({
 // Section "Apparence" : couleur sidebar + thème des devis/factures.
 // Le DocumentThemePicker gère sa propre persistence via /api/parametres/document-theme.
 // ============ ApparenceSection — V4 Light Premium ============
-// 2 cartes : (1) Thème dashboard + ThemeSelector ; (2) Installer Nexartis (PWA).
-// Les composants externes ThemeSelector, InstallPrompt, LogoThemeProposals,
+// 1 carte principale : Thème dashboard + ThemeSelector.
+// Les composants externes ThemeSelector, LogoThemeProposals,
 // LogoCustomization, DocumentThemePicker sont laissés tels quels (non touchés).
+// Note : la sous-carte "Installer Nexartis comme application" (PWA) a été déplacée
+// dans la nouvelle section "Application" — voir ApplicationSection plus bas.
 function ApparenceSection() {
   return (
     <div className="space-y-6">
@@ -1373,9 +1378,36 @@ function ApparenceSection() {
         </p>
       </div>
 
-      {/* ============ Carte Installer Nexartis (PWA) ============ */}
+      {/* V3.1 : Themes auto-generes a partir des couleurs du logo */}
+      <LogoThemeProposals />
+      {/* V3.1 : Personnalisation de l'incrustation du logo (style + tailles) */}
+      <LogoCustomization />
+      <DocumentThemePicker />
+    </div>
+  )
+}
+
+// ============ ApplicationSection — V4 Light Premium ============
+// Onglet dédié à la PWA installable.
+// Regroupe : installation (InstallPrompt), état actuel (statut/version/mode),
+// info mises à jour automatiques, et conseils de désinstallation si installée.
+// La détection du mode standalone se fait côté client uniquement (window/navigator).
+function ApplicationSection() {
+  const [isInstalled, setIsInstalled] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as { standalone?: boolean }).standalone === true
+    setIsInstalled(standalone)
+  }, [])
+
+  return (
+    <div className="space-y-6">
+      {/* ============ Carte principale Application ============ */}
       <div
-        className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 sm:p-8 overflow-hidden
+        className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] overflow-hidden
                    shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
       >
         {/* Accent line orange */}
@@ -1384,38 +1416,100 @@ function ApparenceSection() {
           className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90"
         />
 
-        {/* Header iconique Smartphone */}
-        <div className="flex items-start gap-4 mb-6">
-          <div
-            className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
-                       bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
-                       shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-              <line x1="12" y1="18" x2="12.01" y2="18" />
-            </svg>
+        <div className="p-6 sm:p-8">
+          {/* Header iconique Smartphone */}
+          <div className="flex items-start gap-4 mb-8">
+            <div
+              className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white
+                         bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d]
+                         shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)]"
+            >
+              <Smartphone size={22} strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+                  Application Nexartis
+                </h2>
+                {isInstalled && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 font-hanken font-semibold text-[11px] uppercase tracking-wider text-emerald-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Installée
+                  </span>
+                )}
+              </div>
+              <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
+                Installation et mise à jour de votre app
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
-              Installer Nexartis comme application
-            </h2>
-            <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
-              Ajoutez Nexartis à votre écran d&apos;accueil pour y accéder en un clic, sans passer par le navigateur. Disponible sur Chrome Android, Edge, et la plupart des navigateurs modernes.
-            </p>
-          </div>
-        </div>
-        <InstallPrompt theme="dashboard" />
-        <p className="mt-4 font-hanken text-xs text-gray-500">
-          Si le bouton ne s&apos;affiche pas, votre navigateur a peut-être déjà proposé l&apos;installation ou la prend en charge différemment (ex : Safari iOS via «&nbsp;Partager &gt; Sur l&apos;écran d&apos;accueil&nbsp;»).
-        </p>
-      </div>
 
-      {/* V3.1 : Themes auto-generes a partir des couleurs du logo */}
-      <LogoThemeProposals />
-      {/* V3.1 : Personnalisation de l'incrustation du logo (style + tailles) */}
-      <LogoCustomization />
-      <DocumentThemePicker />
+          {/* ============ Bloc 1 : Installation ============ */}
+          <GroupTitle mt="mt-2">Installer sur votre appareil</GroupTitle>
+          <p className="font-hanken text-sm text-gray-600 leading-relaxed mb-4">
+            Ajoutez Nexartis à votre écran d&apos;accueil pour y accéder en un clic, sans navigateur. Disponible sur Chrome Android, Edge Desktop, et la plupart des navigateurs modernes.
+          </p>
+          <InstallPrompt theme="dashboard" />
+          <p className="mt-4 font-hanken text-xs text-gray-500 leading-relaxed">
+            Si le bouton ne s&apos;affiche pas, votre navigateur a peut-être déjà proposé l&apos;installation, ou la prend en charge différemment (ex : Safari iOS via «&nbsp;Partager &gt; Sur l&apos;écran d&apos;accueil&nbsp;»).
+          </p>
+
+          {/* ============ Bloc 2 : État actuel ============ */}
+          <GroupTitle mt="mt-10">État de l&apos;application</GroupTitle>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Carte Statut */}
+            <div className="rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 px-4 py-3">
+              <p className="font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-500">
+                Statut
+              </p>
+              <p className="mt-1.5 font-hanken font-semibold text-[14.5px] text-[#0f1a3a]">
+                {isInstalled ? 'Installée' : 'Non installée'}
+              </p>
+              {!isInstalled && (
+                <p className="mt-0.5 font-hanken text-xs text-gray-500">
+                  Mode navigateur
+                </p>
+              )}
+            </div>
+
+            {/* Carte Version */}
+            <div className="rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 px-4 py-3">
+              <p className="font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-500">
+                Version
+              </p>
+              <p className="mt-1.5 font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] tracking-[0.5px]">
+                1.0.0
+              </p>
+            </div>
+
+            {/* Carte Mode */}
+            <div className="rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 px-4 py-3">
+              <p className="font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-500">
+                Mode
+              </p>
+              <p className="mt-1.5 font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] tracking-[0.5px]">
+                {isInstalled ? 'Standalone' : 'Browser'}
+              </p>
+            </div>
+          </div>
+
+          {/* ============ Bloc 3 : Mises à jour ============ */}
+          <GroupTitle mt="mt-10">Mises à jour automatiques</GroupTitle>
+          <p className="font-hanken text-sm text-gray-600 leading-relaxed">
+            Nexartis se met à jour automatiquement à chaque ouverture. Une notification «&nbsp;Nouvelle version disponible&nbsp;» apparaîtra en bas à droite dès qu&apos;une mise à jour sera prête.
+          </p>
+
+          {/* ============ Bloc 4 : Désinstallation (si installée) ============ */}
+          {isInstalled && (
+            <>
+              <GroupTitle mt="mt-10">Désinstaller</GroupTitle>
+              <p className="font-hanken text-sm text-gray-600 leading-relaxed">
+                Pour désinstaller Nexartis, ouvrez les paramètres de votre navigateur ou faites un appui long sur l&apos;icône de l&apos;app sur votre écran d&apos;accueil.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -2609,6 +2703,7 @@ export default function ParametresPage() {
         {activeSection === 'facturation' && entreprise && <FacturationSection entreprise={entreprise} update={update} />}
         {activeSection === 'signature' && entreprise && <SignatureSection entreprise={entreprise} update={update} />}
         {activeSection === 'apparence' && <ApparenceSection />}
+        {activeSection === 'application' && <ApplicationSection />}
         {activeSection === 'notifications' && entreprise && <NotificationsSection entreprise={entreprise} update={update} />}
         {activeSection === 'compte' && <CompteSection userEmail={user?.email || ''} />}
       </div>

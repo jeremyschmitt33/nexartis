@@ -8,6 +8,7 @@ import FeaturesSection from '@/components/FeaturesSection'
 import ForcesSection from '@/components/ForcesSection'
 import PlanningDemoSection from '@/components/PlanningDemoSection'
 import PricingSection from '@/components/PricingSection'
+import MobileSection from '@/components/landing/MobileSection'
 import FaqSection from '@/components/FaqSection'
 import CtaSection from '@/components/CtaSection'
 import ScrollReveal from '@/components/ScrollReveal'
@@ -44,6 +45,7 @@ export default function HomePage() {
         <ForcesSection />
         <PlanningDemoSection />
         <PricingSection />
+        <MobileSection />
         <FaqSection />
         <CtaSection />
       </div>
