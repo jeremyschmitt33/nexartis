@@ -1387,25 +1387,17 @@ function ApparenceSection() {
   )
 }
 
-// ============ ApplicationSection — V4 Light Premium ============
-// Onglet dédié à la PWA installable.
-// Regroupe : installation (InstallPrompt), état actuel (statut/version/mode),
-// info mises à jour automatiques, et conseils de désinstallation si installée.
-// La détection du mode standalone se fait côté client uniquement (window/navigator).
+// ============ ApplicationSection — V4 Light Premium (V2 simplifiee 09/06/2026) ============
+// Onglet dedie a la PWA installable.
+// V2 : on a retire le bloc "Etat de l'application" (Statut/Version/Mode) car
+// il pretait a confusion : l'etat est lie au navigateur courant, pas
+// synchronise entre appareils. Un user installait sur son tel mais sur PC
+// ca affichait "Non installee" — incomprehensible.
+// On garde : rappel d'installation + bouton + 1 message clair sur le
+// caractere "par appareil" + infos mises a jour auto.
 function ApplicationSection() {
-  const [isInstalled, setIsInstalled] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as { standalone?: boolean }).standalone === true
-    setIsInstalled(standalone)
-  }, [])
-
   return (
     <div className="space-y-6">
-      {/* ============ Carte principale Application ============ */}
       <div
         className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] overflow-hidden
                    shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]"
@@ -1427,87 +1419,38 @@ function ApplicationSection() {
               <Smartphone size={22} strokeWidth={2} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
-                  Application Nexartis
-                </h2>
-                {isInstalled && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 font-hanken font-semibold text-[11px] uppercase tracking-wider text-emerald-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Installée
-                  </span>
-                )}
-              </div>
+              <h2 className="font-hanken font-extrabold text-2xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">
+                Application Nexartis
+              </h2>
               <p className="font-hanken font-medium text-sm text-gray-500 mt-1.5">
-                Installation et mise à jour de votre app
+                Installation et mises a jour
               </p>
             </div>
           </div>
 
-          {/* ============ Bloc 1 : Installation ============ */}
-          <GroupTitle mt="mt-2">Installer sur votre appareil</GroupTitle>
+          {/* Bloc Installation */}
+          <GroupTitle mt="mt-2">Installer sur cet appareil</GroupTitle>
           <p className="font-hanken text-sm text-gray-600 leading-relaxed mb-4">
-            Ajoutez Nexartis à votre écran d&apos;accueil pour y accéder en un clic, sans navigateur. Disponible sur Chrome Android, Edge Desktop, et la plupart des navigateurs modernes.
+            Ajoutez Nexartis a votre ecran d&apos;accueil pour y acceder en un clic, sans passer par le navigateur. Devis, factures, planning, equipe — tout reste a portee de main, meme en chantier.
           </p>
           <InstallPrompt theme="dashboard" />
           <p className="mt-4 font-hanken text-xs text-gray-500 leading-relaxed">
-            Si le bouton ne s&apos;affiche pas, votre navigateur a peut-être déjà proposé l&apos;installation, ou la prend en charge différemment (ex : Safari iOS via «&nbsp;Partager &gt; Sur l&apos;écran d&apos;accueil&nbsp;»).
+            Si le bouton ne s&apos;affiche pas, votre navigateur a peut-etre deja propose l&apos;installation, ou la prend en charge differemment (ex&nbsp;: Safari iOS via «&nbsp;Partager &gt; Sur l&apos;ecran d&apos;accueil&nbsp;»).
           </p>
 
-          {/* ============ Bloc 2 : État actuel ============ */}
-          <GroupTitle mt="mt-10">État de l&apos;application</GroupTitle>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Carte Statut */}
-            <div className="rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 px-4 py-3">
-              <p className="font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-500">
-                Statut
-              </p>
-              <p className="mt-1.5 font-hanken font-semibold text-[14.5px] text-[#0f1a3a]">
-                {isInstalled ? 'Installée' : 'Non installée'}
-              </p>
-              {!isInstalled && (
-                <p className="mt-0.5 font-hanken text-xs text-gray-500">
-                  Mode navigateur
-                </p>
-              )}
-            </div>
-
-            {/* Carte Version */}
-            <div className="rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 px-4 py-3">
-              <p className="font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-500">
-                Version
-              </p>
-              <p className="mt-1.5 font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] tracking-[0.5px]">
-                1.0.0
-              </p>
-            </div>
-
-            {/* Carte Mode */}
-            <div className="rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 px-4 py-3">
-              <p className="font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-500">
-                Mode
-              </p>
-              <p className="mt-1.5 font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] tracking-[0.5px]">
-                {isInstalled ? 'Standalone' : 'Browser'}
-              </p>
-            </div>
+          {/* Bloc Multi-appareils */}
+          <GroupTitle mt="mt-10">A faire sur chaque appareil</GroupTitle>
+          <div className="rounded-xl bg-[#fff5ec] border border-[#ff7a1a]/30 px-4 py-3.5">
+            <p className="font-hanken text-sm text-[#0f1a3a] leading-relaxed">
+              <span className="font-bold">L&apos;installation est independante par appareil.</span> Pour avoir Nexartis sur votre telephone <em>et</em> sur votre ordinateur, vous devez ouvrir <span className="font-spline-mono font-medium text-[13px]">nexartis.fr</span> sur chacun et installer separement. Vos donnees restent les memes (synchronisees via votre compte).
+            </p>
           </div>
 
-          {/* ============ Bloc 3 : Mises à jour ============ */}
-          <GroupTitle mt="mt-10">Mises à jour automatiques</GroupTitle>
+          {/* Bloc Mises a jour */}
+          <GroupTitle mt="mt-10">Mises a jour automatiques</GroupTitle>
           <p className="font-hanken text-sm text-gray-600 leading-relaxed">
-            Nexartis se met à jour automatiquement à chaque ouverture. Une notification «&nbsp;Nouvelle version disponible&nbsp;» apparaîtra en bas à droite dès qu&apos;une mise à jour sera prête.
+            Nexartis se met a jour automatiquement a chaque ouverture. Une notification «&nbsp;Nouvelle version disponible&nbsp;» apparait en bas a droite des qu&apos;une mise a jour est prete.
           </p>
-
-          {/* ============ Bloc 4 : Désinstallation (si installée) ============ */}
-          {isInstalled && (
-            <>
-              <GroupTitle mt="mt-10">Désinstaller</GroupTitle>
-              <p className="font-hanken text-sm text-gray-600 leading-relaxed">
-                Pour désinstaller Nexartis, ouvrez les paramètres de votre navigateur ou faites un appui long sur l&apos;icône de l&apos;app sur votre écran d&apos;accueil.
-              </p>
-            </>
-          )}
         </div>
       </div>
     </div>

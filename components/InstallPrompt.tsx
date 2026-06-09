@@ -64,12 +64,17 @@ export default function InstallPrompt({
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Cas "déjà installée" → on ne capture même pas l'event.
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      // iOS Safari : propriété non standard mais fiable.
-      (navigator as any).standalone === true
-    if (isStandalone) return
+    // V2 — Decision Jerem 09/06/2026 : on NE cache PLUS le bouton quand
+    // l'app est deja installee sur cet appareil. Raison : un artisan peut
+    // vouloir montrer la fonctionnalite a son equipe / sa femme / un client
+    // qui regarderaient son ecran. Si on cache le bouton apres install,
+    // la fonctionnalite devient invisible et on perd des installations
+    // potentielles sur d'autres appareils.
+    //
+    // Comportement actuel : si l'event beforeinstallprompt n'est PAS emis
+    // (navigateur dans la PWA installee, ou navigateur ne supportant pas)
+    // alors deferredPrompt reste null et le bouton ne s'affiche pas non plus.
+    // Pas de fausse promesse a l'utilisateur.
 
     // Cas "récemment refusée" → on ignore l'event pendant 7 jours.
     try {
@@ -91,8 +96,11 @@ export default function InstallPrompt({
     }
 
     const handleAppInstalled = () => {
-      // L'utilisateur a accepté → on cache notre bouton.
-      setDeferredPrompt(null)
+      // V2 (09/06/2026) : on ne cache plus le bouton apres acceptation.
+      // L'event ne sera de toute facon pas re-emis par le navigateur tant
+      // que les conditions PWA restent les memes — donc deferredPrompt
+      // restera naturellement null. On garde le handler pour le log.
+      console.log('[PWA] app installed event received')
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall)
@@ -161,7 +169,10 @@ export default function InstallPrompt({
       ? 'bg-[#e87a2a] hover:bg-[#f09050] text-white'
       : 'bg-accent hover:bg-accent-2 text-bgdark'
 
-  // ---------- Variante icône carrée 44x44 (mobile nav landing) ----------
+  // ---------- Variante "icone + label App" (mobile nav landing) ----------
+  // V2 (09/06/2026) : Jerem a remonte qu'une icone seule n'est pas reconnue
+  // par les visiteurs comme bouton d'installation. On ajoute un label
+  // "App" pour rendre le CTA explicite tout en restant compact.
   if (iconOnly) {
     return (
       <button
@@ -169,16 +180,17 @@ export default function InstallPrompt({
         onClick={handleInstallClick}
         className={[
           colorClasses,
-          // Touch target standard 44x44, border-radius cohérent avec le burger
-          // adjacent (qui est en rounded-[10px]) — on prend rounded-[12px]
-          // pour une légère différenciation visuelle entre les deux carrés.
-          'inline-flex items-center justify-center w-11 h-11 rounded-[12px]',
+          // Pilule compacte avec icone + texte court "App".
+          // Hauteur 44px = touch target standard iOS/Android.
+          'inline-flex items-center gap-1.5 h-11 px-3 rounded-[12px]',
+          'font-hanken font-bold text-[12.5px]',
           'shadow-[0_0_20px_rgba(255,122,26,0.4)] transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark',
         ].join(' ')}
         aria-label="Installer l'application Nexartis sur cet appareil"
       >
-        {downloadIcon(20)}
+        {downloadIcon(16)}
+        App
       </button>
     )
   }

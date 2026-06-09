@@ -15,6 +15,7 @@ import {
 } from '@/lib/plans'
 import OnboardingTour from '@/components/OnboardingTour'
 import ContactFloatingButton from '@/components/dashboard/ContactFloatingButton'
+import InstallReminderBanner from '@/components/InstallReminderBanner'
 import { VoiceProvider } from '@/components/voice/VoiceProvider'
 import UniversalVoiceButton from '@/components/voice/UniversalVoiceButton'
 import {
@@ -882,6 +883,11 @@ export default function DashboardLayout({
       <div
         className="transition-all duration-200 md:ml-16 lg:ml-64"
       >
+        {/* Bandeau rappel installation PWA (cache 7j apres dismiss ou si deja installee) */}
+        <div className="print:hidden">
+          <InstallReminderBanner />
+        </div>
+
         {/* Bandeau expiration imminente (≤ 7 jours restants) */}
         {expirationInfo && (
           <div className="bg-orange-50 border-y border-orange-200 px-4 py-2.5 flex items-center justify-center gap-3 flex-wrap text-center print:hidden">

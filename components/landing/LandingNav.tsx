@@ -178,10 +178,14 @@ export default function LandingNav() {
           </Link>
 
           {/* CTA principal — gradient accent → accent-2 + glow.
-              Toujours visible (y compris mobile). */}
+              Toujours visible (y compris mobile).
+              V2 (09/06/2026) : taille reduite sur mobile (Jerem trouvait le
+              bouton "Mon espace" trop gros sur tel — debordait de la ligne).
+              Mobile <sm  : padding 3/1.5 + texte 12.5px
+              Tablet sm+   : padding 5/3 + texte 14.5px (taille d'origine). */}
           <Link
             href={isLoggedIn ? '/dashboard' : '/register'}
-            className="inline-flex items-center bg-gradient-to-br from-accent-2 to-accent text-white font-bold text-[14.5px] px-5 py-3 rounded-[13px] shadow-[0_8px_24px_-8px_rgba(255,122,26,0.55)] hover:shadow-[0_12px_32px_-8px_rgba(255,122,26,0.75)] hover:brightness-110 transition-[box-shadow,filter,transform] duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark"
+            className="inline-flex items-center bg-gradient-to-br from-accent-2 to-accent text-white font-bold text-[12.5px] sm:text-[14.5px] px-3 sm:px-5 py-1.5 sm:py-3 rounded-[10px] sm:rounded-[13px] shadow-[0_8px_24px_-8px_rgba(255,122,26,0.55)] hover:shadow-[0_12px_32px_-8px_rgba(255,122,26,0.75)] hover:brightness-110 transition-[box-shadow,filter,transform] duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark whitespace-nowrap"
           >
             {isLoggedIn ? 'Mon espace' : 'Essai gratuit'}
           </Link>
