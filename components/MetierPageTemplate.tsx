@@ -137,11 +137,29 @@ export default function MetierPageTemplate(props: MetierPageProps) {
     })),
   };
 
+  // Slug métier pour URL canonical (utilisé par Article + mainEntityOfPage)
+  // ⚠️ Les pages métier ont le préfixe "logiciel-devis-" (ex: /logiciel-devis-plombier)
+  // sauf pour les contextes locaux qui ont "logiciel-artisan-" (Bordeaux, Lyon, etc.)
+  const metierSlug = nom
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  // Correspondances spéciales pour les slugs qui ne sont pas le nom direct
+  const slugMap: Record<string, string> = {
+    "macon": "logiciel-devis-maconnerie",
+    "auto-entrepreneur": "logiciel-artisan-auto-entrepreneur",
+  };
+  const canonicalPath = slugMap[metierSlug] || `logiciel-devis-${metierSlug}`;
+  const canonicalUrl = `https://nexartis.fr/${canonicalPath}`;
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: metaTitle || h1,
     description: metaDescription || specificite,
+    image: "https://nexartis.fr/og-image.jpg",
     datePublished: PUBLISH_DATE,
     dateModified: PUBLISH_DATE,
     author: {
@@ -158,6 +176,10 @@ export default function MetierPageTemplate(props: MetierPageProps) {
         "@type": "ImageObject",
         url: "https://nexartis.fr/logo.png",
       },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": canonicalUrl,
     },
   };
 
@@ -185,6 +207,163 @@ export default function MetierPageTemplate(props: MetierPageProps) {
     ],
   };
 
+  // ── Schemas GEO additionnels (citabilité LLM) ─────────────────────────────
+  // Schema SoftwareApplication — Nexartis comme produit logiciel
+  const softwareApplicationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Nexartis",
+    description:
+      "Logiciel devis facture artisan BTP français. Gestion devis, factures, planning chantier, équipe, conforme Factur-X 2026.",
+    applicationCategory: "BusinessApplication",
+    applicationSubCategory: "Devis & Facturation",
+    operatingSystem: "Web (Windows, macOS, Linux, iOS, Android)",
+    url: "https://nexartis.fr",
+    inLanguage: "fr-FR",
+    offers: [
+      {
+        "@type": "Offer",
+        name: "Essentiel",
+        price: "15",
+        priceCurrency: "EUR",
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          price: "15",
+          priceCurrency: "EUR",
+          unitText: "MONTH",
+        },
+        description:
+          "Devis et factures illimités, mentions légales BTP automatiques, signature électronique, suivi des paiements.",
+        availability: "https://schema.org/InStock",
+        url: "https://nexartis.fr/tarifs",
+      },
+      {
+        "@type": "Offer",
+        name: "Complet",
+        price: "25",
+        priceCurrency: "EUR",
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          price: "25",
+          priceCurrency: "EUR",
+          unitText: "MONTH",
+        },
+        description:
+          "Tout l'Essentiel + planning chantier visuel + gestion d'équipe + dictée vocale IA + chantiers + Pacte de chantier.",
+        availability: "https://schema.org/InStock",
+        url: "https://nexartis.fr/tarifs",
+      },
+    ],
+    featureList: [
+      "Devis conformes BTP en moins de 2 minutes",
+      "TVA réduite automatique (5,5% / 10% / 20%)",
+      "Mention décennale obligatoire automatique",
+      "Conforme Factur-X 2026",
+      "Signature électronique native",
+      "Planning chantier visuel (offre Complet)",
+      "Dictée vocale IA (offre Complet)",
+      "Application installable PWA mobile",
+      "Données hébergées en France/Europe RGPD",
+    ],
+    publisher: {
+      "@type": "Organization",
+      name: "Nexartis",
+      url: "https://nexartis.fr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://nexartis.fr/images/logo-nexartis.png",
+      },
+    },
+  };
+
+  // Schema Organization — Nexartis (global, plus complet que celui dans Article)
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://nexartis.fr/#organization",
+    name: "Nexartis",
+    url: "https://nexartis.fr",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://nexartis.fr/images/logo-nexartis.png",
+      width: 512,
+      height: 512,
+    },
+    description:
+      "Logiciel français de devis-facture-planning pour artisans du BTP. Conçu à Bordeaux. Dès 15€ HT/mois.",
+    foundingDate: "2024",
+    foundingLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Le Haillan",
+        addressRegion: "Gironde",
+        addressCountry: "FR",
+      },
+    },
+    founder: {
+      "@type": "Person",
+      "@id": "https://nexartis.fr/#founder",
+      name: "Jérémy Schmitt",
+      jobTitle: "Fondateur de Nexartis",
+      description:
+        "À l'écoute des artisans du BTP, créateur du logiciel ultime pour leur quotidien.",
+    },
+    areaServed: {
+      "@type": "Country",
+      name: "France",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: "contact.nexartis@gmail.com",
+      availableLanguage: ["French"],
+      areaServed: "FR",
+    },
+    knowsLanguage: "fr-FR",
+    inLanguage: "fr-FR",
+  };
+
+  // Schema HowTo — créer un devis en 2 min
+  const howToJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `Créer un devis ${nom.toLowerCase()} en 2 minutes avec Nexartis`,
+    description: `Méthode rapide pour éditer un devis ${nom.toLowerCase()} conforme BTP depuis le chantier.`,
+    totalTime: "PT2M",
+    estimatedCost: {
+      "@type": "MonetaryAmount",
+      currency: "EUR",
+      value: "15",
+    },
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Ouvrir Nexartis",
+        text: "Lancez Nexartis depuis votre téléphone ou ordinateur. L'application est installable comme une PWA.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Sélectionner le client",
+        text: "Choisissez un client existant ou créez-en un nouveau en quelques secondes.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "Ajouter les prestations",
+        text: "Sélectionnez vos prestations habituelles dans la bibliothèque, ou saisissez-les rapidement. Le bon taux de TVA s'applique automatiquement.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Envoyer pour signature",
+        text: "Envoyez le devis par email. Votre client signe électroniquement depuis son téléphone.",
+      },
+    ],
+  };
+
   // Eyebrow catégorie pour le hero éditorial
   const categoryLabel = `Métier · ${nom}`;
 
@@ -202,6 +381,18 @@ export default function MetierPageTemplate(props: MetierPageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
       />
 
       {/* ═══════ Reading progress bar ═══════ */}
@@ -321,9 +512,9 @@ export default function MetierPageTemplate(props: MetierPageProps) {
           <MetierTOC items={METIER_SECTIONS} />
         </div>
 
-        <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-12">
+        <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-14">
           {/* ─── Colonne gauche : TOC sticky (desktop only via composant) ─── */}
-          <div className="hidden lg:block">
+          <div className="hidden lg:block lg:sticky lg:top-28 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
             <MetierTOC items={METIER_SECTIONS} />
           </div>
 

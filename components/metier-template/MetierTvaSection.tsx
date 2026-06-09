@@ -1,5 +1,7 @@
 "use client";
 
+import RichText from "./RichText";
+
 interface MetierTvaSectionProps {
   nom: string;
   tvaNotes: string;
@@ -26,13 +28,20 @@ export default function MetierTvaSection({
         TVA {nom.toLowerCase()} : les bons taux appliqués automatiquement
       </h2>
       <p className="mt-6 font-hanken text-base leading-relaxed text-[#0f1a3a]/80">
-        {tvaNotes}
+        <RichText text={tvaNotes} />
       </p>
 
       {paragrapheTva && (
-        <p className="mt-4 font-hanken text-base leading-relaxed text-[#0f1a3a]/75">
-          {paragrapheTva}
-        </p>
+        <div className="mt-4">
+          {paragrapheTva.split("\n\n").filter((p) => p.trim().length > 0).map((para, i) => (
+            <p
+              key={i}
+              className="mb-4 font-hanken text-base leading-relaxed text-[#0f1a3a]/75 last:mb-0"
+            >
+              <RichText text={para} />
+            </p>
+          ))}
+        </div>
       )}
 
       {/* ── Graphe SVG : répartition des 3 taux ── */}
@@ -147,13 +156,13 @@ export default function MetierTvaSection({
                     }`}
                   >
                     <td className="px-5 py-3 font-hanken text-sm text-[#0f1a3a]/85 sm:px-6">
-                      {row.type}
+                      <RichText text={row.type} />
                     </td>
                     <td className="px-5 py-3 text-center font-spline-mono text-sm font-semibold text-[#ff7a1a]">
                       {row.taux}
                     </td>
                     <td className="px-5 py-3 font-hanken text-sm text-[#0f1a3a]/65 sm:px-6">
-                      {row.conditions}
+                      <RichText text={row.conditions} />
                     </td>
                   </tr>
                 ))}
@@ -179,7 +188,7 @@ export default function MetierTvaSection({
                   aria-hidden="true"
                   className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[#3f7bff]"
                 />
-                <span>{point}</span>
+                <span><RichText text={point} /></span>
               </li>
             ))}
           </ul>

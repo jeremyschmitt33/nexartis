@@ -1,11 +1,15 @@
 "use client";
 
+import RichText from "./RichText";
+
 /**
  * MetierCasUsage — Section storytelling : raconte une scène concrète
  * où Nexartis sort l'artisan d'une galère typique de son métier.
  *
  * Fallback : si la prop n'est pas fournie, on génère un scénario générique
  * basé sur le nom du métier (pour rétrocompatibilité des 13 data files).
+ *
+ * Le texte `scene` est parsé via RichText (markdown inline : **bold** + liens).
  */
 export default function MetierCasUsage({
   nom,
@@ -49,9 +53,14 @@ export default function MetierCasUsage({
             className="absolute left-0 top-6 bottom-6 w-1 rounded-r-full bg-[#ff7a1a]"
           />
           <div className="pl-4 md:pl-6">
-            <p className="font-hanken text-base leading-relaxed text-[#0f1a3a]/85 md:text-lg">
-              {scene}
-            </p>
+            {scene.split("\n\n").filter((p) => p.trim().length > 0).map((para, i) => (
+              <p
+                key={i}
+                className="mb-4 font-hanken text-base leading-relaxed text-[#0f1a3a]/85 last:mb-0 md:text-lg"
+              >
+                <RichText text={para} />
+              </p>
+            ))}
           </div>
         </div>
       </div>

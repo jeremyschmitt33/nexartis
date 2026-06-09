@@ -1,11 +1,14 @@
 "use client";
 
+import RichText from "./RichText";
+
 /**
  * MetierConseils — Section "Bon à savoir" : 3-5 conseils éditoriaux pour
  * rédiger un devis ou une facture propre dans ce métier (mention décennale,
  * acompte recommandé, délai d'exécution, etc.).
  *
  * Callout stylisé V4 : fond beige clair, bordure gauche orange, icône ampoule.
+ * Chaque conseil est parsé via RichText (markdown inline).
  */
 export default function MetierConseils({
   conseilsRedaction,
@@ -42,7 +45,7 @@ export default function MetierConseils({
                     aria-hidden="true"
                     className="mt-2 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[#ff7a1a]"
                   />
-                  <span>{conseil}</span>
+                  <span><RichText text={conseil} /></span>
                 </li>
               ))}
             </ul>

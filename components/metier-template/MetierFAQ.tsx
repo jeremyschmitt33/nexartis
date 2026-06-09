@@ -1,5 +1,7 @@
 "use client";
 
+import RichText from "./RichText";
+
 /**
  * MetierFAQ — Accordéon FAQ stylé V4 Édition Signature.
  *
@@ -7,6 +9,7 @@
  * Icône chevron orange, fond blanc, bordure top fine, hover subtil.
  *
  * Fusionne faqCustom prioritaire + fallback générique métier.
+ * Chaque réponse est parsée via RichText (markdown inline).
  */
 export default function MetierFAQ({
   nom,
@@ -92,9 +95,14 @@ export default function MetierFAQ({
               </span>
             </summary>
             <div className="px-6 pb-6 md:px-8">
-              <p className="font-hanken text-base leading-relaxed text-[#0f1a3a]/75">
-                {faq.a}
-              </p>
+              {faq.a.split("\n\n").filter((p) => p.trim().length > 0).map((para, idx) => (
+                <p
+                  key={idx}
+                  className="mb-3 font-hanken text-base leading-relaxed text-[#0f1a3a]/75 last:mb-0"
+                >
+                  <RichText text={para} />
+                </p>
+              ))}
             </div>
           </details>
         ))}

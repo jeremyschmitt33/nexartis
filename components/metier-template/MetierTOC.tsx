@@ -81,10 +81,10 @@ export default function MetierTOC({ items }: { items: TocItem[] }) {
         </details>
       </div>
 
-      {/* ─── Desktop : sticky aside ─── */}
+      {/* ─── Desktop : aside (le sticky est géré par le grid item parent) ─── */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-6 pr-2">
-          <div className="font-hanken text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400">
+        <div className="pb-6 pr-2">
+          <div className="font-hanken text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
             Sommaire
           </div>
           <nav className="mt-4">
@@ -92,10 +92,10 @@ export default function MetierTOC({ items }: { items: TocItem[] }) {
               {items.map((item) => {
                 const active = activeId === item.id;
                 return (
-                  <li key={item.id} className="pl-3">
+                  <li key={item.id} className="pl-4">
                     <a
                       href={`#${item.id}`}
-                      className={`-ml-px block border-l-2 py-1.5 pl-3 font-hanken text-sm leading-snug transition ${
+                      className={`-ml-px block border-l-2 py-2 pl-4 font-hanken text-[15px] leading-relaxed transition ${
                         active
                           ? "border-[#ff7a1a] font-semibold text-[#0f1a3a]"
                           : "border-transparent text-gray-500 hover:border-gray-300 hover:text-[#0f1a3a]"
