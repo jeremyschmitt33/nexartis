@@ -217,7 +217,7 @@ const printStyles = `
 // Page
 // -------------------------------------------------------------------
 
-export default async function DevisDetailPage() {
+export default function DevisDetailPage() {
   const askConfirm = useConfirm()
   const params = useParams()
   const router = useRouter()

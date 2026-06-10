@@ -48,7 +48,7 @@ const FILTER_OPTIONS = ['Tous', 'Particuliers', 'Professionnels', 'Archivés']
 // Page
 // -------------------------------------------------------------------
 
-export default async function ClientsPage() {
+export default function ClientsPage() {
   const askConfirm = useConfirm()
   const router = useRouter()
   const { data, loading, error, refetch } = useClients()

@@ -130,7 +130,7 @@ const SUGGESTIONS: { categorie: string; emoji: string; items: string[] }[] = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────
 
-export default async function PrestationsPage() {
+export default function PrestationsPage() {
   const askConfirm = useConfirm()
   const { data, loading, error, refetch } = usePrestations()
   const prestations = data as unknown as PrestationRow[]

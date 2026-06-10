@@ -85,7 +85,7 @@ function formatDate(d: string | null | undefined): string {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })
 }
 
-export default async function DevisListPage() {
+export default function DevisListPage() {
   const askConfirm = useConfirm()
   const router = useRouter()
   const { data: devisList, loading: loadingDevis, error: errorDevis, refetch: refetchDevis } = useDevis()

@@ -50,7 +50,7 @@ function daysLeftLabel(deletedAt: unknown): string {
 
 // ── Component ───────────────────────────────────────────────
 
-export default async function CorbeillePage() {
+export default function CorbeillePage() {
   const askConfirm = useConfirm()
   const { data: deletedDevis, loading: loadingD, error: errorD, refetch: refetchD } = useDeletedDevis()
   const { data: deletedFactures, loading: loadingF, error: errorF, refetch: refetchF } = useDeletedFactures()

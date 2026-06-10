@@ -50,7 +50,7 @@ function formatDate(iso: string | null): string {
 // Page
 // -------------------------------------------------------------------
 
-export default async function BibliothequePage() {
+export default function BibliothequePage() {
   const askConfirm = useConfirm()
   const { data: prestations, loading, error, refetch } = usePrestations()
   const [search, setSearch] = useState('')

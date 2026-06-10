@@ -73,7 +73,7 @@ function daysOverdue(dateEcheance: string | null): number {
   return Math.max(0, Math.floor(diff / 86400000))
 }
 
-export default async function FacturesListPage() {
+export default function FacturesListPage() {
   const askConfirm = useConfirm()
   const router = useRouter()
   const { data: factures, loading: loadingF, error: errorF, refetch: refetchF } = useFactures()

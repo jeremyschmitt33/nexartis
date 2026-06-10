@@ -57,7 +57,7 @@ function getInitials(name: string): string {
 // Page principale — Liste des chantiers V4 light premium
 // -------------------------------------------------------------------
 
-export default async function ChantiersListPage() {
+export default function ChantiersListPage() {
   const askConfirm = useConfirm()
   const router = useRouter()
   const { data: chantiers, loading, error, refetch } = useChantiers()

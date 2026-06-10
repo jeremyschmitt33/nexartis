@@ -458,7 +458,7 @@ function UserDetailModal({
 // Page principale
 // -------------------------------------------------------------------
 
-export default async function AdminPage() {
+export default function AdminPage() {
   const askConfirm = useConfirm()
   const { user, loading: loadingUser } = useUser()
   const router = useRouter()
