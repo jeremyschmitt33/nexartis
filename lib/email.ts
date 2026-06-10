@@ -625,6 +625,191 @@ export async function sendPaymentReminderEmail(
 }
 
 // -------------------------------------------------------------------
+// 6bis. Relances automatiques factures impayees J+7 / J+15 / J+30
+// -------------------------------------------------------------------
+// Envoyees par /api/cron/relances-auto-factures, un seul email par
+// palier et par facture. Tons gradues : courtois > ferme > strict.
+// Footer rappelle a l'artisan qu'il peut desactiver dans Parametres.
+// -------------------------------------------------------------------
+
+interface RelanceFacture {
+  id: string
+  numero: string
+  montant_ttc: number
+  date_echeance: string // ISO date
+}
+
+interface RelanceEntreprise {
+  nom?: string
+  logo_url?: string
+  email?: string
+}
+
+interface RelanceClient {
+  email: string
+  nom: string
+}
+
+type RelanceNiveau = 'j7' | 'j15' | 'j30'
+
+function buildRelanceEmail(
+  niveau: RelanceNiveau,
+  facture: RelanceFacture,
+  entreprise: RelanceEntreprise,
+  client: RelanceClient,
+): { subject: string; html: string } {
+  const entNom = entreprise.nom || 'Nexartis'
+  const dueDateFmt = new Date(facture.date_echeance).toLocaleDateString('fr-FR')
+  // Lien vers le dashboard artisan (les factures n'ont pas de token public)
+  const ctaUrl = 'https://nexartis.fr/dashboard/factures'
+
+  let subject = ''
+  let titre = ''
+  let intro = ''
+  let messageCorps = ''
+  let cardTone = '' // couleur du bloc recap
+  let cardBorder = ''
+  let cardLabel = ''
+  let mentionFin = ''
+  let ctaLabel = ''
+
+  if (niveau === 'j7') {
+    subject = `Petit rappel - Facture n° ${facture.numero}`
+    titre = 'Petit rappel sur votre facture'
+    intro = `Nous esperons que vous allez bien. Sauf erreur de notre part, votre facture n&deg; <strong>${facture.numero}</strong> arrivee a echeance le <strong>${dueDateFmt}</strong> n'a pas encore ete reglee.`
+    messageCorps = "Il s'agit peut-etre simplement d'un oubli. Si le reglement a deja ete effectue ces derniers jours, merci de ne pas tenir compte de ce message."
+    cardTone = '#fffbeb'
+    cardBorder = '#fde68a'
+    cardLabel = "Echeance depassee depuis 7 jours"
+    mentionFin = 'Nous restons a votre disposition pour toute question concernant cette facture.'
+    ctaLabel = 'Voir la facture'
+  } else if (niveau === 'j15') {
+    subject = `Rappel - Facture n° ${facture.numero} impayee depuis 15 jours`
+    titre = 'Rappel - facture impayee depuis 15 jours'
+    intro = `Malgre notre precedent message, votre facture n&deg; <strong>${facture.numero}</strong> echue le <strong>${dueDateFmt}</strong> demeure impayee a ce jour.`
+    messageCorps = "Nous vous remercions de bien vouloir proceder au reglement dans les meilleurs delais. Si vous rencontrez une difficulte, n'hesitez pas a nous contacter pour convenir d'un echeancier."
+    cardTone = '#fff7ed'
+    cardBorder = '#fdba74'
+    cardLabel = "Echeance depassee depuis 15 jours"
+    mentionFin = "A defaut de reglement sous 15 jours, des penalites de retard pourront s'appliquer conformement a nos conditions generales."
+    ctaLabel = 'Regler la facture'
+  } else {
+    subject = `Dernier rappel avant mise en demeure - Facture n° ${facture.numero}`
+    titre = 'Dernier rappel avant mise en demeure'
+    intro = `Votre facture n&deg; <strong>${facture.numero}</strong> echue le <strong>${dueDateFmt}</strong> reste impayee malgre nos relances precedentes (J+7 et J+15).`
+    messageCorps = 'Nous vous demandons de regulariser votre situation <strong>sous 8 jours</strong>. A defaut, nous serons contraints d&apos;engager une procedure de recouvrement (mise en demeure par lettre recommandee, frais de recouvrement forfaitaires de 40 euros et penalites de retard).'
+    cardTone = '#fef2f2'
+    cardBorder = '#fecaca'
+    cardLabel = "Echeance depassee depuis 30 jours - URGENT"
+    mentionFin = "Si un reglement est intervenu dans les dernieres 48h, merci de nous transmettre une preuve de paiement pour que nous puissions cloturer ce dossier."
+    ctaLabel = 'Regler immediatement'
+  }
+
+  const body = `
+    <h2 style="margin:0 0 12px;font-size:22px;color:#1e293b;font-weight:700;">${titre}</h2>
+    <p style="font-size:15px;color:#1e293b;line-height:1.7;">Bonjour ${client.nom},</p>
+    <p style="font-size:15px;color:#475569;line-height:1.7;">${intro}</p>
+
+    <div style="background:${cardTone};border:1px solid ${cardBorder};border-radius:8px;padding:16px 20px;margin:22px 0;">
+      <p style="margin:0 0 10px;font-size:12px;color:#92400e;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">${cardLabel}</p>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="font-size:14px;color:#64748b;padding:6px 0;">Facture</td>
+          <td style="font-size:14px;color:#1e293b;font-weight:600;text-align:right;padding:6px 0;">n&deg; ${facture.numero}</td>
+        </tr>
+        <tr>
+          <td style="font-size:14px;color:#64748b;padding:6px 0;">Montant TTC</td>
+          <td style="font-size:14px;color:#1e293b;font-weight:700;text-align:right;padding:6px 0;">${fmt(facture.montant_ttc)}</td>
+        </tr>
+        <tr>
+          <td style="font-size:14px;color:#64748b;padding:6px 0;">Echeance</td>
+          <td style="font-size:14px;color:#dc2626;font-weight:600;text-align:right;padding:6px 0;">${dueDateFmt}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size:15px;color:#475569;line-height:1.7;">${messageCorps}</p>
+
+    ${btn(ctaLabel, ctaUrl)}
+
+    <p style="font-size:14px;color:#64748b;line-height:1.7;font-style:italic;">${mentionFin}</p>
+
+    ${signature(entNom)}
+
+    <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6;">
+        Cet email a ete envoye automatiquement par Nexartis pour le compte de ${entNom}.
+        L'artisan peut desactiver ces relances dans ses parametres Nexartis.
+      </p>
+    </div>`
+
+  return {
+    subject,
+    html: layout(body, { logoUrl: entreprise.logo_url, entrepriseNom: entNom }),
+  }
+}
+
+export async function sendRelanceJ7(
+  facture: RelanceFacture,
+  entreprise: RelanceEntreprise,
+  client: RelanceClient,
+): Promise<boolean> {
+  try {
+    const { subject, html } = buildRelanceEmail('j7', facture, entreprise, client)
+    await sendEmail({
+      to: { email: client.email, name: client.nom },
+      subject,
+      html,
+      senderName: entreprise.nom || 'Nexartis',
+    })
+    return true
+  } catch (err) {
+    console.error('[sendRelanceJ7] error', err)
+    return false
+  }
+}
+
+export async function sendRelanceJ15(
+  facture: RelanceFacture,
+  entreprise: RelanceEntreprise,
+  client: RelanceClient,
+): Promise<boolean> {
+  try {
+    const { subject, html } = buildRelanceEmail('j15', facture, entreprise, client)
+    await sendEmail({
+      to: { email: client.email, name: client.nom },
+      subject,
+      html,
+      senderName: entreprise.nom || 'Nexartis',
+    })
+    return true
+  } catch (err) {
+    console.error('[sendRelanceJ15] error', err)
+    return false
+  }
+}
+
+export async function sendRelanceJ30(
+  facture: RelanceFacture,
+  entreprise: RelanceEntreprise,
+  client: RelanceClient,
+): Promise<boolean> {
+  try {
+    const { subject, html } = buildRelanceEmail('j30', facture, entreprise, client)
+    await sendEmail({
+      to: { email: client.email, name: client.nom },
+      subject,
+      html,
+      senderName: entreprise.nom || 'Nexartis',
+    })
+    return true
+  } catch (err) {
+    console.error('[sendRelanceJ30] error', err)
+    return false
+  }
+}
+
+// -------------------------------------------------------------------
 // 7. Alerte admin : nouvelle inscription
 // -------------------------------------------------------------------
 

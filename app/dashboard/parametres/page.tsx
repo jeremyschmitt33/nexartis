@@ -420,6 +420,8 @@ function EntrepriseSection({
   const [bic, setBic] = useState('')
   const [assuranceNom, setAssuranceNom] = useState('')
   const [decennale, setDecennale] = useState('')
+  // 2026-06-10 : date de fin de garantie décennale (utilisée par le cron rappels J-60)
+  const [decennaleDateFin, setDecennaleDateFin] = useState('')
   const [assuranceZone, setAssuranceZone] = useState('')
   // Médiateur — 4 champs séparés depuis le 28/05/2026 (avant : 1 seul textarea libre).
   // Fallback automatique : si les 4 champs sont vides mais que l'ancien champ "mediateur"
@@ -460,6 +462,7 @@ function EntrepriseSection({
       setBic((entreprise.bic as string) ?? '')
       setAssuranceNom((entreprise.assurance_nom as string) ?? '')
       setDecennale((entreprise.decennale_numero as string) ?? '')
+      setDecennaleDateFin((entreprise.decennale_date_fin as string) ?? '')
       setAssuranceZone((entreprise.assurance_zone as string) ?? '')
       // Médiateur : on hydrate les 4 nouveaux champs en priorité.
       // Si les 4 sont vides mais que l'ancien "mediateur" existe, on copie dans le nom.
@@ -514,7 +517,7 @@ function EntrepriseSection({
         forme_juridique: formeJuridique || null, capital_social: capitalSocial || null, rcs_rm: rcsRm || null,
         adresse, code_postal: codePostal, ville, telephone, email,
         iban, bic,
-        assurance_nom: assuranceNom || null, decennale_numero: decennale, assurance_zone: assuranceZone || null,
+        assurance_nom: assuranceNom || null, decennale_numero: decennale, decennale_date_fin: decennaleDateFin || null, assurance_zone: assuranceZone || null,
         mediateur_nom: mediateurNom || null,
         mediateur_adresse: mediateurAdresse || null,
         mediateur_code_postal: mediateurCodePostal || null,
@@ -756,6 +759,13 @@ function EntrepriseSection({
           value={assuranceZone}
           onChange={setAssuranceZone}
           placeholder="France entière"
+        />
+        <PremiumInput
+          label="Date de fin de validité"
+          type="date"
+          value={decennaleDateFin}
+          onChange={setDecennaleDateFin}
+          hint="Nexartis vous rappellera automatiquement 60 jours avant l'expiration de votre contrat."
         />
         <div className="flex items-end">
           <div className="w-full">
@@ -1510,6 +1520,9 @@ function NotificationsSection({
   update: (v: Record<string, unknown>) => Promise<unknown>
 }) {
   const [notifyDevisSigne, setNotifyDevisSigne] = useState(true)
+  // V1 relances auto : envoi d'un email J+7/J+15/J+30 aux clients sur factures impayees.
+  // Par defaut TRUE (NULL = TRUE cote DB).
+  const [relancesAutoActives, setRelancesAutoActives] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -1518,6 +1531,8 @@ function NotificationsSection({
     if (entreprise) {
       // Par défaut activé : on ne veut pas que l'artisan rate un devis signé.
       setNotifyDevisSigne(entreprise.notify_devis_signe !== false)
+      // Relances auto factures : NULL ou TRUE => active, FALSE => desactive.
+      setRelancesAutoActives(entreprise.relances_auto_actives !== false)
     }
   }, [entreprise])
 
@@ -1526,7 +1541,10 @@ function NotificationsSection({
     setSuccess(null)
     setErrorMsg(null)
     try {
-      await update({ notify_devis_signe: notifyDevisSigne })
+      await update({
+        notify_devis_signe: notifyDevisSigne,
+        relances_auto_actives: relancesAutoActives,
+      })
       setSuccess('Préférences de notifications enregistrées.')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde')
@@ -1585,13 +1603,29 @@ function NotificationsSection({
         </p>
       </div>
 
+      {/* ============ Relances automatiques factures (V1) ============ */}
+      <GroupTitle mt="mt-8">Relances automatiques</GroupTitle>
+
+      <div className="space-y-2">
+        <PremiumToggle
+          label="Relances automatiques des factures impayées"
+          checked={relancesAutoActives}
+          onChange={setRelancesAutoActives}
+        />
+        <p className="font-hanken text-xs text-gray-500 ml-1 leading-relaxed">
+          Quand une facture dépasse sa date d&apos;échéance, Nexartis envoie automatiquement un email à votre client :
+          un <strong>rappel courtois à J+7</strong>, un <strong>rappel ferme à J+15</strong>, puis un <strong>dernier rappel à J+30</strong>.
+          Un seul email est envoyé par palier. Vous pouvez désactiver à tout moment.
+        </p>
+      </div>
+
       {/* ============ Notifications à venir ============ */}
       <div className="mt-8">
         <InfoBanner tone="info">
           <strong>D&apos;autres notifications arrivent prochainement</strong>
           <br />
           <span className="text-xs leading-relaxed block mt-1.5">
-            On travaille sur : <strong>rappels d&apos;impayés automatiques</strong>, <strong>confirmation de paiement de facture</strong>, <strong>récapitulatif hebdomadaire</strong>, et <strong>alertes de modification de planning</strong>.
+            On travaille sur : <strong>confirmation de paiement de facture</strong>, <strong>récapitulatif hebdomadaire</strong>, et <strong>alertes de modification de planning</strong>.
             On préfère vous les livrer quand elles fonctionneront vraiment plutôt que d&apos;afficher des cases qui ne font rien.
           </span>
         </InfoBanner>
