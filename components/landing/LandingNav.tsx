@@ -108,19 +108,19 @@ export default function LandingNav() {
         {/* ---------------- Brand : logo + wordmark ---------------- */}
         <Link
           href="/"
-          className="flex items-center gap-[11px] font-hanken font-bold text-[20px] tracking-[-0.02em] text-ink no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark rounded-lg"
+          className="flex items-center font-hanken font-bold text-[20px] tracking-[-0.02em] text-ink no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark rounded-lg"
+          aria-label="Nexartis - Accueil"
         >
-          {/* Logo officiel en PNG. On garde un alt explicite pour le SEO/a11y. */}
+          {/* Logo officiel complet (le wordmark Nexartis est integre au visuel). */}
           <Image
             src="/images/logo-nexartis.png"
             alt="Nexartis"
-            width={48}
-            height={48}
+            width={200}
+            height={100}
             priority
             quality={100}
-            className="h-12 w-12 object-contain rounded-[10px]"
+            className="h-11 w-auto object-contain"
           />
-          <span>Nexartis</span>
         </Link>
 
         {/* ---------------- Liens centraux (lg+) ---------------- */}

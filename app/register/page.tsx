@@ -89,10 +89,9 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-4 py-12">
       <div className="w-full max-w-[420px]">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <Image src="/images/logo-nexartis.png" alt="Nexartis" width={192} height={192} quality={100} className="h-24 w-auto object-contain" />
-          <span className="font-syne font-extrabold text-3xl text-navy">Nexartis</span>
+        {/* Logo (image contient deja le wordmark Nexartis) */}
+        <div className="flex items-center justify-center mb-6">
+          <Image src="/images/logo-nexartis.png" alt="Nexartis" width={320} height={160} quality={100} priority className="h-20 w-auto object-contain" />
         </div>
 
         {/* Badge */}
