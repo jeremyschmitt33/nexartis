@@ -27,6 +27,7 @@ import {
   PremiumSelect,
   PremiumButton,
 } from '@/components/ui/v4'
+import { toast } from '@/lib/toast'
 
 // -------------------------------------------------------------------
 // Types
@@ -377,7 +378,7 @@ export default function EquipePage() {
       // D6 (2026-06-08) : feedback utilisateur sur erreur de création.
       const msg = err instanceof Error ? err.message : "Échec de l'ajout du membre"
       // eslint-disable-next-line no-alert
-      alert(`Erreur : ${msg}`)
+      toast.error(`Erreur : ${msg}`)
     } finally {
       setSaving(false)
     }
@@ -450,7 +451,7 @@ export default function EquipePage() {
       // D6 (2026-06-08) : feedback utilisateur sur erreur de modification.
       const msg = err instanceof Error ? err.message : 'Échec de la modification'
       // eslint-disable-next-line no-alert
-      alert(`Erreur : ${msg}`)
+      toast.error(`Erreur : ${msg}`)
     } finally {
       setEditSaving(false)
     }
@@ -474,7 +475,7 @@ export default function EquipePage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Échec de la suppression'
       // eslint-disable-next-line no-alert
-      alert(`Erreur : ${msg}`)
+      toast.error(`Erreur : ${msg}`)
     } finally {
       setDeleteConfirm(null)
     }

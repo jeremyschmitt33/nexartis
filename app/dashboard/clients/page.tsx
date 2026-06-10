@@ -18,6 +18,8 @@ import {
   PremiumTextarea,
   PremiumButton,
 } from '@/components/ui/v4'
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // -------------------------------------------------------------------
 // Types
@@ -46,7 +48,8 @@ const FILTER_OPTIONS = ['Tous', 'Particuliers', 'Professionnels', 'Archivés']
 // Page
 // -------------------------------------------------------------------
 
-export default function ClientsPage() {
+export default async function ClientsPage() {
+  const confirm = useConfirm()
   const router = useRouter()
   const { data, loading, error, refetch } = useClients()
   const clients = data as unknown as ClientRow[]
@@ -176,12 +179,12 @@ export default function ClientsPage() {
   }
 
   const handleDelete = async (id: string, displayName: string) => {
-    if (!confirm(`Supprimer le client "${displayName}" ? Cette action est irréversible.`)) return
+    if (!(await confirm({ title: `Supprimer le client "${displayName}" ?`, message: 'Cette action est irreversible.', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     try {
       await deleteRow('clients', id)
       refetch()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression')
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la suppression')
     }
   }
 

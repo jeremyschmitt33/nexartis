@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/Input'
 import SoloAgendaView from '@/components/planning/SoloAgendaView'
 import { useViewModeAuto } from '@/components/planning/hooks/useViewModeAuto'
 import type { PlanningViewMode } from '@/components/planning/shared/types'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // ===================================================================
 // Session 8 (28/05/2026) — Multi-intervenants par intervention
@@ -223,6 +224,7 @@ function buildGmapsLink(adresse: string, cp: string, ville: string): string {
 // ===================================================================
 
 function PlanningPageInner() {
+  const confirm = useConfirm()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: planningData, loading: l1, refetch } = usePlanning()
@@ -1702,7 +1704,7 @@ function PlanningPageInner() {
       return
     }
     if ((yearStart > currentYear + 2 || yearEnd > currentYear + 2) && !showConflitConfirm) {
-      const ok = confirm(`Cette intervention est planifiee en ${yearStart} (anormalement loin dans le futur). Etes-vous sur de la date ?`)
+      const ok = await confirm({ title: `Intervention planifiee en ${yearStart}`, message: 'Cette date semble anormalement loin dans le futur. Etes-vous sur ?', variant: 'default', confirmLabel: 'Confirmer la date' })
       if (!ok) return
     }
 
@@ -3373,10 +3375,10 @@ function PlanningPageInner() {
                   const confirmMsg = isRetirerMembre
                     ? 'Retirer ce membre de l\'intervention ? Les autres membres restent affectés.'
                     : 'Supprimer cette intervention ?'
-                  return (
+                  return async (
                     <button
                       onClick={async () => {
-                        if (!confirm(confirmMsg)) return
+                        if (!(await confirm({ title: 'Confirmation requise', message: confirmMsg, confirmLabel: 'Confirmer' }))) return
                         try {
                           if (isRetirerMembre && clickedAssignmentId) {
                             // Supprime UNIQUEMENT la ligne d'assignation cliquée.

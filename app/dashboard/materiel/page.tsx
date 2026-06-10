@@ -26,6 +26,7 @@ import {
   PremiumTextarea,
   PremiumButton,
 } from '@/components/ui/v4'
+import { toast } from '@/lib/toast'
 
 // -------------------------------------------------------------------
 // Types
@@ -266,7 +267,7 @@ export default function MaterialPage() {
 
   const handleSave = async () => {
     if (!form.designation.trim()) {
-      alert('La désignation est requise')
+      toast.error('La designation est requise')
       return
     }
 
@@ -305,7 +306,7 @@ export default function MaterialPage() {
       await refetch()
       handleCloseModal()
     } catch (err) {
-      alert(`Erreur : ${err instanceof Error ? err.message : 'Impossible de sauvegarder'}`)
+      toast.error(`Erreur : ${err instanceof Error ? err.message : 'Impossible de sauvegarder'}`)
     } finally {
       setSaving(false)
     }
@@ -317,7 +318,7 @@ export default function MaterialPage() {
       await refetch()
       setDeleteConfirm(null)
     } catch (err) {
-      alert(`Erreur : ${err instanceof Error ? err.message : 'Impossible de supprimer'}`)
+      toast.error(`Erreur : ${err instanceof Error ? err.message : 'Impossible de supprimer'}`)
     }
   }
 

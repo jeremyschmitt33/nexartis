@@ -14,6 +14,8 @@ import {
   Copy,
 } from 'lucide-react'
 import { usePrestations, insertRow, updateRow, deleteRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // -------------------------------------------------------------------
 // Types & Constants
@@ -48,7 +50,8 @@ function formatDate(iso: string | null): string {
 // Page
 // -------------------------------------------------------------------
 
-export default function BibliothequePage() {
+export default async function BibliothequePage() {
+  const confirm = useConfirm()
   const { data: prestations, loading, error, refetch } = usePrestations()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Categorie>('Toutes')
@@ -106,7 +109,7 @@ export default function BibliothequePage() {
       })
       refetch()
     } catch (err) {
-      alert('Erreur lors de la duplication : ' + (err as Error).message)
+      toast.error('Erreur lors de la duplication : ' + (err as Error).message)
     } finally {
       setDuplicatingId(null)
     }
@@ -132,20 +135,20 @@ export default function BibliothequePage() {
       resetModal()
       refetch()
     } catch (err) {
-      alert('Erreur : ' + (err as Error).message)
+      toast.error('Erreur : ' + (err as Error).message)
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette prestation ?')) return
+    if (!(await confirm({ title: 'Supprimer cette prestation ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     setDeletingId(id)
     try {
       await deleteRow('prestations', id)
       refetch()
     } catch (err) {
-      alert('Erreur : ' + (err as Error).message)
+      toast.error('Erreur : ' + (err as Error).message)
     } finally {
       setDeletingId(null)
       setOpenActionId(null)

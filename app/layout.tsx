@@ -8,6 +8,7 @@ import ConditionalLayout from '@/components/ConditionalLayout'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import CookieConsent from '@/components/CookieConsent'
 import PWARegister from '@/components/PWARegister'
+import { UIProviders } from '@/components/ui/v4/UIProviders'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -188,13 +189,15 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
         <GoogleAnalytics />
-        <ConditionalLayout
-          header={<Header />}
-          footer={<Footer />}
-          forceHidden={isMaintenance}
-        >
-          {children}
-        </ConditionalLayout>
+        <UIProviders>
+          <ConditionalLayout
+            header={<Header />}
+            footer={<Footer />}
+            forceHidden={isMaintenance}
+          >
+            {children}
+          </ConditionalLayout>
+        </UIProviders>
         {/* PWA — Enregistre le service worker et gère le toast "Nouvelle version".
             Composant client, monté une seule fois ici pour couvrir toute l'app. */}
         <PWARegister />

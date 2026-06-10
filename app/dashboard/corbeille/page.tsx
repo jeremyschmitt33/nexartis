@@ -20,6 +20,8 @@ import {
   LoadingSkeleton,
   ErrorBanner,
 } from "@/lib/hooks"
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 type CorbeilleFilter = "tous" | "devis" | "factures"
 
@@ -48,7 +50,8 @@ function daysLeftLabel(deletedAt: unknown): string {
 
 // ── Component ───────────────────────────────────────────────
 
-export default function CorbeillePage() {
+export default async function CorbeillePage() {
+  const confirm = useConfirm()
   const { data: deletedDevis, loading: loadingD, error: errorD, refetch: refetchD } = useDeletedDevis()
   const { data: deletedFactures, loading: loadingF, error: errorF, refetch: refetchF } = useDeletedFactures()
 
@@ -125,14 +128,14 @@ export default function CorbeillePage() {
       refetchF()
       setSelected(prev => { const next = new Set(prev); next.delete(id); return next })
     } catch (err) {
-      alert("Erreur lors de la restauration : " + (err as Error).message)
+      toast.error("Erreur lors de la restauration : " + (err as Error).message)
     } finally {
       setRestoring(null)
     }
   }
 
   async function handlePermanentDelete(type: string, id: string) {
-    if (!confirm("Supprimer définitivement ? Cette action est irréversible.")) return
+    if (!(await confirm({ title: "Supprimer definitivement ?", message: "Cette action est irreversible.", variant: "danger", confirmLabel: "Supprimer" }))) return
     setDeleting(id)
     try {
       await permanentDeleteRow(type, id)
@@ -140,14 +143,14 @@ export default function CorbeillePage() {
       refetchF()
       setSelected(prev => { const next = new Set(prev); next.delete(id); return next })
     } catch (err) {
-      alert("Erreur : " + (err as Error).message)
+      toast.error("Erreur : " + (err as Error).message)
     } finally {
       setDeleting(null)
     }
   }
 
   async function handleEmptyTrash() {
-    if (!confirm(`Vider la corbeille ? ${allItems.length} élément${allItems.length > 1 ? "s" : ""} seront supprimés définitivement.`)) return
+    if (!(await confirm({ title: "Vider la corbeille ?", message: `${allItems.length} element${allItems.length > 1 ? "s" : ""} seront supprimes definitivement.`, variant: "danger", confirmLabel: "Vider" }))) return
     setPurging(true)
     try {
       for (const item of allItems) {
@@ -157,13 +160,13 @@ export default function CorbeillePage() {
       refetchF()
       setSelected(new Set())
     } catch (err) {
-      alert("Erreur : " + (err as Error).message)
+      toast.error("Erreur : " + (err as Error).message)
     } finally {
       setPurging(false)
     }
   }
 
-  function toggleSelect(id: string) {
+  async function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -172,7 +175,7 @@ export default function CorbeillePage() {
     })
   }
 
-  function toggleSelectAll() {
+  async function toggleSelectAll() {
     if (selected.size === filtered.length) setSelected(new Set())
     else setSelected(new Set(filtered.map(i => i.id)))
   }
@@ -188,13 +191,13 @@ export default function CorbeillePage() {
       refetchD()
       refetchF()
     } catch (err) {
-      alert("Erreur : " + (err as Error).message)
+      toast.error("Erreur : " + (err as Error).message)
     }
     setBulkAction(false)
   }
 
   async function handleBulkPermanentDelete() {
-    if (!confirm(`Supprimer définitivement ${selected.size} élément${selected.size > 1 ? "s" : ""} ?`)) return
+    if (!(await confirm({ title: `Supprimer definitivement ${selected.size} element${selected.size > 1 ? "s" : ""} ?`, message: "Cette action est irreversible.", variant: "danger", confirmLabel: "Supprimer" }))) return
     setBulkAction(true)
     try {
       for (const id of Array.from(selected)) {
@@ -205,7 +208,7 @@ export default function CorbeillePage() {
       refetchD()
       refetchF()
     } catch (err) {
-      alert("Erreur : " + (err as Error).message)
+      toast.error("Erreur : " + (err as Error).message)
     }
     setBulkAction(false)
   }

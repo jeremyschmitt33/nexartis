@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { useChantiers, useClients, useFactures, useDevis, deleteRow, updateRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { PremiumButton } from '@/components/ui/v4'
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // -------------------------------------------------------------------
 // Types & Helpers — logique métier INTACTE (refonte visuelle uniquement)
@@ -55,7 +57,8 @@ function getInitials(name: string): string {
 // Page principale — Liste des chantiers V4 light premium
 // -------------------------------------------------------------------
 
-export default function ChantiersListPage() {
+export default async function ChantiersListPage() {
+  const confirm = useConfirm()
   const router = useRouter()
   const { data: chantiers, loading, error, refetch } = useChantiers()
   const { data: clients } = useClients()
@@ -81,7 +84,7 @@ export default function ChantiersListPage() {
     }
   }, [openActions, closeMenu])
 
-  function openMenu(e: React.MouseEvent<HTMLButtonElement>, chantierId: string) {
+  async function openMenu(e: React.MouseEvent<HTMLButtonElement>, chantierId: string) {
     e.stopPropagation()
     e.nativeEvent.stopImmediatePropagation()
     if (openActions === chantierId) { closeMenu(); return }
@@ -144,7 +147,7 @@ export default function ChantiersListPage() {
   })
 
   // Couleur de la barre d'avancement (gardée — sémantique métier)
-  function getProgressColor(percent: number) {
+  async function getProgressColor(percent: number) {
     if (percent >= 75) return 'bg-emerald-500'
     if (percent >= 25) return 'bg-[#5ab4e0]'
     return 'bg-[#ff7a1a]'
@@ -172,13 +175,13 @@ export default function ChantiersListPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer ce chantier ?')) return
+    if (!(await confirm({ title: 'Supprimer ce chantier ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     setDeleting(id)
     try {
       await deleteRow('chantiers', id)
       refetch()
     } catch (err) {
-      alert('Erreur lors de la suppression : ' + (err as Error).message)
+      toast.error('Erreur lors de la suppression : ' + (err as Error).message)
     } finally {
       setDeleting(null)
       setOpenActions(null)

@@ -34,6 +34,8 @@ import {
 import { champsLegauxManquants } from "@/lib/helpers"
 import { PremiumInput, PremiumSelect, PremiumButton, InfoBanner } from "@/components/ui/v4"
 import ExportComptableModal from "@/components/dashboard/ExportComptableModal"
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 type DevisStatus = "brouillon" | "envoye" | "signe" | "refuse" | "expire" | "facture"
 
@@ -83,7 +85,8 @@ function formatDate(d: string | null | undefined): string {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })
 }
 
-export default function DevisListPage() {
+export default async function DevisListPage() {
+  const confirm = useConfirm()
   const router = useRouter()
   const { data: devisList, loading: loadingDevis, error: errorDevis, refetch: refetchDevis } = useDevis()
   const { data: clients, loading: loadingClients } = useClients()
@@ -181,9 +184,9 @@ export default function DevisListPage() {
   }, [devisList, filter, search, sort, clientMap, chantierMap])
 
   async function handleDelete(id: string) {
-    if (!confirm("Envoyer ce devis à la corbeille ?")) return
+    if (!(await confirm({ title: "Envoyer ce devis a la corbeille ?", variant: "danger", confirmLabel: "Envoyer" }))) return
     try { await softDeleteRow("devis", id); refetchDevis() }
-    catch (err: unknown) { alert("Erreur : " + (err instanceof Error ? err.message : "Échec")) }
+    catch (err: unknown) { toast.error("Erreur : " + (err instanceof Error ? err.message : "Echec")) }
   }
 
   async function handleDuplicate(devis: Record<string, unknown>) {
@@ -191,25 +194,25 @@ export default function DevisListPage() {
       const { id, created_at, updated_at, user_id, numero, ...rest } = devis
       await insertRow("devis", { ...rest, numero: (numero as string) + "-copie", statut: "brouillon" })
       refetchDevis()
-    } catch (err: unknown) { alert("Erreur : " + (err instanceof Error ? err.message : "Échec")) }
+    } catch (err: unknown) { toast.error("Erreur : " + (err instanceof Error ? err.message : "Echec")) }
   }
 
-  function handleSend(devis: Record<string, unknown>) {
+  async function handleSend(devis: Record<string, unknown>) {
     router.push(`/dashboard/devis/${devis.id}?send=1`)
   }
 
-  function toggleSelect(id: string) {
+  async function toggleSelect(id: string) {
     setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }
-  function toggleSelectAll() {
+  async function toggleSelectAll() {
     if (selected.size === filtered.length) setSelected(new Set())
     else setSelected(new Set(filtered.map(d => d.id as string)))
   }
   async function handleBulkDelete() {
-    if (!confirm(`Envoyer ${selected.size} devis à la corbeille ?`)) return
+    if (!(await confirm({ title: `Envoyer ${selected.size} devis a la corbeille ?`, variant: "danger", confirmLabel: "Envoyer" }))) return
     setBulkDeleting(true)
     try { for (const id of Array.from(selected)) { await softDeleteRow("devis", id) }; setSelected(new Set()); refetchDevis() }
-    catch (err: unknown) { alert("Erreur : " + (err instanceof Error ? err.message : "Échec")) }
+    catch (err: unknown) { toast.error("Erreur : " + (err instanceof Error ? err.message : "Echec")) }
     setBulkDeleting(false)
   }
 

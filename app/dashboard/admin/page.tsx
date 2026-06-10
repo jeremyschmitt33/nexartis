@@ -8,6 +8,7 @@ import {
   AlertTriangle, UserCheck, Gift,
 } from 'lucide-react'
 import { useUser } from '@/lib/hooks'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
 
@@ -457,7 +458,8 @@ function UserDetailModal({
 // Page principale
 // -------------------------------------------------------------------
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const confirm = useConfirm()
   const { user, loading: loadingUser } = useUser()
   const router = useRouter()
   const [users, setUsers] = useState<UserRecord[]>([])
@@ -491,7 +493,7 @@ export default function AdminPage() {
     if (user?.email === ADMIN_EMAIL) fetchUsers()
   }, [user, fetchUsers])
 
-  function showToastMsg(msg: string) {
+  async function showToastMsg(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
   }
@@ -571,7 +573,7 @@ export default function AdminPage() {
     nonConfirme: users.filter(u => !u.email_confirmed_at).length,
   }
 
-  return (
+  return async (
     <div className="min-h-screen">
 
       {/* En-tête */}
@@ -588,7 +590,7 @@ export default function AdminPage() {
         <div className="flex gap-2">
           <button
             onClick={async () => {
-              if (!confirm('Recalculer la numerotation hierarchique de TOUS les devis et factures existants ? Cette operation peut prendre quelques secondes.')) return
+              if (!(await confirm({ title: 'Recalculer la numerotation hierarchique ?', message: 'Cette operation recalcule TOUS les devis et factures existants et peut prendre quelques secondes.', confirmLabel: 'Recalculer' }))) return
               showToastMsg('Migration en cours...')
               try {
                 const res = await fetch('/api/admin/migrate-numerotation', { method: 'POST' })

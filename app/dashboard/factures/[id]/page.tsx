@@ -26,6 +26,7 @@ import { buildFactureDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import { fetchAndDownloadPdf } from '@/lib/download-pdf'
+import { toast } from '@/lib/toast'
 import {
   useSupabaseRecord,
   useFactureLignes,
@@ -193,7 +194,7 @@ export default function FactureDetailPage() {
       setTimeout(() => setToastMsg(null), 3000)
       router.refresh()
     } catch (err) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
     } finally { setUpdating(false) }
   }
 
@@ -206,7 +207,7 @@ export default function FactureDetailPage() {
       setTimeout(() => setToastMsg(null), 3000)
       router.refresh()
     } catch (err) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
     } finally { setUpdating(false) }
   }
 
@@ -219,7 +220,7 @@ export default function FactureDetailPage() {
       setTimeout(() => setToastMsg(null), 3000)
       router.refresh()
     } catch (err) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
     } finally { setUpdating(false) }
   }
 

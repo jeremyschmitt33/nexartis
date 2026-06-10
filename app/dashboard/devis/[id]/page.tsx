@@ -33,6 +33,8 @@ import {
   softDeleteRow,
   LoadingSkeleton,
 } from '@/lib/hooks'
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // -------------------------------------------------------------------
 // Types
@@ -215,7 +217,8 @@ const printStyles = `
 // Page
 // -------------------------------------------------------------------
 
-export default function DevisDetailPage() {
+export default async function DevisDetailPage() {
+  const confirm = useConfirm()
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -253,7 +256,7 @@ export default function DevisDetailPage() {
 
   async function handleConvertToFacture(skipConfirm = false) {
     if (!devis) return
-    if (!skipConfirm && !confirm('Convertir ce devis en facture ?')) return
+    if (!skipConfirm && !(await confirm({ title: 'Convertir ce devis en facture ?', confirmLabel: 'Convertir' }))) return
     try {
       const now = new Date()
       const numero = `F-${now.getFullYear()}-${String(Date.now()).slice(-5)}`
@@ -292,7 +295,7 @@ export default function DevisDetailPage() {
       router.push(`/dashboard/factures/${factureId}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err)
-      alert('Erreur conversion : ' + msg)
+      toast.error('Erreur conversion : ' + msg)
     }
   }
 
@@ -306,7 +309,7 @@ export default function DevisDetailPage() {
       // → conserve l'état React local (scroll, modals), revalide juste les Server Components
       router.refresh()
     } catch (err) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
     }
   }
 
@@ -318,18 +321,18 @@ export default function DevisDetailPage() {
       const c = chantier as Record<string, unknown>
       router.push(`/dashboard/chantiers/${c.id}`)
     } catch (err) {
-      alert('Erreur création chantier : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur creation chantier : ' + (err instanceof Error ? err.message : 'Echec'))
       setChantierCreating(false)
     }
   }
 
   async function handleDeleteDevis() {
-    if (!devis || !confirm('Envoyer ce devis à la corbeille ?')) return
+    if (!devis || !(await confirm({ title: 'Envoyer ce devis a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
     try {
       await softDeleteRow('devis', devis.id)
       router.push('/dashboard/devis')
     } catch (err) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
     }
   }
 

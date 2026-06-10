@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createFactureFromDevis } from '@/lib/services/devis-automatisms'
 import { generatePacteTemplate } from '@/lib/pacte-chantier'
 import { fetchAndDownloadPdf } from '@/lib/download-pdf'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // -------------------------------------------------------------------
 // Types & helpers
@@ -73,6 +74,7 @@ function isSameDay(d1: Date, d2: Date) { return fmtISO(d1) === fmtISO(d2) }
 // -------------------------------------------------------------------
 
 export default function ChantierDetailPage() {
+  const confirm = useConfirm()
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -379,7 +381,7 @@ export default function ChantierDetailPage() {
 
   // ── Suppression intervenant ──
   const handleRemoveEquipe = async (equipeRowId: string, intervenantId: string) => {
-    if (!confirm('Retirer cet intervenant du chantier ?')) return
+    if (!(await confirm({ title: 'Retirer cet intervenant du chantier ?', variant: 'danger', confirmLabel: 'Retirer' }))) return
     try {
       const supabase = createClient()
       // Supprimer l'assignation
@@ -1424,7 +1426,7 @@ export default function ChantierDetailPage() {
                         onClick={async () => {
                           // Régénère le template propre depuis le profil + chantier (sans
                           // les éventuels caractères parasites des anciennes versions sauvegardées).
-                          if (exportPacteTexte.trim() && !confirm('Réinitialiser le texte du pacte au modèle par défaut ? Vos modifications seront perdues.')) return
+                          if (exportPacteTexte.trim() && !(await confirm({ title: 'Reinitialiser le texte du pacte ?', message: 'Vos modifications seront perdues.', variant: 'danger', confirmLabel: 'Reinitialiser' }))) return
                           let ent: Record<string, unknown> | null = null
                           try {
                             const supabase = createClient()

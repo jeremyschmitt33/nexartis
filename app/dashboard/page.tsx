@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useDevis, useFactures, usePlanning, useChantiers, useClients, useIntervenants, useEntreprise, useChantierNotes, LoadingSkeleton } from "@/lib/hooks";
 import { createClient } from "@/lib/supabase/client";
-import { InfoBanner } from "@/components/ui/v4";
+import { InfoBanner, HelpTooltip } from "@/components/ui/v4";
 import RappelsSection from "@/components/dashboard/RappelsSection";
 
 // Type pour un rappel artisan (note privée datée à afficher dans "À faire")
@@ -62,6 +63,7 @@ function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: 
 /* ───────────────────────────── Page ───────────────────────────── */
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { data: factures, loading: fLoading } = useFactures();
   const { data: devis, loading: dLoading } = useDevis();
   const { data: planning, loading: pLoading } = usePlanning();
@@ -578,7 +580,17 @@ export default function DashboardPage() {
   });
 
   /* ── KPI data ── */
-  const kpis = [
+  type Kpi = {
+    label: string
+    value: number
+    unit: string
+    sub: string
+    color: string
+    barWidth: string
+    valueColor?: string
+    help?: string
+  }
+  const kpis: Kpi[] = [
     {
       label: 'CA Facturé',
       value: caFacture,
@@ -586,6 +598,7 @@ export default function DashboardPage() {
       sub: `TTC · ${new Date().toLocaleDateString('fr-FR', {month:'long', year:'numeric'})}`,
       color: '#5ab4e0',
       barWidth: '100%',
+      help: 'Total TTC facturé (toutes factures envoyées ou payées). Inclut les factures en attente de règlement.',
     },
     {
       label: 'Encaissé',
@@ -594,6 +607,7 @@ export default function DashboardPage() {
       sub: 'TTC réglé',
       color: '#22c55e',
       barWidth: caFacture > 0 ? `${Math.min((caEncaisse / caFacture) * 100, 100)}%` : '0%',
+      help: 'Total des paiements réellement reçus (factures au statut "payée").',
     },
     {
       label: 'À encaisser',
@@ -603,6 +617,7 @@ export default function DashboardPage() {
       color: '#e87a2a',
       barWidth: caFacture > 0 ? `${Math.min((resteAEncaisser / caFacture) * 100, 100)}%` : '0%',
       valueColor: '#e87a2a',
+      help: 'Factures envoyées mais pas encore réglées par vos clients (en attente de paiement).',
     },
     {
       label: 'Conversion',
@@ -614,6 +629,7 @@ export default function DashboardPage() {
         : `${devisEnCours.length} en attente · ${formatEuro(devisEnCoursMontant)} HT`,
       color: '#7c3aed',
       barWidth: `${tauxConversion}%`,
+      help: 'Pourcentage de devis signés par rapport au total des devis créés. Mesure votre taux de transformation commercial.',
     },
   ];
 
@@ -691,7 +707,14 @@ export default function DashboardPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 rounded-2xl sm:rounded-[14px] text-white font-hanken font-bold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] h-[72px] sm:h-12 sm:w-[170px] text-[13px] sm:text-sm"
               style={{background: '#0f1a3a', boxShadow: '0 8px 24px -10px rgba(15,26,58,0.35)'}}>
               <svg width="22" height="22" className="sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nouveau devis
+              <span>Nouveau devis</span>
+              {/* QW1 — Indicateur du raccourci clavier "N", masqué sur mobile/tablette (clavier physique uniquement) */}
+              <kbd
+                aria-hidden="true"
+                className="hidden lg:inline-flex items-center justify-center font-spline-mono text-[10px] font-bold ml-1 px-1.5 py-0.5 rounded border border-white/20 bg-white/10"
+              >
+                N
+              </kbd>
             </Link>
             <Link href="/dashboard/factures/nouveau"
               aria-label="Créer une nouvelle facture"
@@ -730,6 +753,9 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-1.5 sm:gap-2.5 mb-2 sm:mb-5">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: kpi.color}} />
                   <span className="font-hanken text-[11px] sm:text-[13px] font-bold tracking-[0.01em]" style={{color: '#445068'}}>{kpi.label}</span>
+                  {kpi.help && (
+                    <HelpTooltip label={`Aide ${kpi.label}`} content={kpi.help} />
+                  )}
                 </div>
 
                 {/* Big value */}
@@ -819,7 +845,7 @@ export default function DashboardPage() {
                     <div
                       key={i}
                       className="flex items-center gap-3.5 rounded-[14px] transition-all duration-150 hover:bg-white/80 cursor-pointer"
-                      onClick={() => item.href && (window.location.href = item.href)}
+                      onClick={() => { if (item.href) router.push(item.href); }}
                       style={{
                         padding: '14px 16px',
                         opacity: mounted ? 1 : 0,

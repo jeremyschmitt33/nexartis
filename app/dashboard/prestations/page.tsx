@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Search, Wrench, Plus, X, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { usePrestations, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // La table `prestations` utilise `designation` comme libellé principal.
 // Voir : SELECT * FROM information_schema.columns WHERE table_name='prestations'
@@ -129,7 +130,8 @@ const SUGGESTIONS: { categorie: string; emoji: string; items: string[] }[] = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────
 
-export default function PrestationsPage() {
+export default async function PrestationsPage() {
+  const confirm = useConfirm()
   const { data, loading, error, refetch } = usePrestations()
   const prestations = data as unknown as PrestationRow[]
 
@@ -201,7 +203,7 @@ export default function PrestationsPage() {
   }
 
   const handleDelete = async (id: string, label: string) => {
-    if (!confirm(`Supprimer "${label}" ? Elle ne sera plus proposée en autocomplétion.`)) return
+    if (!(await confirm({ title: `Supprimer "${label}" ?`, message: "Elle ne sera plus proposee en autocompletion.", variant: "danger", confirmLabel: "Supprimer" }))) return
     const supabase = createClient()
     const { error } = await supabase.from('prestations').delete().eq('id', id)
     if (error) {

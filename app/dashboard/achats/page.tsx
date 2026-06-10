@@ -27,6 +27,8 @@ import {
 } from '@/lib/hooks'
 // V4 light premium : on remplace Input/Select legacy par PremiumInput/PremiumSelect/PremiumButton.
 import { PremiumInput, PremiumSelect, PremiumButton, FieldLabel } from '@/components/ui/v4'
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 // -------------------------------------------------------------------
 // Types
@@ -40,6 +42,7 @@ type FilterPeriod = 'Tous' | 'Ce mois' | 'Ce trimestre'
 
 // Wrapper en Suspense (requis par Next.js 14 pour useSearchParams() en client component)
 export default function AchatsPage() {
+  const confirm = useConfirm()
   return (
     <Suspense fallback={<div className="p-8 text-sm text-gray-500">Chargement...</div>}>
       <AchatsPageInner />
@@ -199,7 +202,7 @@ function AchatsPageInner() {
       setShowModal(false)
       resetModal()
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     } finally {
       setSaving(false)
     }
@@ -218,12 +221,12 @@ function AchatsPageInner() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cet achat ?')) return
+    if (!(await confirm({ title: 'Supprimer cet achat ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     try {
       await deleteRow('achats', id)
       refetchAchats()
     } catch (err) {
-      alert((err as Error).message)
+      toast.error((err as Error).message)
     }
     setOpenActionId(null)
   }

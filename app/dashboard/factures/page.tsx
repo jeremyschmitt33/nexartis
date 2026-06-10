@@ -26,6 +26,8 @@ import ExportComptableModal from '@/components/dashboard/ExportComptableModal'
 // V4 light premium : on remplace l'Input legacy par PremiumInput pour le champ recherche
 // et on utilise PremiumButton pour les actions principales.
 import { PremiumInput, PremiumButton } from '@/components/ui/v4'
+import { toast } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
 type FactureFilter = 'Toutes' | 'Encaissées' | 'Partielles' | 'En attente' | 'En retard' | 'Archivées'
 
@@ -71,7 +73,8 @@ function daysOverdue(dateEcheance: string | null): number {
   return Math.max(0, Math.floor(diff / 86400000))
 }
 
-export default function FacturesListPage() {
+export default async function FacturesListPage() {
+  const confirm = useConfirm()
   const router = useRouter()
   const { data: factures, loading: loadingF, error: errorF, refetch: refetchF } = useFactures()
   const { data: clients, loading: loadingC } = useClients()
@@ -147,20 +150,20 @@ export default function FacturesListPage() {
   const retardHT = retardList.reduce((s, f) => s + (f.montantTtc - f.montantPaye), 0)
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Envoyer cette facture à la corbeille ?')) return
+    if (!(await confirm({ title: 'Envoyer cette facture a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
     setDeleting(id)
     try {
       await softDeleteRow('factures', id)
       refetchF()
     } catch (err) {
-      alert('Erreur lors de la suppression : ' + (err as Error).message)
+      toast.error('Erreur lors de la suppression : ' + (err as Error).message)
     } finally {
       setDeleting(null)
       closeMenu()
     }
   }
 
-  function toggleSelect(id: string) {
+  async function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -169,7 +172,7 @@ export default function FacturesListPage() {
     })
   }
 
-  function toggleSelectAll() {
+  async function toggleSelectAll() {
     if (selected.size === filtered.length) {
       setSelected(new Set())
     } else {
@@ -178,7 +181,7 @@ export default function FacturesListPage() {
   }
 
   async function handleBulkDelete() {
-    if (!confirm(`Envoyer ${selected.size} facture${selected.size > 1 ? 's' : ''} à la corbeille ?`)) return
+    if (!(await confirm({ title: `Envoyer ${selected.size} facture${selected.size > 1 ? 's' : ''} a la corbeille ?`, variant: 'danger', confirmLabel: 'Envoyer' }))) return
     setBulkDeleting(true)
     try {
       for (const id of Array.from(selected)) {
@@ -187,7 +190,7 @@ export default function FacturesListPage() {
       setSelected(new Set())
       refetchF()
     } catch (err: unknown) {
-      alert('Erreur : ' + (err instanceof Error ? err.message : 'Échec'))
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
     }
     setBulkDeleting(false)
   }
@@ -241,7 +244,7 @@ export default function FacturesListPage() {
       refetchF()
       router.push(`/dashboard/factures/${newId}/modifier`)
     } catch (err) {
-      alert('Erreur lors de la duplication : ' + (err as Error).message)
+      toast.error('Erreur lors de la duplication : ' + (err as Error).message)
     } finally {
       setDuplicating(null)
     }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useUser, useEntreprise } from '@/lib/hooks'
+import { useUser, useEntreprise, useDevis, useFactures } from '@/lib/hooks'
 import { applySidebarTheme } from '@/components/ThemeSelector'
 import {
   isRouteBlockedForPlan,
@@ -33,13 +33,13 @@ import {
   TrendingUp,
   ArrowDownToLine,
   SlidersHorizontal,
-  Search,
   Bell,
   Menu,
   X,
   MoreHorizontal,
   LogOut,
   ChevronDown,
+  ChevronLeft,
   FileText,
   Receipt,
   Calendar,
@@ -49,6 +49,7 @@ import {
   CreditCard,
   AlertTriangle,
   LifeBuoy,
+  WifiOff,
 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
@@ -189,6 +190,7 @@ function Sidebar({
   userLoading,
   effectivePlan,
   isTrial,
+  badges,
 }: {
   collapsed: boolean
   mobileOpen: boolean
@@ -203,6 +205,8 @@ function Sidebar({
   userLoading: boolean
   effectivePlan: PlanId
   isTrial: boolean
+  /** QW2 -- Compteurs alertes par route */
+  badges?: Record<string, number>
 }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
@@ -304,13 +308,14 @@ function Sidebar({
             </div>
           )}
 
-          {/* Mobile close */}
+          {/* QW7 -- Mobile close */}
           {mobileOpen && (
             <button
               onClick={onCloseMobile}
-              className="absolute top-4 right-4 text-white/60 hover:text-white md:hidden"
+              aria-label="Fermer le menu"
+              className="absolute top-4 right-4 text-white/60 hover:text-white md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              <X size={20} />
+              <X size={20} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -357,22 +362,8 @@ function Sidebar({
           )}
         </div>
 
-        {/* ---- Search bar ---- */}
-        {!collapsed && (
-          <div className="px-3 mb-3">
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
-              />
-              <input
-                type="text"
-                placeholder="Accès rapide..."
-                className="w-full h-10 rounded-lg bg-white/[0.08] pl-9 pr-3 text-sm text-white placeholder:text-white/40 outline-none focus:bg-white/[0.12] transition-colors duration-100"
-              />
-            </div>
-          </div>
-        )}
+        {/* QW6 -- Input "Accès rapide..." retiré (pas câblé) */}
+        {!collapsed && <div className="mb-2" />}
 
         {/* ---- Navigation ---- */}
         <nav className="flex-1 px-2 space-y-0.5">
@@ -397,6 +388,8 @@ function Sidebar({
                 // l'upgrade au lieu d'un blocage silencieux).
                 const isPremium = isPremiumNavItem(item.href)
                 const showPremiumBadge = isPremium && !isTrial && effectivePlan === 'essential'
+                // QW2 -- Badge orange
+                const badgeCount = badges?.[item.href] ?? 0
                 return (
                   <Link
                     key={item.href}
@@ -434,6 +427,27 @@ function Sidebar({
                       <span className={`truncate flex-1 ${active ? 'font-semibold' : ''}`}>
                         {item.label}
                       </span>
+                    )}
+                    {/* QW2 -- Pastille orange notification actions en attente */}
+                    {badgeCount > 0 && !collapsed && !showPremiumBadge && (
+                      <span
+                        aria-label={`${badgeCount} action${badgeCount > 1 ? 's' : ''} en attente`}
+                        className="ml-auto flex-none inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-extrabold leading-none"
+                        style={{
+                          background: 'var(--nexartis-accent, #e87a2a)',
+                          color: '#fff',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
+                    {badgeCount > 0 && collapsed && !showPremiumBadge && (
+                      <span
+                        aria-label={`${badgeCount} action${badgeCount > 1 ? 's' : ''} en attente`}
+                        className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                        style={{ background: 'var(--nexartis-accent, #e87a2a)' }}
+                      />
                     )}
                     {/* Badge ★ pour les items premium quand utilisateur Essentiel */}
                     {showPremiumBadge && !collapsed && (
@@ -538,17 +552,37 @@ function DashboardHeader({
   onMenuClick,
   userInitials,
   userLoading,
+  showBack,
+  onBack,
 }: {
   title: string
   onMenuClick: () => void
   userInitials: string
   userLoading: boolean
+  /** QW4 -- Affiche flèche retour */
+  showBack: boolean
+  /** Handler clic retour */
+  onBack: () => void
 }) {
   return (
     <header className="sticky top-0 z-30 h-[60px] bg-white border-b border-gray-200 flex items-center px-4 lg:px-6 gap-3">
-      <button onClick={onMenuClick} className="p-1.5 rounded-md hover:bg-gray-100 md:hidden transition-colors">
-        <Menu size={22} className="text-[#1a1a2e]" />
+      <button
+        onClick={onMenuClick}
+        aria-label="Ouvrir le menu"
+        className="p-1.5 rounded-md hover:bg-gray-100 md:hidden transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+      >
+        <Menu size={22} className="text-[#1a1a2e]" aria-hidden="true" />
       </button>
+      {/* QW4 -- Bouton retour */}
+      {showBack && (
+        <button
+          onClick={onBack}
+          aria-label="Revenir à la page précédente"
+          className="rounded-lg hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange/40"
+        >
+          <ChevronLeft size={22} className="text-[#1a1a2e]" aria-hidden="true" />
+        </button>
+      )}
       <h1 className="font-hanken font-extrabold text-base sm:text-xl text-[#1a1a2e] tracking-tight truncate flex-1">{title}</h1>
       {/* Commande vocale universelle V3.1 — icone sur mobile, pilule "Dicter" sur desktop */}
       <UniversalVoiceButton variant="icon" className="md:hidden" />
@@ -612,7 +646,12 @@ function MobileBottomNav({
 
         if (isMore) {
           return (
-            <button key="more" onClick={onMoreClick} className={baseCls}>
+            <button
+              key="more"
+              onClick={onMoreClick}
+              aria-label="Ouvrir le menu complet"
+              className={baseCls}
+            >
               {inner}
             </button>
           )
@@ -651,6 +690,9 @@ export default function DashboardLayout({
   const router = useRouter()
   const { user, loading: userLoading } = useUser()
   const { entreprise, loading: entrepriseLoading } = useEntreprise()
+  // QW2 -- Data pour badges sidebar
+  const { data: devisData } = useDevis()
+  const { data: facturesData } = useFactures()
 
   const isLoading = userLoading || entrepriseLoading
 
@@ -813,6 +855,73 @@ export default function DashboardLayout({
     setMobileOpen(false)
   }, [pathname])
 
+  // QW1 -- Raccourci clavier N
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      if (!target) return
+      const tag = target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (target.isContentEditable) return
+      if (e.key !== 'n' && e.key !== 'N') return
+      e.preventDefault()
+      router.push('/dashboard/devis/nouveau')
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [router])
+
+  // QW8 -- Indicateur offline
+  const [isOnline, setIsOnline] = useState(true)
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return
+    setIsOnline(navigator.onLine)
+    const onOnline = () => setIsOnline(true)
+    const onOffline = () => setIsOnline(false)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
+  // QW2 -- Badges sidebar
+  const sidebarBadges: Record<string, number> = useMemo(() => {
+    const now = Date.now()
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000
+    let devisEnAttenteVieux = 0
+    const devisList = (devisData ?? []) as Array<Record<string, unknown>>
+    devisList.forEach((d) => {
+      if (d.statut !== 'envoye') return
+      const ref = (d.updated_at as string | undefined) || (d.created_at as string | undefined)
+      if (!ref) return
+      const age = now - new Date(ref).getTime()
+      if (age >= SEVEN_DAYS) devisEnAttenteVieux++
+    })
+    let facturesEnRetard = 0
+    const facturesList = (facturesData ?? []) as Array<Record<string, unknown>>
+    facturesList.forEach((f) => {
+      const statut = f.statut as string | undefined
+      if (statut === 'en_retard') { facturesEnRetard++; return }
+      if (statut !== 'envoyee' && statut !== 'envoye') return
+      const echeance = f.date_echeance as string | undefined
+      if (!echeance) return
+      if (new Date(echeance).getTime() < now) facturesEnRetard++
+    })
+    return {
+      '/dashboard/devis': devisEnAttenteVieux,
+      '/dashboard/factures': facturesEnRetard,
+    }
+  }, [devisData, facturesData])
+
+  // QW4 -- showBack
+  const showBack = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean)
+    return segments.length > 2 && !pathname.endsWith('/nouveau')
+  }, [pathname])
+
   const sidebarCollapsed = collapsed && !hovered
   const sidebarWidth = sidebarCollapsed ? 64 : 256
   const pageTitle = getPageTitle(pathname)
@@ -841,6 +950,7 @@ export default function DashboardLayout({
           userLoading={isLoading}
           effectivePlan={effectivePlan}
           isTrial={isTrial}
+          badges={sidebarBadges}
         />
       </div>
 
@@ -860,6 +970,7 @@ export default function DashboardLayout({
           userLoading={isLoading}
           effectivePlan={effectivePlan}
           isTrial={isTrial}
+          badges={sidebarBadges}
         />
       </div>
 
@@ -879,6 +990,7 @@ export default function DashboardLayout({
           userLoading={isLoading}
           effectivePlan={effectivePlan}
           isTrial={isTrial}
+          badges={sidebarBadges}
         />
       </div>
 
@@ -886,6 +998,20 @@ export default function DashboardLayout({
       <div
         className="transition-all duration-200 md:ml-16 lg:ml-64"
       >
+        {/* QW8 -- Bandeau Hors ligne */}
+        {!isOnline && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="bg-gray-100 border-b border-gray-200 px-4 py-2 flex items-center justify-center gap-2 text-center print:hidden"
+          >
+            <WifiOff size={14} className="text-gray-500 flex-shrink-0" aria-hidden="true" />
+            <p className="font-hanken text-xs sm:text-sm text-gray-700">
+              Hors ligne -- vos modifications seront synchronisées au retour de la connexion.
+            </p>
+          </div>
+        )}
+
         {/* Bandeau rappel installation PWA (cache 7j apres dismiss ou si deja installee)
             data-tour="install-banner" : cible pour la bulle d'onboarding V3
             (etape "Installe Nexartis sur ton telephone"). Le bandeau peut etre
@@ -925,6 +1051,8 @@ export default function DashboardLayout({
             onMenuClick={() => setMobileOpen(true)}
             userInitials={userInitials}
             userLoading={isLoading}
+            showBack={showBack}
+            onBack={() => router.back()}
           />
         )}
         {/* Planning n'a pas de DashboardHeader : on ajoute un bouton vocal flottant en haut a droite. */}
