@@ -42,7 +42,6 @@ type FilterPeriod = 'Tous' | 'Ce mois' | 'Ce trimestre'
 
 // Wrapper en Suspense (requis par Next.js 14 pour useSearchParams() en client component)
 export default function AchatsPage() {
-  const askConfirm = useConfirm()
   return (
     <Suspense fallback={<div className="p-8 text-sm text-gray-500">Chargement...</div>}>
       <AchatsPageInner />
@@ -51,6 +50,7 @@ export default function AchatsPage() {
 }
 
 function AchatsPageInner() {
+  const askConfirm = useConfirm()
   const { data: achats, loading: achatsLoading, error: achatsError, refetch: refetchAchats } = useAchats()
   const { data: fournisseurs, loading: fournisseursLoading } = useFournisseurs()
   const { data: chantiers, loading: chantiersLoading } = useChantiers()
