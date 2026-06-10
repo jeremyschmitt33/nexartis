@@ -9,6 +9,16 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Optimisation images V4 (10/06/2026) — explicite pour Page Speed Insights.
+  // Next.js Image va automatiquement convertir nos PNG sources en AVIF (navigateurs
+  // recents) puis WebP (fallback) au build/runtime. Gain typique : -70% poids.
+  // Le format d'origine (PNG) reste accessible pour les emails Brevo et OG image.
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [320, 480, 640, 768, 1024, 1280, 1600],
+    imageSizes: [16, 32, 48, 64, 96, 128, 192, 256, 384, 512],
+  },
+
   // Redirection 301 (permanente) de www.nexartis.fr vers nexartis.fr.
   // Note : la regle dans vercel.json n'a pas fonctionne car Vercel utilise un 307
   // par defaut au niveau du domaine. En la mettant ici, Next.js intercepte la

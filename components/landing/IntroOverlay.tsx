@@ -25,6 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 
 // Cle de persistance — lecture unique par session navigateur.
 const STORAGE_KEY = 'nexartis_intro_seen'
@@ -490,16 +491,18 @@ export default function IntroOverlay() {
           ))}
         </div>
 
-        {/* Coeur central : spark + logo image + tagline */}
+        {/* Coeur central : spark + logo image (next/image -> WebP/AVIF auto) + tagline */}
         <div className="intro-core">
           <div className="intro-spark" aria-hidden="true" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/images/logo-nexartis.png"
             alt="Nexartis"
             className="intro-logo"
             width={1600}
             height={800}
+            priority
+            sizes="(max-width: 640px) 60vw, (max-width: 1280px) 50vw, 620px"
+            quality={88}
           />
           <p className="intro-tag">
             Tous vos outils artisan. <b>Un seul prix.</b>
