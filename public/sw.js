@@ -17,7 +17,7 @@
 // -----------------------------------------------------------------------------
 // La version est concaténée dans les noms de caches. Quand on incrémente la
 // version, l'event "activate" va supprimer tous les anciens caches automatiquement.
-const CACHE_VERSION = 'nexartis-v1.0.0'
+const CACHE_VERSION = 'nexartis-v1.1.0-logo-v4'
 const CACHE_NAME_HTML = 'nexartis-html-' + CACHE_VERSION
 const CACHE_NAME_STATIC = 'nexartis-static-' + CACHE_VERSION
 const OFFLINE_URL = '/offline'

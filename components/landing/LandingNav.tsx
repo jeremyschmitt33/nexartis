@@ -111,15 +111,15 @@ export default function LandingNav() {
           className="flex items-center font-hanken font-bold text-[20px] tracking-[-0.02em] text-ink no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bgdark rounded-lg"
           aria-label="Nexartis - Accueil"
         >
-          {/* Logo officiel complet (le wordmark Nexartis est integre au visuel). */}
+          {/* Logo officiel complet (le wordmark Nexartis est integre au visuel, fond transparent). */}
           <Image
             src="/images/logo-nexartis.png"
             alt="Nexartis"
-            width={200}
-            height={100}
+            width={320}
+            height={160}
             priority
             quality={100}
-            className="h-11 w-auto object-contain"
+            className="h-14 sm:h-16 w-auto object-contain"
           />
         </Link>
 

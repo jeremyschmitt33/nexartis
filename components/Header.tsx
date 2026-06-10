@@ -93,16 +93,16 @@ export default function Header() {
         scrolled ? "shadow-[0_2px_20px_rgba(15,26,58,0.06)]" : ""
       }`}
     >
-      {/* Logo (image contient deja le wordmark Nexartis) */}
+      {/* Logo (image contient deja le wordmark Nexartis - fond transparent) */}
       <Link href="/" className="flex items-center no-underline" aria-label="Nexartis - Accueil">
         <Image
           src="/images/logo-nexartis.png"
           alt="Nexartis"
-          width={200}
-          height={100}
+          width={320}
+          height={160}
           quality={100}
           priority
-          className="h-12 w-auto object-contain"
+          className="h-14 sm:h-16 w-auto object-contain"
         />
       </Link>
 

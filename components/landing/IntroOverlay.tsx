@@ -35,9 +35,6 @@ const INTRO_DURATION_MS = 4300
 // Duree du fondu de sortie (doit matcher la transition CSS de .intro-overlay.hide).
 const EXIT_DURATION_MS = 800
 
-// Mot du wordmark — chaque lettre est animee individuellement (delay staggered).
-const WORD = 'Nexartis'
-
 // Chips en orbite autour du wordmark — positionnees en % sur le viewport.
 // Couleurs : tokens Tailwind landing (accent / electric / violet / mint).
 const CHIPS: Array<{ label: string; color: string; x: string; y: string; delay: number }> = [
@@ -319,28 +316,22 @@ export default function IntroOverlay() {
           }
         }
 
-        /* Wordmark lettre par lettre — t = 700ms */
-        .intro-word {
-          font-family: 'Syne', sans-serif;
-          font-weight: 600;
-          font-size: clamp(40px, 8vw, 92px);
-          letter-spacing: -0.03em;
-          display: flex;
-          gap: 0.01em;
-          justify-content: center;
-          color: var(--intro-ink);
-        }
-        .intro-word span {
-          display: inline-block;
+        /* Logo image animé — fade-in + scale-up, t = 700ms */
+        .intro-logo {
+          display: block;
+          margin: 0 auto;
+          width: clamp(280px, 55vw, 620px);
+          height: auto;
           opacity: 0;
-          transform: translateY(40px) rotateX(-60deg);
-          animation: intro-letter 0.7s var(--intro-ease) forwards;
+          transform: scale(0.78);
+          filter: drop-shadow(0 18px 60px rgba(63, 123, 255, 0.25));
+          animation: intro-logo-in 1.1s var(--intro-ease) forwards;
+          animation-delay: 0.7s;
         }
-        @keyframes intro-letter {
-          to { opacity: 1; transform: none; }
-        }
-        .intro-word .intro-accent-letter {
-          color: var(--intro-accent);
+        @keyframes intro-logo-in {
+          0%   { opacity: 0; transform: scale(0.78); }
+          55%  { opacity: 1; transform: scale(1.03); }
+          100% { opacity: 1; transform: scale(1); }
         }
 
         /* Tagline — t = 2000ms */
@@ -499,21 +490,17 @@ export default function IntroOverlay() {
           ))}
         </div>
 
-        {/* Coeur central : spark + wordmark + tagline */}
+        {/* Coeur central : spark + logo image + tagline */}
         <div className="intro-core">
           <div className="intro-spark" aria-hidden="true" />
-          <div className="intro-word" aria-label="Nexartis">
-            {WORD.split('').map((ch, i) => (
-              <span
-                key={`${ch}-${i}`}
-                className={i === 0 ? 'intro-accent-letter' : ''}
-                style={{ animationDelay: `${0.7 + i * 0.07}s` }}
-                aria-hidden="true"
-              >
-                {ch}
-              </span>
-            ))}
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/logo-nexartis.png"
+            alt="Nexartis"
+            className="intro-logo"
+            width={1600}
+            height={800}
+          />
           <p className="intro-tag">
             Tous vos outils artisan. <b>Un seul prix.</b>
           </p>
