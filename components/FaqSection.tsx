@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     q: "Nexartis gere-t-il les equipes avec plusieurs intervenants ?",
-    a: "Nexartis inclut la gestion de votre equipe. Chaque membre de votre equipe recoit son planning sur son telephone. Tout le monde sait ou il doit aller et quand.",
+    a: "Nexartis gere votre equipe (intervenants, chefs de chantier, apprentis) dans un planning unifie. La fonctionnalite multi-comptes avec login personnel par membre est en cours de developpement et arrivera en 2026.",
   },
   {
     q: "Ou sont hebergees mes donnees et comment sont-elles protegees ?",

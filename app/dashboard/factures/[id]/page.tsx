@@ -71,6 +71,9 @@ interface FactureRecord {
   montant_situation_precedent_ttc?: number | null
   reste_a_facturer_ht?: number | null
   reste_a_facturer_ttc?: number | null
+  // 2026-06-10 — Autoliquidation BTP (sous-traitance). Nullable car la migration
+  // SQL peut ne pas etre encore executee en BDD (colonne absente → undefined).
+  autoliquidation_btp?: boolean | null
   created_at: string
   updated_at?: string
 }
@@ -358,6 +361,9 @@ export default function FactureDetailPage() {
       montant_situation_precedent_ttc: (facture.montant_situation_precedent_ttc as number | null | undefined) ?? null,
       reste_a_facturer_ht: (facture.reste_a_facturer_ht as number | null | undefined) ?? null,
       reste_a_facturer_ttc: (facture.reste_a_facturer_ttc as number | null | undefined) ?? null,
+      // 2026-06-10 — Autoliquidation BTP. Defensif : si la colonne n'existe
+      // pas encore en DB (migration non executee), la valeur est undefined → false.
+      autoliquidation_btp: (facture.autoliquidation_btp as boolean | null | undefined) ?? null,
     },
     lignes: (lignes ?? []).map((l, idx) => ({
       designation: l.designation ?? '',

@@ -32,6 +32,8 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
           {data.meta.situation && <SituationBanner situation={data.meta.situation} totalHt={data.totals.sousTotalHt} totalTtc={data.totals.totalTtc} />}
           <LinesTable groups={data.groups} />
           {isDevis ? <RecapDevis data={data} /> : <RecapFacture data={data} />}
+          {/* 2026-06-10 — Mention autoliquidation BTP en pied de doc (art. 283-2 nonies CGI) */}
+          {data.meta.autoliquidationBtp && <AutoliquidationMention />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
           {isDevis && <Signature artisan={data.artisan} />}
         </div>
@@ -240,10 +242,15 @@ function GroupRows({ group }: { group: DocumentGroup }) {
 
 function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType: 'devis' | 'facture'; meta: DocumentMeta }) {
   const hasAcompte = docType === 'devis' && totals.acomptePct > 0
+  // 2026-06-10 — Autoliquidation BTP : libelle TVA dedie (au lieu du generique
+  // "TVA non applicable" qui evoque la franchise 293 B).
+  const tvaLabel = meta.autoliquidationBtp
+    ? 'TVA — Autoliquidation (preneur)'
+    : 'TVA non applicable'
   return (
     <div className="dv-recap-box">
       <div className="dv-recap-line"><span>Sous-total HT</span><span>{eur(totals.sousTotalHt)}</span></div>
-      {totals.tvaLignes.length === 0 && (<div className="dv-recap-line dv-recap-line--mute"><span>TVA non applicable</span><span>{eur(0)}</span></div>)}
+      {totals.tvaLignes.length === 0 && (<div className="dv-recap-line dv-recap-line--mute"><span>{tvaLabel}</span><span>{eur(0)}</span></div>)}
       {totals.tvaLignes.map(l => (
         <div className="dv-recap-line dv-recap-line--mute" key={`t-${l.taux}`}>
           <span>TVA {tauxLabel(l.taux)} <em>(base {eur(l.base)})</em></span><span>{eur(l.montant)}</span>
@@ -390,6 +397,20 @@ function LegalFacture({ data }: { data: DocumentData }) {
         <div><span className="dv-legal-k">Médiation</span>{mediation}</div>
         {clientType === 'particulier' && (<div><span className="dv-legal-k">Pénalités</span>En cas de retard : pénalités au taux de 3× l&apos;intérêt légal. Pas d&apos;escompte pour paiement anticipé.</div>)}
       </div>
+    </div>
+  )
+}
+
+// 2026-06-10 — Mention obligatoire d'autoliquidation TVA en sous-traitance BTP.
+// Affichee uniquement quand meta.autoliquidationBtp === true. Bandeau navy
+// discret aligne sur le style du recap (border + padding compact).
+function AutoliquidationMention() {
+  return (
+    <div className="dv-autoliq">
+      <span className="dv-autoliq-k">Autoliquidation TVA</span>
+      <span className="dv-autoliq-v">
+        TVA due par le preneur — art. 283-2 nonies du CGI (sous-traitance BTP). Aucune TVA n&apos;est facturee par le sous-traitant.
+      </span>
     </div>
   )
 }

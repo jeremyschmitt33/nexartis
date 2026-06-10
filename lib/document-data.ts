@@ -109,6 +109,10 @@ export interface DocumentMeta {
     resteAFacturerHt?: number
     resteAFacturerTtc?: number
   }
+  // 2026-06-10 — Autoliquidation BTP (art. 283-2 nonies CGI).
+  // Si true : forcer la TVA a 0% partout + afficher la mention obligatoire en pied de doc.
+  // Quand undefined / false → rendu standard inchange (backward-compat).
+  autoliquidationBtp?: boolean
 }
 
 export interface DocumentData {
@@ -152,6 +156,9 @@ export interface RawDevis {
   dechets_tri?: string | null
   dechets_collecte_nom?: string | null
   dechets_collecte_type?: string | null
+  // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance). Optionnel + nullable
+  // pour gerer le cas ou la migration SQL n'a pas encore ete executee.
+  autoliquidation_btp?: boolean | null
 }
 
 export interface RawFacture {
@@ -172,6 +179,9 @@ export interface RawFacture {
   montant_situation_precedent_ttc?: number | null
   reste_a_facturer_ht?: number | null
   reste_a_facturer_ttc?: number | null
+  // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance). Optionnel + nullable
+  // pour gerer le cas ou la migration SQL n'a pas encore ete executee.
+  autoliquidation_btp?: boolean | null
 }
 
 export interface RawClient {
@@ -490,6 +500,19 @@ function buildChantierAdresse(chantier: RawChantier | null | undefined, fallback
   return parts.join(', ')
 }
 
+// 2026-06-10 — Quand autoliquidation_btp = true, on force tous les taux TVA
+// a 0 dans la hierarchie (parite PDF + HTML + signature). Le calcul des totaux
+// (computeTotals) ignorera alors automatiquement la TVA (taux 0 = aucune ligne TVA).
+function applyAutoliquidationOnGroups(groups: DocumentGroup[]): DocumentGroup[] {
+  return groups.map(g => ({
+    ...g,
+    subs: g.subs.map(s => ({
+      ...s,
+      items: s.items.map(it => ({ ...it, tva: 0 })),
+    })),
+  }))
+}
+
 export function buildDevisDocument(opts: {
   doc: RawDevis
   lignes: RawLigne[]
@@ -499,7 +522,10 @@ export function buildDevisDocument(opts: {
 }): DocumentData {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
-  const { groups, isForfait } = buildHierarchy(opts.lignes)
+  const built = buildHierarchy(opts.lignes)
+  const isAutoliq = opts.doc.autoliquidation_btp === true
+  const groups = isAutoliq ? applyAutoliquidationOnGroups(built.groups) : built.groups
+  const isForfait = built.isForfait
   const totals = computeTotals(groups, opts.doc.acompte_pourcent ?? 0)
 
   const dechets = opts.doc.dechets_nature || opts.doc.dechets_responsable ||
@@ -522,6 +548,7 @@ export function buildDevisDocument(opts: {
     chantierAdresse: buildChantierAdresse(opts.chantier, opts.client),
     conditionsPaiement: opts.doc.conditions_paiement ?? undefined,
     dechets,
+    autoliquidationBtp: isAutoliq,
   }
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
@@ -538,7 +565,10 @@ export function buildFactureDocument(opts: {
 }): DocumentData {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
-  const { groups, isForfait } = buildHierarchy(opts.lignes)
+  const built = buildHierarchy(opts.lignes)
+  const isAutoliq = opts.doc.autoliquidation_btp === true
+  const groups = isAutoliq ? applyAutoliquidationOnGroups(built.groups) : built.groups
+  const isForfait = built.isForfait
   const totals = computeTotals(groups, 0)
 
   const meta: DocumentMeta = {
@@ -550,6 +580,7 @@ export function buildFactureDocument(opts: {
     chantierAdresse: buildChantierAdresse(opts.chantier, opts.client),
     conditionsPaiement: opts.doc.conditions_paiement ?? undefined,
     penalitesCustom: opts.doc.penalites_retard ?? undefined,
+    autoliquidationBtp: isAutoliq,
   }
 
   // V3.0c.18 — Snapshot situation (uniquement si type === 'situation' ET

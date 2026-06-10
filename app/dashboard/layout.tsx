@@ -16,6 +16,7 @@ import {
 import OnboardingTour from '@/components/OnboardingTour'
 import ContactFloatingButton from '@/components/dashboard/ContactFloatingButton'
 import InstallReminderBanner from '@/components/InstallReminderBanner'
+import PWAUpdateToast from '@/components/PWAUpdateToast'
 import { VoiceProvider } from '@/components/voice/VoiceProvider'
 import UniversalVoiceButton from '@/components/voice/UniversalVoiceButton'
 import {
@@ -952,6 +953,11 @@ export default function DashboardLayout({
 
       {/* Bouton flottant Nous contacter */}
       <ContactFloatingButton />
+
+      {/* 2026-06-10 — Toast "Nouvelle version disponible" (PWA service worker).
+          Honore la promesse landing MobileSection ("notification quand nouvelle
+          version prete"). Reste invisible tant que le SW ne signale pas d'update. */}
+      <PWAUpdateToast />
     </div>
     </VoiceProvider>
   )

@@ -335,3 +335,33 @@
   .dv-row td { padding:6px 4px; }
   .dv-recap-net strong { font-size:19px; }
 }
+
+/* 2026-06-10 — Mention autoliquidation BTP (art. 283-2 nonies CGI)
+   Bandeau discret en pied de doc, juste avant les mentions legales 2x2.
+   Style aligne sur dv-objet (cle en uppercase + valeur a droite). */
+.dv-autoliq {
+  margin-top:10px;
+  padding:10px 14px;
+  border:1px solid #d9def0;
+  border-left:3px solid #ff7a1a;
+  background:#fafbfc;
+  border-radius:6px;
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  font-size:11px;
+  line-height:1.45;
+}
+.dv-autoliq-k {
+  flex:0 0 130px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:#5f6b8a;
+  font-size:9.5px;
+  padding-top:2px;
+}
+.dv-autoliq-v {
+  flex:1;
+  color:#0f1a3a;
+}

@@ -150,6 +150,10 @@ export async function POST(req: NextRequest) {
       montant_situation_precedent_ttc: facture.montant_situation_precedent_ttc ?? undefined,
       reste_a_facturer_ht: facture.reste_a_facturer_ht ?? undefined,
       reste_a_facturer_ttc: facture.reste_a_facturer_ttc ?? undefined,
+      // 2026-06-10 — Autoliquidation BTP (art. 283-2 nonies CGI). Defensif :
+      // si la colonne n'existe pas en DB (migration non executee), facture.autoliquidation_btp
+      // est undefined, donc false coté generateFacturePdf (backward-compat OK).
+      autoliquidation_btp: facture.autoliquidation_btp === true,
       // Legacy : ancien champ `notes` conservé pour rétrocompat
       notes: facture.notes || undefined,
     }, themeFromEntreprise(entreprise))

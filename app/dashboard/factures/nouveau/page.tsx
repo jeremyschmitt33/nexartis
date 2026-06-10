@@ -218,6 +218,10 @@ export default function NouvelleFacturePage() {
   // V6 — Si l'utilisateur change manuellement la TVA, on ne ré-impose plus 0 automatiquement
   const [tvaUserOverride, setTvaUserOverride] = useState(false)
 
+  // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
+  // Quand actif : TVA forcee a 0 sur toutes les lignes + mention auto en pied de doc.
+  const [autoliquidationBtp, setAutoliquidationBtp] = useState(false)
+
   // V6 — Auto-détection franchise TVA via helper unique isAutoEntrepreneur.
   // Si l'entreprise est en franchise, on force globalTvaRate=0 (parité avec le devis).
   // L'artisan peut malgré tout remettre 10/20% (cas dépassement seuil), auquel cas
@@ -533,6 +537,10 @@ export default function NouvelleFacturePage() {
         statut,
         // V3.0c.17 — Type de facture + champs specifiques situation
         type: factureType,
+        // 2026-06-10 — Autoliquidation BTP (boolean, default false en DB).
+        // Si la colonne n'existe pas en DB (migration non executee), on retombe
+        // sur le catch 42703 plus bas pour ne pas planter l'insertion.
+        autoliquidation_btp: autoliquidationBtp,
         devis_ref: isSit ? (devisRef.trim() || null) : null,
         devis_date: isSit ? (devisDateLiee || null) : null,
         numero_situation: isSit ? numeroSituation : null,
@@ -606,7 +614,23 @@ export default function NouvelleFacturePage() {
         } catch (err) { console.error('Erreur sauvegarde client:', err) }
       }
 
-      const facture = await insertRow('factures', factureData)
+      // 2026-06-10 — Code defensif : la colonne autoliquidation_btp peut etre
+      // absente de la DB si la migration SQL n'a pas tourne (erreur Postgres 42703).
+      // Dans ce cas on retire le champ et on retente, pour ne pas bloquer la creation.
+      let facture: unknown
+      try {
+        facture = await insertRow('factures', factureData)
+      } catch (e) {
+        const msg = (e as { message?: string; code?: string })?.message || ''
+        const code = (e as { code?: string })?.code || ''
+        if (msg.includes('autoliquidation_btp') || code === '42703' || msg.includes('42703')) {
+          const fallback = { ...factureData }
+          delete fallback.autoliquidation_btp
+          facture = await insertRow('factures', fallback)
+        } else {
+          throw e
+        }
+      }
       const factureId = (facture as Record<string, unknown>).id as string
 
       // V4 : on persiste type/niveau pour sections + sous-sections + lignes
@@ -643,7 +667,7 @@ export default function NouvelleFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee])
+  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee, autoliquidationBtp])
 
   return (
     <div className="min-h-screen">
@@ -760,6 +784,35 @@ export default function NouvelleFacturePage() {
               <p className="mt-1.5 font-hanken text-xs text-gray-500">
                 Une <strong>facture de situation</strong> facture une tranche d&apos;un chantier en cours (#1, #2, #3...).
               </p>
+            </div>
+
+            {/* 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
+                 Quand cochee : TVA forcee a 0 sur toutes les lignes + mention auto en pied. */}
+            <div className="rounded-2xl border border-[#0f1a3a]/[0.06] bg-[#fafbfc] p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoliquidationBtp}
+                  onChange={e => {
+                    const v = e.target.checked
+                    setAutoliquidationBtp(v)
+                    if (v) {
+                      setTvaUserOverride(true)
+                      setGlobalTvaRate(0)
+                      setLines(prev => prev.map(l => l.type === 'line' ? { ...l, tva: 0 } : l))
+                    }
+                  }}
+                  className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/30 cursor-pointer accent-[#ff7a1a]"
+                />
+                <div>
+                  <span className="block font-hanken text-[15px] font-semibold text-[#0f1a3a]">
+                    🏗️ Autoliquidation TVA (sous-traitance BTP)
+                  </span>
+                  <span className="block font-hanken text-xs text-gray-500 mt-1">
+                    Art. 283-2 nonies CGI — la TVA est due par le preneur (donneur d&apos;ordre). Tous les taux sont forces a 0 % et la mention legale est ajoutee automatiquement en pied de document.
+                  </span>
+                </div>
+              </label>
             </div>
 
             {factureType === 'situation' && (

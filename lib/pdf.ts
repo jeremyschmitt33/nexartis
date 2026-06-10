@@ -121,6 +121,8 @@ export interface DevisData {
   statut?: string
   date_signature?: string
   client_signature_base64?: string
+  // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
+  autoliquidation_btp?: boolean
 }
 
 export interface FactureData {
@@ -157,6 +159,12 @@ export interface FactureData {
   montant_situation_precedent_ttc?: number
   reste_a_facturer_ht?: number
   reste_a_facturer_ttc?: number
+  // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
+  // Quand true : pousse hasSousTraitanceBTP=true dans le LegalContext → la mention
+  // d'autoliquidation est ajoutee automatiquement en pied de doc (cf. legal-mentions.ts).
+  // Note : c'est a l'appelant (route API) de garantir que toutes les lignes ont
+  // bien taux_tva=0 quand ce flag est actif (parite HTML).
+  autoliquidation_btp?: boolean
 }
 
 export const DEFAULT_CONDITIONS_PAIEMENT =
@@ -173,7 +181,11 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   registerPdfFonts(doc)
   const ent = data.entreprise
-  const lignes = normalizeLignes(data.lignes as PdfLigne[])
+  // 2026-06-10 — Autoliquidation BTP : forcer TVA=0 sur les lignes (parite HTML).
+  const rawLignes = data.autoliquidation_btp === true
+    ? (data.lignes as PdfLigne[]).map(l => ({ ...l, taux_tva: 0 }))
+    : (data.lignes as PdfLigne[])
+  const lignes = normalizeLignes(rawLignes)
   const palette = buildPalette(theme ?? null)
 
   // 1. HEADER bandeau navy
@@ -248,7 +260,7 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
     lignes,
     'devis',
     y,
-    { dechets: data.dechets },
+    { dechets: data.dechets, hasSousTraitanceBTP: data.autoliquidation_btp === true },
     palette,
   )
 
@@ -275,7 +287,13 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   registerPdfFonts(doc)
   const ent = data.entreprise
-  const lignes = normalizeLignes(data.lignes as PdfLigne[])
+  // 2026-06-10 — Autoliquidation BTP : on force le taux TVA a 0 sur toutes les
+  // lignes prestations (parite stricte HTML/PDF). Les lignes section/sous_section
+  // et commentaires gardent leur valeur (ignorees par les calculs TVA).
+  const rawLignes = data.autoliquidation_btp === true
+    ? (data.lignes as PdfLigne[]).map(l => ({ ...l, taux_tva: 0 }))
+    : (data.lignes as PdfLigne[])
+  const lignes = normalizeLignes(rawLignes)
   const isSituation = data.type === 'situation'
   const palette = buildPalette(theme ?? null)
 
@@ -380,7 +398,7 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     lignes,
     'facture',
     y,
-    { factureType: data.type },
+    { factureType: data.type, hasSousTraitanceBTP: data.autoliquidation_btp === true },
     palette,
   )
 

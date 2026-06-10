@@ -116,6 +116,7 @@ export function buildLegalContext(
   lignes: PdfLigne[],
   client: { siret?: string; type?: string },
   factureType?: 'standard' | 'avoir' | 'acompte' | 'situation',
+  hasSousTraitanceBTP?: boolean,
 ): LegalContext {
   const explicit = (client.type || '').toLowerCase()
   let clientType: 'particulier' | 'pro' = 'particulier'
@@ -131,7 +132,7 @@ export function buildLegalContext(
     clientType,
     lignes: lignes as unknown as LegalContext['lignes'],
     factureType,
-    hasSousTraitanceBTP: false,
+    hasSousTraitanceBTP: hasSousTraitanceBTP === true,
   }
 }
 
@@ -170,6 +171,9 @@ const W = 174
 interface DrawLegalOpts {
   factureType?: 'standard' | 'avoir' | 'acompte' | 'situation'
   dechets?: LegalDechets
+  // 2026-06-10 — Autoliquidation BTP (art. 283-2 nonies CGI). Quand true, la
+  // mention obligatoire est ajoutee aux mentions legales du document.
+  hasSousTraitanceBTP?: boolean
 }
 
 export function drawLegal(
@@ -215,7 +219,7 @@ export function drawLegal(
   }
 
   // 3. Encadre 2x2 mentions legales (Assurance / Statut / Mediateur / Retractation)
-  const ctx = buildLegalContext(kind, ent, lignes, { siret: client.clientSiret, type: client.clientType }, opts.factureType)
+  const ctx = buildLegalContext(kind, ent, lignes, { siret: client.clientSiret, type: client.clientType }, opts.factureType, opts.hasSousTraitanceBTP)
   const allMentions = kind === 'devis' ? getLegalMentionsDevis(ctx) : getLegalMentionsFacture(ctx)
   // Mentions non-TVA, on les rend dans la grille / sous la grille
   const nonTva = allMentions.filter(m => !isTvaMention(m))

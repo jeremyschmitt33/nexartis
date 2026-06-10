@@ -152,6 +152,8 @@ export async function POST(req: NextRequest) {
       montant_situation_precedent_ttc: facture.montant_situation_precedent_ttc ?? undefined,
       reste_a_facturer_ht: facture.reste_a_facturer_ht ?? undefined,
       reste_a_facturer_ttc: facture.reste_a_facturer_ttc ?? undefined,
+      // 2026-06-10 — Autoliquidation BTP (parite avec /api/download-facture).
+      autoliquidation_btp: facture.autoliquidation_btp === true,
       // Legacy : ancien champ notes conservé pour rétrocompat
       notes: facture.notes,
     }, themeFromEntreprise(entreprise))

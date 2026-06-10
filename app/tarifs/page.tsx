@@ -66,7 +66,7 @@ const faqItems = [
   },
   {
     q: "Puis-je annuler mon abonnement à tout moment ?",
-    a: "Oui, Nexartis est sans engagement. Vous pouvez résilier directement depuis votre espace, à tout moment. Vos données restent accessibles et exportables pendant 30 jours après l'annulation.",
+    a: "Oui, Nexartis est sans engagement. Vous pouvez résilier directement depuis votre espace, à tout moment. Vous pouvez exporter toutes vos données à tout moment (CSV, PDF) avant ou après votre annulation, sans limite.",
   },
   {
     q: "Proposez-vous un tarif annuel ?",
