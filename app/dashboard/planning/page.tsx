@@ -3229,6 +3229,33 @@ function PlanningPageInner() {
                         className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#5ab4e0]/10 text-[#1a6fb5] rounded-lg text-[13px] font-semibold hover:bg-[#5ab4e0]/20 transition-all">
                         <Eye className="w-3.5 h-3.5" /> Voir le chantier
                       </button>
+                      {/* 2026-06-10 — Quick action : emettre une facture de situation
+                          directement depuis le panel planning. Reutilise le pattern
+                          voicePayload b64 de la fiche chantier (lignes 1252-1269). */}
+                      <button onClick={() => {
+                        closePanel()
+                        const payload = {
+                          facture_type: 'situation',
+                          objet: String(ch.objet ?? ch.nom ?? ''),
+                          client_civilite: cl ? String(cl.civilite ?? '') : '',
+                          client_nom: cl ? String(cl.nom ?? '') : '',
+                          client_prenom: cl ? String(cl.prenom ?? '') : '',
+                          client_adresse: cl ? String(cl.adresse ?? '') : '',
+                          client_code_postal: cl ? String(cl.code_postal ?? '') : '',
+                          client_ville: cl ? String(cl.ville ?? '') : '',
+                          client_telephone: cl ? String(cl.telephone ?? '') : '',
+                          client_email: cl ? String(cl.email ?? '') : '',
+                          devis_ref: dv ? String(dv.numero ?? '') : '',
+                          chantier_id: String(ch.id),
+                        }
+                        const json = JSON.stringify(payload)
+                        const b64 = btoa(unescape(encodeURIComponent(json)))
+                          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+                        router.push(`/dashboard/factures/nouveau?voicePayload=${b64}`)
+                      }}
+                        className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-lg text-[13px] font-semibold shadow-[0_4px_12px_rgba(255,122,26,0.25)] hover:-translate-y-0.5 transition-all">
+                        <Plus className="w-3.5 h-3.5" /> Émettre une facture de situation
+                      </button>
                     </div>
                   </div>
                 )}
