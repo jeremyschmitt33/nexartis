@@ -224,6 +224,32 @@ export default function FactureDetailPage() {
     } finally { setUpdating(false) }
   }
 
+  // V2.1 10/06/2026 — Relance manuelle 1 clic.
+  // Appelle /api/factures/[id]/relancer-maintenant qui choisit le bon
+  // palier (J+7 / J+15 / J+30) selon le delta echeance et envoie un email.
+  const handleRelancerMaintenant = async () => {
+    if (!facture) return
+    setUpdating(true)
+    try {
+      const res = await fetch(`/api/factures/${facture.id}/relancer-maintenant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json().catch(() => null) as { ok?: boolean; niveau?: string; sent_to?: string; error?: string } | null
+      if (!res.ok || !data?.ok) {
+        toast.error(data?.error || 'Echec de l\'envoi de la relance')
+        return
+      }
+      const niveauLabel = data.niveau === 'j30' ? 'J+30 (dernier rappel)'
+        : data.niveau === 'j15' ? 'J+15 (rappel ferme)'
+        : 'J+7 (courtois)'
+      toast.success(`Relance ${niveauLabel} envoyée à ${data.sent_to}`)
+      router.refresh()
+    } catch (err) {
+      toast.error('Erreur reseau : ' + (err instanceof Error ? err.message : 'Echec'))
+    } finally { setUpdating(false) }
+  }
+
   const loading = loadingFacture || loadingLignes || loadingClient
 
   if (loading) return <div className="space-y-6"><LoadingSkeleton rows={8} /></div>
@@ -506,10 +532,13 @@ export default function FactureDetailPage() {
           )}
           {facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
             <button
-              onClick={() => setSendModalOpen(true)}
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-amber-200 bg-amber-50 hover:bg-amber-100 font-hanken text-[13.5px] font-semibold text-amber-800 transition-colors"
+              onClick={handleRelancerMaintenant}
+              disabled={updating}
+              title="Envoie 1 email de relance immediat (palier choisi selon le retard : J+7 / J+15 / J+30)"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-amber-200 bg-amber-50 hover:bg-amber-100 font-hanken text-[13.5px] font-semibold text-amber-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+              aria-label="Envoyer une relance maintenant pour cette facture"
             >
-              <AlertTriangle size={14} /> Relancer
+              <AlertTriangle size={14} /> {updating ? 'Envoi…' : 'Relancer maintenant'}
             </button>
           )}
         </div>

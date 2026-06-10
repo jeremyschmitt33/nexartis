@@ -760,13 +760,47 @@ function EntrepriseSection({
           onChange={setAssuranceZone}
           placeholder="France entière"
         />
-        <PremiumInput
-          label="Date de fin de validité"
-          type="date"
-          value={decennaleDateFin}
-          onChange={setDecennaleDateFin}
-          hint="Nexartis vous rappellera automatiquement 60 jours avant l'expiration de votre contrat."
-        />
+        <div>
+          <PremiumInput
+            label="Date de fin de validité"
+            type="date"
+            value={decennaleDateFin}
+            onChange={setDecennaleDateFin}
+            hint="Cascade de rappels automatiques : J-60 (info) → J-30 (rappel) → J-7 (urgent)."
+          />
+          {/* V2.1 10/06/2026 : badge d'etat colore (vert/orange/rouge) selon la date renseignee. */}
+          {decennaleDateFin && (() => {
+            const target = new Date(`${decennaleDateFin}T00:00:00`)
+            if (Number.isNaN(target.getTime())) return null
+            const today = new Date()
+            const targetUtc = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate())
+            const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+            const diffDays = Math.floor((targetUtc - todayUtc) / (1000 * 60 * 60 * 24))
+            let bg = 'bg-emerald-50'
+            let bd = 'border-emerald-200'
+            let tx = 'text-emerald-800'
+            let label = `Valide encore ${diffDays} jours`
+            if (diffDays < 0) {
+              bg = 'bg-red-50'; bd = 'border-red-300'; tx = 'text-red-800'
+              label = `EXPIRÉE depuis ${Math.abs(diffDays)} jour${Math.abs(diffDays) > 1 ? 's' : ''} — couverture rompue`
+            } else if (diffDays <= 7) {
+              bg = 'bg-red-50'; bd = 'border-red-300'; tx = 'text-red-800'
+              label = `URGENT — expire dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`
+            } else if (diffDays <= 30) {
+              bg = 'bg-amber-50'; bd = 'border-amber-300'; tx = 'text-amber-800'
+              label = `Expire dans ${diffDays} jours — renouvelez bientôt`
+            } else if (diffDays <= 60) {
+              bg = 'bg-amber-50'; bd = 'border-amber-200'; tx = 'text-amber-800'
+              label = `Expire dans ${diffDays} jours — anticipez le renouvellement`
+            }
+            return (
+              <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${bg} ${bd} ${tx} font-hanken font-semibold text-[12.5px]`}>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${diffDays < 0 || diffDays <= 7 ? 'bg-red-500' : diffDays <= 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} aria-hidden="true" />
+                {label}
+              </div>
+            )
+          })()}
+        </div>
         <div className="flex items-end">
           <div className="w-full">
             <PremiumToggle label="Certification RGE" checked={rge} onChange={setRge} />
@@ -1523,6 +1557,10 @@ function NotificationsSection({
   // V1 relances auto : envoi d'un email J+7/J+15/J+30 aux clients sur factures impayees.
   // Par defaut TRUE (NULL = TRUE cote DB).
   const [relancesAutoActives, setRelancesAutoActives] = useState(true)
+  // V2.1 10/06/2026 : pause globale temporaire des relances auto.
+  // Utile vacances / litige en cours / gros bug audit comptable.
+  // Format YYYY-MM-DD. Si < today, la pause est expiree (= inactive).
+  const [relancesPauseJusquAu, setRelancesPauseJusquAu] = useState('')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -1533,6 +1571,13 @@ function NotificationsSection({
       setNotifyDevisSigne(entreprise.notify_devis_signe !== false)
       // Relances auto factures : NULL ou TRUE => active, FALSE => desactive.
       setRelancesAutoActives(entreprise.relances_auto_actives !== false)
+      // V2.1 : pause globale, on stocke en YYYY-MM-DD pour l'input date.
+      const raw = entreprise.relances_pause_jusqu_au
+      if (typeof raw === 'string' && raw) {
+        setRelancesPauseJusquAu(raw.slice(0, 10))
+      } else {
+        setRelancesPauseJusquAu('')
+      }
     }
   }, [entreprise])
 
@@ -1544,6 +1589,7 @@ function NotificationsSection({
       await update({
         notify_devis_signe: notifyDevisSigne,
         relances_auto_actives: relancesAutoActives,
+        relances_pause_jusqu_au: relancesPauseJusquAu || null,
       })
       setSuccess('Préférences de notifications enregistrées.')
     } catch (err) {
@@ -1618,6 +1664,56 @@ function NotificationsSection({
           Un seul email est envoyé par palier. Vous pouvez désactiver à tout moment.
         </p>
       </div>
+
+      {/* V2.1 10/06/2026 : pause globale temporaire des relances auto.
+          Permet de suspendre tous les envois sans tout desactiver
+          (vacances, litige en cours, audit comptable). */}
+      {relancesAutoActives && (
+        <div className="mt-5 p-4 rounded-xl border-[1.5px] border-amber-200 bg-amber-50/60">
+          <p className="font-hanken font-bold text-[13px] text-amber-900 mb-1">
+            Pause temporaire (optionnel)
+          </p>
+          <p className="font-hanken text-[12.5px] text-amber-800 mb-3 leading-snug">
+            Suspendre les relances automatiques jusqu&apos;à une date donnée. Utile si vous êtes en vacances, en litige ou en audit. Aucun email ne sera envoyé pendant cette période.
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <PremiumInput
+                label="Reprendre les relances le"
+                type="date"
+                value={relancesPauseJusquAu}
+                onChange={setRelancesPauseJusquAu}
+              />
+            </div>
+            {relancesPauseJusquAu && (
+              <button
+                type="button"
+                onClick={() => setRelancesPauseJusquAu('')}
+                className="h-[44px] px-4 rounded-xl border border-amber-300 bg-white text-amber-800 font-hanken font-semibold text-xs hover:bg-amber-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+                aria-label="Annuler la pause des relances"
+              >
+                Annuler la pause
+              </button>
+            )}
+          </div>
+          {relancesPauseJusquAu && (() => {
+            const target = new Date(`${relancesPauseJusquAu}T00:00:00`)
+            if (Number.isNaN(target.getTime())) return null
+            const today = new Date()
+            const targetUtc = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate())
+            const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+            const diff = Math.ceil((targetUtc - todayUtc) / (1000 * 60 * 60 * 24))
+            const text = diff > 0
+              ? `Pause active : aucune relance envoyée pendant ${diff} jour${diff > 1 ? 's' : ''}.`
+              : 'La date est passée — les relances reprendront dès le prochain cron.'
+            return (
+              <p className="mt-2 font-hanken text-[12px] text-amber-700 italic">
+                {text}
+              </p>
+            )
+          })()}
+        </div>
+      )}
 
       {/* ============ Notifications à venir ============ */}
       <div className="mt-8">

@@ -51,6 +51,10 @@ interface EntrepriseRow {
   logo_url: string | null
   email: string | null
   relances_auto_actives: boolean | null
+  // V2.1 10/06/2026 : pause globale temporaire (DATE YYYY-MM-DD).
+  // Si non-null ET >= today, on saute toutes les factures de cette entreprise.
+  // NULL = colonne pas encore migree -> traite comme "pas de pause".
+  relances_pause_jusqu_au: string | null
 }
 
 interface ClientRow {
@@ -115,19 +119,22 @@ export async function GET(req: NextRequest) {
   try {
     // 1) Entreprises avec relances actives.
     //    NULL est considere comme TRUE (defaut).
+    //    V2.1 10/06/2026 : on charge aussi relances_pause_jusqu_au pour
+    //    pouvoir filtrer les entreprises en pause globale temporaire.
     let entreprises: EntrepriseRow[] = []
     try {
       const { data, error } = await supabase
         .from('entreprises')
-        .select('user_id, nom, logo_url, email, relances_auto_actives')
+        .select('user_id, nom, logo_url, email, relances_auto_actives, relances_pause_jusqu_au')
         .or('relances_auto_actives.is.null,relances_auto_actives.eq.true')
       if (error) throw error
       entreprises = (data || []) as EntrepriseRow[]
     } catch (err) {
-      // Si la colonne n'existe pas encore en DB (migration pas appliquee) :
-      // on retombe sur "toutes les entreprises" (defaut TRUE).
+      // Si la colonne relances_auto_actives n'existe pas encore en DB
+      // (migration pas appliquee), on retombe sur "toutes les entreprises".
+      // Idem si seule la colonne pause n'existe pas : on retire de la SELECT.
       if (isUndefinedColumnError(err)) {
-        console.warn('[cron relances] colonne relances_auto_actives absente, fallback all entreprises')
+        console.warn('[cron relances] colonne manquante, fallback minimal')
         const { data, error: e2 } = await supabase
           .from('entreprises')
           .select('user_id, nom, logo_url, email')
@@ -138,11 +145,24 @@ export async function GET(req: NextRequest) {
           logo_url: (e.logo_url as string) ?? null,
           email: (e.email as string) ?? null,
           relances_auto_actives: null,
+          relances_pause_jusqu_au: null,
         }))
       } else {
         throw err
       }
     }
+
+    // V2.1 : filtre supplementaire en memoire — on saute les entreprises
+    //        dont la pause globale est encore active (>= today).
+    const todayDateStr = new Date().toISOString().slice(0, 10)
+    const entreprisesActives = entreprises.filter((e) => {
+      if (!e.relances_pause_jusqu_au) return true
+      // Pause active si la date est dans le futur ou aujourd'hui.
+      return e.relances_pause_jusqu_au < todayDateStr
+    })
+    const paused = entreprises.length - entreprisesActives.length
+    if (paused > 0) console.info(`[cron relances] ${paused} entreprise(s) en pause globale`)
+    entreprises = entreprisesActives
 
     // Index entreprise par user_id pour acces O(1)
     const entByUser = new Map<string, EntrepriseRow>()
