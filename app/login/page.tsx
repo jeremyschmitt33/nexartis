@@ -109,13 +109,13 @@ function LoginForm() {
         {/* Logo (image contient deja le wordmark Nexartis) */}
         <div className="flex items-center justify-center mb-8">
           <Image
-            src="/images/logo-nexartis.png"
+            src="/images/logo-nexartis.svg"
             alt="Nexartis"
             width={480}
             height={240}
-            quality={100}
             priority
             className="h-28 w-auto object-contain"
+            unoptimized
           />
         </div>
 

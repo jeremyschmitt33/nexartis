@@ -93,17 +93,16 @@ export default function Header() {
         scrolled ? "shadow-[0_2px_20px_rgba(15,26,58,0.06)]" : ""
       }`}
     >
-      {/* Logo (image contient deja le wordmark Nexartis - fond transparent) */}
+      {/* Logo SVG vectoriel (fond clair) - 23 Ko, parfaitement net a toute taille. */}
       <Link href="/" className="flex items-center no-underline" aria-label="Nexartis - Accueil">
         <Image
-          src="/images/logo-nexartis.png"
+          src="/images/logo-nexartis.svg"
           alt="Nexartis"
           width={400}
           height={200}
-          quality={100}
           priority
-          sizes="(max-width: 640px) 200px, 280px"
           className="h-16 sm:h-20 w-auto object-contain"
+          unoptimized
         />
       </Link>
 

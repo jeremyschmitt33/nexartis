@@ -17,6 +17,11 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [320, 480, 640, 768, 1024, 1280, 1600],
     imageSizes: [16, 32, 48, 64, 96, 128, 192, 256, 384, 512],
+    // Autoriser les SVG fournis par nous-memes (logo-nexartis.svg, logo-nexartis-light.svg).
+    // contentSecurityPolicy bloque tout script/foreignObject potentiel dans les SVG.
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   // Redirection 301 (permanente) de www.nexartis.fr vers nexartis.fr.

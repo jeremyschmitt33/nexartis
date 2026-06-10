@@ -110,7 +110,7 @@ export default function HeroOrbital() {
             <br />
             <span className="landing-text-grad">Un seul prix.</span>{' '}
             <span className="text-accent-2 font-spline-mono tracking-tight whitespace-nowrap">
-              25EUR/mois.
+              Dès 15€/mois.
             </span>
           </h1>
 

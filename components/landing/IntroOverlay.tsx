@@ -495,14 +495,13 @@ export default function IntroOverlay() {
         <div className="intro-core">
           <div className="intro-spark" aria-hidden="true" />
           <Image
-            src="/images/logo-nexartis-light.png"
+            src="/images/logo-nexartis-light.svg"
             alt="Nexartis"
             className="intro-logo"
             width={1600}
             height={800}
             priority
-            sizes="(max-width: 640px) 75vw, (max-width: 1280px) 60vw, 720px"
-            quality={88}
+            unoptimized
           />
           <p className="intro-tag">
             Tous vos outils artisan. <b>Un seul prix.</b>
