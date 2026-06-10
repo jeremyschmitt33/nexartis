@@ -25,13 +25,13 @@ J'ai testé Henrri sur trois profils d'artisan en juin 2026 (un auto-entrepreneu
 
 ## Henrri, c'est quoi exactement ?
 
-Henrri est un **logiciel facturation gratuit** édité par **Rivalis**, un éditeur français installé en Alsace, créé en 1994. Rivalis a lancé Henrri en 2016 comme produit complémentaire à son cœur de métier historique : l'accompagnement humain d'entrepreneurs via un réseau d'environ 800 conseillers indépendants partout en France.
+Henrri est un logiciel facturation gratuit édité par Rivalis, un éditeur français installé en Alsace, créé en 1994. Rivalis a lancé Henrri en 2016 comme produit complémentaire à son cœur de métier historique : l'accompagnement humain d'entrepreneurs via un réseau d'environ 800 conseillers indépendants partout en France.
 
-L'outil revendique aujourd'hui **plus de 225 000 utilisateurs actifs** (source : henrri.com, juin 2026) et affiche une note moyenne de **4,8/5 sur 1 685 avis Google**, ce qui le place parmi les SaaS de facturation les mieux notés du marché français. Cette double validation (volume d'utilisateurs + note élevée) est rare dans le secteur du SaaS BTP.
+L'outil revendique aujourd'hui **plus de 225 000 utilisateurs actifs** (source : henrri.com, juin 2026) et affiche une note moyenne de 4,8/5 sur 1 685 avis Google, ce qui le place parmi les SaaS de facturation les mieux notés du marché français. Cette double validation (volume d'utilisateurs + note élevée) est rare dans le secteur du SaaS BTP.
 
 ### Le positionnement réel d'Henrri
 
-Henrri vise large : **micro-entreprise, freelance, indépendant, TPE généraliste**. Le logiciel n'a pas été conçu spécifiquement pour le BTP. On y trouve des consultants, des graphistes, des coachs sportifs, des prestataires de service, et oui, quelques artisans qui démarrent.
+Henrri vise large : micro-entreprise, freelance, indépendant, TPE généraliste. Le logiciel n'a pas été conçu spécifiquement pour le BTP. On y trouve des consultants, des graphistes, des coachs sportifs, des prestataires de service, et oui, quelques artisans qui démarrent.
 
 L'éditeur Rivalis a 31 ans d'existence. Cette pérennité est rassurante : on n'a pas affaire à une startup qui peut disparaître dans 18 mois. Rivalis monétise principalement son accompagnement de pilotage (Henrri Édition Rivalis), pas le logiciel lui-même. Le logiciel est une porte d'entrée commerciale, pas un produit qu'on cherche à rentabiliser directement.
 
@@ -39,9 +39,9 @@ L'éditeur Rivalis a 31 ans d'existence. Cette pérennité est rassurante : on n
 
 Question légitime, qui revient à chaque conversation avec un artisan prudent. La réponse tient en trois points.
 
-- **L'upsell vers Rivalis Coaching.** Le logiciel sert de point d'entrée vers l'offre d'accompagnement payante proposée par les conseillers Rivalis (en moyenne 200 à 500€ HT/mois selon le niveau d'accompagnement). Une minorité d'utilisateurs souscrit à cet accompagnement et finance l'ensemble.
-- **Les plans payants Henrri Expert et VIP+.** Pour les utilisateurs qui veulent plus de fonctionnalités (synchronisation bancaire notamment), des abonnements à **17€/mois (Expert annuel)** ou **49€/mois (VIP+ annuel)** sont proposés. Ils restent une petite part du chiffre d'affaires global.
-- **Les partenariats commerciaux.** Le partenariat avec Pennylane pour la conformité Factur-X 2026 illustre la stratégie : Henrri capte une audience massive gratuitement, ses partenaires monétisent ensuite via des produits complémentaires (comptabilité, paiement, etc.).
+- L'upsell vers Rivalis Coaching. Le logiciel sert de point d'entrée vers l'offre d'accompagnement payante proposée par les conseillers Rivalis (en moyenne 200 à 500€ HT/mois selon le niveau d'accompagnement). Une minorité d'utilisateurs souscrit à cet accompagnement et finance l'ensemble.
+- Les plans payants Henrri Expert et VIP+. Pour les utilisateurs qui veulent plus de fonctionnalités (synchronisation bancaire notamment), des abonnements à 17€/mois (Expert annuel) ou 49€/mois (VIP+ annuel) sont proposés. Ils restent une petite part du chiffre d'affaires global.
+- Les partenariats commerciaux. Le partenariat avec Pennylane pour la conformité Factur-X 2026 illustre la stratégie : Henrri capte une audience massive gratuitement, ses partenaires monétisent ensuite via des produits complémentaires (comptabilité, paiement, etc.).
 
 Ce modèle est durable : Rivalis a passé 31 ans sans dépendre du logiciel pour vivre. Le risque de voir Henrri devenir payant du jour au lendemain est faible.
 
@@ -51,22 +51,22 @@ Oui, sans piège. J'ai vérifié.
 
 Le plan Pro à **0€** comprend :
 
-- **Devis illimités** (pas de plafond mensuel, pas de plafond annuel)
-- **Factures illimitées** (pas de plafond)
-- **Avoirs et factures d'acompte illimités**
-- **Clients et fournisseurs illimités**
-- **Relances de paiement** (manuelles)
-- **Signature électronique** des devis par le client
-- **Personnalisation logo et couleurs** sur les documents
-- **Export comptable** pour transmettre à votre expert-comptable
-- **Conformité Factur-X 2026** via le partenariat Pennylane (Plateforme Agréée par la DGFiP)
-- **Sans engagement**, sans carte bancaire à saisir, sans publicité dans l'interface
+- Devis illimités (pas de plafond mensuel, pas de plafond annuel)
+- Factures illimitées (pas de plafond)
+- Avoirs et factures d'acompte illimités
+- Clients et fournisseurs illimités
+- Relances de paiement (manuelles)
+- Signature électronique des devis par le client
+- Personnalisation logo et couleurs sur les documents
+- Export comptable pour transmettre à votre expert-comptable
+- Conformité Factur-X 2026 via le partenariat Pennylane (Plateforme Agréée par la DGFiP)
+- Sans engagement, sans carte bancaire à saisir, sans publicité dans l'interface
 
-**Ce n'est pas un freemium piégé.** Pas de "gratuit jusqu'à 5 factures puis vous payez". Pas de filigrane sur les PDF générés. Pas de page bloquée derrière un paywall une fois inscrit. Vous pouvez faire 300 factures par mois sans débourser un euro.
+Ce n'est pas un freemium piégé. Pas de "gratuit jusqu'à 5 factures puis vous payez". Pas de filigrane sur les PDF générés. Pas de page bloquée derrière un paywall une fois inscrit. Vous pouvez faire 300 factures par mois sans débourser un euro.
 
 C'est exceptionnel sur ce marché. La quasi-totalité des concurrents qui se disent "gratuits" plafonnent les factures (5/mois, 10/mois), ajoutent un filigrane visible sur le PDF, ou bloquent l'envoi par email après quelques tentatives. Henrri n'a aucune de ces astuces.
 
-> **À retenir.** Henrri appartient à la catégorie rare des produits réellement gratuits. Le modèle économique est porté par l'offre coaching Rivalis et les plans payants optionnels, pas par votre porte-monnaie.
+> **À retenir** Henrri appartient à la catégorie rare des produits réellement gratuits. Le modèle économique est porté par l'offre coaching Rivalis et les plans payants optionnels, pas par votre porte-monnaie.
 
 ### La nuance honnête
 
@@ -74,7 +74,7 @@ Plusieurs écrans du logiciel affichent un lien "Passer en payant" ou "Découvri
 
 ### Avis Henrri 2026 — ce qu'en disent les utilisateurs
 
-La note **4,8/5 sur 1 685 avis Google** est l'une des plus solides du secteur. Les commentaires positifs reviennent sur la simplicité de prise en main (15-30 minutes pour faire son premier devis), la fiabilité (pas de plantage, pas de bug de calcul TVA), et la gratuité réelle. Les critiques négatives portent essentiellement sur le démarchage commercial Rivalis (mails, appels d'un conseiller dans les semaines qui suivent l'inscription) et sur l'absence de fonctions BTP avancées.
+La note 4,8/5 sur 1 685 avis Google est l'une des plus solides du secteur. Les commentaires positifs reviennent sur la simplicité de prise en main (15-30 minutes pour faire son premier devis), la fiabilité (pas de plantage, pas de bug de calcul TVA), et la gratuité réelle. Les critiques négatives portent essentiellement sur le démarchage commercial Rivalis (mails, appels d'un conseiller dans les semaines qui suivent l'inscription) et sur l'absence de fonctions BTP avancées.
 
 ## Les fonctionnalités du plan gratuit en détail
 
@@ -86,25 +86,25 @@ Interface claire, intuitive en 30 minutes. Vous saisissez le client (création �
 
 Vous pouvez l'envoyer par email directement depuis Henrri, ou télécharger le PDF pour l'envoi à votre manière. Le client reçoit un lien sécurisé pour signer en ligne (signature électronique simple, conforme au règlement eIDAS niveau 1).
 
-**Ce qui manque pour le BTP** : pas de bibliothèque d'ouvrages préchargée (vous ressaisissez "Pose de prise 16A" à chaque devis), pas de matrice de marge automatique, pas de calcul de déboursé sec à partir de matériel + main d'œuvre. Vous gagnez du temps grâce à la duplication des anciens devis comme modèles, mais ça reste de la débrouille manuelle.
+Ce qui manque pour le BTP : pas de bibliothèque d'ouvrages préchargée (vous ressaisissez "Pose de prise 16A" à chaque devis), pas de matrice de marge automatique, pas de calcul de déboursé sec à partir de matériel + main d'œuvre. Vous gagnez du temps grâce à la duplication des anciens devis comme modèles, mais ça reste de la débrouille manuelle.
 
 ### Création de factures
 
 Conversion devis → facture en un clic. Numérotation automatique chronologique conforme à l'article 242 nonies A du CGI. Génération PDF instantanée. Suivi de l'état (à payer, payé, en retard) avec mise à jour manuelle.
 
-**Ce qui manque** : pas de factures de **situation de travaux** (avancement par phase de chantier), pas de gestion native de la **retenue de garantie 5%** à libérer en fin de chantier. Vous pouvez les gérer en manuel, mais le logiciel ne vous y aide pas.
+Ce qui manque : pas de factures de situation de travaux (avancement par phase de chantier), pas de gestion native de la retenue de garantie 5% à libérer en fin de chantier. Vous pouvez les gérer en manuel, mais le logiciel ne vous y aide pas.
 
 ### Relances de paiement
 
-Vous voyez sur le tableau de bord les factures impayées avec leur ancienneté. Un bouton "Relancer" envoie un email de rappel au client. Mais c'est **manuel** : vous devez vous-même cliquer sur le bouton à chaque fois.
+Vous voyez sur le tableau de bord les factures impayées avec leur ancienneté. Un bouton "Relancer" envoie un email de rappel au client. Mais c'est manuel : vous devez vous-même cliquer sur le bouton à chaque fois.
 
-**Ce qui manque sur la version gratuite** : pas de **relances automatiques** programmées (J+7, J+15, J+30). Si vous facturez beaucoup, vous passerez du temps à cliquer. Pour avoir cette fonction, il faut basculer sur Henrri Expert à 17€/mois.
+Ce qui manque sur la version gratuite : pas de relances automatiques programmées (J+7, J+15, J+30). Si vous facturez beaucoup, vous passerez du temps à cliquer. Pour avoir cette fonction, il faut basculer sur Henrri Expert à 17€/mois.
 
 ### Conformité Factur-X 2026
 
 C'est probablement le point le plus important pour 2026-2027. La réforme oblige progressivement toutes les entreprises françaises à émettre et recevoir des factures électroniques au format Factur-X via une plateforme dématérialisée agréée (PA) ou un opérateur de dématérialisation (PDP).
 
-Henrri propose la conformité **dès aujourd'hui et gratuitement**, via un partenariat avec **Pennylane** (Plateforme Agréée par la DGFiP). Vos factures peuvent être émises au format conforme sans surcoût. C'est un vrai atout, à l'heure où certains éditeurs facturent un module séparé pour cette conformité ou repoussent leur mise en conformité à 2027.
+Henrri propose la conformité dès aujourd'hui et gratuitement, via un partenariat avec Pennylane (Plateforme Agréée par la DGFiP). Vos factures peuvent être émises au format conforme sans surcoût. C'est un vrai atout, à l'heure où certains éditeurs facturent un module séparé pour cette conformité ou repoussent leur mise en conformité à 2027.
 
 ### Personnalisation visuelle
 
@@ -112,9 +112,9 @@ Logo, couleur principale, mentions de pied de page personnalisables. C'est basiq
 
 ### Multi-appareils
 
-Henrri fonctionne sur ordinateur (Windows, Mac, Linux via navigateur). Il s'utilise aussi sur tablette en mode responsive. **L'écran minimum recommandé est 1024 pixels de large** : en dessous (smartphones, petites tablettes en portrait), l'interface devient inutilisable.
+Henrri fonctionne sur ordinateur (Windows, Mac, Linux via navigateur). Il s'utilise aussi sur tablette en mode responsive. L'écran minimum recommandé est 1024 pixels de large : en dessous (smartphones, petites tablettes en portrait), l'interface devient inutilisable.
 
-Conséquence : **pas d'usage smartphone réel**. Vous ne pourrez pas dégainer votre téléphone sur un chantier pour faire un devis express comme vous le feriez sur Tolteck ou Nexartis. L'app native "Henrri Pay" gère uniquement l'encaissement, pas la création de documents.
+Conséquence : pas d'usage smartphone réel. Vous ne pourrez pas dégainer votre téléphone sur un chantier pour faire un devis express comme vous le feriez sur Tolteck ou Nexartis. L'app native "Henrri Pay" gère uniquement l'encaissement, pas la création de documents.
 
 ## Henrri prix — les plans payants Expert et VIP+
 
@@ -124,10 +124,10 @@ Le plan Pro gratuit suffit à 90% des utilisateurs. Mais Henrri propose deux pla
 
 Ajoute par rapport au plan gratuit :
 
-- **Rapprochement bancaire** semi-automatique : connexion à votre compte pro, suggestion d'association facture-paiement (vous validez à la main)
-- **Alerte franchise base TVA** : Henrri vous prévient quand vous approchez le plafond TVA micro-entreprise (37 500€ pour les prestations de service, 91 900€ pour les ventes en 2026)
-- **Relances automatiques** programmables
-- **Support email prioritaire**
+- Rapprochement bancaire semi-automatique : connexion à votre compte pro, suggestion d'association facture-paiement (vous validez à la main)
+- Alerte franchise base TVA : Henrri vous prévient quand vous approchez le plafond TVA micro-entreprise (37 500€ pour les prestations de service, 85 000€ pour les ventes en 2026)
+- Relances automatiques programmables
+- Support email prioritaire
 
 À 17€/mois (204€ HT par an), c'est positionné juste sous Tolteck (19€/mois) et largement sous Obat (39€/mois). Le rapport qualité/prix est correct pour un micro-entrepreneur qui veut sécuriser sa TVA et automatiser ses relances.
 
@@ -135,19 +135,19 @@ Ajoute par rapport au plan gratuit :
 
 Ajoute par rapport à Expert :
 
-- Accès à un **conseiller Rivalis** dédié (1 RDV mensuel d'environ 1h)
-- **Outils de pilotage** : tableau de bord prévisionnel, suivi de marge, indicateurs de gestion
-- **Formation** initiale à la lecture de ses chiffres
+- Accès à un conseiller Rivalis dédié (1 RDV mensuel d'environ 1h)
+- Outils de pilotage : tableau de bord prévisionnel, suivi de marge, indicateurs de gestion
+- Formation initiale à la lecture de ses chiffres
 
 À 49€/mois (588€ HT par an), c'est un produit hybride logiciel + coaching. Il vise les indépendants qui veulent un accompagnement humain léger, pas un artisan BTP qui cherche des fonctions chantier.
 
 ### Henrri vs payant — quelle bascule ?
 
-Si vous êtes prêt à payer **15-20€/mois**, le bon réflexe est de comparer Henrri Expert avec [Tolteck à 19€/mois, l'alternative payante simple](/blog/tolteck-avis) et avec [Nexartis Essentiel à 15€/mois](/tarifs). Pour le BTP, l'offre Nexartis comprend le **planning chantier**, la **gestion d'équipe** et la **conformité BTP native** que Henrri Expert n'a pas. À budget équivalent, le choix penche vers l'outil métier.
+Si vous êtes prêt à payer 15-20€/mois, le bon réflexe est de comparer Henrri Expert avec [Tolteck à 19€/mois, l'alternative payante simple](/blog/tolteck-avis) et avec [Nexartis Essentiel à 15€/mois](/tarifs). Pour le BTP, l'offre Nexartis comprend le planning chantier, la gestion d'équipe et la conformité BTP native que Henrri Expert n'a pas. À budget équivalent, le choix penche vers l'outil métier.
 
 ## Henrri pour un artisan du BTP : les vraies limites
 
-Henrri est généraliste, et ça se sent dès qu'on l'utilise sur un vrai chantier. Voici les **henrri inconvénients** majeurs pour un artisan du bâtiment.
+Henrri est généraliste, et ça se sent dès qu'on l'utilise sur un vrai chantier. Voici les henrri inconvénients majeurs pour un artisan du bâtiment.
 
 ### Pas de planning chantier
 
@@ -173,10 +173,10 @@ Henrri a fait un choix généraliste qui ne couvre pas la fiche compagnon, l'aff
 
 ### Mentions BTP partiellement gérées
 
-- **TVA 5,5% rénovation énergétique** : possible mais sans génération automatique de l'attestation TVA réduite que vous devez faire signer au client (obligation légale article 279-0 bis du CGI).
-- **Autoliquidation TVA sous-traitance BTP** (article 283 du CGI) : à activer manuellement ligne par ligne, sans helper.
-- **Mention assurance décennale** : à ajouter manuellement dans les conditions de vente.
-- **Retenue de garantie 5%** et **factures de situation** : non gérées nativement.
+- TVA 5,5% rénovation énergétique : possible mais sans génération automatique de l'attestation TVA réduite que vous devez faire signer au client (obligation légale article 279-0 bis du CGI).
+- Autoliquidation TVA sous-traitance BTP (article 283 du CGI) : à activer manuellement ligne par ligne, sans helper.
+- Mention assurance décennale : à ajouter manuellement dans les conditions de vente.
+- Retenue de garantie 5% et factures de situation : non gérées nativement.
 
 Pour un artisan en bâtiment, ces mentions ne sont pas optionnelles : leur absence ou leur erreur peut générer un redressement fiscal ou un litige client. Le risque réel justifie un outil métier qui les gère natifs.
 
@@ -192,7 +192,7 @@ Le rapprochement bancaire est réservé au plan Expert (17€/mois). Sur le plan
 
 Je le redis car c'est probablement la limite la plus surprenante quand on découvre Henrri en 2026. À une époque où la majorité des artisans gèrent leur boîte 50% depuis leur téléphone, l'absence d'usage smartphone confortable est un vrai frein. Vous pouvez consulter une facture en urgence sur mobile (lecture seule), mais créer un devis sur 5 pouces est inenvisageable.
 
-> **À retenir.** Henrri est un **logiciel facturation gratuit** honnête pour faire des devis et des factures simples. Pour un artisan BTP avec chantiers, équipe et conformité métier, il manque le planning, l'app mobile, la bibliothèque BTP et la gestion d'équipe. Ces manques se rattrapent à la main, mais le temps cumulé peut dépasser le coût d'un abonnement BTP dédié.
+> **À retenir** Henrri est un logiciel facturation gratuit honnête pour faire des devis et des factures simples. Pour un artisan BTP avec chantiers, équipe et conformité métier, il manque le planning, l'app mobile, la bibliothèque BTP et la gestion d'équipe. Ces manques se rattrapent à la main, mais le temps cumulé peut dépasser le coût d'un abonnement BTP dédié.
 
 ## Henrri vs Tolteck vs Obat : tableau comparatif
 
@@ -200,7 +200,7 @@ Trois outils, trois philosophies. Voici les chiffres relevés en juin 2026.
 
 | Critère | Henrri | Tolteck | Obat |
 |---|---|---|---|
-| Prix de départ | **0€** (Pro illimité) | 19€ HT/mois (annuel) | 39€ HT/mois (annuel) |
+| Prix de départ | 0€ (Pro illimité) | 19€ HT/mois (annuel) | 39€ HT/mois (annuel) |
 | Cible principale | Indépendants, TPE généralistes | Artisans BTP seuls/duo | TPE BTP 2-10 salariés |
 | Devis illimités | Oui | Oui | Oui |
 | Factures illimitées | Oui | Oui | Oui |
@@ -218,7 +218,7 @@ Trois outils, trois philosophies. Voici les chiffres relevés en juin 2026.
 | Sans engagement | Oui | Oui (et mensuel à 25€) | Oui |
 | Essai gratuit | Inutile (plan gratuit illimité) | 30 jours sans CB | 14 jours |
 
-**Lecture du tableau.** Henrri gagne sur le prix, et personne ne peut rivaliser. Tolteck gagne sur la simplicité métier BTP et le mode offline. Obat gagne sur la profondeur (équipe, planning, intervenants) mais c'est aussi le plus cher.
+Lecture du tableau. Henrri gagne sur le prix, et personne ne peut rivaliser. Tolteck gagne sur la simplicité métier BTP et le mode offline. Obat gagne sur la profondeur (équipe, planning, intervenants) mais c'est aussi le plus cher.
 
 Pour aller plus loin, voir nos comparatifs détaillés : [Obat pour artisan du bâtiment](/blog/obat-avis), [Sage Batigest pour PME](/blog/batigest-avis), [Vertuoza pour entreprise BTP en croissance](/blog/vertuoza-avis).
 
@@ -230,11 +230,11 @@ Nexartis propose deux offres pensées pour deux profils d'artisans.
 
 Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP — ce qu'Henrri ne propose pas.
 
-- Devis et factures **illimités**
-- **Mentions légales BTP automatiques** : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Devis et factures illimités
+- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
 - Signature électronique native
 - Suivi des paiements
-- **Application installable** sur smartphone (PWA) — ce que vous n'aurez pas avec Henrri
+- Application installable sur smartphone (PWA) — ce que vous n'aurez pas avec Henrri
 - Web responsive
 - Données hébergées en Europe (RGPD)
 - Support email
@@ -243,21 +243,21 @@ Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture co
 
 Pour l'artisan qui pilote une activité avec plusieurs intervenants. Tout l'Essentiel, plus les outils premium.
 
-- **Planning chantier visuel** avec détection automatique de conflits d'affectation
-- **Gestion d'équipe complète** : salariés, intérimaires, sous-traitants
-- **Dictée vocale IA** — créez un devis en parlant
-- **Chantiers + journal daté + Pacte de chantier**
-- **Personnalisation aux couleurs de votre entreprise**
-- **Bibliothèque de prestations personnalisable**
-- **Acomptes, factures de situation, avoirs**
-- **Statistiques avancées + export comptable**
+- Planning chantier visuel avec détection automatique de conflits d'affectation
+- Gestion d'équipe complète : salariés, intérimaires, sous-traitants
+- Dictée vocale IA — créez un devis en parlant
+- Chantiers + journal daté + Pacte de chantier
+- Personnalisation aux couleurs de votre entreprise
+- Bibliothèque de prestations personnalisable
+- Acomptes, factures de situation, avoirs
+- Statistiques avancées + export comptable
 
 ### Pourquoi Nexartis
 
-- **Conçu en France**, à Bordeaux, par et pour les artisans français
-- **Sans engagement annuel**
-- **Essai 14 jours sans carte bancaire**
-- **Application installable** sur iPhone, Android, Mac, Windows
+- Conçu en France, à Bordeaux, par et pour les artisans français
+- Sans engagement annuel
+- Essai 14 jours sans carte bancaire
+- Application installable sur iPhone, Android, Mac, Windows
 
 Comparez avec ce que vous obtenez gratuitement chez Henrri, et avec ce que Nexartis apporte en plus pour 15€/mois. Essayez 14 jours, sans CB.
 
@@ -267,9 +267,9 @@ Comparez avec ce que vous obtenez gratuitement chez Henrri, et avec ce que Nexar
 
 Je ne vais pas vous dire de quitter Henrri si vous êtes :
 
-- **Auto-entrepreneur** dans un métier non-BTP (consultant, graphiste, coach)
-- **Artisan en dépannage** avec 5-10 devis par mois, sans équipe, sans planning compliqué
-- **En phase de démarrage** avec 0€ de budget logiciel
+- Auto-entrepreneur dans un métier non-BTP (consultant, graphiste, coach)
+- Artisan en dépannage avec 5-10 devis par mois, sans équipe, sans planning compliqué
+- En phase de démarrage avec 0€ de budget logiciel
 
 Dans ces cas, Henrri suffit. Pas la peine de payer pour des fonctions que vous n'utiliserez pas. La rente que vous tirez de la gratuité est réelle si votre activité reste simple.
 
@@ -277,11 +277,11 @@ Dans ces cas, Henrri suffit. Pas la peine de payer pour des fonctions que vous n
 
 À l'inverse, le moment de bascule arrive quand :
 
-- Vous embauchez votre **premier compagnon** ou apprenti
-- Vous gérez **3 chantiers** ou plus en parallèle
-- Vous voulez créer un devis **depuis votre téléphone** sur le chantier
-- Vous facturez en **situation de travaux** ou en **autoliquidation sous-traitance**
-- Vous perdez plus d'**1 heure par semaine** à ressaisir des prestations BTP
+- Vous embauchez votre premier compagnon ou apprenti
+- Vous gérez 3 chantiers ou plus en parallèle
+- Vous voulez créer un devis depuis votre téléphone sur le chantier
+- Vous facturez en situation de travaux ou en autoliquidation sous-traitance
+- Vous perdez plus d'1 heure par semaine à ressaisir des prestations BTP
 
 C'est le scénario classique de l'artisan qui a démarré gratuit, qui s'est développé, et pour qui un outil métier devient le passage logique. Nexartis se positionne précisément sur ce moment de transition : pas une refonte complète, juste un outil qui prolonge ce que vous saviez déjà faire en y ajoutant la couche BTP qui manquait.
 
@@ -289,11 +289,11 @@ C'est le scénario classique de l'artisan qui a démarré gratuit, qui s'est dé
 
 Henrri est un produit honnête. Le plan Pro à 0€ tient ses promesses : devis et factures illimités, signature en ligne, conformité Factur-X 2026 via Pennylane, sans piège freemium. Pour un freelance, un consultant, ou un micro-entrepreneur non-BTP, c'est probablement la meilleure option du marché en 2026.
 
-**Note pour un freelance / TPE généraliste : 9/10.**
+Note pour un freelance / TPE généraliste : 9/10.
 
 Pour un artisan du BTP, le bilan est plus nuancé. Henrri couvre la moitié du métier (le côté devis-facture) mais laisse de côté tout ce qui fait la spécificité BTP : planning chantier, équipe, app mobile, conformité fiscale native, situations de travaux. Ces manques se compensent à la main, mais ils coûtent du temps et augmentent le risque d'erreur.
 
-**Note pour un artisan BTP avec équipe ou chantiers multiples : 5,5/10.**
+Note pour un artisan BTP avec équipe ou chantiers multiples : 5,5/10.
 
 Si vous êtes dans cette deuxième catégorie, regardez sérieusement les alternatives payantes : [Tolteck à 19€/mois, l'alternative payante simple](/blog/tolteck-avis) pour la simplicité métier, [Obat pour artisan du bâtiment](/blog/obat-avis) à 39€/mois pour la profondeur, ou [Nexartis Essentiel à 15€/mois](/tarifs) pour le meilleur rapport fonctions BTP / prix. La gratuité d'Henrri devient un faux ami quand vous passez 5h par mois à compenser ses manques.
 
@@ -313,7 +313,7 @@ Trois leviers : (1) l'upsell vers Rivalis Coaching, l'accompagnement payant des 
 
 ### Quelles sont les limites de Henrri pour un artisan ?
 
-Les principales : pas d'**app mobile** native (web seulement, écran 1024px minimum), pas de **planning chantier**, pas de **bibliothèque de prix BTP** préchargée, pas de **gestion d'équipe** ni d'affectation par chantier, mentions BTP gérées **manuellement** (autoliquidation, TVA 5,5%, décennale), pas de **comptabilité intégrée**, **rapprochement bancaire manuel** sur le plan gratuit, pas de **relances automatiques** sur le plan gratuit.
+Les principales : pas d'app mobile native (web seulement, écran 1024px minimum), pas de planning chantier, pas de bibliothèque de prix BTP préchargée, pas de gestion d'équipe ni d'affectation par chantier, mentions BTP gérées manuellement (autoliquidation, TVA 5,5%, décennale), pas de comptabilité intégrée, rapprochement bancaire manuel sur le plan gratuit, pas de relances automatiques sur le plan gratuit.
 
 ### Henrri vs Tolteck, lequel choisir ?
 
@@ -321,15 +321,15 @@ Henrri si vous êtes indépendant généraliste avec zéro budget et besoins de 
 
 ### Henrri sera-t-il conforme à la facturation électronique 2026 ?
 
-Oui. Henrri est conforme à la réforme **Factur-X 2026** dès aujourd'hui et gratuitement, via un partenariat avec **Pennylane**, Plateforme Agréée (PA) par la DGFiP. Vos clients peuvent recevoir vos factures au format électronique conforme sans surcoût. Pour rappel : à partir de septembre 2026 toutes les entreprises devront recevoir des factures électroniques, à partir de septembre 2027 les TPE devront aussi en émettre.
+Oui. Henrri est conforme à la réforme Factur-X 2026 dès aujourd'hui et gratuitement, via un partenariat avec Pennylane, Plateforme Agréée (PA) par la DGFiP. Vos clients peuvent recevoir vos factures au format électronique conforme sans surcoût. Pour rappel : à partir de septembre 2026 toutes les entreprises devront recevoir des factures électroniques, à partir de septembre 2027 les TPE devront aussi en émettre.
 
 ### Existe-t-il une vraie alternative gratuite à Henrri ?
 
-Pour le pur devis-facture illimité gratuit, **pas vraiment**. Les autres outils gratuits du marché (Facture.net, Tiime Invoice) plafonnent à un certain nombre de factures ou de clients. Henrri reste l'un des rares gratuits véritablement illimités. Pour le BTP spécifiquement, aucun outil gratuit ne couvre planning chantier + équipe + bibliothèque BTP : il faut basculer sur du payant à partir de 15€/mois ([Nexartis Essentiel à 15€/mois](/tarifs)), 19€/mois ([Tolteck](/blog/tolteck-avis)) ou 39€/mois ([Obat](/blog/obat-avis)).
+Pour le pur devis-facture illimité gratuit, pas vraiment. Les autres outils gratuits du marché (Facture.net, Tiime Invoice) plafonnent à un certain nombre de factures ou de clients. Henrri reste l'un des rares gratuits véritablement illimités. Pour le BTP spécifiquement, aucun outil gratuit ne couvre planning chantier + équipe + bibliothèque BTP : il faut basculer sur du payant à partir de 15€/mois ([Nexartis Essentiel à 15€/mois](/tarifs)), 19€/mois ([Tolteck](/blog/tolteck-avis)) ou 39€/mois ([Obat](/blog/obat-avis)).
 
 ### Henrri Pro vs Henrri Expert vs Henrri VIP+, lequel prendre ?
 
-**Pro à 0€** suffit à 90% des utilisateurs (devis, factures, signature, Factur-X). **Expert à 17€/mois** ajoute rapprochement bancaire, alerte franchise TVA et relances automatiques (utile dès 30-40 factures mensuelles). **VIP+ à 49€/mois** ajoute l'accompagnement d'un conseiller Rivalis (1 RDV/mois), c'est un produit hybride logiciel + coaching qui vise les indépendants en demande d'aide humaine, pas un artisan BTP. À budget Expert, comparer avec [Nexartis Essentiel à 15€/mois](/tarifs) qui ajoute planning et gestion d'équipe — c'est moins cher et plus complet pour le BTP. Pour une structure plus grosse, voir aussi [Sage Batigest pour PME](/blog/batigest-avis) ou [Vertuoza pour entreprise BTP en croissance](/blog/vertuoza-avis).
+Pro à 0€ suffit à 90% des utilisateurs (devis, factures, signature, Factur-X). Expert à 17€/mois ajoute rapprochement bancaire, alerte franchise TVA et relances automatiques (utile dès 30-40 factures mensuelles). VIP+ à 49€/mois ajoute l'accompagnement d'un conseiller Rivalis (1 RDV/mois), c'est un produit hybride logiciel + coaching qui vise les indépendants en demande d'aide humaine, pas un artisan BTP. À budget Expert, comparer avec [Nexartis Essentiel à 15€/mois](/tarifs) qui ajoute planning et gestion d'équipe — c'est moins cher et plus complet pour le BTP. Pour une structure plus grosse, voir aussi [Sage Batigest pour PME](/blog/batigest-avis) ou [Vertuoza pour entreprise BTP en croissance](/blog/vertuoza-avis).
 
 ## À propos de l'auteur
 

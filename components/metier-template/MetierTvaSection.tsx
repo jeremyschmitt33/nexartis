@@ -204,7 +204,7 @@ export default function MetierTvaSection({
           pour chaque ligne de prestation. Vous pouvez toujours le modifier si
           besoin, mais dans 90% des cas, le taux proposé est le bon. La
           mention TVA simplifiée (remplaçant l&apos;attestation 1300-SD
-          supprimée le 1<sup>er</sup> mars 2025) est ajoutée automatiquement.
+          supprimée le 16 février 2025) est ajoutée automatiquement.
         </p>
       </div>
     </section>

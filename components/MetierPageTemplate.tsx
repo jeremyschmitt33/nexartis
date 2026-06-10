@@ -46,8 +46,39 @@ const PUBLISH_DATE_FR = "9 juin 2026";
 const READING_TIME = "10 min";
 
 /**
+ * Détecte le taux de TVA applicable à partir du libellé d'une prestation.
+ * - 5,5% : rénovation énergétique éligible (RGE, PAC, IRVE, photovoltaïque,
+ *          isolation, chaudière biomasse, etc.)
+ * - 20%  : fourniture seule, construction neuve, extension, locaux pros, piscine
+ * - 10%  : par défaut (entretien / amélioration logement > 2 ans)
+ */
+function detectTva(label: string): 5.5 | 10 | 20 {
+  const l = label.toLowerCase();
+  const k55 = [
+    "rge", "pac", "pompe à chaleur", "pompe a chaleur",
+    "irve", "borne de recharge", "borne irve",
+    "photovoltaïque", "photovoltaique", "panneau solaire", "solaire thermique",
+    "isolation", "ite", "iti", "calorifugeage",
+    "chaudière biomasse", "chaudiere biomasse", "poêle à granulés", "poele a granules",
+    "vmc double flux", "ballon thermodynamique", "thermodynamique",
+    "rénovation énergétique", "renovation energetique",
+    "doublage thermique", "doublage isolant",
+  ];
+  if (k55.some((k) => l.includes(k))) return 5.5;
+  const k20 = [
+    "fourniture seule", "fourniture seul",
+    "construction neuve", "construction neuf",
+    "extension", "agrandissement",
+    "piscine", "local professionnel", "locaux pros", "bureau",
+    "véranda", "veranda", "dépose ", "evacuation déchets",
+  ];
+  if (k20.some((k) => l.includes(k))) return 20;
+  return 10;
+}
+
+/**
  * Génère un devis exemple à partir de prestationsExemples.
- * Retourne lignes + totaux. Conserve la logique historique (rétrocompat).
+ * TVA déterminée intelligemment par detectTva (5,5% / 10% / 20%).
  */
 function buildDevisExample(prestations: string[]) {
   const basePrices = [450, 280, 85, 520, 190, 350, 620, 150];
@@ -60,22 +91,26 @@ function buildDevisExample(prestations: string[]) {
     const unitPrice = basePrices[i % basePrices.length];
     const qty = qtys[i % qtys.length];
     const unit = units[i % units.length];
-    const tvaRate = i === sliced.length - 1 ? 20 : 10;
+    const tvaRate = detectTva(label);
     return { label, unitPrice, qty, unit, tvaRate, totalHT: unitPrice * qty };
   });
 
   const totalHT = lines.reduce((s, l) => s + l.totalHT, 0);
+  const tva55Lines = lines.filter((l) => l.tvaRate === 5.5);
   const tva10Lines = lines.filter((l) => l.tvaRate === 10);
   const tva20Lines = lines.filter((l) => l.tvaRate === 20);
+  const tva55Amount = tva55Lines.reduce((s, l) => s + l.totalHT * 0.055, 0);
   const tva10Amount = tva10Lines.reduce((s, l) => s + l.totalHT * 0.1, 0);
   const tva20Amount = tva20Lines.reduce((s, l) => s + l.totalHT * 0.2, 0);
-  const totalTTC = totalHT + tva10Amount + tva20Amount;
+  const totalTTC = totalHT + tva55Amount + tva10Amount + tva20Amount;
 
   return {
     lines,
     totalHT,
+    tva55Lines,
     tva10Lines,
     tva20Lines,
+    tva55Amount,
     tva10Amount,
     tva20Amount,
     totalTTC,
@@ -544,8 +579,10 @@ export default function MetierPageTemplate(props: MetierPageProps) {
               nom={nom}
               devisLines={devis.lines}
               totalHT={devis.totalHT}
+              tva55Lines={devis.tva55Lines}
               tva10Lines={devis.tva10Lines}
               tva20Lines={devis.tva20Lines}
+              tva55Amount={devis.tva55Amount}
               tva10Amount={devis.tva10Amount}
               tva20Amount={devis.tva20Amount}
               totalTTC={devis.totalTTC}

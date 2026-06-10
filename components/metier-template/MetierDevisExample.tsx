@@ -13,8 +13,10 @@ interface MetierDevisExampleProps {
   nom: string;
   devisLines: DevisLine[];
   totalHT: number;
+  tva55Lines?: DevisLine[];
   tva10Lines: DevisLine[];
   tva20Lines: DevisLine[];
+  tva55Amount?: number;
   tva10Amount: number;
   tva20Amount: number;
   totalTTC: number;
@@ -25,8 +27,10 @@ export default function MetierDevisExample({
   nom,
   devisLines,
   totalHT,
+  tva55Lines = [],
   tva10Lines,
   tva20Lines,
+  tva55Amount = 0,
   tva10Amount,
   tva20Amount,
   totalTTC,
@@ -149,6 +153,12 @@ export default function MetierDevisExample({
                 <span>Total HT</span>
                 <span className="font-spline-mono">{formatPrice(totalHT)} €</span>
               </div>
+              {tva55Lines.length > 0 && (
+                <div className="flex justify-between font-hanken text-sm text-[#0f1a3a]/70">
+                  <span>TVA <span className="font-spline-mono">5,5%</span></span>
+                  <span className="font-spline-mono">{formatPrice(tva55Amount)} €</span>
+                </div>
+              )}
               {tva10Lines.length > 0 && (
                 <div className="flex justify-between font-hanken text-sm text-[#0f1a3a]/70">
                   <span>TVA <span className="font-spline-mono">10%</span></span>
