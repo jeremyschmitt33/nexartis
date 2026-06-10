@@ -3234,6 +3234,22 @@ function PlanningPageInner() {
                           voicePayload b64 de la fiche chantier (lignes 1252-1269). */}
                       <button onClick={() => {
                         closePanel()
+                        // V2.2 10/06/2026 — Pre-calcul du % d'avancement suggere
+                        // a partir des interventions du chantier : on compte celles
+                        // dont la date est passee (= probablement realisees), divise
+                        // par le total. L'artisan voit le % pre-rempli et l'ajuste.
+                        let pourcentSuggere = 0
+                        if (chantierInterventionCount > 0) {
+                          const todayStr = new Date().toISOString().slice(0, 10)
+                          const realisees = planningData.filter((p) => {
+                            const pr = p as R
+                            if (pr.chantier_id !== ch.id) return false
+                            const dateStr = String(pr.date_intervention ?? '').slice(0, 10)
+                            return dateStr && dateStr <= todayStr
+                          }).length
+                          pourcentSuggere = Math.round((realisees / chantierInterventionCount) * 100)
+                          pourcentSuggere = Math.min(100, Math.max(0, pourcentSuggere))
+                        }
                         const payload = {
                           facture_type: 'situation',
                           objet: String(ch.objet ?? ch.nom ?? ''),
@@ -3247,6 +3263,8 @@ function PlanningPageInner() {
                           client_email: cl ? String(cl.email ?? '') : '',
                           devis_ref: dv ? String(dv.numero ?? '') : '',
                           chantier_id: String(ch.id),
+                          // V2.2 : % d'avancement suggere pour pre-remplissage
+                          pourcentage_situation_suggere: pourcentSuggere,
                         }
                         const json = JSON.stringify(payload)
                         const b64 = btoa(unescape(encodeURIComponent(json)))

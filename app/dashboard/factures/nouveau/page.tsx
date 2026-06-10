@@ -144,6 +144,13 @@ export default function NouvelleFacturePage() {
       // facture de situation"), on récupère le chantier_id pour le persister à la
       // sauvegarde et pré-cocher le sélecteur de chantier en mode situation.
       if (data.chantier_id) setChantierId(data.chantier_id as string)
+      // V2.2 10/06/2026 — Pre-remplissage du % d'avancement situation
+      // depuis le bouton planning (calcule a partir des interventions du
+      // chantier dont la date est <= aujourd'hui). L'artisan peut toujours
+      // ajuster manuellement la valeur.
+      if (typeof data.pourcentage_situation_suggere === 'number' && data.pourcentage_situation_suggere > 0) {
+        setPourcentageSituation(Math.min(100, Math.max(0, data.pourcentage_situation_suggere)))
+      }
       if (data.tva_taux != null) setGlobalTvaRate(data.tva_taux as number)
       const voiceLines = data.lignes as Array<{ designation: string; quantite: number; unite: string; prix_unitaire: number }> | null
       if (voiceLines && voiceLines.length > 0) {

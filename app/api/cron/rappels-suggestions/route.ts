@@ -147,6 +147,8 @@ export async function GET(req: NextRequest) {
     decennale: 0,
     facture_relance: 0,
     devis_a_planifier: 0,
+    // V2.2 10/06/2026 : notif J-1 avant relance auto (filet de securite).
+    notif_j1: 0,
   }
   const errors: string[] = []
 
@@ -314,9 +316,140 @@ export async function GET(req: NextRequest) {
     errors.push(`devis block: ${e instanceof Error ? e.message : String(e)}`)
   }
 
+  // ====================================================================
+  // 4. V2.2 10/06/2026 — Notif J-1 avant relance auto (filet de securite)
+  // Le cron `relances-auto-factures` tournera demain matin a 09h UTC.
+  // On cree un rappel dashboard le matin meme (06h UTC) pour prevenir
+  // l'artisan : tel client va recevoir un email demain a 9h, montant X,
+  // palier Y. L'artisan peut alors exclure le client ou marquer la
+  // facture payee dans les 24h pour annuler l'envoi.
+  //
+  // Conditions ET-iques :
+  //   - relances_auto_actives (entreprise) != FALSE
+  //   - pas de pause globale active
+  //   - client non exclu (exclu_relances_auto != true)
+  //   - facture statut envoyee/en_retard non soldee
+  //   - delta jours echeance exactement 6, 14 ou 29 (= relance demain)
+  //   - palier correspondant pas encore tamponne
+  // ====================================================================
+  try {
+    const { data: entActives, error: entActivesErr } = await supabase
+      .from('entreprises')
+      .select('user_id, relances_auto_actives, relances_pause_jusqu_au')
+      .or('relances_auto_actives.is.null,relances_auto_actives.eq.true')
+
+    if (entActivesErr) {
+      // Colonnes manquantes -> on skip ce bloc, pas un blocker
+      if (!(entActivesErr.code === '42703' || (entActivesErr.message || '').includes('relances_auto_actives'))) {
+        errors.push(`notif-j1 entreprises: ${entActivesErr.message}`)
+      }
+    } else if (entActives) {
+      type EntActif = { user_id: string; relances_auto_actives: boolean | null; relances_pause_jusqu_au: string | null }
+      const userIdsActifs = (entActives as EntActif[])
+        .filter((e) => !e.relances_pause_jusqu_au || e.relances_pause_jusqu_au < todayDate)
+        .map((e) => e.user_id)
+
+      if (userIdsActifs.length > 0) {
+        const ago30Date = new Date(today.getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+        const { data: facsRaw, error: facsErr } = await supabase
+          .from('factures')
+          .select('id, user_id, numero, client_id, client_nom, date_echeance, montant_ttc, montant_paye, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30')
+          .in('statut', ['envoyee', 'en_retard'])
+          .in('user_id', userIdsActifs)
+          .is('deleted_at', null)
+          .gte('date_echeance', ago30Date)
+          .lt('date_echeance', todayDate)
+          .limit(300)
+
+        if (facsErr) {
+          // Colonnes relance_envoyee_jX absentes -> skip
+          if (facsErr.code !== '42703') {
+            errors.push(`notif-j1 factures: ${facsErr.message}`)
+          }
+        } else if (facsRaw) {
+          type NotifFac = {
+            id: string
+            user_id: string
+            numero: string | null
+            client_id: string | null
+            client_nom: string | null
+            date_echeance: string
+            montant_ttc: number | null
+            montant_paye: number | null
+            relance_envoyee_j7: string | null
+            relance_envoyee_j15: string | null
+            relance_envoyee_j30: string | null
+          }
+          const facs = facsRaw as NotifFac[]
+
+          // Pre-charger les clients exclus (skip)
+          const clientIds = Array.from(new Set(facs.map((f) => f.client_id).filter((id): id is string => !!id)))
+          const exclusSet = new Set<string>()
+          if (clientIds.length > 0) {
+            try {
+              const { data: clsRaw } = await supabase
+                .from('clients')
+                .select('id, exclu_relances_auto')
+                .in('id', clientIds)
+              ;(clsRaw || []).forEach((c: { id: string; exclu_relances_auto: boolean | null }) => {
+                if (c.exclu_relances_auto === true) exclusSet.add(c.id)
+              })
+            } catch (_e) {
+              // Colonne exclu_relances_auto absente : on traite tout client
+            }
+          }
+
+          const todayUtcMs = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+          for (const f of facs) {
+            if (f.client_id && exclusSet.has(f.client_id)) continue
+            const paye = f.montant_paye ?? 0
+            const total = f.montant_ttc ?? 0
+            if (total > 0 && paye >= total) continue
+
+            const ech = new Date(f.date_echeance)
+            const echMs = Date.UTC(ech.getUTCFullYear(), ech.getUTCMonth(), ech.getUTCDate())
+            const delta = Math.floor((todayUtcMs - echMs) / (24 * 3600 * 1000))
+
+            let palier: 'j7' | 'j15' | 'j30' | null = null
+            if (delta === 29 && !f.relance_envoyee_j30) palier = 'j30'
+            else if (delta === 14 && !f.relance_envoyee_j15) palier = 'j15'
+            else if (delta === 6 && !f.relance_envoyee_j7) palier = 'j7'
+
+            if (!palier) continue
+
+            const palierLabel = palier === 'j7' ? 'courtoise (J+7)' : palier === 'j15' ? 'ferme (J+15)' : 'stricte (J+30)'
+            const montantStr =
+              typeof f.montant_ttc === 'number'
+                ? `${f.montant_ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                : '—'
+            const clientLabel = f.client_nom || '(client sans nom)'
+
+            const inserted = await insertIfMissing(
+              supabase,
+              {
+                user_id: f.user_id,
+                titre: `Demain matin : relance ${palierLabel} à ${clientLabel}`,
+                description: `Facture ${f.numero || '(sans numéro)'} — ${montantStr}. Pour annuler l'envoi : excluez ce client des relances auto ou marquez la facture payée d'ici demain 9h.`,
+                due_date: todayIso,
+                priorite: palier === 'j30' ? 'haute' : 'normale',
+                source: `auto_notif_j1_${palier}`,
+                lien_facture_id: f.id,
+                lien_client_id: f.client_id,
+              },
+              { source: `auto_notif_j1_${palier}`, lien_facture_id: f.id },
+            )
+            if (inserted) counters.notif_j1++
+          }
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`notif-j1 block: ${e instanceof Error ? e.message : String(e)}`)
+  }
+
   const durationMs = Date.now() - start
   const createdCount =
-    counters.decennale + counters.facture_relance + counters.devis_a_planifier
+    counters.decennale + counters.facture_relance + counters.devis_a_planifier + counters.notif_j1
 
   // Log structure pour Vercel Logs
   console.log(
