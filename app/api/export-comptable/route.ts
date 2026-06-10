@@ -511,10 +511,10 @@ export async function POST(req: NextRequest) {
             type: l.type,
           })
         }
-        for (const [factureId, lignes] of lignesByFacture) {
+        lignesByFacture.forEach((lignes, factureId) => {
           const agg = aggregateByTaux(lignes)
           if (agg.length > 0) taxAggregateByDocId.set(factureId, agg)
-        }
+        })
       }
     }
 
