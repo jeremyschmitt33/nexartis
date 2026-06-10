@@ -59,6 +59,9 @@ interface ClientRow {
   civilite: string | null
   prenom: string | null
   nom: string | null
+  // V2 10/06/2026 : si TRUE, le client est exclu du cron de relances auto.
+  // NULL = colonne pas encore migree -> traite comme FALSE (cas par defaut).
+  exclu_relances_auto: boolean | null
 }
 
 function diffDaysFromEcheance(echeanceIso: string): number {
@@ -182,13 +185,40 @@ export async function GET(req: NextRequest) {
     const factures = (facturesRaw || []) as FactureRow[]
 
     // 3) Pre-charger les clients (1 requete pour tous)
+    //    V2 10/06/2026 : on lit aussi exclu_relances_auto pour pouvoir
+    //    skipper proprement les clients exclus dans la boucle 4).
+    //    Fallback : si la colonne n'existe pas encore (migration non
+    //    appliquee), on retombe sur la requete sans la colonne.
     const clientIds = Array.from(new Set(factures.map((f) => f.client_id).filter((id): id is string => !!id)))
     const clientsById = new Map<string, ClientRow>()
     if (clientIds.length > 0) {
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('id, email, civilite, prenom, nom')
-        .in('id', clientIds)
+      let clientsData: ClientRow[] | null = null
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('id, email, civilite, prenom, nom, exclu_relances_auto')
+          .in('id', clientIds)
+        if (error) throw error
+        clientsData = (data || []) as ClientRow[]
+      } catch (err) {
+        if (isUndefinedColumnError(err)) {
+          console.warn('[cron relances] colonne exclu_relances_auto absente, fallback sans')
+          const { data } = await supabase
+            .from('clients')
+            .select('id, email, civilite, prenom, nom')
+            .in('id', clientIds)
+          clientsData = (data || []).map((c: Record<string, unknown>) => ({
+            id: c.id as string,
+            email: (c.email as string) ?? null,
+            civilite: (c.civilite as string) ?? null,
+            prenom: (c.prenom as string) ?? null,
+            nom: (c.nom as string) ?? null,
+            exclu_relances_auto: null,
+          }))
+        } else {
+          throw err
+        }
+      }
       ;(clientsData || []).forEach((c: ClientRow) => clientsById.set(c.id, c))
     }
 
@@ -220,6 +250,12 @@ export async function GET(req: NextRequest) {
 
       // Resoudre email + nom client
       const clientRow = f.client_id ? clientsById.get(f.client_id) || null : null
+
+      // V2 10/06/2026 : skip si le client est exclu des relances auto.
+      // On verifie sur le clientRow (lien client_id) car la facture peut
+      // avoir un email "snapshot" qui ne reflete pas l'exclusion.
+      if (clientRow?.exclu_relances_auto === true) { skipped += 1; continue }
+
       const emailFromFacture = f.client_email
       const emailFromClient = clientRow?.email || null
       const email = emailFromFacture || emailFromClient

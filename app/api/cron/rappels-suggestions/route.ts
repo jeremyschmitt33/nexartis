@@ -151,7 +151,12 @@ export async function GET(req: NextRequest) {
   const errors: string[] = []
 
   // ====================================================================
-  // 1. Garantie decennale qui expire dans <60 jours
+  // 1. Garantie decennale — cascade 3 paliers (J-60 / J-30 / J-7)
+  //    Inspire BTPBip + audit terrain (1 seul rappel J-60 = trop tot pour
+  //    un artisan qui n'a pas le temps de comparer assureurs en pleine saison).
+  //    On cree DONC jusqu'a 3 rappels distincts par entreprise, avec ton
+  //    et priorite croissants. Chaque palier a sa propre source pour
+  //    permettre la coexistence dans la table.
   // ====================================================================
   try {
     const { data, error } = await supabase
@@ -174,17 +179,50 @@ export async function GET(req: NextRequest) {
         if (!e.decennale_date_fin) continue
         const dueMs = new Date(e.decennale_date_fin).getTime() - today.getTime()
         const daysLeft = Math.max(0, Math.ceil(dueMs / (24 * 3600 * 1000)))
+
+        // Determine le palier le plus urgent applicable.
+        // Plus daysLeft est petit, plus le rappel est prioritaire.
+        let palier:
+          | { source: string; titre: string; description: string; priorite: 'normale' | 'haute' | 'urgente' }
+          | null = null
+
+        if (daysLeft <= 7) {
+          palier = {
+            source: 'auto_decennale_7',
+            titre: `🚨 URGENT : décennale expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
+            description:
+              "Sans décennale valide, vous ne pouvez plus signer de devis ni démarrer de chantier. Appelez votre assureur aujourd'hui pour assurer la continuité.",
+            priorite: 'urgente',
+          }
+        } else if (daysLeft <= 30) {
+          palier = {
+            source: 'auto_decennale_30',
+            titre: `Décennale expire dans ${daysLeft} jours`,
+            description:
+              "Votre garantie décennale arrive à échéance d'ici 30 jours. C'est le bon moment pour valider le renouvellement avec votre assureur.",
+            priorite: 'haute',
+          }
+        } else {
+          palier = {
+            source: 'auto_decennale_60',
+            titre: `Renouveler votre décennale (expire dans ${daysLeft} jours)`,
+            description:
+              'Votre décennale expire dans moins de 2 mois. Comparez les offres et préparez votre renouvellement pour éviter toute rupture de couverture.',
+            priorite: 'normale',
+          }
+        }
+
         const inserted = await insertIfMissing(
           supabase,
           {
             user_id: e.user_id,
-            titre: `Renouveler votre décennale (expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''})`,
-            description: 'Votre garantie décennale arrive à échéance. Contactez votre assureur pour la renouveler.',
+            titre: palier.titre,
+            description: palier.description,
             due_date: e.decennale_date_fin,
-            priorite: daysLeft < 30 ? 'haute' : 'normale',
-            source: 'auto_decennale',
+            priorite: palier.priorite,
+            source: palier.source,
           },
-          { source: 'auto_decennale' },
+          { source: palier.source },
         )
         if (inserted) counters.decennale++
       }

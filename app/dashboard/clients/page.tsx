@@ -39,6 +39,10 @@ interface ClientRow {
   siret: string | null
   notes_internes: string | null
   actif: boolean
+  // V2 10/06/2026 : si TRUE, le cron relances-auto-factures saute ce client.
+  // Utile pour gros comptes / clients sensibles que l'artisan veut relancer
+  // manuellement (eviter relations abimees par un email automatique).
+  exclu_relances_auto: boolean | null
   created_at: string
 }
 
@@ -74,6 +78,7 @@ export default function ClientsPage() {
     ville: '',
     siret: '',
     notes_internes: '',
+    exclu_relances_auto: false,
   })
 
   const resetForm = () => {
@@ -89,6 +94,7 @@ export default function ClientsPage() {
       ville: '',
       siret: '',
       notes_internes: '',
+      exclu_relances_auto: false,
     })
     setFormError(null)
   }
@@ -108,6 +114,7 @@ export default function ClientsPage() {
         ville: form.ville || null,
         siret: form.siret || null,
         notes_internes: form.notes_internes || null,
+        exclu_relances_auto: form.exclu_relances_auto,
         actif: true,
       }
       if (form.type === 'professionnel') {
@@ -138,6 +145,7 @@ export default function ClientsPage() {
       ville: client.ville,
       siret: client.siret || '',
       notes_internes: client.notes_internes || '',
+      exclu_relances_auto: !!client.exclu_relances_auto,
     })
     setShowModal(true)
   }
@@ -157,6 +165,7 @@ export default function ClientsPage() {
         ville: form.ville || null,
         siret: form.siret || null,
         notes_internes: form.notes_internes || null,
+        exclu_relances_auto: form.exclu_relances_auto,
       }
       if (form.type === 'professionnel') {
         values.raison_sociale = form.raison_sociale || null
@@ -527,6 +536,30 @@ export default function ClientsPage() {
                 onChange={(e) => setForm({ ...form, notes_internes: e.target.value })}
                 rows={3}
               />
+
+              {/* V2 10/06/2026 : exclusion des relances auto.
+                  Utile pour gros clients, amis, contentieux en cours,
+                  bref toute relation ou un email automatique J+15/J+30
+                  serait contre-productif. */}
+              <div className="rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] p-4">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={form.exclu_relances_auto}
+                    onChange={(e) => setForm({ ...form, exclu_relances_auto: e.target.checked })}
+                    className="mt-1 w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a]"
+                    aria-describedby="exclu-relances-desc"
+                  />
+                  <span className="flex-1">
+                    <span className="block font-hanken font-bold text-[14px] text-[#0f1a3a] group-hover:text-[#ff7a1a] transition-colors">
+                      Exclure ce client des relances automatiques
+                    </span>
+                    <span id="exclu-relances-desc" className="block font-hanken text-[12.5px] text-gray-600 mt-1 leading-snug">
+                      Coché : les factures impayées de ce client ne déclenchent pas d&apos;emails de relance J+7 / J+15 / J+30. Vous restez maître des relances pour les comptes sensibles.
+                    </span>
+                  </span>
+                </label>
+              </div>
             </div>
 
             {/* Footer sticky : actions */}
