@@ -37,14 +37,13 @@ const featuresComparison: Array<{
   { label: "Optimisé smartphone et tablette", essential: true, complete: true },
   { label: "Données hébergées en Europe (RGPD)", essential: true, complete: true },
   { label: "Support email Lun-Ven 9h-18h", essential: true, complete: true },
-  { label: "Mises à jour à vie incluses", essential: true, complete: true },
+  { label: "Mises à jour continues incluses", essential: true, complete: true },
   { label: "Aucune limite de clients", essential: true, complete: true },
   { label: "Aucune limite de chantiers", essential: true, complete: true },
   { label: "Bibliothèque de prestations", essential: "50 max", complete: "Illimitée" },
   { label: "Planning chantier visuel", essential: false, complete: true },
   { label: "Alertes conflits d'affectation en temps réel", essential: false, complete: true },
-  { label: "Multi-utilisateurs illimités", essential: false, complete: true },
-  { label: "Gestion d'équipe complète", essential: false, complete: true },
+  { label: "Gestion d'équipe et planning intervenants", essential: false, complete: true },
   { label: "Devis vocal par intelligence artificielle", essential: false, complete: true },
 ];
 

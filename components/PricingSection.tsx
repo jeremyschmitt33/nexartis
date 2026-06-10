@@ -45,8 +45,7 @@ const ESSENTIAL_FEATURES: FeatureRow[] = [
 const COMPLETE_EXTRA_FEATURES: FeatureRow[] = [
   { label: "Planning chantier visuel", highlight: true },
   { label: "Alertes conflits d'affectation en temps réel", highlight: true },
-  { label: "Multi-utilisateurs illimités", highlight: true },
-  { label: "Gestion d'équipe complète", highlight: true },
+  { label: "Gestion d'équipe et planning intervenants", highlight: true },
   { label: "Devis vocal par IA (exclusif)", highlight: true },
   { label: "Bibliothèque prestations illimitée", highlight: true },
 ];

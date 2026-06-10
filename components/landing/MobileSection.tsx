@@ -71,7 +71,7 @@ const BENEFITS: Benefit[] = [
   {
     icon: '🔒',
     tone: 'violet',
-    title: 'Vos données restent en France',
+    title: 'Vos données restent en Europe',
     text: 'Hébergement Europe RGPD strict. Connexion sécurisée HTTPS bout-en-bout.',
   },
 ];

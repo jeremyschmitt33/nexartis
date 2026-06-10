@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useDevis, useFactures, usePlanning, useChantiers, useClients, useIntervenants, useEntreprise, useChantierNotes, LoadingSkeleton } from "@/lib/hooks";
 import { createClient } from "@/lib/supabase/client";
 import { InfoBanner } from "@/components/ui/v4";
+import RappelsSection from "@/components/dashboard/RappelsSection";
 
 // Type pour un rappel artisan (note privée datée à afficher dans "À faire")
 interface ArtisanReminder {
@@ -940,6 +941,14 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ═══════════════════ ROW 2.5 : RAPPELS LIBRES ═══════════════════
+            Widget "post-it" pour notes libres (Rappeler comptable, renouveler
+            décennale, etc.). Composant défensif : si la table `rappels` n'a
+            pas encore été migrée, il renvoie null et n'affiche rien. */}
+        <div style={stagger(6.5)} className="mb-5">
+          <RappelsSection />
         </div>
 
         {/* ═══════════════════ ROW 3: PLANNING + ACTIVITY ═══════════════════ */}

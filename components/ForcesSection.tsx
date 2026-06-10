@@ -56,7 +56,7 @@ const forces: Force[] = [
   {
     title: "Conforme legalement, sans y penser",
     text: "Mentions obligatoires, TVA 5,5/10/20 %, attestations renovation, numerotation continue. Tout est genere automatiquement.",
-    proof: "Audit juridique francais valide",
+    proof: "Mentions legales francaises completes",
     accent: "#6aa0ff",
     proofTone: "electric",
     svgPaths: (
