@@ -573,7 +573,7 @@ export default async function AdminPage() {
     nonConfirme: users.filter(u => !u.email_confirmed_at).length,
   }
 
-  return async (
+  return (
     <div className="min-h-screen">
 
       {/* En-tête */}

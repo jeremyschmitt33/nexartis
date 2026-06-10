@@ -3375,7 +3375,7 @@ function PlanningPageInner() {
                   const confirmMsg = isRetirerMembre
                     ? 'Retirer ce membre de l\'intervention ? Les autres membres restent affectés.'
                     : 'Supprimer cette intervention ?'
-                  return async (
+                  return (
                     <button
                       onClick={async () => {
                         if (!(await askConfirm({ title: 'Confirmation requise', message: confirmMsg, confirmLabel: 'Confirmer' }))) return
