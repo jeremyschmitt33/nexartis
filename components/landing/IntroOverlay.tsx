@@ -317,15 +317,15 @@ export default function IntroOverlay() {
           }
         }
 
-        /* Logo image animé — fade-in + scale-up, t = 700ms */
+        /* Logo image animé — fade-in + scale-up, t = 700ms (version LIGHT sur fond sombre) */
         .intro-logo {
           display: block;
           margin: 0 auto;
-          width: clamp(280px, 55vw, 620px);
+          width: clamp(320px, 70vw, 720px);
           height: auto;
           opacity: 0;
           transform: scale(0.78);
-          filter: drop-shadow(0 18px 60px rgba(63, 123, 255, 0.25));
+          filter: drop-shadow(0 18px 60px rgba(255, 122, 26, 0.35));
           animation: intro-logo-in 1.1s var(--intro-ease) forwards;
           animation-delay: 0.7s;
         }
@@ -495,13 +495,13 @@ export default function IntroOverlay() {
         <div className="intro-core">
           <div className="intro-spark" aria-hidden="true" />
           <Image
-            src="/images/logo-nexartis.png"
+            src="/images/logo-nexartis-light.png"
             alt="Nexartis"
             className="intro-logo"
             width={1600}
             height={800}
             priority
-            sizes="(max-width: 640px) 60vw, (max-width: 1280px) 50vw, 620px"
+            sizes="(max-width: 640px) 75vw, (max-width: 1280px) 60vw, 720px"
             quality={88}
           />
           <p className="intro-tag">

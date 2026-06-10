@@ -91,7 +91,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-[420px]">
         {/* Logo (image contient deja le wordmark Nexartis) */}
         <div className="flex items-center justify-center mb-6">
-          <Image src="/images/logo-nexartis.png" alt="Nexartis" width={320} height={160} quality={100} priority className="h-20 w-auto object-contain" />
+          <Image src="/images/logo-nexartis.png" alt="Nexartis" width={480} height={240} quality={100} priority className="h-28 w-auto object-contain" />
         </div>
 
         {/* Badge */}

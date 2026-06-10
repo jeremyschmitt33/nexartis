@@ -98,11 +98,12 @@ export default function Header() {
         <Image
           src="/images/logo-nexartis.png"
           alt="Nexartis"
-          width={320}
-          height={160}
+          width={400}
+          height={200}
           quality={100}
           priority
-          className="h-14 sm:h-16 w-auto object-contain"
+          sizes="(max-width: 640px) 200px, 280px"
+          className="h-16 sm:h-20 w-auto object-contain"
         />
       </Link>
 

@@ -38,9 +38,11 @@ export default function EmptyDashboard({ userName, profilIncomplet }: EmptyDashb
         <Image
           src="/images/logo-nexartis.png"
           alt="Nexartis"
-          width={80}
-          height={80}
-          className="h-20 w-auto mx-auto"
+          width={480}
+          height={240}
+          quality={100}
+          priority
+          className="h-28 w-auto mx-auto object-contain"
         />
 
         <h1 className="font-syne font-extrabold text-2xl text-[#1a1a2e] mt-6">

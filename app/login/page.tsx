@@ -111,11 +111,11 @@ function LoginForm() {
           <Image
             src="/images/logo-nexartis.png"
             alt="Nexartis"
-            width={320}
-            height={160}
+            width={480}
+            height={240}
             quality={100}
             priority
-            className="h-20 w-auto object-contain"
+            className="h-28 w-auto object-contain"
           />
         </div>
 
