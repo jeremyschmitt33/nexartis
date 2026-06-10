@@ -1234,7 +1234,24 @@ export default function ChantierDetailPage() {
           // V3.1 : encodage compact via voicePayload-like — on garde simple : chantierId
           // est lu par le useEffect voicePayload (sera étendu)... approche minimale :
           // on encode un payload type voice avec factureType=situation + objet du chantier.
-          const buildSituationPayload = () => {
+          // V2.4 10/06/2026 — Avancement reel vs avancement facture.
+          // Permet de detecter si l'artisan a du travail realise NON facture
+          // (decalage positif = situations en retard, opportunite de facturer).
+          const totalInterv = chantierInterventions.length
+          const todayStr = new Date().toISOString().slice(0, 10)
+          const intervRealisees = chantierInterventions.filter((p) => {
+            const dateStr = String((p as R).date_intervention ?? '').slice(0, 10)
+            return dateStr && dateStr <= todayStr
+          }).length
+          const pctReel = totalInterv > 0 ? Math.round((intervRealisees / totalInterv) * 100) : 0
+          const pctFactureHT = devisHT > 0 ? Math.round((factHT / devisHT) * 100) : 0
+          const decalage = pctReel - pctFactureHT
+          // Decalage > 15% = signal fort qu'il faut emettre une situation.
+          const showDecalageHint = totalInterv >= 2 && decalage >= 15 && resteHT > 0
+
+          // V2.4 : factorisation pour generer un payload reutilisable
+          // (situation OU acompte, selon le contexte du bouton).
+          const buildPayloadForType = (factureType: 'situation' | 'acompte') => {
             const objetChantier = String(chantier.titre ?? chantier.objet ?? '')
             const cliPrenom = (client?.prenom as string) ?? ''
             const cliNom = (client?.nom as string) ?? ''
@@ -1249,8 +1266,8 @@ export default function ChantierDetailPage() {
               ? [...chantierDevis].sort((a, b) => String((b as R).date_emission ?? '').localeCompare(String((a as R).date_emission ?? '')))[0]
               : null
             const devisRef = dernierDevis ? String((dernierDevis as R).numero ?? '') : ''
-            const payload = {
-              facture_type: 'situation',
+            const payload: Record<string, unknown> = {
+              facture_type: factureType,
               objet: objetChantier,
               client_civilite: cliCiv,
               client_nom: cliNom,
@@ -1263,11 +1280,16 @@ export default function ChantierDetailPage() {
               devis_ref: devisRef,
               chantier_id: id,
             }
+            // Pre-remplissage du % suggere pour les situations
+            if (factureType === 'situation' && pctReel > 0 && pctReel > pctFactureHT) {
+              payload.pourcentage_situation_suggere = pctReel
+            }
             const json = JSON.stringify(payload)
             const b64 = btoa(unescape(encodeURIComponent(json)))
               .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
             return b64
           }
+          const buildSituationPayload = () => buildPayloadForType('situation')
           return (
             <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
               <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between flex-wrap gap-3">
@@ -1275,13 +1297,39 @@ export default function ChantierDetailPage() {
                   <Receipt className="w-4 h-4 text-[#ff7a1a]" />
                   <h3 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em]">Facturation</h3>
                 </div>
-                <Link
-                  href={`/dashboard/factures/nouveau?voicePayload=${buildSituationPayload()}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[12.5px] font-bold shadow-[0_4px_12px_rgba(255,122,26,0.25),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />Émettre une facture de situation
-                </Link>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* V2.4 : bouton secondaire "Acompte" — utile en debut de chantier */}
+                  <Link
+                    href={`/dashboard/factures/nouveau?voicePayload=${buildPayloadForType('acompte')}`}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border-[1.5px] border-[#ff7a1a]/30 bg-[#ff7a1a]/[0.06] text-[#c2410c] font-hanken text-[12.5px] font-bold hover:bg-[#ff7a1a]/[0.10] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2"
+                    aria-label="Emettre une facture d'acompte sur ce chantier"
+                  >
+                    <Plus className="w-3.5 h-3.5" />Acompte
+                  </Link>
+                  <Link
+                    href={`/dashboard/factures/nouveau?voicePayload=${buildSituationPayload()}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[12.5px] font-bold shadow-[0_4px_12px_rgba(255,122,26,0.25),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                    aria-label="Emettre une facture de situation sur ce chantier"
+                  >
+                    <Plus className="w-3.5 h-3.5" />Émettre une facture de situation
+                  </Link>
+                </div>
               </div>
+
+              {/* V2.4 : hint contextuel quand le travail realise depasse de >=15%
+                  ce qui a ete facture. Signal a l'artisan qu'il y a une situation
+                  a emettre pour ne pas avoir de tresorerie en retard. */}
+              {showDecalageHint && (
+                <div className="px-5 py-3 bg-amber-50/80 border-b border-amber-200/60">
+                  <p className="font-hanken text-[13px] text-amber-900 leading-relaxed">
+                    <span className="font-bold">💡 Décalage détecté :</span> vous avez réalisé{' '}
+                    <span className="font-bold">{pctReel}%</span> du chantier mais facturé seulement{' '}
+                    <span className="font-bold">{pctFactureHT}%</span>. Une facture de situation à{' '}
+                    <span className="font-bold">{pctReel}%</span> permet de rattraper sans attendre.
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-[#e6ecf2]">
                 <div className="text-center py-4 px-3 border-b sm:border-b-0 sm:border-r border-[#e6ecf2]">
                   <div className="font-spline-mono font-semibold text-xl text-[#0f1a3a] tracking-[-0.01em]">{formatEur(devisHT)}</div>
@@ -1296,6 +1344,59 @@ export default function ChantierDetailPage() {
                   <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Reste à facturer (HT)</div>
                 </div>
               </div>
+
+              {/* V2.4 : barre de progression "facture vs reel" pour visualiser
+                  d'un coup d'oeil ou en est le chantier. */}
+              {devisHT > 0 && (
+                <div className="px-5 py-4 border-b border-[#e6ecf2] space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-hanken font-semibold text-[11.5px] uppercase tracking-wider text-gray-500">
+                        Avancement facturé
+                      </span>
+                      <span className="font-spline-mono font-bold text-[12px] text-emerald-700">{pctFactureHT}%</span>
+                    </div>
+                    <div
+                      className="relative h-2 rounded-full overflow-hidden bg-gray-100"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={pctFactureHT}
+                      aria-label={`Avancement facturé : ${pctFactureHT}%`}
+                    >
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all"
+                        style={{ width: `${Math.min(100, pctFactureHT)}%` }}
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </div>
+                  {totalInterv > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-hanken font-semibold text-[11.5px] uppercase tracking-wider text-gray-500">
+                          Avancement réel ({intervRealisees}/{totalInterv} interventions)
+                        </span>
+                        <span className="font-spline-mono font-bold text-[12px] text-[#0f1a3a]">{pctReel}%</span>
+                      </div>
+                      <div
+                        className="relative h-2 rounded-full overflow-hidden bg-gray-100"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={pctReel}
+                        aria-label={`Avancement réel : ${pctReel}%`}
+                      >
+                        <div
+                          className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#0f1a3a] to-[#1f2d5e] transition-all"
+                          style={{ width: `${Math.min(100, pctReel)}%` }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Liste situations */}
               <div className="px-5 py-4">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Factures de situation</div>
