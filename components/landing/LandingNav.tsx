@@ -167,15 +167,17 @@ export default function LandingNav() {
             <InstallPrompt />
           </div>
 
-          {/* "Se connecter" / "Mon espace" — texte simple, lg+ uniquement.
-              Sur mobile on garde uniquement le CTA principal pour éviter
-              l'encombrement (le burger menu sera ajouté plus tard). */}
-          <Link
-            href={isLoggedIn ? '/dashboard' : '/login'}
-            className="hidden lg:inline-flex items-center text-ink-2 hover:text-ink font-semibold text-[14.5px] px-3 py-[9px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 rounded-[10px]"
-          >
-            {isLoggedIn ? 'Mon espace' : 'Se connecter'}
-          </Link>
+          {/* "Se connecter" — texte simple, lg+ uniquement, UNIQUEMENT si non connecte.
+              Si l'utilisateur est connecte, on affiche seulement le CTA "Mon espace"
+              en gradient (eviter le doublon "Mon espace" + "Mon espace"). */}
+          {!isLoggedIn && (
+            <Link
+              href="/login"
+              className="hidden lg:inline-flex items-center text-ink-2 hover:text-ink font-semibold text-[14.5px] px-3 py-[9px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60 rounded-[10px]"
+            >
+              Se connecter
+            </Link>
+          )}
 
           {/* CTA principal — gradient accent → accent-2 + glow.
               Toujours visible (y compris mobile).
