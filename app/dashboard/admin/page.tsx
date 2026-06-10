@@ -459,7 +459,7 @@ function UserDetailModal({
 // -------------------------------------------------------------------
 
 export default async function AdminPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const { user, loading: loadingUser } = useUser()
   const router = useRouter()
   const [users, setUsers] = useState<UserRecord[]>([])
@@ -590,7 +590,7 @@ export default async function AdminPage() {
         <div className="flex gap-2">
           <button
             onClick={async () => {
-              if (!(await confirm({ title: 'Recalculer la numerotation hierarchique ?', message: 'Cette operation recalcule TOUS les devis et factures existants et peut prendre quelques secondes.', confirmLabel: 'Recalculer' }))) return
+              if (!(await askConfirm({ title: 'Recalculer la numerotation hierarchique ?', message: 'Cette operation recalcule TOUS les devis et factures existants et peut prendre quelques secondes.', confirmLabel: 'Recalculer' }))) return
               showToastMsg('Migration en cours...')
               try {
                 const res = await fetch('/api/admin/migrate-numerotation', { method: 'POST' })

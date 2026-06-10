@@ -86,7 +86,7 @@ function formatDate(d: string | null | undefined): string {
 }
 
 export default async function DevisListPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const router = useRouter()
   const { data: devisList, loading: loadingDevis, error: errorDevis, refetch: refetchDevis } = useDevis()
   const { data: clients, loading: loadingClients } = useClients()
@@ -184,7 +184,7 @@ export default async function DevisListPage() {
   }, [devisList, filter, search, sort, clientMap, chantierMap])
 
   async function handleDelete(id: string) {
-    if (!(await confirm({ title: "Envoyer ce devis a la corbeille ?", variant: "danger", confirmLabel: "Envoyer" }))) return
+    if (!(await askConfirm({ title: "Envoyer ce devis a la corbeille ?", variant: "danger", confirmLabel: "Envoyer" }))) return
     try { await softDeleteRow("devis", id); refetchDevis() }
     catch (err: unknown) { toast.error("Erreur : " + (err instanceof Error ? err.message : "Echec")) }
   }
@@ -209,7 +209,7 @@ export default async function DevisListPage() {
     else setSelected(new Set(filtered.map(d => d.id as string)))
   }
   async function handleBulkDelete() {
-    if (!(await confirm({ title: `Envoyer ${selected.size} devis a la corbeille ?`, variant: "danger", confirmLabel: "Envoyer" }))) return
+    if (!(await askConfirm({ title: `Envoyer ${selected.size} devis a la corbeille ?`, variant: "danger", confirmLabel: "Envoyer" }))) return
     setBulkDeleting(true)
     try { for (const id of Array.from(selected)) { await softDeleteRow("devis", id) }; setSelected(new Set()); refetchDevis() }
     catch (err: unknown) { toast.error("Erreur : " + (err instanceof Error ? err.message : "Echec")) }

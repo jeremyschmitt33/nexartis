@@ -58,7 +58,7 @@ function getInitials(name: string): string {
 // -------------------------------------------------------------------
 
 export default async function ChantiersListPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const router = useRouter()
   const { data: chantiers, loading, error, refetch } = useChantiers()
   const { data: clients } = useClients()
@@ -175,7 +175,7 @@ export default async function ChantiersListPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!(await confirm({ title: 'Supprimer ce chantier ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
+    if (!(await askConfirm({ title: 'Supprimer ce chantier ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     setDeleting(id)
     try {
       await deleteRow('chantiers', id)

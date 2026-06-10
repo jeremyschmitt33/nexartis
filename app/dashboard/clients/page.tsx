@@ -49,7 +49,7 @@ const FILTER_OPTIONS = ['Tous', 'Particuliers', 'Professionnels', 'Archivés']
 // -------------------------------------------------------------------
 
 export default async function ClientsPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const router = useRouter()
   const { data, loading, error, refetch } = useClients()
   const clients = data as unknown as ClientRow[]
@@ -179,7 +179,7 @@ export default async function ClientsPage() {
   }
 
   const handleDelete = async (id: string, displayName: string) => {
-    if (!(await confirm({ title: `Supprimer le client "${displayName}" ?`, message: 'Cette action est irreversible.', variant: 'danger', confirmLabel: 'Supprimer' }))) return
+    if (!(await askConfirm({ title: `Supprimer le client "${displayName}" ?`, message: 'Cette action est irreversible.', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     try {
       await deleteRow('clients', id)
       refetch()

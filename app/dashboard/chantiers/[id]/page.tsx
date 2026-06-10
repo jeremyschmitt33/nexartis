@@ -74,7 +74,7 @@ function isSameDay(d1: Date, d2: Date) { return fmtISO(d1) === fmtISO(d2) }
 // -------------------------------------------------------------------
 
 export default function ChantierDetailPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -381,7 +381,7 @@ export default function ChantierDetailPage() {
 
   // ── Suppression intervenant ──
   const handleRemoveEquipe = async (equipeRowId: string, intervenantId: string) => {
-    if (!(await confirm({ title: 'Retirer cet intervenant du chantier ?', variant: 'danger', confirmLabel: 'Retirer' }))) return
+    if (!(await askConfirm({ title: 'Retirer cet intervenant du chantier ?', variant: 'danger', confirmLabel: 'Retirer' }))) return
     try {
       const supabase = createClient()
       // Supprimer l'assignation
@@ -1426,7 +1426,7 @@ export default function ChantierDetailPage() {
                         onClick={async () => {
                           // Régénère le template propre depuis le profil + chantier (sans
                           // les éventuels caractères parasites des anciennes versions sauvegardées).
-                          if (exportPacteTexte.trim() && !(await confirm({ title: 'Reinitialiser le texte du pacte ?', message: 'Vos modifications seront perdues.', variant: 'danger', confirmLabel: 'Reinitialiser' }))) return
+                          if (exportPacteTexte.trim() && !(await askConfirm({ title: 'Reinitialiser le texte du pacte ?', message: 'Vos modifications seront perdues.', variant: 'danger', confirmLabel: 'Reinitialiser' }))) return
                           let ent: Record<string, unknown> | null = null
                           try {
                             const supabase = createClient()

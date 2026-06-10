@@ -42,7 +42,7 @@ type FilterPeriod = 'Tous' | 'Ce mois' | 'Ce trimestre'
 
 // Wrapper en Suspense (requis par Next.js 14 pour useSearchParams() en client component)
 export default function AchatsPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   return (
     <Suspense fallback={<div className="p-8 text-sm text-gray-500">Chargement...</div>}>
       <AchatsPageInner />
@@ -221,7 +221,7 @@ function AchatsPageInner() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!(await confirm({ title: 'Supprimer cet achat ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
+    if (!(await askConfirm({ title: 'Supprimer cet achat ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     try {
       await deleteRow('achats', id)
       refetchAchats()

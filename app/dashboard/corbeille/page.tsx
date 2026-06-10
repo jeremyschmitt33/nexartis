@@ -51,7 +51,7 @@ function daysLeftLabel(deletedAt: unknown): string {
 // ── Component ───────────────────────────────────────────────
 
 export default async function CorbeillePage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const { data: deletedDevis, loading: loadingD, error: errorD, refetch: refetchD } = useDeletedDevis()
   const { data: deletedFactures, loading: loadingF, error: errorF, refetch: refetchF } = useDeletedFactures()
 
@@ -135,7 +135,7 @@ export default async function CorbeillePage() {
   }
 
   async function handlePermanentDelete(type: string, id: string) {
-    if (!(await confirm({ title: "Supprimer definitivement ?", message: "Cette action est irreversible.", variant: "danger", confirmLabel: "Supprimer" }))) return
+    if (!(await askConfirm({ title: "Supprimer definitivement ?", message: "Cette action est irreversible.", variant: "danger", confirmLabel: "Supprimer" }))) return
     setDeleting(id)
     try {
       await permanentDeleteRow(type, id)
@@ -150,7 +150,7 @@ export default async function CorbeillePage() {
   }
 
   async function handleEmptyTrash() {
-    if (!(await confirm({ title: "Vider la corbeille ?", message: `${allItems.length} element${allItems.length > 1 ? "s" : ""} seront supprimes definitivement.`, variant: "danger", confirmLabel: "Vider" }))) return
+    if (!(await askConfirm({ title: "Vider la corbeille ?", message: `${allItems.length} element${allItems.length > 1 ? "s" : ""} seront supprimes definitivement.`, variant: "danger", confirmLabel: "Vider" }))) return
     setPurging(true)
     try {
       for (const item of allItems) {
@@ -197,7 +197,7 @@ export default async function CorbeillePage() {
   }
 
   async function handleBulkPermanentDelete() {
-    if (!(await confirm({ title: `Supprimer definitivement ${selected.size} element${selected.size > 1 ? "s" : ""} ?`, message: "Cette action est irreversible.", variant: "danger", confirmLabel: "Supprimer" }))) return
+    if (!(await askConfirm({ title: `Supprimer definitivement ${selected.size} element${selected.size > 1 ? "s" : ""} ?`, message: "Cette action est irreversible.", variant: "danger", confirmLabel: "Supprimer" }))) return
     setBulkAction(true)
     try {
       for (const id of Array.from(selected)) {

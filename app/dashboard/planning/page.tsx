@@ -224,7 +224,7 @@ function buildGmapsLink(adresse: string, cp: string, ville: string): string {
 // ===================================================================
 
 function PlanningPageInner() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: planningData, loading: l1, refetch } = usePlanning()
@@ -1704,7 +1704,7 @@ function PlanningPageInner() {
       return
     }
     if ((yearStart > currentYear + 2 || yearEnd > currentYear + 2) && !showConflitConfirm) {
-      const ok = await confirm({ title: `Intervention planifiee en ${yearStart}`, message: 'Cette date semble anormalement loin dans le futur. Etes-vous sur ?', variant: 'default', confirmLabel: 'Confirmer la date' })
+      const ok = await askConfirm({ title: `Intervention planifiee en ${yearStart}`, message: 'Cette date semble anormalement loin dans le futur. Etes-vous sur ?', variant: 'default', confirmLabel: 'Confirmer la date' })
       if (!ok) return
     }
 
@@ -3378,7 +3378,7 @@ function PlanningPageInner() {
                   return async (
                     <button
                       onClick={async () => {
-                        if (!(await confirm({ title: 'Confirmation requise', message: confirmMsg, confirmLabel: 'Confirmer' }))) return
+                        if (!(await askConfirm({ title: 'Confirmation requise', message: confirmMsg, confirmLabel: 'Confirmer' }))) return
                         try {
                           if (isRetirerMembre && clickedAssignmentId) {
                             // Supprime UNIQUEMENT la ligne d'assignation cliquée.

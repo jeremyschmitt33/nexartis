@@ -74,7 +74,7 @@ function daysOverdue(dateEcheance: string | null): number {
 }
 
 export default async function FacturesListPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const router = useRouter()
   const { data: factures, loading: loadingF, error: errorF, refetch: refetchF } = useFactures()
   const { data: clients, loading: loadingC } = useClients()
@@ -150,7 +150,7 @@ export default async function FacturesListPage() {
   const retardHT = retardList.reduce((s, f) => s + (f.montantTtc - f.montantPaye), 0)
 
   const handleDelete = async (id: string) => {
-    if (!(await confirm({ title: 'Envoyer cette facture a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
+    if (!(await askConfirm({ title: 'Envoyer cette facture a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
     setDeleting(id)
     try {
       await softDeleteRow('factures', id)
@@ -181,7 +181,7 @@ export default async function FacturesListPage() {
   }
 
   async function handleBulkDelete() {
-    if (!(await confirm({ title: `Envoyer ${selected.size} facture${selected.size > 1 ? 's' : ''} a la corbeille ?`, variant: 'danger', confirmLabel: 'Envoyer' }))) return
+    if (!(await askConfirm({ title: `Envoyer ${selected.size} facture${selected.size > 1 ? 's' : ''} a la corbeille ?`, variant: 'danger', confirmLabel: 'Envoyer' }))) return
     setBulkDeleting(true)
     try {
       for (const id of Array.from(selected)) {

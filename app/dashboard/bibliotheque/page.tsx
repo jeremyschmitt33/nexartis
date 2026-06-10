@@ -51,7 +51,7 @@ function formatDate(iso: string | null): string {
 // -------------------------------------------------------------------
 
 export default async function BibliothequePage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const { data: prestations, loading, error, refetch } = usePrestations()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Categorie>('Toutes')
@@ -142,7 +142,7 @@ export default async function BibliothequePage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!(await confirm({ title: 'Supprimer cette prestation ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
+    if (!(await askConfirm({ title: 'Supprimer cette prestation ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     setDeletingId(id)
     try {
       await deleteRow('prestations', id)

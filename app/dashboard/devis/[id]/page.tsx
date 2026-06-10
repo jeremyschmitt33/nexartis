@@ -218,7 +218,7 @@ const printStyles = `
 // -------------------------------------------------------------------
 
 export default async function DevisDetailPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -256,7 +256,7 @@ export default async function DevisDetailPage() {
 
   async function handleConvertToFacture(skipConfirm = false) {
     if (!devis) return
-    if (!skipConfirm && !(await confirm({ title: 'Convertir ce devis en facture ?', confirmLabel: 'Convertir' }))) return
+    if (!skipConfirm && !(await askConfirm({ title: 'Convertir ce devis en facture ?', confirmLabel: 'Convertir' }))) return
     try {
       const now = new Date()
       const numero = `F-${now.getFullYear()}-${String(Date.now()).slice(-5)}`
@@ -327,7 +327,7 @@ export default async function DevisDetailPage() {
   }
 
   async function handleDeleteDevis() {
-    if (!devis || !(await confirm({ title: 'Envoyer ce devis a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
+    if (!devis || !(await askConfirm({ title: 'Envoyer ce devis a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
     try {
       await softDeleteRow('devis', devis.id)
       router.push('/dashboard/devis')

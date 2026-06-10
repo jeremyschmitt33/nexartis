@@ -131,7 +131,7 @@ const SUGGESTIONS: { categorie: string; emoji: string; items: string[] }[] = [
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default async function PrestationsPage() {
-  const confirm = useConfirm()
+  const askConfirm = useConfirm()
   const { data, loading, error, refetch } = usePrestations()
   const prestations = data as unknown as PrestationRow[]
 
@@ -203,7 +203,7 @@ export default async function PrestationsPage() {
   }
 
   const handleDelete = async (id: string, label: string) => {
-    if (!(await confirm({ title: `Supprimer "${label}" ?`, message: "Elle ne sera plus proposee en autocompletion.", variant: "danger", confirmLabel: "Supprimer" }))) return
+    if (!(await askConfirm({ title: `Supprimer "${label}" ?`, message: "Elle ne sera plus proposee en autocompletion.", variant: "danger", confirmLabel: "Supprimer" }))) return
     const supabase = createClient()
     const { error } = await supabase.from('prestations').delete().eq('id', id)
     if (error) {
