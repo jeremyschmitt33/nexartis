@@ -908,9 +908,117 @@ export default function NouvelleFacturePage() {
                     />
                   </div>
                 </div>
-                <p className="font-hanken text-xs text-gray-500">
-                  Indicatif pour cette version. Le calcul automatique du reste à facturer arrivera plus tard.
-                </p>
+                {/* V2.3 10/06/2026 — Recap visuel progression chantier.
+                    Affiche : montant deja facture (situations precedentes) +
+                    montant de cette situation + reste a facturer + barre de
+                    progression. S'appuie sur devisTotalTTC + cumulPrecedentTTC
+                    deja charges. Si les donnees du devis manquent, fallback
+                    sur un message d'aide pour saisir un n° de devis. */}
+                {(() => {
+                  const devisTotal = devisTotalTTC ?? 0
+                  const cumulPrec = cumulPrecedentTTC ?? 0
+                  if (devisTotal <= 0) {
+                    return (
+                      <p className="font-hanken text-xs text-gray-500 leading-relaxed">
+                        Saisissez un numéro de devis valide pour activer le calcul automatique du reste à facturer.
+                      </p>
+                    )
+                  }
+                  const pct = Math.min(100, Math.max(0, pourcentageSituation || 0))
+                  const totalApresCetteSit = devisTotal * (pct / 100)
+                  const cetteSituation = Math.max(0, totalApresCetteSit - cumulPrec)
+                  const resteApres = Math.max(0, devisTotal - totalApresCetteSit)
+                  const pctPrec = devisTotal > 0 ? Math.min(100, (cumulPrec / devisTotal) * 100) : 0
+                  const pctCetteSit = Math.max(0, pct - pctPrec)
+                  const pctReste = Math.max(0, 100 - pct)
+                  const fmt = (n: number) =>
+                    n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+                  const isWarning = totalApresCetteSit > devisTotal + 0.5
+                  return (
+                    <div className="rounded-xl border-[1.5px] border-gray-200 bg-gradient-to-br from-[#fafbfc] to-white p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-hanken font-bold text-[13px] text-[#0f1a3a]">
+                          Progression du chantier
+                        </p>
+                        <span className="font-spline-mono font-semibold text-[12.5px] text-[#0f1a3a]/70">
+                          {fmt(devisTotal)} TTC au total
+                        </span>
+                      </div>
+
+                      {/* Barre de progression segmentee (deja facture / cette sit / reste) */}
+                      <div
+                        className="relative h-3 rounded-full overflow-hidden bg-gray-100"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(pct)}
+                        aria-label={`Progression du chantier : ${Math.round(pct)}%`}
+                      >
+                        {pctPrec > 0 && (
+                          <div
+                            className="absolute inset-y-0 left-0 bg-[#0f1a3a]/70 transition-all"
+                            style={{ width: `${pctPrec}%` }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        {pctCetteSit > 0 && (
+                          <div
+                            className="absolute inset-y-0 bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d] transition-all"
+                            style={{
+                              left: `${pctPrec}%`,
+                              width: `${pctCetteSit}%`,
+                            }}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-lg bg-[#0f1a3a]/[0.04] px-2 py-2">
+                          <p className="font-hanken text-[10.5px] uppercase tracking-wider text-gray-500 mb-0.5">
+                            Déjà facturé
+                          </p>
+                          <p className="font-spline-mono font-bold text-[13px] text-[#0f1a3a]">
+                            {fmt(cumulPrec)}
+                          </p>
+                          <p className="font-hanken text-[10.5px] text-gray-500 mt-0.5">
+                            {Math.round(pctPrec)}%
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-[#ff7a1a]/[0.08] border border-[#ff7a1a]/30 px-2 py-2">
+                          <p className="font-hanken text-[10.5px] uppercase tracking-wider text-[#c2410c] mb-0.5">
+                            Cette situation
+                          </p>
+                          <p className="font-spline-mono font-bold text-[13px] text-[#c2410c]">
+                            {fmt(cetteSituation)}
+                          </p>
+                          <p className="font-hanken text-[10.5px] text-[#c2410c]/80 mt-0.5">
+                            +{Math.round(pctCetteSit)}%
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-[#0f1a3a]/[0.04] px-2 py-2">
+                          <p className="font-hanken text-[10.5px] uppercase tracking-wider text-gray-500 mb-0.5">
+                            Reste après
+                          </p>
+                          <p className="font-spline-mono font-bold text-[13px] text-[#0f1a3a]">
+                            {fmt(resteApres)}
+                          </p>
+                          <p className="font-hanken text-[10.5px] text-gray-500 mt-0.5">
+                            {Math.round(pctReste)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {isWarning && (
+                        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                          <p className="font-hanken font-semibold text-[12px] text-red-800">
+                            ⚠ Ce % dépasse 100 % du devis. Vérifiez le montant ou un avenant signé.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </div>

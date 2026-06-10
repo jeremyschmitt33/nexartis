@@ -22,6 +22,7 @@ import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
+import FactureRelancesTimeline from '@/components/dashboard/FactureRelancesTimeline'
 import { buildFactureDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
@@ -684,6 +685,11 @@ export default function FactureDetailPage() {
               </div>
             )}
           </div>
+
+          {/* V2.3 10/06/2026 — Timeline des relances envoyees pour cette facture.
+              Lit la table `relances` (RLS user_id) et affiche un historique
+              visuel par palier (J+7 / J+15 / J+30) avec date + ton. */}
+          <FactureRelancesTimeline factureId={facture.id} />
         </div>
       </div>
 
