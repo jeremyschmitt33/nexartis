@@ -26,6 +26,7 @@
 import type { jsPDF } from 'jspdf'
 import { C, type Palette } from './palette'
 import { font, setFill, textRight, textCentered, roundedFill, fmtDate } from './utils'
+import { LOGO_LARGE_FACTOR } from '../logo-config'
 
 interface HeaderEntreprise {
   nom?: string
@@ -34,6 +35,9 @@ interface HeaderEntreprise {
   doc_logo_style?: 'carte-classique' | 'carte-minimaliste' | 'sans-carte' | null
   doc_logo_size?: number | null
   doc_nom_size?: number | null
+  // V3.1.7 : toggle d'affichage du wordmark "Nom Société". NULL/TRUE = affiche
+  // (backward-compat). FALSE = masque et agrandit le logo.
+  document_show_company_name?: boolean | null
 }
 
 // Formule de centrage typographique : pour qu'un texte de fontSize s (pt) soit
@@ -79,15 +83,25 @@ export function drawHeader(
   )
 
   // === Carte logo : V3.1.5 valeurs ajustees ===
+  // V3.1.7 : si showCompanyName === false, le wordmark "Nom Société" n'est pas
+  // dessine et on agrandit le logo (LOGO_LARGE_FACTOR), en plafonnant la taille
+  // pour ne pas deborder du bandeau de 50mm.
+  const showCompanyName = ent.document_show_company_name === false ? false : true
   const logoStyle = ent.doc_logo_style ?? 'carte-classique'
   const rawLogoSize = ent.doc_logo_size ?? 100
   const clampedLogoSize = Math.min(130, Math.max(70, rawLogoSize))
   const logoScale = clampedLogoSize / 100
   // V3.1.5 : baseSize classique 28->30, minimaliste 22->24 (logo plus present)
   const baseSize = logoStyle === 'carte-minimaliste' ? 24 : 30
-  const logoCardSize = baseSize * logoScale
+  // Plafond strict pour rester dans le bandeau (headerH=50mm, marge haut/bas
+  // de ~3mm de chaque cote). Sans ce plafond, 30 * 1.30 * 1.55 = 60.45mm > 50mm.
+  const LOGO_CARD_MAX_MM = 44
+  const sizeMultiplier = showCompanyName ? 1 : LOGO_LARGE_FACTOR
+  const logoCardSize = Math.min(baseSize * logoScale * sizeMultiplier, LOGO_CARD_MAX_MM)
   const logoCardX = 12
-  const logoCardY = 7 // V3.1.5 : remonte de 12 a 7 (gagne 5mm en haut)
+  // Y dynamique : si le logo est plus grand, on le re-centre verticalement
+  // dans le bandeau de 50mm (au lieu du Y=7mm historique cale en haut).
+  const logoCardY = showCompanyName ? 7 : Math.max(3, (headerH - logoCardSize) / 2)
   const logoCardCenterY = logoCardY + logoCardSize / 2 // centre vertical du logo
   if (logoStyle !== 'sans-carte') {
     const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
@@ -118,25 +132,29 @@ export function drawHeader(
   }
 
   // === Nom artisan - V3.1.5 : 30pt, centre verticalement sur le logo ===
-  const textLeftX = 12 + logoCardSize + 6
-  const rawNomSize = ent.doc_nom_size ?? 100
-  const clampedNomSize = Math.min(130, Math.max(70, rawNomSize))
-  const nomScale = clampedNomSize / 100
-  const nomBase = 30 // V3.1.5 : passe de 20 a 30pt (= titleSize "DEVIS")
-  const nomMaxWidth = 133 - textLeftX // V3.1.5 : gagne 2mm (etait 135 - textLeftX - 2)
-  let nomFontSize = nomBase * nomScale
-  font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
-  // Auto-fit : reduit la police par paliers de 1pt jusqu'a tenir dans nomMaxWidth.
-  // Plancher 14pt (au lieu de 11) pour eviter qu'un nom long devienne ridicule
-  // en face d'un DEVIS a 30pt.
-  while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 14) {
-    nomFontSize -= 1
+  // V3.1.7 : entierement saute si showCompanyName === false. Le logo, deja
+  // agrandi en amont, occupe seul l'espace gauche du bandeau.
+  if (showCompanyName) {
+    const textLeftX = 12 + logoCardSize + 6
+    const rawNomSize = ent.doc_nom_size ?? 100
+    const clampedNomSize = Math.min(130, Math.max(70, rawNomSize))
+    const nomScale = clampedNomSize / 100
+    const nomBase = 30 // V3.1.5 : passe de 20 a 30pt (= titleSize "DEVIS")
+    const nomMaxWidth = 133 - textLeftX // V3.1.5 : gagne 2mm (etait 135 - textLeftX - 2)
+    let nomFontSize = nomBase * nomScale
     font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
+    // Auto-fit : reduit la police par paliers de 1pt jusqu'a tenir dans nomMaxWidth.
+    // Plancher 14pt (au lieu de 11) pour eviter qu'un nom long devienne ridicule
+    // en face d'un DEVIS a 30pt.
+    while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 14) {
+      nomFontSize -= 1
+      font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
+    }
+    // V3.1.5 : y_nom calcule APRES l'auto-fit (utilise la fontSize finale) pour
+    // que le centrage reste correct meme si le nom a ete reduit.
+    const yNom = logoCardCenterY + nomFontSize * BASELINE_CENTER_FACTOR
+    doc.text(ent.nom || 'Votre entreprise', textLeftX, yNom)
   }
-  // V3.1.5 : y_nom calcule APRES l'auto-fit (utilise la fontSize finale) pour
-  // que le centrage reste correct meme si le nom a ete reduit.
-  const yNom = logoCardCenterY + nomFontSize * BASELINE_CENTER_FACTOR
-  doc.text(ent.nom || 'Votre entreprise', textLeftX, yNom)
 
   // === Titre + pastille numero (zone droite) ===
   const rightAnchorX = 200

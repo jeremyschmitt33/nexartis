@@ -27,7 +27,19 @@ interface LineItem {
 
 interface ClientRecord { id: string; nom: string; prenom?: string; civilite?: string; adresse?: string; telephone?: string; email?: string; code_postal?: string; ville?: string }
 
-interface ChantierRecord { id: string; nom?: string; titre?: string; objet?: string }
+// V3.1 — ChantierRecord enrichi pour le sélecteur de situation (P2).
+// On a besoin du client_id (pour résoudre le nom du client) et du montant_devis_total
+// (snapshot devisé) à l'affichage. Le devis lié est résolu via une requête séparée
+// car la table chantiers ne stocke pas directement le n° de devis.
+interface ChantierRecord {
+  id: string
+  nom?: string
+  titre?: string
+  objet?: string
+  client_id?: string | null
+  client_nom?: string | null
+  ville_chantier?: string | null
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -128,6 +140,10 @@ export default function NouvelleFacturePage() {
       if (data.objet) setObjet(data.objet as string)
       if (data.facture_type) setFactureType(data.facture_type as 'standard' | 'acompte' | 'situation' | 'avoir')
       if (data.devis_ref) setDevisRef(data.devis_ref as string)
+      // V3.1 — P3 : si la création vient de la fiche chantier (bouton "Émettre une
+      // facture de situation"), on récupère le chantier_id pour le persister à la
+      // sauvegarde et pré-cocher le sélecteur de chantier en mode situation.
+      if (data.chantier_id) setChantierId(data.chantier_id as string)
       if (data.tva_taux != null) setGlobalTvaRate(data.tva_taux as number)
       const voiceLines = data.lignes as Array<{ designation: string; quantite: number; unite: string; prix_unitaire: number }> | null
       if (voiceLines && voiceLines.length > 0) {
@@ -343,6 +359,67 @@ export default function NouvelleFacturePage() {
     setChantierId(c.id)
     setChantierSuggestions([])
     setChantierDropdownOpen(false)
+  }
+
+  // V3.1 — P2 : sélection explicite d'un chantier depuis le dropdown
+  // dédié au mode 'situation'. On résout en async :
+  //   - l'objet (titre/nom du chantier) si vide
+  //   - le client (prénom/nom/adresse) si vide
+  //   - le devis_ref via la dernière requête devis du chantier (numero)
+  // Le useEffect debounced sur [factureType, devisRef] prendra ensuite le relais
+  // pour calculer le cumul des situations précédentes.
+  const handleChantierSelection = async (newChantierId: string | null) => {
+    setChantierId(newChantierId)
+    if (!newChantierId) {
+      // L'artisan revient en saisie libre : on n'efface ni l'objet ni le devisRef
+      // (il peut vouloir conserver les valeurs déjà saisies).
+      return
+    }
+    const c = chantiers.find(ch => ch.id === newChantierId)
+    if (!c) return
+
+    // 1) Objet — on remplit toujours, même si l'artisan avait déjà tapé quelque chose
+    //    (l'intention de "lier au chantier" implique de prendre son titre).
+    const label = c.titre || c.nom || c.objet || ''
+    if (label) setObjet(label)
+
+    // 2) Client — on remplit uniquement si les champs sont vides (pas écraser
+    //    une saisie manuelle).
+    if (c.client_id && !clientNom.trim()) {
+      const cli = clients.find(cl => cl.id === c.client_id)
+      if (cli) {
+        setClientCivilite((cli as unknown as Record<string, string>).civilite || '')
+        setClientNom(cli.nom)
+        setClientPrenom(cli.prenom || '')
+        setClientAdresse(cli.adresse || '')
+        setClientCodePostal(cli.code_postal || '')
+        setClientVille(cli.ville || '')
+        setClientTelephone(cli.telephone || '')
+        setClientEmail(cli.email || '')
+      }
+    }
+
+    // 3) Devis_ref — on cherche le dernier devis lié à ce chantier
+    //    (le useEffect calculera ensuite cumul + reste à facturer).
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: devisLies } = await supabase
+        .from('devis')
+        .select('numero, date_emission')
+        .eq('user_id', user.id)
+        .eq('chantier_id', newChantierId)
+        .is('deleted_at', null)
+        .order('date_emission', { ascending: false })
+        .limit(1)
+      if (devisLies && devisLies.length > 0) {
+        const numero = devisLies[0].numero as string | null
+        if (numero) setDevisRef(numero)
+      }
+    } catch (e) {
+      console.warn('[factures/nouveau] résolution devis chantier:', e)
+    }
   }
 
   // ── Client autocomplete ──
@@ -692,8 +769,49 @@ export default function NouvelleFacturePage() {
                     Facture de situation
                   </span>
                 </div>
+
+                {/* V3.1 — P2 : sélecteur Chantier fiable (vs saisie libre devis_ref).
+                    Le choix d'un chantier auto-remplit le devis_ref, le chantier_id,
+                    l'objet et le client si vides. La saisie libre reste possible en
+                    fallback (anciens devis sans chantier en DB). */}
                 <div>
-                  <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">Référence du devis</label>
+                  <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">Chantier lié</label>
+                  <select
+                    value={chantierId ?? ''}
+                    onChange={e => handleChantierSelection(e.target.value || null)}
+                    className={inputCls + ' cursor-pointer'}
+                  >
+                    <option value="">— Aucun (saisir le devis ci-dessous) —</option>
+                    {chantiers.map(c => {
+                      const label = c.titre || c.nom || c.objet || 'Chantier sans titre'
+                      const clientLabel = (() => {
+                        if (c.client_id) {
+                          const cli = clients.find(cl => cl.id === c.client_id)
+                          if (cli) return `${cli.prenom ? cli.prenom + ' ' : ''}${cli.nom}`.trim()
+                        }
+                        return c.client_nom || '—'
+                      })()
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {label} — {clientLabel}
+                        </option>
+                      )
+                    })}
+                  </select>
+                  <p className="mt-1.5 font-hanken text-[11px] text-gray-500">
+                    Le chantier sélectionné renseigne automatiquement le devis lié, le client et l&apos;objet. Choisissez « Aucun » pour saisir un devis non rattaché à un chantier.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">
+                    Référence du devis
+                    {chantierId && devisRef && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-700 border border-emerald-200/60 text-[9.5px] font-bold tracking-wider uppercase">
+                        Auto-remplie
+                      </span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     value={devisRef}

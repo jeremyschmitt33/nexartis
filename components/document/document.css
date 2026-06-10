@@ -71,14 +71,19 @@
 .dv-headD .dv-d-logomark img { width:100%; height:100%; object-fit:contain; display:block; padding:6px; }
 .dv-headD .dv-d-logomark svg { width:54px; height:54px; }
 /* V3.1.5 : brandtext shrinkable pour que l'ellipsis fonctionne dans un flex container. */
-.dv-headD .dv-d-brandtext { display:flex; flex-direction:column; min-width:0; flex:1 1 auto; overflow:hidden; }
+/* V3.1.7 : si --dv-brandtext-display vaut 'none', le wrapper est masque pour
+   collapser le gap:18px du flex parent (sinon on garderait un trou inutile). */
+.dv-headD .dv-d-brandtext { display:var(--dv-brandtext-display, flex); flex-direction:column; min-width:0; flex:1 1 auto; overflow:hidden; }
 /* V3.1.5 : nom = 41px (= --title-size, = taille de "DEVIS") pour parite visuelle.
    Ellipsis classique (white-space:nowrap + overflow:hidden + text-overflow:ellipsis) :
    methode standard, deterministe sur tous navigateurs. Supprime word-break:break-word
    qui autorisait des retours a la ligne au milieu d'un mot. */
 .dv-headD .dv-d-name { color:#fff; font-weight:800;
   font-size:var(--dv-nom-size, 41px); letter-spacing:-.01em; line-height:1.05;
-  display:block;
+  /* V3.1.7 : display piloté par --dv-name-display (block par defaut, none si
+     l'artisan a desactive l'affichage du nom). Le logo s'agrandit en parallele
+     via --dv-logo-card-size (voir logoConfigToCssVars). */
+  display:var(--dv-name-display, block);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;

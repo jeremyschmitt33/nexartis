@@ -1203,6 +1203,128 @@ export default function ChantierDetailPage() {
           </div>
         )}
 
+        {/* ── FACTURATION : récap dédié + bouton "Émettre une situation" (P3) ──
+            On affiche les 3 KPIs métier (Total devis, Facturé à date, Reste à facturer)
+            + la liste des factures de situation déjà émises sur ce chantier + un bouton
+            qui ouvre /dashboard/factures/nouveau pré-rempli (mode situation, chantier_id).
+            Visible dans 'Vue générale' ET 'Factures'.  */}
+        {(activeTab === 'resume' || activeTab === 'factures') && (() => {
+          // Recap dédié facturation : on retient les factures de situation
+          // pour les afficher dans une liste à part (badge #N + %), et on
+          // calcule un "facturé à date HT" approximatif (= somme HT toutes
+          // factures liées au chantier, situations + acomptes + standards).
+          const situations = chantierFactures
+            .filter(f => (f as R).type === 'situation')
+            .sort((a, b) => {
+              const na = Number((a as R).numero_situation ?? 0)
+              const nb = Number((b as R).numero_situation ?? 0)
+              return na - nb
+            })
+          const factHT = chantierFactures.reduce((sum, f) => sum + Number((f as R).montant_ht ?? 0), 0)
+          // Devisé HT = depuis les devis liés (même logique que finances.deviseTotal mais HT)
+          const devisHT = chantierDevis.reduce((sum, d) => sum + Number((d as R).montant_ht ?? 0), 0)
+          const resteHT = Math.max(0, devisHT - factHT)
+          // Le bouton "Émettre une situation" pousse l'utilisateur vers la création
+          // pré-remplie. On passe chantier_id via query string ; le formulaire
+          // sera adapté pour le lire (futur P3.b si nécessaire). Pour l'instant on
+          // pré-remplit factureType=situation via query — fallback : l'artisan choisit
+          // dans le sélecteur Chantier du formulaire.
+          // V3.1 : encodage compact via voicePayload-like — on garde simple : chantierId
+          // est lu par le useEffect voicePayload (sera étendu)... approche minimale :
+          // on encode un payload type voice avec factureType=situation + objet du chantier.
+          const buildSituationPayload = () => {
+            const objetChantier = String(chantier.titre ?? chantier.objet ?? '')
+            const cliPrenom = (client?.prenom as string) ?? ''
+            const cliNom = (client?.nom as string) ?? ''
+            const cliCiv = (client?.civilite as string) ?? ''
+            const cliAdr = (client?.adresse as string) ?? ''
+            const cliCp = (client?.code_postal as string) ?? ''
+            const cliVille = (client?.ville as string) ?? ''
+            const cliTel = (client?.telephone as string) ?? ''
+            const cliMail = (client?.email as string) ?? ''
+            // On essaie de retrouver le numéro du devis le plus récent du chantier
+            const dernierDevis = chantierDevis.length > 0
+              ? [...chantierDevis].sort((a, b) => String((b as R).date_emission ?? '').localeCompare(String((a as R).date_emission ?? '')))[0]
+              : null
+            const devisRef = dernierDevis ? String((dernierDevis as R).numero ?? '') : ''
+            const payload = {
+              facture_type: 'situation',
+              objet: objetChantier,
+              client_civilite: cliCiv,
+              client_nom: cliNom,
+              client_prenom: cliPrenom,
+              client_adresse: cliAdr,
+              client_code_postal: cliCp,
+              client_ville: cliVille,
+              client_telephone: cliTel,
+              client_email: cliMail,
+              devis_ref: devisRef,
+              chantier_id: id,
+            }
+            const json = JSON.stringify(payload)
+            const b64 = btoa(unescape(encodeURIComponent(json)))
+              .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+            return b64
+          }
+          return (
+            <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
+              <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-[#ff7a1a]" />
+                  <h3 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em]">Facturation</h3>
+                </div>
+                <Link
+                  href={`/dashboard/factures/nouveau?voicePayload=${buildSituationPayload()}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[12.5px] font-bold shadow-[0_4px_12px_rgba(255,122,26,0.25),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />Émettre une facture de situation
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-[#e6ecf2]">
+                <div className="text-center py-4 px-3 border-b sm:border-b-0 sm:border-r border-[#e6ecf2]">
+                  <div className="font-spline-mono font-semibold text-xl text-[#0f1a3a] tracking-[-0.01em]">{formatEur(devisHT)}</div>
+                  <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Total devis (HT)</div>
+                </div>
+                <div className="text-center py-4 px-3 border-b sm:border-b-0 sm:border-r border-[#e6ecf2]">
+                  <div className="font-spline-mono font-semibold text-xl text-emerald-600 tracking-[-0.01em]">{formatEur(factHT)}</div>
+                  <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Facturé à date (HT)</div>
+                </div>
+                <div className="text-center py-4 px-3">
+                  <div className="font-spline-mono font-semibold text-xl text-[#ff7a1a] tracking-[-0.01em]">{formatEur(resteHT)}</div>
+                  <div className="text-[11px] text-[#7b8ba3] font-medium mt-1">Reste à facturer (HT)</div>
+                </div>
+              </div>
+              {/* Liste situations */}
+              <div className="px-5 py-4">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#7b8ba3] mb-2">Factures de situation</div>
+                {situations.length === 0 && (
+                  <div className="text-sm text-[#7b8ba3] py-3">Aucune facture de situation émise pour ce chantier.</div>
+                )}
+                {situations.map(f => {
+                  const n = (f as R).numero_situation as number | null | undefined
+                  const pct = (f as R).pourcentage_situation as number | null | undefined
+                  return (
+                    <Link
+                      key={(f as R).id as string}
+                      href={`/dashboard/factures/${(f as R).id}`}
+                      className="flex items-center justify-between gap-3 py-2.5 border-b border-[#e6ecf2] last:border-b-0 text-[13px] hover:bg-[#fafbfc] transition-colors"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 font-hanken text-[10px] font-bold uppercase tracking-wider">
+                          Situation{n != null ? ` #${n}` : ''}{pct != null && pct > 0 ? ` · ${pct}%` : ''}
+                        </span>
+                        <span className="font-semibold text-[#1e293b] truncate">{String((f as R).numero ?? '—')}</span>
+                        <span className="text-[11px] text-[#7b8ba3]">{formatDate((f as R).date_emission as string)}</span>
+                      </div>
+                      <span className="font-spline-mono font-medium text-[#0f1a3a] flex-shrink-0">{formatEur(Number((f as R).montant_ht ?? 0))} HT</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── MARGE NETTE ── */}
         {(activeTab === 'resume' || activeTab === 'factures') && (
         <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">

@@ -72,6 +72,10 @@ export default function ExportComptableModal({ open, onClose, type }: ExportComp
   const [dateFin, setDateFin] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // V3.1 — P5 : option "détaillé" pour décomposer les factures multi-taux
+  // en une ligne CSV par taux de TVA. Activable uniquement pour le type 'factures'
+  // (les devis n'ont pas l'aggrégat lignes côté API).
+  const [detail, setDetail] = useState(false)
 
   const { debut: debutAuto, fin: finAuto } = useMemo(
     () => bornes(periode, { debut: dateDebut, fin: dateFin }),
@@ -116,6 +120,8 @@ export default function ExportComptableModal({ open, onClose, type }: ExportComp
           format,
           dateDebut: debutAuto || undefined,
           dateFin: finAuto || undefined,
+          // V3.1 — P5 : envoyé seulement pour 'factures' (pas exploité côté devis).
+          detail: type === 'factures' ? detail : undefined,
         }),
       })
 
@@ -242,6 +248,27 @@ export default function ExportComptableModal({ open, onClose, type }: ExportComp
             les montants HT/TVA/TTC, le statut et la date de paiement. Compatible
             Excel français (UTF-8 + BOM, séparateur point-virgule).
           </p>
+
+          {/* V3.1 — P5 : option détaillée multi-taux (factures uniquement). */}
+          {type === 'factures' && (
+            <label className="flex items-start gap-3 bg-[#fafbfc] border border-[#0f1a3a]/[0.06] rounded-xl px-4 py-3 cursor-pointer hover:border-[#ff7a1a]/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={detail}
+                onChange={(e) => setDetail(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a] cursor-pointer"
+              />
+              <div className="flex-1">
+                <span className="block font-hanken text-[13.5px] font-semibold text-[#0f1a3a]">
+                  Décomposer les factures multi-taux
+                </span>
+                <span className="block font-hanken text-[11.5px] text-gray-500 mt-0.5 leading-snug">
+                  Décoche : factures multi-taux affichées sur 1 ligne avec mention « Multi-taux ».<br />
+                  Coche : 1 ligne CSV par taux de TVA (recommandé pour l&apos;expert-comptable).
+                </span>
+              </div>
+            </label>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">

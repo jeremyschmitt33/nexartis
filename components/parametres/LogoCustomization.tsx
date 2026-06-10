@@ -47,6 +47,8 @@ export default function LogoCustomization() {
           doc_logo_style: newConfig.style,
           doc_logo_size: newConfig.logoSize,
           doc_nom_size: newConfig.nomSize,
+          // V3.1.7 : toggle d'affichage du nom de societe a cote du logo.
+          document_show_company_name: newConfig.showCompanyName,
         })
         .eq('user_id', user.id)
       if (!error) {
@@ -67,8 +69,11 @@ export default function LogoCustomization() {
   const reset = () => setConfig(DEFAULT_LOGO_CONFIG)
 
   // === Preview aligne EXACTEMENT sur logoConfigToCssVars (V3.1.5 : nomBase = 41) ===
+  // V3.1.7 : meme multiplier que le runtime (LOGO_LARGE_FACTOR = 1.55) quand le
+  // nom est masque, pour un apercu fidele.
   const previewCardBase = config.style === 'carte-minimaliste' ? 72 : 104
-  const previewCardSize = Math.round((previewCardBase * config.logoSize) / 100)
+  const previewSizeMultiplier = config.showCompanyName ? 1 : 1.55
+  const previewCardSize = Math.round((previewCardBase * config.logoSize * previewSizeMultiplier) / 100)
   const previewNomSize = Math.round((41 * config.nomSize) / 100)
   const previewCardBg = config.style === 'sans-carte' ? 'transparent' : '#ffffff'
   const previewCardShadow = config.style === 'sans-carte' ? 'none' : config.style === 'carte-minimaliste' ? '0 1px 3px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.18)'
@@ -103,6 +108,34 @@ export default function LogoCustomization() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-5">
+          {/* V3.1.7 : Toggle "Afficher le nom de la societe a cote du logo".
+              Place en TETE car il change la mise en page du bandeau. */}
+          <div>
+            <label
+              className={'flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ' + (
+                config.showCompanyName
+                  ? 'border-orange bg-orange/5 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={config.showCompanyName}
+                onChange={(e) => setConfig({ ...config, showCompanyName: e.target.checked })}
+                className="mt-1 accent-orange h-4 w-4"
+                aria-label="Afficher le nom de la societe a cote du logo"
+              />
+              <div className="min-w-0">
+                <p className="font-syne font-bold text-sm text-navy">
+                  Afficher le nom de ma societe a cote du logo
+                </p>
+                <p className="text-xs font-manrope text-navy/60 mt-1 leading-relaxed">
+                  Desactive si ton logo contient deja le nom de ton entreprise — pour eviter le doublon visuel. Le logo sera alors affiche plus grand pour occuper l&apos;espace libere.
+                </p>
+              </div>
+            </label>
+          </div>
+
           <div>
             <label className="block text-sm font-manrope font-semibold text-navy mb-2">
               Style d&apos;incrustation
@@ -172,7 +205,8 @@ export default function LogoCustomization() {
             </div>
           </div>
 
-          <div>
+          {/* V3.1.7 : slider "Taille du nom" grise quand le nom est masque (inutile). */}
+          <div className={config.showCompanyName ? '' : 'opacity-40 pointer-events-none'} aria-hidden={!config.showCompanyName}>
             <label className="flex items-center justify-between text-sm font-manrope font-semibold text-navy mb-2">
               <span>Taille du nom d&apos;entreprise</span>
               <span className="text-xs font-manrope text-navy/60 tabular-nums">{config.nomSize}%</span>
@@ -260,14 +294,16 @@ export default function LogoCustomization() {
                     <div className="text-navy text-xs font-bold">LOGO</div>
                   )}
                 </div>
-                <div className="min-w-0">
-                  <p
-                    className="font-syne font-extrabold text-white leading-tight truncate"
-                    style={{ fontSize: previewNomSize + 'px' }}
-                  >
-                    {nomEntreprise}
-                  </p>
-                </div>
+                {config.showCompanyName && (
+                  <div className="min-w-0">
+                    <p
+                      className="font-syne font-extrabold text-white leading-tight truncate"
+                      style={{ fontSize: previewNomSize + 'px' }}
+                    >
+                      {nomEntreprise}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

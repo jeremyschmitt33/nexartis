@@ -29,6 +29,10 @@ import { PremiumInput, PremiumButton } from '@/components/ui/v4'
 
 type FactureFilter = 'Toutes' | 'Encaissées' | 'Partielles' | 'En attente' | 'En retard' | 'Archivées'
 
+// V3.1 — Filtre par type de document (P4)
+// Backward-compat : type === null ou type === 'standard' → 'Standards'
+type FactureTypeFilter = 'Toutes' | 'Standards' | 'Acomptes' | 'Situations' | 'Avoirs'
+
 // V3.0d.2 : FILTER_OPTIONS retire (dropdown HTML remplace par StatCards cliquables).
 // Le type FactureFilter reste pour la logique getFactureCategory.
 
@@ -39,6 +43,16 @@ function getFactureCategory(f: Record<string, unknown>): FactureFilter {
   if (statut === 'en_retard') return 'En retard'
   if (statut === 'archivee') return 'Archivées'
   return 'En attente'
+}
+
+// V3.1 — Normalise le `type` d'une facture pour le filtrage P4.
+// Backward-compat : un `type` null ou absent vaut 'standard'.
+function getFactureTypeFilter(f: Record<string, unknown>): FactureTypeFilter {
+  const raw = (f.type as string | null | undefined) ?? null
+  if (raw === 'acompte') return 'Acomptes'
+  if (raw === 'situation') return 'Situations'
+  if (raw === 'avoir') return 'Avoirs'
+  return 'Standards' // null OR 'standard' OR autre → considéré standard
 }
 
 function formatCurrency(n: number): string {
@@ -63,6 +77,8 @@ export default function FacturesListPage() {
   const { data: clients, loading: loadingC } = useClients()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('Toutes')
+  // V3.1 — P4 : filtre par type de document (Toutes/Standards/Acomptes/Situations/Avoirs)
+  const [typeFilter, setTypeFilter] = useState<FactureTypeFilter>('Toutes')
   const [openActions, setOpenActions] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -95,19 +111,21 @@ export default function FacturesListPage() {
     clientMap.set(c.id as string, nom)
   }
 
-  type EnrichedFacture = Record<string, unknown> & { paidPercent: number; overdue: number; category: FactureFilter; clientName: string; montantTtc: number; montantPaye: number }
+  type EnrichedFacture = Record<string, unknown> & { paidPercent: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
   const enriched: EnrichedFacture[] = factures.map((f) => {
     const montantTtc = (f.montant_ttc as number) ?? 0
     const montantPaye = (f.montant_paye as number) ?? 0
     const paidPercent = montantTtc > 0 ? Math.round((montantPaye / montantTtc) * 100) : 0
     const overdue = daysOverdue(f.date_echeance as string | null)
     const category = getFactureCategory(f)
+    const typeF = getFactureTypeFilter(f)
     const clientName = clientMap.get(f.client_id as string) || (f.client_nom as string) || (f.notes_client as string)?.split(' | ')[0]?.trim() || '\u2014'
-    return { ...f, paidPercent, overdue, category, clientName, montantTtc, montantPaye } as EnrichedFacture
+    return { ...f, paidPercent, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
   })
 
   const filtered = enriched.filter((f) => {
     if (filter !== 'Toutes' && f.category !== filter) return false
+    if (typeFilter !== 'Toutes' && f.typeFilter !== typeFilter) return false
     if (search) {
       const q = search.toLowerCase()
       return (
@@ -341,6 +359,29 @@ export default function FacturesListPage() {
         </Link>
       </div>
 
+      {/* V3.1 — Filtre par type (P4) : pills horizontales sous la recherche.
+          Compact, scrollable mobile. Active = pill blanche orange. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500 mr-1">Type :</span>
+        {(['Toutes', 'Standards', 'Acomptes', 'Situations', 'Avoirs'] as FactureTypeFilter[]).map((opt) => {
+          const isActive = typeFilter === opt
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => setTypeFilter(opt)}
+              className={`px-3 py-1.5 rounded-full font-hanken text-[12px] font-semibold transition-all border-[1.5px] ${
+                isActive
+                  ? 'bg-[#0f1a3a] text-white border-[#0f1a3a] shadow-[0_4px_12px_rgba(15,26,58,0.15)]'
+                  : 'bg-white text-[#0f1a3a] border-gray-200 hover:border-[#ff7a1a] hover:text-[#ff7a1a]'
+              }`}
+            >
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-blue-50/80 border border-blue-200/70 rounded-xl">
           <span className="font-hanken text-sm font-semibold text-blue-800">
@@ -410,10 +451,11 @@ export default function FacturesListPage() {
                     <MoreHorizontal size={15} className="text-gray-500" />
                   </button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-spline-mono text-[11px] text-[#0f1a3a] bg-[#fafbfc] border border-gray-200 px-2 py-0.5 rounded-md">
                     {String(facture.numero || '')}
                   </span>
+                  <FactureTypeBadge facture={facture} />
                   <span className="font-spline-mono text-[11px] text-gray-400">
                     {formatDate((facture.date_emission || facture.created_at) as string | null)}
                   </span>
@@ -463,7 +505,12 @@ export default function FacturesListPage() {
                       className="w-4 h-4 rounded border-gray-300 text-[#ff7a1a] focus:ring-[#ff7a1a] cursor-pointer"
                     />
                   </td>
-                  <td className="px-4 py-3 font-spline-mono font-medium text-[13px] tracking-[0.5px] text-[#0f1a3a]">{(facture.numero as string) ?? '\u2014'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-spline-mono font-medium text-[13px] tracking-[0.5px] text-[#0f1a3a]">{(facture.numero as string) ?? '\u2014'}</span>
+                      <FactureTypeBadge facture={facture} />
+                    </div>
+                  </td>
                   <td className="px-4 py-3"><PaymentBar percent={facture.paidPercent} restant={restantLabel} retard={retardLabel} /></td>
                   <td className="px-4 py-3">
                     <div className="font-hanken text-[14px] font-semibold text-[#0f1a3a]">{facture.clientName}</div>
@@ -578,6 +625,42 @@ export default function FacturesListPage() {
       />
     </div>
   )
+}
+
+// V3.1 — Badge de type de facture (P1) : situation / acompte / avoir.
+// Backward-compat : type === null OU type === 'standard' → aucun badge affiché.
+// Pour 'situation', on affiche aussi le numéro (#N) et le % d'avancement si renseignés.
+function FactureTypeBadge({ facture }: { facture: Record<string, unknown> }) {
+  const raw = (facture.type as string | null | undefined) ?? null
+  if (!raw || raw === 'standard') return null
+  if (raw === 'situation') {
+    const n = (facture.numero_situation as number | null | undefined) ?? null
+    const pct = (facture.pourcentage_situation as number | null | undefined) ?? null
+    const parts: string[] = []
+    if (n != null) parts.push(`#${n}`)
+    if (pct != null && pct > 0) parts.push(`${pct}%`)
+    const detail = parts.length > 0 ? ` ${parts.join(' · ')}` : ''
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 font-hanken text-[10.5px] font-bold uppercase tracking-wider whitespace-nowrap">
+        Situation{detail}
+      </span>
+    )
+  }
+  if (raw === 'acompte') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 border border-orange-200/60 font-hanken text-[10.5px] font-bold uppercase tracking-wider whitespace-nowrap">
+        Acompte
+      </span>
+    )
+  }
+  if (raw === 'avoir') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200/60 font-hanken text-[10.5px] font-bold uppercase tracking-wider whitespace-nowrap">
+        Avoir
+      </span>
+    )
+  }
+  return null
 }
 
 // PaymentBar V4 light — barre de progression de paiement avec couleur sémantique

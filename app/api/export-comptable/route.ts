@@ -48,6 +48,10 @@ interface ExportBody {
   dateDebut?: string
   dateFin?: string
   format: ExportFormat
+  // V3.1 — P5 : si true, on décompose les factures multi-taux en une ligne CSV
+  // par taux de TVA (pour la compta). Sinon, on garde l'agrégation actuelle
+  // mais on remplace le taux moyen pondéré par "Multi-taux" quand >1 taux trouvé.
+  detail?: boolean
 }
 
 interface ClientLite {
@@ -220,10 +224,36 @@ function humanStatus(type: ExportType, statut: string | null | undefined): strin
 // Génération CSV simple
 // ────────────────────────────────────────────────────────────
 
+// V3.1 — P5 : aggrégation par taux à partir des lignes facture
+interface LigneAggregat { taux: number; ht: number; tva: number }
+
+function aggregateByTaux(lignes: Array<{ taux_tva: number | null; quantite: number | null; prix_unitaire_ht: number | null; type: string | null }>): LigneAggregat[] {
+  const map = new Map<number, LigneAggregat>()
+  for (const l of lignes) {
+    // On ne prend que les lignes de prestation (pas section/sous-section/commentaire).
+    if (l.type && l.type !== 'prestation') continue
+    const taux = Number(l.taux_tva ?? 0)
+    const ht = Number(l.quantite ?? 0) * Number(l.prix_unitaire_ht ?? 0)
+    if (ht === 0) continue
+    const existing = map.get(taux)
+    if (existing) {
+      existing.ht += ht
+      existing.tva += ht * (taux / 100)
+    } else {
+      map.set(taux, { taux, ht, tva: ht * (taux / 100) })
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.taux - b.taux)
+}
+
 function buildCsvSimple(
   type: ExportType,
   docs: DocumentRow[],
   clientsById: Map<string, ClientLite>,
+  // V3.1 — P5 : map doc.id → aggrégat par taux (uniquement renseigné pour les factures).
+  // Permet de détecter le multi-taux et, si detail=true, de décomposer en N lignes.
+  taxAggregateByDocId: Map<string, LigneAggregat[]>,
+  detail: boolean,
 ): string {
   const headers = [
     'Date',
@@ -248,7 +278,60 @@ function buildCsvSimple(
     const client = resolveClient(doc, clientsById)
     const date = formatDateFr(doc.date_emission || doc.created_at)
     const datePaiement = type === 'factures' ? formatDateFr(doc.date_paiement) : ''
+    const aggregate = taxAggregateByDocId.get(doc.id) || []
 
+    // ── Cas multi-taux ── : >1 taux distinct sur les lignes prestation.
+    if (aggregate.length > 1) {
+      if (detail) {
+        // Mode "détaillé" : on émet UNE ligne CSV par taux.
+        for (const agg of aggregate) {
+          const ratioHt = doc.montant_ht && doc.montant_ht > 0 ? agg.ht / doc.montant_ht : 0
+          const ttcPart = ratioHt > 0 ? Number(doc.montant_ttc ?? 0) * ratioHt : agg.ht + agg.tva
+          lines.push(
+            csvRow([
+              date,
+              doc.numero || '',
+              typeLabel,
+              client.nom,
+              client.siret,
+              client.adresse,
+              doc.objet || '',
+              formatMoney(agg.ht),
+              agg.taux <= 0 ? '0%' : `${String(agg.taux).replace('.', ',')}%`,
+              formatMoney(agg.tva),
+              formatMoney(ttcPart),
+              humanStatus(type, doc.statut),
+              datePaiement,
+            ]),
+          )
+        }
+        continue
+      }
+      // Mode "simple" multi-taux : on n'inscrit pas un taux moyen pondéré
+      // (trompeur), on indique "Multi-taux" et on liste les taux à part dans
+      // la colonne Taux TVA pour que l'expert-comptable voie l'éclat.
+      const tauxList = aggregate.map(a => a.taux <= 0 ? '0%' : `${String(a.taux).replace('.', ',')}%`).join(' + ')
+      lines.push(
+        csvRow([
+          date,
+          doc.numero || '',
+          typeLabel,
+          client.nom,
+          client.siret,
+          client.adresse,
+          doc.objet || '',
+          formatMoney(doc.montant_ht),
+          `Multi-taux (${tauxList})`,
+          formatMoney(doc.montant_tva),
+          formatMoney(doc.montant_ttc),
+          humanStatus(type, doc.statut),
+          datePaiement,
+        ]),
+      )
+      continue
+    }
+
+    // ── Cas mono-taux ── : on garde le comportement legacy (taux moyen pondéré).
     lines.push(
       csvRow([
         date,
@@ -305,11 +388,15 @@ function parseBody(raw: unknown): ExportBody | { error: string } {
     }
   }
 
+  // V3.1 — P5 : option "detail" pour décomposer multi-taux
+  const detail = b.detail === true
+
   return {
     type,
     format,
     dateDebut: typeof dateDebut === 'string' && dateDebut !== '' ? dateDebut : undefined,
     dateFin: typeof dateFin === 'string' && dateFin !== '' ? dateFin : undefined,
+    detail,
   }
 }
 
@@ -339,7 +426,7 @@ export async function POST(req: NextRequest) {
 
     const parsed = parseBody(rawBody)
     if ('error' in parsed) return secureError(parsed.error)
-    const { type, format, dateDebut, dateFin } = parsed
+    const { type, format, dateDebut, dateFin, detail } = parsed
 
     // Format FEC : non implémenté pour l'instant — la structure switch est en
     // place pour le brancher facilement dans une session ultérieure.
@@ -397,13 +484,47 @@ export async function POST(req: NextRequest) {
       clientsById.set(c.id, c)
     }
 
-    // 3) Génération CSV (switch préparé pour FEC)
+    // 3) V3.1 — P5 : aggrégat TVA par document (uniquement pour `factures`).
+    //    On lit toutes les lignes des factures dans la fenêtre, on regroupe par
+    //    facture_id + taux_tva, et on construit un Map pour buildCsvSimple.
+    //    Devis : non concerné (pas d'export comptable par défaut côté devis).
+    const taxAggregateByDocId = new Map<string, LigneAggregat[]>()
+    if (type === 'factures' && docs.length > 0) {
+      const factureIds = docs.map(d => d.id)
+      const { data: lignesRaw, error: lignesErr } = await supabase
+        .from('facture_lignes')
+        .select('facture_id, taux_tva, quantite, prix_unitaire_ht, type')
+        .in('facture_id', factureIds)
+
+      if (lignesErr) {
+        // Non bloquant : si on n'arrive pas à lire les lignes, on retombe sur le
+        // comportement legacy (taux moyen pondéré via computeTauxTva).
+        console.error('[export-comptable] lecture lignes facture impossible:', lignesErr.message)
+      } else {
+        const lignesByFacture = new Map<string, Array<{ taux_tva: number | null; quantite: number | null; prix_unitaire_ht: number | null; type: string | null }>>()
+        for (const l of (lignesRaw || []) as Array<{ facture_id: string; taux_tva: number | null; quantite: number | null; prix_unitaire_ht: number | null; type: string | null }>) {
+          if (!lignesByFacture.has(l.facture_id)) lignesByFacture.set(l.facture_id, [])
+          lignesByFacture.get(l.facture_id)!.push({
+            taux_tva: l.taux_tva,
+            quantite: l.quantite,
+            prix_unitaire_ht: l.prix_unitaire_ht,
+            type: l.type,
+          })
+        }
+        for (const [factureId, lignes] of lignesByFacture) {
+          const agg = aggregateByTaux(lignes)
+          if (agg.length > 0) taxAggregateByDocId.set(factureId, agg)
+        }
+      }
+    }
+
+    // 4) Génération CSV (switch préparé pour FEC)
     let csv = ''
     let filenamePrefix = ''
     switch (format) {
       case 'csv-simple':
-        csv = buildCsvSimple(type, docs, clientsById)
-        filenamePrefix = `export-${type}`
+        csv = buildCsvSimple(type, docs, clientsById, taxAggregateByDocId, detail === true)
+        filenamePrefix = `export-${type}${detail === true ? '-detaille' : ''}`
         break
       // case 'fec':
       //   csv = buildFec(type, docs, clientsById)

@@ -66,6 +66,8 @@ export interface Entreprise {
   doc_logo_style?: 'carte-classique' | 'carte-minimaliste' | 'sans-carte' | null
   doc_logo_size?: number | null
   doc_nom_size?: number | null
+  // V3.1.7 : toggle affichage du nom de la societe a cote du logo (PDF + HTML)
+  document_show_company_name?: boolean | null
 }
 
 export interface Ligne {
