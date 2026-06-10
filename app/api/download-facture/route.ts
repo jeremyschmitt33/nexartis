@@ -139,6 +139,17 @@ export async function POST(req: NextRequest) {
       acompte_montant_ht: facture.acompte_montant_ht ?? undefined,
       acompte_montant_ttc: facture.acompte_montant_ttc ?? undefined,
       acompte_label: facture.acompte_label || undefined,
+      // V3.0c.18 — Type + tous les champs facture de situation
+      // (le générateur PDF affiche le bandeau "AVANCEMENT" si type === 'situation')
+      type: facture.type || undefined,
+      numero_situation: facture.numero_situation ?? undefined,
+      pourcentage_situation: facture.pourcentage_situation ?? undefined,
+      devis_ref: facture.devis_ref || undefined,
+      devis_date: facture.devis_date || undefined,
+      montant_situation_precedent_ht: facture.montant_situation_precedent_ht ?? undefined,
+      montant_situation_precedent_ttc: facture.montant_situation_precedent_ttc ?? undefined,
+      reste_a_facturer_ht: facture.reste_a_facturer_ht ?? undefined,
+      reste_a_facturer_ttc: facture.reste_a_facturer_ttc ?? undefined,
       // Legacy : ancien champ `notes` conservé pour rétrocompat
       notes: facture.notes || undefined,
     }, themeFromEntreprise(entreprise))

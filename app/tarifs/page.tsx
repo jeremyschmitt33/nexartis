@@ -27,12 +27,13 @@ const featuresComparison: Array<{
   { label: "TVA 5,5 % / 10 % / 20 % automatique", essential: true, complete: true },
   { label: "Autoliquidation BTP (sous-traitance)", essential: true, complete: true },
   { label: "Attestations TVA rénovation auto-générées", essential: true, complete: true },
-  { label: "Acomptes et situations de travaux", essential: true, complete: true },
+  { label: "Acomptes et factures de situation (#1, #2, #3 avec cumul d'avancement)", essential: true, complete: true },
   { label: "Avoirs et rectifications", essential: true, complete: true },
   { label: "Tableau de bord chiffre d'affaires", essential: true, complete: true },
-  { label: "Suivi des impayés simplifié", essential: true, complete: true },
-  { label: "Export comptable (CSV / PDF)", essential: true, complete: true },
-  { label: "Prêt pour Factur-X 2026", essential: true, complete: true },
+  { label: "Suivi des impayés et relance en 1 clic", essential: true, complete: true },
+  { label: "Export PDF de chaque devis et facture", essential: true, complete: true },
+  { label: "Export CSV comptable (Sage / EBP / FEC) — à venir", essential: true, complete: true },
+  { label: "Mentions Factur-X 2026 incluses", essential: true, complete: true },
   { label: "Optimisé smartphone et tablette", essential: true, complete: true },
   { label: "Données hébergées en Europe (RGPD)", essential: true, complete: true },
   { label: "Support email Lun-Ven 9h-18h", essential: true, complete: true },
@@ -58,7 +59,7 @@ const faqItems = [
   },
   {
     q: "Y a-t-il des frais cachés ou des options payantes ?",
-    a: "Non, absolument aucun. Le tarif annoncé est définitif. Aucun module à acheter, aucun surcoût par utilisateur, aucune limite sur le nombre de clients ou de chantiers. La conformité Factur-X 2026 est incluse dans les deux offres.",
+    a: "Non, absolument aucun. Le tarif annoncé est définitif. Aucun module à acheter, aucun surcoût par utilisateur, aucune limite sur le nombre de clients ou de chantiers. Les mentions légales Factur-X 2026 sont incluses dans les deux offres.",
   },
   {
     q: "L'essai gratuit est-il vraiment sans carte bancaire ?",
@@ -228,8 +229,8 @@ export default function TarifsPage() {
           </div>
 
           <p className="mt-6 text-center font-manrope text-xs text-gray-400 italic">
-            * Les deux offres incluent les mises à jour à vie et la conformité
-            Factur-X 2026 sans surcoût.
+            * Les deux offres incluent les mises à jour à vie et les mentions
+            légales Factur-X 2026 sans surcoût.
           </p>
         </div>
       </section>

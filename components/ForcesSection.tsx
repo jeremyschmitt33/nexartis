@@ -98,8 +98,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Pret pour Factur-X 2026",
-    text: "Le format de facturation electronique obligatoire en France est integre sans surcout. Vos factures restent conformes apres septembre 2026.",
+    title: "Mentions Factur-X 2026 incluses",
+    text: "Toutes les mentions legales exigees par la reforme de facturation electronique sont integrees a vos factures sans surcout. Vos documents sont alignes sur les exigences 2026.",
     proof: "Loi 2026 anticipee",
     accent: "#8b6dff",
     proofTone: "violet",
@@ -132,7 +132,7 @@ const comparison = [
   { label: "Alertes conflit planning en temps reel", classic: false, nexartis: true },
   { label: "Mentions legales francaises automatiques", classic: false, nexartis: true },
   { label: "Donnees hebergees en Europe", classic: false, nexartis: true },
-  { label: "Format Factur-X 2026 inclus", classic: false, nexartis: true },
+  { label: "Mentions Factur-X 2026 incluses", classic: false, nexartis: true },
   { label: "Abonnement unique tout inclus", classic: false, nexartis: true },
 ];
 

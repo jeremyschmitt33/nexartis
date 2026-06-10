@@ -2,12 +2,12 @@
 
 // V4 landing dark — fond transparent qui laisse passer l'atmosphere globale.
 // Textes corriges (anti-mensonge) :
-// - "Conforme Factur-X 2026" -> "Pret pour Factur-X 2026"
+// - "Conforme Factur-X 2026" -> "Mentions Factur-X 2026 incluses"
 // - "Certifie anti-fraude TVA" -> "Mentions legales BTP francaises completes"
 // - "Donnees hebergees en France" -> "Donnees hebergees en Europe . RGPD strict"
 // - "Support reactif par email" (inchange, vrai)
 const items = [
-  "Pret pour Factur-X 2026",
+  "Mentions Factur-X 2026 incluses",
   "Mentions legales BTP francaises completes",
   "Donnees hebergees en Europe · RGPD strict",
   "Support reactif par email",

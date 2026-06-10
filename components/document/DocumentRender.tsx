@@ -29,6 +29,7 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
         <HeaderD data={data} />
         <div className="dv-body">
           <Objet meta={data.meta} />
+          {data.meta.situation && <SituationBanner situation={data.meta.situation} totalHt={data.totals.sousTotalHt} totalTtc={data.totals.totalTtc} />}
           <LinesTable groups={data.groups} />
           {isDevis ? <RecapDevis data={data} /> : <RecapFacture data={data} />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
@@ -42,7 +43,20 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
 
 function HeaderD({ data }: { data: DocumentData }) {
   const { artisan, meta, docType } = data
-  const titre = docType === 'devis' ? 'DEVIS' : 'FACTURE'
+  // V3.0c.18 — Titre adaptatif :
+  //   - DEVIS pour les devis
+  //   - FACTURE DE SITUATION pour les factures avec meta.situation
+  //   - FACTURE pour les factures standard
+  const isSituation = docType === 'facture' && Boolean(meta.situation)
+  const titre = docType === 'devis'
+    ? 'DEVIS'
+    : isSituation
+      ? 'FACTURE DE SITUATION'
+      : 'FACTURE'
+  // Sous-titre situation : affiché sous le numéro en petit (parité avec le PDF)
+  const situationSubtitle = isSituation && meta.situation
+    ? `Situation N°${meta.situation.numero} · ${meta.situation.pourcentage}% d'avancement`
+    : null
   return (
     <header className="dv-head dv-headD">
       <div className="dv-d-band">
@@ -67,6 +81,11 @@ function HeaderD({ data }: { data: DocumentData }) {
         <div className="dv-d-title">
           <div className="dv-d-doctype">{titre}</div>
           <div className="dv-d-num">{meta.numero}</div>
+          {situationSubtitle && (
+            <div className="dv-d-metaline" style={{ marginTop: 4 }}>
+              <div><strong>{situationSubtitle}</strong></div>
+            </div>
+          )}
           <div className="dv-d-metaline">
             {meta.dateEmission && (<div>Émis le <strong>{meta.dateEmission}</strong></div>)}
             {meta.dateRight && (<div>{meta.dateRightLabel} <strong>{meta.dateRight}</strong></div>)}
@@ -118,6 +137,49 @@ function Objet({ meta }: { meta: DocumentMeta }) {
   return (
     <div className="dv-objet">
       <div><span className="dv-objet-k">Objet</span><span className="dv-objet-v">{meta.objet || '—'}</span></div>
+    </div>
+  )
+}
+
+// V3.0c.18 — Bandeau récapitulatif d'avancement (factures de situation)
+// Affiche : descriptif (Situation N°X · Y% · Devis Ref du …)
+//         + grille 3 cellules (Cumul précédent | Cette situation | Reste à facturer).
+// Reste à facturer omis si non transmis (NULL en base = pas de devis lié, calcul impossible).
+function SituationBanner({
+  situation,
+  totalHt,
+  totalTtc,
+}: {
+  situation: NonNullable<DocumentMeta['situation']>
+  totalHt: number
+  totalTtc: number
+}) {
+  const refSuffix = situation.devisRef
+    ? ` · Devis ${situation.devisRef}${situation.devisDate ? ` du ${situation.devisDate}` : ''}`
+    : ''
+  const headerLabel = `Situation N°${situation.numero} · ${situation.pourcentage}% d'avancement${refSuffix}`
+  const cells: Array<{ label: string; ht?: number; ttc?: number }> = [
+    { label: 'Cumul précédent', ht: situation.montantPrecedentHt, ttc: situation.montantPrecedentTtc },
+    { label: 'Cette situation', ht: totalHt, ttc: totalTtc },
+  ]
+  const hasReste = situation.resteAFacturerHt !== undefined || situation.resteAFacturerTtc !== undefined
+  if (hasReste) cells.push({ label: 'Reste à facturer', ht: situation.resteAFacturerHt, ttc: situation.resteAFacturerTtc })
+
+  return (
+    <div className="dv-situation">
+      <div className="dv-situation-head">
+        <span className="dv-situation-k">Avancement des travaux</span>
+        <span className="dv-situation-v">{headerLabel}</span>
+      </div>
+      <div className="dv-situation-grid" style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}>
+        {cells.map((c) => (
+          <div key={c.label} className="dv-situation-cell">
+            <span className="dv-situation-cell-k">{c.label}</span>
+            <strong className="dv-situation-cell-ht">{c.ht !== undefined ? eur(c.ht) : '—'} HT</strong>
+            {c.ttc !== undefined && <span className="dv-situation-cell-ttc">{eur(c.ttc)} TTC</span>}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

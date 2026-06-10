@@ -10,7 +10,7 @@
 import { jsPDF } from 'jspdf'
 import { registerPdfFonts } from '@/lib/pdf-fonts'
 
-import { fmtDate, normalizeLignes, detectForfaitMode, type PdfLigne } from './pdf/utils'
+import { fmt, fmtDate, font, setFill, normalizeLignes, detectForfaitMode, type PdfLigne } from './pdf/utils'
 import { drawHeader, drawMiniHeaderPages2Plus } from './pdf/header'
 import { drawIdentityCards } from './pdf/identity'
 import { drawObjet } from './pdf/objet'
@@ -24,7 +24,7 @@ import {
 } from './pdf/legal'
 import { drawSignatures } from './pdf/signatures'
 import { drawFooterAllPages } from './pdf/footer'
-import { buildPalette } from './pdf/palette'
+import { buildPalette, type Palette } from './pdf/palette'
 import type { DocumentTheme } from './document-theme'
 
 // ---------------------------------------------------------------------------
@@ -318,6 +318,29 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
   }
 
+  // 4.bis V3.0c.18 — Bandeau AVANCEMENT pour factures de situation
+  // (porté depuis lib/pdf.ts.clean L1098-1144, adapté à l'architecture modulaire V3.0c).
+  // Affiche : Situation #N · % avancement | cumul précédent | cette situation | reste à facturer.
+  if (isSituation) {
+    y = drawSituationBanner(
+      doc,
+      {
+        numeroSituation: data.numero_situation,
+        pourcentageSituation: data.pourcentage_situation,
+        devisRef: data.devis_ref,
+        devisDate: data.devis_date,
+        montantHt: data.montant_ht,
+        montantTtc: data.montant_ttc,
+        montantPrecedentHt: data.montant_situation_precedent_ht,
+        montantPrecedentTtc: data.montant_situation_precedent_ttc,
+        resteAFacturerHt: data.reste_a_facturer_ht,
+        resteAFacturerTtc: data.reste_a_facturer_ttc,
+      },
+      y,
+      palette,
+    )
+  }
+
   // 5. Tableau
   const isForfait = detectForfaitMode(lignes, data.montant_ht)
   y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht, palette)
@@ -364,4 +387,124 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   drawFooterAllPages(doc, ent, data.numero, 'Facture', palette)
 
   return doc.output('datauristring').split(',')[1]
+}
+
+// ===========================================================================
+// HELPER — Bandeau AVANCEMENT (factures de situation)
+// ===========================================================================
+// Carte sky avec barre orange à gauche, en-tête "AVANCEMENT DES TRAVAUX",
+// puis ligne descriptive + grille 3 cellules :
+//   1. Montant cumulé précédent  (= situations antérieures)
+//   2. Cette situation           (= montant de la facture courante)
+//   3. Reste à facturer          (omis si NULL, donc inconnu)
+// Backward-compatible : si numero_situation/pourcentage_situation absents,
+// affiche un libellé degrade ("Situation N°? · ?%") plutôt que de planter.
+interface SituationBannerData {
+  numeroSituation?: number
+  pourcentageSituation?: number
+  devisRef?: string
+  devisDate?: string
+  montantHt: number
+  montantTtc: number
+  montantPrecedentHt?: number
+  montantPrecedentTtc?: number
+  resteAFacturerHt?: number
+  resteAFacturerTtc?: number
+}
+
+function drawSituationBanner(
+  doc: jsPDF,
+  d: SituationBannerData,
+  yStart: number,
+  palette: Palette,
+): number {
+  const P = palette
+  const X = 18
+  const W = 174
+  const PAD = 5
+  const BAR_W = 2
+
+  const numStr = d.numeroSituation !== undefined ? String(d.numeroSituation) : '?'
+  const pct = d.pourcentageSituation ?? 0
+  const refSuffix = d.devisRef
+    ? ` · Devis ${d.devisRef}${d.devisDate ? ` du ${fmtDate(d.devisDate)}` : ''}`
+    : ''
+  const headerLabel = `Situation N°${numStr} · ${pct}% d'avancement${refSuffix}`
+
+  // Construction conditionnelle des cellules (reste facturer caché si NULL)
+  const cells: Array<{ label: string; htValue?: number; ttcValue?: number }> = [
+    {
+      label: 'Cumul précédent',
+      htValue: d.montantPrecedentHt,
+      ttcValue: d.montantPrecedentTtc,
+    },
+    {
+      label: 'Cette situation',
+      htValue: d.montantHt,
+      ttcValue: d.montantTtc,
+    },
+  ]
+  const hasReste = d.resteAFacturerHt !== undefined || d.resteAFacturerTtc !== undefined
+  if (hasReste) {
+    cells.push({
+      label: 'Reste à facturer',
+      htValue: d.resteAFacturerHt,
+      ttcValue: d.resteAFacturerTtc,
+    })
+  }
+
+  // Hauteurs (mm)
+  const H_HEADER = 6.2 // titre encadré
+  const H_DESC = 5.6 // ligne descriptive
+  const H_CELL = 11.5 // hauteur d'une cellule (label + montants)
+  const totalH = H_HEADER + H_DESC + H_CELL + PAD * 2
+
+  // Pagebreak si pas assez de place avant le footer
+  if (yStart + totalH > 270) {
+    doc.addPage()
+    yStart = 25
+  }
+
+  // Carte de fond + barre orange
+  setFill(doc, P.skyVeryPale)
+  doc.roundedRect(X, yStart, W, totalH, 3, 3, 'F')
+  setFill(doc, P.orange)
+  doc.rect(X, yStart, BAR_W, totalH, 'F')
+
+  const innerX = X + BAR_W + PAD
+  const innerW = W - BAR_W - PAD * 2
+  let cursorY = yStart + PAD + 3
+
+  // En-tête uppercase (semblable aux autres bandeaux)
+  font(doc, 'Hanken Grotesk', 'semibold', 7.5, P.muted)
+  doc.text('AVANCEMENT DES TRAVAUX', innerX, cursorY, { charSpace: 0.6 })
+  cursorY += H_HEADER
+
+  // Ligne descriptive (bold navy)
+  font(doc, 'Hanken Grotesk', 'bold', 10, P.navy)
+  const descLines = doc.splitTextToSize(headerLabel, innerW)
+  doc.text(descLines[0] ?? headerLabel, innerX, cursorY)
+  cursorY += H_DESC
+
+  // Grille de cellules (séparées par une fine bordure verticale)
+  const cellW = innerW / cells.length
+  const cellY = cursorY
+  for (let i = 0; i < cells.length; i++) {
+    const c = cells[i]
+    const cx = innerX + i * cellW
+    // Label
+    font(doc, 'Hanken Grotesk', 'semibold', 6.8, P.muted)
+    doc.text(c.label.toUpperCase(), cx, cellY + 2.5, { charSpace: 0.5 })
+    // Montant HT (principal)
+    font(doc, 'Hanken Grotesk', 'extrabold', 10.5, P.navy)
+    const htStr = c.htValue !== undefined ? fmt(c.htValue) : '—'
+    doc.text(`${htStr} HT`, cx, cellY + 7.2)
+    // Montant TTC (secondaire)
+    if (c.ttcValue !== undefined) {
+      font(doc, 'Hanken Grotesk', 'normal', 7, P.muted)
+      doc.text(`${fmt(c.ttcValue)} TTC`, cx, cellY + 10.6)
+    }
+  }
+
+  return yStart + totalH + 4
 }

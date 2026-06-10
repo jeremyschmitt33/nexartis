@@ -96,6 +96,19 @@ export interface DocumentMeta {
     collecteNom?: string
     collecteType?: string
   }
+  // V3.0c.18 — Métadonnées factures de situation
+  // Permettent à DocumentRender d'afficher le titre "FACTURE DE SITUATION #N"
+  // et le bandeau récapitulatif d'avancement.
+  situation?: {
+    numero: number
+    pourcentage: number
+    devisRef?: string
+    devisDate?: string // déjà formatée fr-FR
+    montantPrecedentHt?: number
+    montantPrecedentTtc?: number
+    resteAFacturerHt?: number
+    resteAFacturerTtc?: number
+  }
 }
 
 export interface DocumentData {
@@ -148,6 +161,17 @@ export interface RawFacture {
   objet?: string | null
   conditions_paiement?: string | null
   penalites_retard?: string | null
+  // V3.0c.18 — Facture de situation : exposés à buildFactureDocument pour
+  // alimenter meta.situation (et permettre l'affichage du bandeau d'avancement).
+  type?: string | null
+  numero_situation?: number | null
+  pourcentage_situation?: number | null
+  devis_ref?: string | null
+  devis_date?: string | null
+  montant_situation_precedent_ht?: number | null
+  montant_situation_precedent_ttc?: number | null
+  reste_a_facturer_ht?: number | null
+  reste_a_facturer_ttc?: number | null
 }
 
 export interface RawClient {
@@ -526,6 +550,21 @@ export function buildFactureDocument(opts: {
     chantierAdresse: buildChantierAdresse(opts.chantier, opts.client),
     conditionsPaiement: opts.doc.conditions_paiement ?? undefined,
     penalitesCustom: opts.doc.penalites_retard ?? undefined,
+  }
+
+  // V3.0c.18 — Snapshot situation (uniquement si type === 'situation' ET
+  // numero_situation présent — sinon backward-compat : pas de bandeau).
+  if (opts.doc.type === 'situation' && opts.doc.numero_situation !== null && opts.doc.numero_situation !== undefined) {
+    meta.situation = {
+      numero: opts.doc.numero_situation,
+      pourcentage: opts.doc.pourcentage_situation ?? 0,
+      devisRef: opts.doc.devis_ref ?? undefined,
+      devisDate: opts.doc.devis_date ? fmtDate(opts.doc.devis_date) : undefined,
+      montantPrecedentHt: opts.doc.montant_situation_precedent_ht ?? undefined,
+      montantPrecedentTtc: opts.doc.montant_situation_precedent_ttc ?? undefined,
+      resteAFacturerHt: opts.doc.reste_a_facturer_ht ?? undefined,
+      resteAFacturerTtc: opts.doc.reste_a_facturer_ttc ?? undefined,
+    }
   }
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'

@@ -30,8 +30,8 @@ const benefits = [
   },
   {
     icon: "⚡",
-    title: "Conforme Factur-X 2026",
-    text: "La facture électronique est obligatoire. Nexartis est déjà certifié conforme — aucune amende à craindre.",
+    title: "Mentions Factur-X 2026 incluses",
+    text: "La facture électronique devient obligatoire. Vos factures intègrent déjà les mentions légales exigées par la réforme 2026.",
   },
   {
     icon: "📱",
@@ -58,8 +58,8 @@ const features = [
   },
   {
     icon: "🔔",
-    title: "Relances automatiques",
-    text: "Nexartis envoie des rappels polis aux clients qui n'ont pas payé.",
+    title: "Relances impayés en 1 clic",
+    text: "Repérez les factures en retard et envoyez un rappel poli au client en un clic, depuis votre tableau de bord.",
   },
   {
     icon: "📊",
@@ -99,8 +99,8 @@ export default function LocalPageTemplate({
       a: `Notre support est disponible pour tous les artisans, y compris ceux de ${ville}. Vous pouvez nous contacter par email ou par chat, et nous répondons en moins de 2 heures.`,
     },
     {
-      q: "Est-ce qu'Nexartis est conforme à la réglementation Factur-X ?",
-      a: "Oui. Depuis septembre 2026, la facture électronique est obligatoire. Nexartis est certifié conforme Factur-X — vous ne risquez aucune amende.",
+      q: "Est-ce qu'Nexartis est aligné sur la réforme Factur-X 2026 ?",
+      a: "Oui. Toutes vos factures incluent déjà les mentions légales Factur-X 2026 exigées par la réforme française, et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne.",
     },
   ];
 

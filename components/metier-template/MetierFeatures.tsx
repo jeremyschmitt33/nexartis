@@ -20,9 +20,9 @@ const features = [
   },
   {
     icon: "⚡",
-    title: "Prêt pour Factur-X 2026",
+    title: "Mentions Factur-X 2026 incluses",
     text:
-      "La facture électronique devient obligatoire pour le BTP. Nexartis est prêt pour la facturation électronique 2026.",
+      "La facture électronique devient obligatoire pour le BTP. Vos factures incluent déjà les mentions légales exigées par la réforme 2026.",
   },
   {
     icon: "📅",

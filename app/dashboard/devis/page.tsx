@@ -18,6 +18,7 @@ import {
   Layers,
   ShieldCheck,
   FileEdit,
+  Download,
 } from "lucide-react"
 import {
   useDevis,
@@ -31,7 +32,8 @@ import {
   ErrorBanner,
 } from "@/lib/hooks"
 import { champsLegauxManquants } from "@/lib/helpers"
-import { PremiumInput, PremiumSelect, InfoBanner } from "@/components/ui/v4"
+import { PremiumInput, PremiumSelect, PremiumButton, InfoBanner } from "@/components/ui/v4"
+import ExportComptableModal from "@/components/dashboard/ExportComptableModal"
 
 type DevisStatus = "brouillon" | "envoye" | "signe" | "refuse" | "expire" | "facture"
 
@@ -96,6 +98,7 @@ export default function DevisListPage() {
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   // Fermer le menu au scroll ou clic extérieur
   const closeMenu = useCallback(() => { setOpenActions(null); setMenuPos(null) }, [])
@@ -335,6 +338,14 @@ export default function DevisListPage() {
         >
           {SORT_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
         </PremiumSelect>
+        <PremiumButton
+          variant="secondary"
+          icon={<Download size={16} />}
+          onClick={() => setExportOpen(true)}
+          className="shrink-0"
+        >
+          Exporter en CSV
+        </PremiumButton>
         <Link
           href="/dashboard/devis/nouveau"
           className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl
@@ -495,6 +506,12 @@ export default function DevisListPage() {
           <button onClick={() => { closeMenu(); handleDelete(activeDevis.id as string) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-hanken font-semibold hover:bg-red-50 transition-colors text-red-600"><Trash2 size={14} /> Supprimer</button>
         </div>
       )}
+
+      <ExportComptableModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        type="devis"
+      />
     </div>
   )
 }

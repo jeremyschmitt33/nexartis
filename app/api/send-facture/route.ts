@@ -142,6 +142,16 @@ export async function POST(req: NextRequest) {
       // P2 (audit) : type de facture (standard / acompte / situation / avoir)
       type: facture.type || undefined,
       numero_situation: facture.numero_situation ?? undefined,
+      // V3.0c.18 — Champs complémentaires factures de situation (parité PDF download).
+      // Sans ces champs, le bandeau "AVANCEMENT" du PDF s'affiche en mode dégradé
+      // (cumul précédent et reste à facturer manquants).
+      pourcentage_situation: facture.pourcentage_situation ?? undefined,
+      devis_ref: facture.devis_ref || undefined,
+      devis_date: facture.devis_date || undefined,
+      montant_situation_precedent_ht: facture.montant_situation_precedent_ht ?? undefined,
+      montant_situation_precedent_ttc: facture.montant_situation_precedent_ttc ?? undefined,
+      reste_a_facturer_ht: facture.reste_a_facturer_ht ?? undefined,
+      reste_a_facturer_ttc: facture.reste_a_facturer_ttc ?? undefined,
       // Legacy : ancien champ notes conservé pour rétrocompat
       notes: facture.notes,
     }, themeFromEntreprise(entreprise))

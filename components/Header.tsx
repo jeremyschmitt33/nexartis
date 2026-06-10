@@ -34,7 +34,7 @@ const featureItems = [
   {
     icon: "⚡",
     title: "Facture électronique",
-    desc: "Prêt pour Factur-X 2026",
+    desc: "Mentions Factur-X 2026 incluses",
     href: "/#fonctionnalites",
   },
   {

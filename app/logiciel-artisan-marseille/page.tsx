@@ -110,10 +110,11 @@ export default function Page() {
               Sans logiciel adapté, ce rythme rime avec dimanche soir entier à
               rattraper devis et factures. Avec Nexartis, chaque intervention est
               saisie depuis la camionnette : un devis créé en quelques minutes,
-              envoyé par SMS, signé sur le téléphone du client. La facture suit
-              automatiquement, conforme Factur-X, avec relance polie en cas
-              d&apos;impayé. Le planning visuel évite les doubles affectations
-              entre la côte bleue, les calanques et la vallée de l&apos;Huveaune.
+              envoyé par SMS, signé sur le téléphone du client. La facture est
+              générée dans la foulée, avec les mentions Factur-X 2026, et un bouton
+              « Relancer » en un clic en cas d&apos;impayé. Le planning visuel évite
+              les doubles affectations entre la côte bleue, les calanques et la
+              vallée de l&apos;Huveaune.
             </p>
           </div>
         </div>

@@ -9,10 +9,10 @@ interface MetierPricingProps {
 const essentielFeatures = [
   "Devis et factures illimités",
   "Signature électronique client",
-  "Conformité Factur-X 2026",
+  "Mentions Factur-X 2026 incluses",
   "TVA BTP automatique",
-  "Export comptable",
-  "Suivi des paiements et relances",
+  "Export PDF + CSV comptable (à venir)",
+  "Suivi des impayés et relance en 1 clic",
 ];
 
 const completFeatures = [

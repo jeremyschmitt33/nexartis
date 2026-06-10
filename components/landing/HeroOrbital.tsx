@@ -26,7 +26,7 @@ const CHIPS: Chip[] = [
   { label: 'Devis signe',     sublabel: 'M. Dupont - 2 480 EUR',         dotColor: 'var(--mint)',    corner: 'tl', offsetX: 0, offsetY: 10, delay: 0.20 },
   { label: 'Alerte conflit',  sublabel: 'Michel R. deja affecte jeudi',  dotColor: 'var(--accent)',  corner: 'tr', offsetX: 0, offsetY: 60, delay: 0.40, alert: true },
   { label: '6 620 EUR facture', sublabel: 'Ce mois-ci - +18%',           dotColor: 'var(--electric)', corner: 'bl', offsetX: 0, offsetY: 60, delay: 0.60 },
-  { label: 'Relance auto',    sublabel: '3 rappels envoyes',             dotColor: 'var(--violet)',   corner: 'br', offsetX: 0, offsetY: 10, delay: 0.80 },
+  { label: 'Relance impayes', sublabel: 'Rappel envoye en 1 clic',       dotColor: 'var(--violet)',   corner: 'br', offsetX: 0, offsetY: 10, delay: 0.80 },
 ]
 
 function chipPositionClasses(corner: Chip['corner']): string {

@@ -37,8 +37,8 @@ export default function LocalFAQ({
       a: `Notre support est disponible pour tous les artisans, y compris ceux de ${ville}. Vous pouvez nous contacter par email à contact.nexartis@gmail.com pendant les heures ouvrées (8h-18h, du lundi au vendredi).`,
     },
     {
-      q: "Est-ce qu'Nexartis est conforme à la réglementation Factur-X ?",
-      a: "Oui. **Factur-X 2026** est intégré nativement. Vos factures sont émises en PDF avec XML embarqué, conforme à la nouvelle obligation française.",
+      q: "Est-ce qu'Nexartis est aligné sur la réforme Factur-X 2026 ?",
+      a: "Oui. Vos factures incluent déjà toutes les **mentions légales Factur-X 2026** exigées par la réforme française, et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne.",
     },
   ];
 

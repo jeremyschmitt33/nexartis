@@ -249,7 +249,7 @@ export default function MetierPageTemplate(props: MetierPageProps) {
     "@type": "SoftwareApplication",
     name: "Nexartis",
     description:
-      "Logiciel devis facture artisan BTP français. Gestion devis, factures, planning chantier, équipe, conforme Factur-X 2026.",
+      "Logiciel devis facture artisan BTP français. Gestion devis, factures, planning chantier, équipe, mentions Factur-X 2026 incluses.",
     applicationCategory: "BusinessApplication",
     applicationSubCategory: "Devis & Facturation",
     operatingSystem: "Web (Windows, macOS, Linux, iOS, Android)",
@@ -293,7 +293,7 @@ export default function MetierPageTemplate(props: MetierPageProps) {
       "Devis conformes BTP en moins de 2 minutes",
       "TVA réduite automatique (5,5% / 10% / 20%)",
       "Mention décennale obligatoire automatique",
-      "Conforme Factur-X 2026",
+      "Mentions Factur-X 2026 incluses",
       "Signature électronique native",
       "Planning chantier visuel (offre Complet)",
       "Dictée vocale IA (offre Complet)",

@@ -336,6 +336,18 @@ export default function FactureDetailPage() {
       date_echeance: facture.date_echeance ?? null,
       objet: facture.objet ?? null,
       conditions_paiement: facture.conditions_paiement ?? null,
+      // V3.0c.18 — Champs facture de situation propagés au rendu HTML.
+      // Si type !== 'situation', buildFactureDocument n'injecte pas meta.situation
+      // donc DocumentRender garde son rendu standard (backward-compat).
+      type: (facture.type as string | null | undefined) ?? null,
+      numero_situation: (facture.numero_situation as number | null | undefined) ?? null,
+      pourcentage_situation: (facture.pourcentage_situation as number | null | undefined) ?? null,
+      devis_ref: (facture.devis_ref as string | null | undefined) ?? null,
+      devis_date: (facture.devis_date as string | null | undefined) ?? null,
+      montant_situation_precedent_ht: (facture.montant_situation_precedent_ht as number | null | undefined) ?? null,
+      montant_situation_precedent_ttc: (facture.montant_situation_precedent_ttc as number | null | undefined) ?? null,
+      reste_a_facturer_ht: (facture.reste_a_facturer_ht as number | null | undefined) ?? null,
+      reste_a_facturer_ttc: (facture.reste_a_facturer_ttc as number | null | undefined) ?? null,
     },
     lignes: (lignes ?? []).map((l, idx) => ({
       designation: l.designation ?? '',

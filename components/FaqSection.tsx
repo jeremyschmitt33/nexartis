@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     q: "Nexartis est-il conforme a la reforme de la facturation electronique 2026 ?",
-    a: "La reforme entre en vigueur progressivement a partir de septembre 2026. Nexartis integre actuellement le format Factur-X pour etre pret avant l'echeance qui vous concerne, et toutes vos factures incluent deja les mentions legales obligatoires francaises.",
+    a: "La reforme entre en vigueur progressivement a partir de septembre 2026. Toutes vos factures incluent deja les mentions legales Factur-X 2026 exigees par la reforme, et Nexartis evolue avec le calendrier officiel pour rester aligne avant l'echeance qui vous concerne.",
   },
   {
     q: "Comment resilier mon abonnement Nexartis ?",
@@ -38,7 +38,7 @@ const faqs = [
   },
   {
     q: "Ou sont hebergees mes donnees et comment sont-elles protegees ?",
-    a: "Vos donnees sont hebergees dans l'Union europeenne (Allemagne), sur des serveurs conformes RGPD. Elles ne sont jamais vendues. Vous pouvez les exporter a tout moment au format PDF ou CSV.",
+    a: "Vos donnees sont hebergees dans l'Union europeenne (Allemagne), sur des serveurs conformes RGPD. Elles ne sont jamais vendues. Vous pouvez exporter chaque devis et facture au format PDF a tout moment.",
   },
   {
     q: "Nexartis peut-il remplacer mon expert-comptable ?",

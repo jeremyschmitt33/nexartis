@@ -75,8 +75,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Pret pour la facturation electronique",
-    text: "Toutes vos factures integrent deja les mentions legales obligatoires. Nexartis integre le format Factur-X pour septembre 2026.",
+    title: "Mentions Factur-X 2026 incluses",
+    text: "Toutes vos factures integrent deja les mentions legales obligatoires exigees par la reforme de facturation electronique 2026.",
     tag: "★ Pret 2026",
     accent: "#ff7a1a",
     svgPaths: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,

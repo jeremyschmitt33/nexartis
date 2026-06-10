@@ -17,10 +17,12 @@ import {
   Layers,
   BadgeCheck,
   Hourglass,
+  Download,
 } from 'lucide-react'
 import { useFactures, useClients, softDeleteRow, insertRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
+import ExportComptableModal from '@/components/dashboard/ExportComptableModal'
 // V4 light premium : on remplace l'Input legacy par PremiumInput pour le champ recherche
 // et on utilise PremiumButton pour les actions principales.
 import { PremiumInput, PremiumButton } from '@/components/ui/v4'
@@ -69,6 +71,7 @@ export default function FacturesListPage() {
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const [sendTarget, setSendTarget] = useState<{ id: string; numero: string; email: string; clientNom: string; montantTtcLabel: string } | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const loading = loadingF || loadingC
 
@@ -323,6 +326,14 @@ export default function FacturesListPage() {
             className="[&_input]:pl-10"
           />
         </div>
+        <PremiumButton
+          variant="secondary"
+          icon={<Download size={16} />}
+          onClick={() => setExportOpen(true)}
+          className="shrink-0"
+        >
+          Exporter en CSV
+        </PremiumButton>
         <Link href="/dashboard/factures/nouveau" className="shrink-0">
           <PremiumButton variant="primary" icon={<Plus size={16} />}>
             Nouvelle facture
@@ -559,6 +570,12 @@ export default function FacturesListPage() {
           }}
         />
       )}
+
+      <ExportComptableModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        type="factures"
+      />
     </div>
   )
 }

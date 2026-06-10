@@ -51,11 +51,11 @@ export default function LocalTarifs({ ville }: { ville: string }) {
             </li>
             <li className="flex gap-2">
               <span className="text-[#ff7a1a]" aria-hidden="true">&#10003;</span>
-              <span>Conforme Factur-X 2026</span>
+              <span>Mentions Factur-X 2026 incluses</span>
             </li>
             <li className="flex gap-2">
               <span className="text-[#ff7a1a]" aria-hidden="true">&#10003;</span>
-              <span>Suivi des paiements et relances</span>
+              <span>Suivi des impayés et relance en 1 clic</span>
             </li>
           </ul>
           <Link

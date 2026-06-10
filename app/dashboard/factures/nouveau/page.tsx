@@ -69,6 +69,17 @@ export default function NouvelleFacturePage() {
   const [devisRef, setDevisRef] = useState('')
   const [numeroSituation, setNumeroSituation] = useState<number>(1)
   const [pourcentageSituation, setPourcentageSituation] = useState<number>(0)
+  // V3.0c.18 — Pré-remplissage intelligent des situations :
+  //   - cumul HT/TTC des situations précédentes (calculé depuis la DB)
+  //   - reste à facturer HT/TTC (si on retrouve le devis lié → totalHT - cumul - cette situation)
+  //   - numero_situation suggéré (max(N) des situations existantes + 1)
+  // null = pas encore calculé ou pas de devis_ref valide.
+  const [cumulPrecedentHT, setCumulPrecedentHT] = useState<number | null>(null)
+  const [cumulPrecedentTTC, setCumulPrecedentTTC] = useState<number | null>(null)
+  const [devisTotalHT, setDevisTotalHT] = useState<number | null>(null)
+  const [devisTotalTTC, setDevisTotalTTC] = useState<number | null>(null)
+  const [devisDateLiee, setDevisDateLiee] = useState<string | null>(null)
+  const [situationLookupMsg, setSituationLookupMsg] = useState<string>('')
 
   // Client (texte libre ou sélection)
   const [clientNom, setClientNom] = useState('')
@@ -201,6 +212,95 @@ export default function NouvelleFacturePage() {
       setGlobalTvaRate(0)
     }
   }, [entreprise, tvaUserOverride])
+
+  // V3.0c.18 — Pré-remplissage intelligent des factures de situation.
+  // Quand l'artisan saisit (ou colle) un devis_ref en mode situation, on cherche :
+  //   1. Le devis correspondant en BDD (table devis, col numero) → on cache totalHT/TTC.
+  //   2. Toutes les factures déjà émises pour ce devis_ref → on calcule le cumul HT/TTC
+  //      et on suggère le numero_situation suivant.
+  // Le state local est ensuite injecté à la sauvegarde (factureData) pour persister
+  // montant_situation_precedent_* et reste_a_facturer_*.
+  // Debounce 500ms pour éviter de spammer la DB sur chaque keystroke.
+  useEffect(() => {
+    if (factureType !== 'situation') {
+      setCumulPrecedentHT(null)
+      setCumulPrecedentTTC(null)
+      setDevisTotalHT(null)
+      setDevisTotalTTC(null)
+      setDevisDateLiee(null)
+      setSituationLookupMsg('')
+      return
+    }
+    const ref = devisRef.trim()
+    if (!ref) {
+      setCumulPrecedentHT(null)
+      setCumulPrecedentTTC(null)
+      setDevisTotalHT(null)
+      setDevisTotalTTC(null)
+      setDevisDateLiee(null)
+      setSituationLookupMsg('')
+      return
+    }
+    const ctrl = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user || ctrl.signal.aborted) return
+
+        // 1. Devis lié (pour totalHT/TTC + date)
+        const { data: devisRow } = await supabase
+          .from('devis')
+          .select('montant_ht, montant_ttc, date_emission')
+          .eq('user_id', user.id)
+          .eq('numero', ref)
+          .maybeSingle()
+        if (ctrl.signal.aborted) return
+        const dHT = devisRow ? Number(devisRow.montant_ht ?? 0) : null
+        const dTTC = devisRow ? Number(devisRow.montant_ttc ?? 0) : null
+        const dDate = devisRow ? (devisRow.date_emission as string | null) : null
+        setDevisTotalHT(dHT)
+        setDevisTotalTTC(dTTC)
+        setDevisDateLiee(dDate)
+
+        // 2. Factures de situation déjà émises sur ce devis_ref
+        const { data: situations } = await supabase
+          .from('factures')
+          .select('numero_situation, montant_ht, montant_ttc')
+          .eq('user_id', user.id)
+          .eq('type', 'situation')
+          .eq('devis_ref', ref)
+        if (ctrl.signal.aborted) return
+        const rows = (situations ?? []) as Array<{ numero_situation: number | null; montant_ht: number | null; montant_ttc: number | null }>
+        const cumulHT = rows.reduce((acc, r) => acc + Number(r.montant_ht ?? 0), 0)
+        const cumulTTC = rows.reduce((acc, r) => acc + Number(r.montant_ttc ?? 0), 0)
+        const maxN = rows.reduce((m, r) => Math.max(m, Number(r.numero_situation ?? 0)), 0)
+        setCumulPrecedentHT(cumulHT)
+        setCumulPrecedentTTC(cumulTTC)
+        // Suggestion numéro suivant — uniquement si l'artisan n'a pas déjà personnalisé
+        // (= numero_situation est resté à 1 ET il y a déjà des situations).
+        if (maxN > 0 && numeroSituation === 1) setNumeroSituation(maxN + 1)
+
+        // Message utilisateur
+        if (devisRow && rows.length === 0) {
+          setSituationLookupMsg(`Devis trouvé (${dHT?.toFixed(2) ?? '—'} € HT). Aucune situation antérieure.`)
+        } else if (devisRow && rows.length > 0) {
+          setSituationLookupMsg(`${rows.length} situation${rows.length > 1 ? 's' : ''} antérieure${rows.length > 1 ? 's' : ''} trouvée${rows.length > 1 ? 's' : ''} (cumul ${cumulHT.toFixed(2)} € HT). Suggéré : situation N°${maxN + 1}.`)
+        } else if (rows.length > 0) {
+          setSituationLookupMsg(`${rows.length} situation${rows.length > 1 ? 's' : ''} antérieure${rows.length > 1 ? 's' : ''} sur cette référence (cumul ${cumulHT.toFixed(2)} € HT).`)
+        } else {
+          setSituationLookupMsg('Référence devis non trouvée — saisie libre acceptée.')
+        }
+      } catch {
+        // Silencieux : pas bloquant pour l'artisan
+        setSituationLookupMsg('')
+      }
+    }, 500)
+    return () => { ctrl.abort(); clearTimeout(timer) }
+    // numeroSituation NE figure PAS dans deps pour éviter une boucle infinie
+    // (on l'utilise en lecture pour décider d'auto-suggérer).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [factureType, devisRef])
 
   // Conditions de paiement (pré-remplies) + notes personnalisées (visibles client)
   const [conditions, setConditions] = useState<string>(DEFAULT_CONDITIONS_PAIEMENT)
@@ -341,14 +441,31 @@ export default function NouvelleFacturePage() {
       const numero = `F-${yearFromDate}-${String(Date.now()).slice(-5)}`
       const clientDisplay = `${clientCivilite ? clientCivilite + ' ' : ''}${clientPrenom ? clientPrenom + ' ' : ''}${clientNom}`.trim()
 
+      // V3.0c.18 — Pré-remplissage intelligent (situation) :
+      // cumul HT/TTC déjà facturé + reste à facturer (uniquement si devis lié trouvé).
+      const isSit = factureType === 'situation'
+      const resteHT = (isSit && devisTotalHT !== null && cumulPrecedentHT !== null)
+        ? Math.max(devisTotalHT - cumulPrecedentHT - totalHT, 0)
+        : null
+      const resteTTC = (isSit && devisTotalTTC !== null && cumulPrecedentTTC !== null)
+        ? Math.max(devisTotalTTC - cumulPrecedentTTC - totalTTC, 0)
+        : null
+
       const factureData: Record<string, unknown> = {
         numero,
         statut,
         // V3.0c.17 — Type de facture + champs specifiques situation
         type: factureType,
-        devis_ref: factureType === 'situation' ? (devisRef.trim() || null) : null,
-        numero_situation: factureType === 'situation' ? numeroSituation : null,
-        pourcentage_situation: factureType === 'situation' ? pourcentageSituation : null,
+        devis_ref: isSit ? (devisRef.trim() || null) : null,
+        devis_date: isSit ? (devisDateLiee || null) : null,
+        numero_situation: isSit ? numeroSituation : null,
+        pourcentage_situation: isSit ? pourcentageSituation : null,
+        // V3.0c.18 — Cumul des situations précédentes + reste à facturer (snapshot
+        // figé à la création). null si impossible à calculer (pas de devis lié en BDD).
+        montant_situation_precedent_ht: isSit ? cumulPrecedentHT : null,
+        montant_situation_precedent_ttc: isSit ? cumulPrecedentTTC : null,
+        reste_a_facturer_ht: resteHT,
+        reste_a_facturer_ttc: resteTTC,
         date_emission: dateFacture,
         date_echeance: dateEcheance,
         objet: objet || null,
@@ -449,7 +566,7 @@ export default function NouvelleFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation])
+  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee])
 
   return (
     <div className="min-h-screen">
@@ -584,6 +701,9 @@ export default function NouvelleFacturePage() {
                     placeholder="Ex. : D-2026-12345"
                     className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
                   />
+                  {situationLookupMsg && (
+                    <p className="mt-1.5 font-hanken text-[11px] text-[#0f1a3a]/70">{situationLookupMsg}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>

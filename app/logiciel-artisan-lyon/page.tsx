@@ -106,11 +106,11 @@ export default function Page() {
               Sans outil adapté, ces journées finissent en soirées de paperasse à
               rattraper devis et factures. Avec Nexartis, chaque intervention est
               saisie depuis le véhicule : devis créé en 3 minutes, envoyé par SMS,
-              signé sur le téléphone du client. La facture suit automatiquement,
-              conforme <strong>Factur-X</strong>, avec relance polie en cas
-              d&apos;impayé. Le planning visuel évite les doubles affectations entre
-              le périphérique Laurent-Bonnevay et les communes de la première
-              couronne.
+              signé sur le téléphone du client. La facture est générée dans la
+              foulée, avec les <strong>mentions Factur-X 2026</strong>, et un bouton
+              « Relancer » en un clic en cas d&apos;impayé. Le planning visuel évite
+              les doubles affectations entre le périphérique Laurent-Bonnevay et les
+              communes de la première couronne.
             </p>
           </div>
         </div>

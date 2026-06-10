@@ -72,8 +72,8 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
-    title: "Export comptable",
-    desc: "Exportez vos donn\u00e9es en CSV ou PDF pour votre comptable en un clic.",
+    title: "Export pour votre comptable",
+    desc: "Export PDF de chaque devis et facture aujourd\u2019hui. Export CSV comptable (Sage / EBP / FEC) \u00e0 venir.",
   },
 ];
 
@@ -104,7 +104,7 @@ const faqItems = [
   },
   {
     q: "Qu\u2019est-ce que la facturation \u00e9lectronique Factur-X 2026\u00a0?",
-    a: "D\u00e8s septembre 2026, toutes les entreprises devront \u00e9mettre des factures au format \u00e9lectronique Factur-X. Nexartis est pr\u00eat pour la facturation \u00e9lectronique 2026.",
+    a: "D\u00e8s septembre 2026, toutes les entreprises devront \u00e9mettre des factures au format \u00e9lectronique Factur-X. Vos factures Nexartis incluent d\u00e9j\u00e0 les mentions l\u00e9gales exig\u00e9es par la r\u00e9forme 2026.",
   },
 ];
 
