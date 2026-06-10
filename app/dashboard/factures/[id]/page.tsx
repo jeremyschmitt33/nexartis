@@ -61,6 +61,16 @@ interface FactureRecord {
   acompte_montant_ht?: number
   acompte_montant_ttc?: number
   acompte_label?: string
+  // V3.0c.18 — Champs factures de situation (migration-facture-situation.sql)
+  type?: string | null
+  numero_situation?: number | null
+  pourcentage_situation?: number | null
+  devis_ref?: string | null
+  devis_date?: string | null
+  montant_situation_precedent_ht?: number | null
+  montant_situation_precedent_ttc?: number | null
+  reste_a_facturer_ht?: number | null
+  reste_a_facturer_ttc?: number | null
   created_at: string
   updated_at?: string
 }
