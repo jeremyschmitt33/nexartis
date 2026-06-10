@@ -495,7 +495,7 @@ export default function IntroOverlay() {
         <div className="intro-core">
           <div className="intro-spark" aria-hidden="true" />
           <Image
-            src="/images/logo-nexartis-light.svg"
+            src="/images/logo-nexartis-light-v3.svg"
             alt="Nexartis"
             className="intro-logo"
             width={1600}

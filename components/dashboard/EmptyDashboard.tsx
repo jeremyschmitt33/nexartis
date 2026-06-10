@@ -36,7 +36,7 @@ export default function EmptyDashboard({ userName, profilIncomplet }: EmptyDashb
     <div className="min-h-screen bg-gray-50/50 flex items-start justify-center">
       <div className="max-w-2xl w-full mx-auto py-16 px-4 text-center">
         <Image
-          src="/images/logo-nexartis.svg"
+          src="/images/logo-nexartis-v3.svg"
           alt="Nexartis"
           width={480}
           height={240}

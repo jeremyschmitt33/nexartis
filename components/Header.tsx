@@ -96,7 +96,7 @@ export default function Header() {
       {/* Logo SVG vectoriel (fond clair) - 23 Ko, parfaitement net a toute taille. */}
       <Link href="/" className="flex items-center no-underline" aria-label="Nexartis - Accueil">
         <Image
-          src="/images/logo-nexartis.svg"
+          src="/images/logo-nexartis-v3.svg"
           alt="Nexartis"
           width={400}
           height={200}

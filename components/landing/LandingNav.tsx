@@ -113,7 +113,7 @@ export default function LandingNav() {
         >
           {/* Logo SVG LIGHT (blanc/orange) - vectoriel net, optimal pour fond sombre. */}
           <Image
-            src="/images/logo-nexartis-light.svg"
+            src="/images/logo-nexartis-light-v3.svg"
             alt="Nexartis"
             width={400}
             height={200}
