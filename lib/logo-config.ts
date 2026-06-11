@@ -29,9 +29,10 @@ export const DEFAULT_LOGO_CONFIG: LogoConfig = {
 
 // V3.1.7 : facteur d'agrandissement applique au logo quand le nom est masque.
 // La largeur libre dans le bandeau passe de ~50% (logo + nom) a presque tout
-// le cote gauche. On agrandit le logo en restant raisonnable (1.55x = ~63%
-// sans depasser le bandeau de 50mm).
-export const LOGO_LARGE_FACTOR = 1.55
+// le cote gauche. On agrandit le logo en restant raisonnable (1.2x = ~20% plus grand
+// que la taille de base, sans dominer le bandeau). V3.x : reduit de 1.55 a 1.2
+// suite retour utilisateur (logo trop gros quand le nom est masque).
+export const LOGO_LARGE_FACTOR = 1.2
 
 export const LOGO_STYLE_LABELS: Record<LogoStyle, string> = {
   'carte-classique':    'Carte blanche classique',

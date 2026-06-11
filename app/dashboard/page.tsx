@@ -713,13 +713,6 @@ export default function DashboardPage() {
               style={{background: '#0f1a3a', boxShadow: '0 8px 24px -10px rgba(15,26,58,0.35)'}}>
               <svg width="22" height="22" className="sm:w-[15px] sm:h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Nouveau devis</span>
-              {/* QW1 — Indicateur du raccourci clavier "N", masqué sur mobile/tablette (clavier physique uniquement) */}
-              <kbd
-                aria-hidden="true"
-                className="hidden lg:inline-flex items-center justify-center font-spline-mono text-[10px] font-bold ml-1 px-1.5 py-0.5 rounded border border-white/20 bg-white/10"
-              >
-                N
-              </kbd>
             </Link>
             <Link href="/dashboard/factures/nouveau"
               aria-label="Créer une nouvelle facture"

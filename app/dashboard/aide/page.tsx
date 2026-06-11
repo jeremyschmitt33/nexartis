@@ -49,6 +49,7 @@ import {
   AlertTriangle,
   NotebookPen,
   Scale,
+  FileCheck2,
 } from 'lucide-react'
 import ContactModal from '@/components/dashboard/ContactModal'
 
@@ -264,6 +265,52 @@ export default function AidePage() {
               <strong>Astuce :</strong> les factures en retard remontent automatiquement
               dans la liste &laquo;&nbsp;À faire&nbsp;&raquo; de ton tableau de bord, pour que
               tu n&apos;oublies pas de relancer ton client.
+            </p>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'facture-electronique',
+      icon: FileCheck2,
+      title: 'Facture électronique (Factur-X) — La facture aux normes 2026',
+      subtitle: 'La même facture, avec les données que les logiciels de comptabilité lisent automatiquement',
+      content: (
+        <>
+          <p className="mb-4">
+            La <strong>facture électronique</strong> (format <strong>Factur-X</strong>) est la version
+            de ta facture mise aux normes de la réforme 2026-2027. Concrètement&nbsp;: c&apos;est
+            <strong> exactement la même facture</strong> que d&apos;habitude — même mise en page, même
+            logo — avec en plus, cachées à l&apos;intérieur du PDF, les données que les logiciels de
+            comptabilité savent lire tout seuls. <strong>Rien ne change visuellement</strong>, ni pour
+            toi ni pour ton client.
+          </p>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">
+            Pourquoi ça compte
+          </h4>
+          <ul className="space-y-1.5 mb-4 pl-1">
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-600 flex-shrink-0 mt-0.5" /><span>À partir du <strong>1er septembre 2026</strong>, toutes les entreprises doivent pouvoir <strong>recevoir</strong> ce format.</span></li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-600 flex-shrink-0 mt-0.5" /><span>Pour les artisans (TPE/PME), l&apos;obligation d&apos;<strong>émettre</strong> arrive au <strong>1er septembre 2027</strong>.</span></li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-600 flex-shrink-0 mt-0.5" /><span>Être prêt dès maintenant te démarque et rassure tes clients pros et leur comptable.</span></li>
+          </ul>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">
+            Comment l&apos;utiliser
+          </h4>
+          <p className="mb-3">
+            Ouvre une facture, puis clique sur le bouton <strong>&laquo;&nbsp;Facture électronique&nbsp;&raquo;</strong>
+            (icône coche) à côté de &laquo;&nbsp;Télécharger PDF&nbsp;&raquo;. Tu récupères un fichier
+            <strong> Facture-XXXX-facturx.pdf</strong> : identique à l&apos;œil, mais conforme. Tu peux le
+            transmettre à ton client ou à son comptable, ou le déposer sur un validateur Factur-X pour
+            vérifier la conformité.
+          </p>
+
+          <div className="bg-sky-50 border border-sky-200 rounded-lg p-4 mt-3">
+            <p className="text-[13px] font-hanken text-sky-900">
+              <strong>Bon à savoir :</strong> le PDF que tu envoies par email reste ta facture habituelle.
+              Le format Factur-X est là quand un client pro ou un comptable te le demande — et il deviendra
+              le format par défaut à l&apos;approche de l&apos;échéance légale.
             </p>
           </div>
         </>
