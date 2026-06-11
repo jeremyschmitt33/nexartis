@@ -85,7 +85,7 @@ export function logoConfigToCssVars(cfg: LogoConfig): Record<string, string> {
   const logoH = Math.round(Math.min(baseHpx * (clampedLogoSize / 100) * sizeMultiplier, LOGO_H_MAX_PX))
   const padPx = cfg.style === 'sans-carte' ? 0 : cfg.style === 'carte-minimaliste' ? 5 : 9
   const cardH = logoH + 2 * padPx
-  const maxW = cfg.showCompanyName ? 167 : 222 // = 48mm / 64mm cote PDF
+  const maxW = cfg.showCompanyName ? 104 : 222 // nom affiche: 30mm (~ancienne carte) / nom masque: 64mm
   return {
     '--dv-logo-card-h': cardH + 'px',
     '--dv-logo-card-pad': padPx + 'px',

@@ -104,7 +104,7 @@ export function drawHeader(
   const cardPad = logoStyle === 'sans-carte' ? 0 : logoStyle === 'carte-minimaliste' ? 1.5 : 2.5
   // Largeur max du logo : plus contrainte quand le nom est affiche (il faut lui
   // laisser de la place a droite), plus large quand le nom est masque.
-  const maxLogoW = showCompanyName ? 48 : 64
+  const maxLogoW = showCompanyName ? 30 : 64 // nom affiche: largeur ~= ancienne carte (preserve la place du nom)
 
   let logoW = targetLogoH
   let logoH = targetLogoH
