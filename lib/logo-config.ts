@@ -43,7 +43,7 @@ export const LOGO_STYLE_LABELS: Record<LogoStyle, string> = {
 export const LOGO_STYLE_DESCRIPTIONS: Record<LogoStyle, string> = {
   'carte-classique':    'Carte blanche arrondie autour du logo. Robuste pour tous les logos.',
   'carte-minimaliste':  'Carte blanche plus discrete. Compromis elegant.',
-  'sans-carte':         'Logo directement sur le bandeau colore. Conseille pour les logos PNG transparents ou SVG.',
+  'sans-carte':         'Logo pose directement sur le bandeau, sans carte blanche. A reserver aux logos detoures (PNG a fond transparent ou SVG) — sinon le fond blanc de votre fichier reste visible.',
 }
 
 export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
@@ -73,36 +73,27 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
 }
 
 export function logoConfigToCssVars(cfg: LogoConfig): Record<string, string> {
-  const cardBase = 104
-  const cardMini = 72
-  // V3.1.5 : nomBase = 41px = --title-size (= taille de "DEVIS" cote dashboard).
-  // A 100% le nom et le titre ont strictement la meme taille -> equilibre visuel.
+  // V3.x : "la carte epouse le logo". Taille pilotee par la HAUTEUR du logo ;
+  // la largeur = fit-content (CSS) plafonnee a --dv-logo-maxw. Memes valeurs
+  // (proportionnelles, ~3.47px/mm) que le PDF (lib/pdf/header.ts) -> PDF == HTML.
+  const baseHpx = cfg.style === 'carte-minimaliste' ? 76 : 90
+  const LOGO_H_MAX_PX = 132
   const nomBase = 41
-
   const clampedLogoSize = Math.min(130, Math.max(70, cfg.logoSize))
   const clampedNomSize = Math.min(130, Math.max(70, cfg.nomSize))
-
-  // V3.1.7 : si le nom est masque, on agrandit le logo (LOGO_LARGE_FACTOR).
-  // Le wordmark est lui meme masque via --dv-name-display:none.
   const sizeMultiplier = cfg.showCompanyName ? 1 : LOGO_LARGE_FACTOR
-
-  const cardBaseSize = cfg.style === 'carte-minimaliste'
-    ? Math.round((cardMini * clampedLogoSize) / 100)
-    : Math.round((cardBase * clampedLogoSize) / 100)
-  const cardSize = Math.round(cardBaseSize * sizeMultiplier)
-
+  const logoH = Math.round(Math.min(baseHpx * (clampedLogoSize / 100) * sizeMultiplier, LOGO_H_MAX_PX))
+  const padPx = cfg.style === 'sans-carte' ? 0 : cfg.style === 'carte-minimaliste' ? 5 : 9
+  const cardH = logoH + 2 * padPx
+  const maxW = cfg.showCompanyName ? 167 : 222 // = 48mm / 64mm cote PDF
   return {
-    '--dv-logo-card-size': cardSize + 'px',
-    '--dv-logo-scale': String((clampedLogoSize / 100) * sizeMultiplier),
+    '--dv-logo-card-h': cardH + 'px',
+    '--dv-logo-card-pad': padPx + 'px',
+    '--dv-logo-maxw': maxW + 'px',
     '--dv-nom-size': Math.round((nomBase * clampedNomSize) / 100) + 'px',
     '--dv-logo-card-bg': cfg.style === 'sans-carte' ? 'transparent' : '#ffffff',
-    '--dv-logo-card-padding': cfg.style === 'sans-carte' ? '0' : cfg.style === 'carte-minimaliste' ? '4px' : '6px',
     '--dv-logo-card-shadow': cfg.style === 'sans-carte' ? 'none' : cfg.style === 'carte-minimaliste' ? '0 1px 3px rgba(0,0,0,.12)' : '0 2px 8px rgba(0,0,0,.18)',
     '--dv-logo-card-radius': cfg.style === 'carte-minimaliste' ? '12px' : '20px',
-    // V3.1.7 : masque le wordmark cote HTML quand l'artisan l'a desactive.
-    // --dv-name-display est applique sur .dv-d-name (display:block | none).
-    // --dv-brandtext-display est applique sur le wrapper .dv-d-brandtext
-    // (display:flex | none) pour collapser aussi le gap:18px du flex parent.
     '--dv-name-display': cfg.showCompanyName ? 'block' : 'none',
     '--dv-brandtext-display': cfg.showCompanyName ? 'flex' : 'none',
   }

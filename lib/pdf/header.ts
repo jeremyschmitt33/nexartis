@@ -91,51 +91,66 @@ export function drawHeader(
   const rawLogoSize = ent.doc_logo_size ?? 100
   const clampedLogoSize = Math.min(130, Math.max(70, rawLogoSize))
   const logoScale = clampedLogoSize / 100
-  // V3.1.5 : baseSize classique 28->30, minimaliste 22->24 (logo plus present)
-  const baseSize = logoStyle === 'carte-minimaliste' ? 24 : 30
-  // Plafond strict pour rester dans le bandeau (headerH=50mm, marge haut/bas
-  // de ~3mm de chaque cote). Sans ce plafond, 30 * 1.30 * 1.55 = 60.45mm > 50mm.
-  const LOGO_CARD_MAX_MM = 44
+  // V3.x : "la carte epouse le logo". La taille est pilotee par la HAUTEUR
+  // (coherent avec le bandeau de 50mm), la largeur suit les PROPORTIONS reelles
+  // du logo, et la carte blanche n'est qu'une petite marge autour -> plus de
+  // grand carre blanc gaspille, surtout pour les logos larges (wordmark).
   const sizeMultiplier = showCompanyName ? 1 : LOGO_LARGE_FACTOR
-  const logoCardSize = Math.min(baseSize * logoScale * sizeMultiplier, LOGO_CARD_MAX_MM)
-  const logoCardX = 12
-  // Y dynamique : si le logo est plus grand, on le re-centre verticalement
-  // dans le bandeau de 50mm (au lieu du Y=7mm historique cale en haut).
-  const logoCardY = showCompanyName ? 7 : Math.max(3, (headerH - logoCardSize) / 2)
-  const logoCardCenterY = logoCardY + logoCardSize / 2 // centre vertical du logo
-  if (logoStyle !== 'sans-carte') {
-    const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
-    roundedFill(doc, logoCardX, logoCardY, logoCardSize, logoCardSize, radius, P.white)
-  }
+  const baseH = logoStyle === 'carte-minimaliste' ? 22 : 26
+  const LOGO_H_MAX_MM = 38 // plafond hauteur logo (bandeau 50mm, marges ~6mm)
+  const targetLogoH = Math.min(baseH * logoScale * sizeMultiplier, LOGO_H_MAX_MM)
+  // Marge de la carte autour du logo : classique un peu plus genereuse,
+  // minimaliste serree, sans-carte aucune (pas de carte dessinee).
+  const cardPad = logoStyle === 'sans-carte' ? 0 : logoStyle === 'carte-minimaliste' ? 1.5 : 2.5
+  // Largeur max du logo : plus contrainte quand le nom est affiche (il faut lui
+  // laisser de la place a droite), plus large quand le nom est masque.
+  const maxLogoW = showCompanyName ? 48 : 64
 
-  // Logo entreprise (image dans la carte)
+  let logoW = targetLogoH
+  let logoH = targetLogoH
+  let hasLogoImage = false
+  let logoFormat = 'PNG'
   if (ent.logo_url && ent.logo_url.startsWith('data:image')) {
     try {
-      const logoFormat = ent.logo_url.includes('image/png') ? 'PNG' : 'JPEG'
+      logoFormat = ent.logo_url.includes('image/png') ? 'PNG' : 'JPEG'
       const props = doc.getImageProperties(ent.logo_url)
-      const maxSide = logoCardSize * 0.78
-      let lw = maxSide
-      let lh = maxSide
-      if (props.width >= props.height) {
-        lh = (props.height / props.width) * maxSide
-      } else {
-        lw = (props.width / props.height) * maxSide
+      const aspect = props.width / props.height
+      logoH = targetLogoH
+      logoW = targetLogoH * aspect
+      if (logoW > maxLogoW) {
+        logoW = maxLogoW
+        logoH = maxLogoW / aspect
       }
-      const lx = logoCardX + (logoCardSize - lw) / 2
-      const ly = logoCardY + (logoCardSize - lh) / 2
-      doc.addImage(ent.logo_url, logoFormat, lx, ly, lw, lh)
+      hasLogoImage = true
     } catch {
-      drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize, P)
+      hasLogoImage = false
     }
+  }
+
+  const cardW = logoW + 2 * cardPad
+  const cardH = logoH + 2 * cardPad
+  const logoCardX = 12
+  // Centre vertical dans le bandeau quelle que soit la hauteur de la carte.
+  const logoCardY = Math.max(3, (headerH - cardH) / 2)
+  const logoCardCenterY = logoCardY + cardH / 2 // centre vertical (alignement nom)
+  const logoCardRightEdge = logoCardX + cardW // bord droit (debut du nom)
+
+  if (logoStyle !== 'sans-carte') {
+    const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
+    roundedFill(doc, logoCardX, logoCardY, cardW, cardH, radius, P.white)
+  }
+
+  if (hasLogoImage) {
+    doc.addImage(ent.logo_url as string, logoFormat, logoCardX + cardPad, logoCardY + cardPad, logoW, logoH)
   } else {
-    drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, logoCardSize, P)
+    drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, cardW, P)
   }
 
   // === Nom artisan - V3.1.5 : 30pt, centre verticalement sur le logo ===
   // V3.1.7 : entierement saute si showCompanyName === false. Le logo, deja
   // agrandi en amont, occupe seul l'espace gauche du bandeau.
   if (showCompanyName) {
-    const textLeftX = 12 + logoCardSize + 6
+    const textLeftX = logoCardRightEdge + 6
     const rawNomSize = ent.doc_nom_size ?? 100
     const clampedNomSize = Math.min(130, Math.max(70, rawNomSize))
     const nomScale = clampedNomSize / 100

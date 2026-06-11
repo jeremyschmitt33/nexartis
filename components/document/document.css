@@ -59,16 +59,18 @@
   flex:0 1 auto; max-width:46%; min-width:0; margin-right:auto; }
 /* V3.1 : carte logo pilotee par les variables --dv-logo-* (config personnalisable) */
 .dv-headD .dv-d-logomark {
-  width:var(--dv-logo-card-size, 104px);
-  height:var(--dv-logo-card-size, 104px);
+  height:var(--dv-logo-card-h, 100px);
+  width:fit-content;
+  max-width:var(--dv-logo-maxw, 222px);
   border-radius:var(--dv-logo-card-radius, 20px);
   background:var(--dv-logo-card-bg, #fff);
-  padding:var(--dv-logo-card-padding, 6px);
+  padding:var(--dv-logo-card-pad, 9px);
+  box-sizing:border-box;
   box-shadow:var(--dv-logo-card-shadow, 0 2px 8px rgba(0,0,0,.18));
-  color:var(--accent); display:grid; place-items:center; flex:0 0 auto; overflow:hidden;
+  color:var(--accent); display:flex; align-items:center; justify-content:center; flex:0 0 auto; overflow:hidden;
   border:1px solid rgba(255,255,255,.15);
 }
-.dv-headD .dv-d-logomark img { width:100%; height:100%; object-fit:contain; display:block; padding:6px; }
+.dv-headD .dv-d-logomark img { max-height:100%; max-width:100%; width:auto; height:auto; object-fit:contain; display:block; }
 .dv-headD .dv-d-logomark svg { width:54px; height:54px; }
 /* V3.1.5 : brandtext shrinkable pour que l'ellipsis fonctionne dans un flex container. */
 /* V3.1.7 : si --dv-brandtext-display vaut 'none', le wrapper est masque pour
@@ -251,7 +253,7 @@
   .dv-headD .dv-d-band { padding:20px 16px 64px; flex-wrap:wrap; gap:14px; }
 
   /* V3.1 : barre doree en pourcentages, plus besoin de MQ */
-  .dv-headD .dv-d-logomark { width:64px; height:64px; border-radius:14px; }
+  .dv-headD .dv-d-logomark { height:64px; width:fit-content; max-width:140px; border-radius:14px; }
   .dv-headD .dv-d-logomark svg { width:34px; height:34px; }
   .dv-headD .dv-d-name { font-size:22px; line-height:1.1; }
   .dv-headD .dv-d-base { font-size:12px; margin-top:3px; }
