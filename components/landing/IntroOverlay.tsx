@@ -19,7 +19,7 @@
  *  - couleurs : bgdark-ink, ink, ink-2, ink-3, accent, electric, electric-2, mint, violet
  *  - polices : font-syne (wordmark), font-manrope (textes)
  *
- * Les animations specifiques de l'intro (spark / letter / fade-up / chip-in / prog / intro-grid)
+ * Les animations specifiques de l'intro (spark / logo-in / shine / fade-up / chip-in / prog / intro-grid)
  * sont injectees inline via <style jsx global> avec un prefixe `intro-` pour eviter toute
  * collision avec d'autres pages.
  */
@@ -36,14 +36,14 @@ const INTRO_DURATION_MS = 4300
 // Duree du fondu de sortie (doit matcher la transition CSS de .intro-overlay.hide).
 const EXIT_DURATION_MS = 800
 
-// Chips en orbite autour du wordmark — positionnees en % sur le viewport.
+// Chips "barre d'outils" alignees sous la tagline (mockup A valide le 11/06/2026).
 // Couleurs : tokens Tailwind landing (accent / electric / violet / mint).
-const CHIPS: Array<{ label: string; color: string; x: string; y: string; delay: number }> = [
-  { label: 'Devis',    color: 'var(--intro-accent)',   x: '16%', y: '26%', delay: 0 },
-  { label: 'Mobile',   color: 'var(--intro-electric)', x: '50%', y: '15%', delay: 0.1 },
-  { label: 'Factures', color: 'var(--intro-electric)', x: '78%', y: '20%', delay: 0.2 },
-  { label: 'Planning', color: 'var(--intro-violet)',   x: '12%', y: '70%', delay: 0.3 },
-  { label: 'Suivi CA', color: 'var(--intro-mint)',     x: '82%', y: '72%', delay: 0.4 },
+const CHIPS: Array<{ label: string; color: string; delay: number }> = [
+  { label: 'Devis',    color: 'var(--intro-accent)',     delay: 0 },
+  { label: 'Factures', color: 'var(--intro-electric-2)', delay: 0.12 },
+  { label: 'Planning', color: 'var(--intro-violet)',     delay: 0.24 },
+  { label: 'Suivi CA', color: 'var(--intro-mint)',       delay: 0.36 },
+  { label: 'Mobile',   color: 'var(--intro-electric)',   delay: 0.48 },
 ]
 
 export default function IntroOverlay() {
@@ -317,22 +317,49 @@ export default function IntroOverlay() {
           }
         }
 
-        /* Logo image animé — fade-in + scale-up, t = 700ms (version LIGHT sur fond sombre) */
+        /* Wrapper du logo — sert de repere a l'eclat de lumiere (.intro-shine) */
+        .intro-logowrap {
+          position: relative;
+          display: inline-block;
+          width: clamp(300px, 58vw, 620px);
+        }
+
+        /* Logo image anime — entree floue -> nette + scale-up, t = 550ms (version LIGHT sur fond sombre) */
         .intro-logo {
           display: block;
-          margin: 0 auto;
-          width: clamp(320px, 70vw, 720px);
+          width: 100%;
           height: auto;
           opacity: 0;
-          transform: scale(0.78);
-          filter: drop-shadow(0 18px 60px rgba(255, 122, 26, 0.35));
-          animation: intro-logo-in 1.1s var(--intro-ease) forwards;
-          animation-delay: 0.7s;
+          transform: scale(0.8);
+          filter: blur(14px) drop-shadow(0 18px 60px rgba(255, 122, 26, 0.35));
+          animation: intro-logo-in 1.15s var(--intro-ease) forwards;
+          animation-delay: 0.55s;
         }
         @keyframes intro-logo-in {
-          0%   { opacity: 0; transform: scale(0.78); }
-          55%  { opacity: 1; transform: scale(1.03); }
-          100% { opacity: 1; transform: scale(1); }
+          0%   { opacity: 0; transform: scale(0.8); filter: blur(14px) drop-shadow(0 18px 60px rgba(255, 122, 26, 0.35)); }
+          60%  { opacity: 1; transform: scale(1.03); filter: blur(0) drop-shadow(0 18px 60px rgba(255, 122, 26, 0.35)); }
+          100% { opacity: 1; transform: scale(1); filter: blur(0) drop-shadow(0 18px 60px rgba(255, 122, 26, 0.35)); }
+        }
+
+        /* Eclat de lumiere qui balaye le logo — t = 1750ms */
+        .intro-shine {
+          position: absolute;
+          top: -20%;
+          bottom: -20%;
+          left: -30%;
+          width: 24%;
+          transform: skewX(-18deg) translateX(0);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+          mix-blend-mode: screen;
+          opacity: 0;
+          animation: intro-shine 0.9s var(--intro-ease) forwards;
+          animation-delay: 1.75s;
+          pointer-events: none;
+        }
+        @keyframes intro-shine {
+          0% { opacity: 0; transform: skewX(-18deg) translateX(0); }
+          15% { opacity: 0.9; }
+          100% { opacity: 0; transform: skewX(-18deg) translateX(560%); }
         }
 
         /* Tagline — t = 2000ms */
@@ -354,41 +381,45 @@ export default function IntroOverlay() {
           to { opacity: 1; transform: none; }
         }
 
-        /* Chips en orbite — t = 2500ms (+ stagger 100ms par chip) */
+        /* Chips "barre d'outils" alignees sous la tagline — t = 2500ms (+ stagger 120ms par chip) */
         .intro-chips {
-          position: absolute;
-          inset: 0;
+          display: flex;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 30px;
           pointer-events: none;
         }
         .intro-chip {
-          position: absolute;
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 9px 13px;
+          padding: 10px 15px;
           border-radius: 12px;
           background: color-mix(in srgb, var(--intro-bg-3) 80%, transparent);
           border: 1px solid var(--intro-stroke-2);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
           font-family: 'Manrope', sans-serif;
-          font-size: 12.5px;
+          font-size: 13px;
           font-weight: 700;
-          color: var(--intro-ink);
           opacity: 0;
           box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
-          transform: translate(-50%, -50%);
-          animation: intro-chip-in 0.7s var(--intro-ease) forwards;
+          animation: intro-chip-in 0.6s var(--intro-ease) forwards;
         }
         .intro-chip .intro-chip-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
+          background: currentColor;
           box-shadow: 0 0 12px currentColor;
         }
+        .intro-chip .intro-chip-label {
+          color: var(--intro-ink);
+        }
         @keyframes intro-chip-in {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6) translateY(20px); }
-          100% { opacity: 1; transform: translate(-50%, -50%) scale(1) translateY(0); }
+          0% { opacity: 0; transform: translateY(22px) scale(0.7); }
+          100% { opacity: 1; transform: none; }
         }
 
         /* Bouton skip — bas droite */
@@ -452,11 +483,13 @@ export default function IntroOverlay() {
           to { transform: scaleX(1); }
         }
 
-        /* Mobile : on resserre les marges des controles bas */
+        /* Mobile : on resserre les marges des controles bas + chips compactes */
         @media (max-width: 640px) {
           .intro-skip { bottom: 20px; right: 16px; padding: 8px 12px; font-size: 12px; }
           .intro-prog { bottom: 22px; left: 16px; }
           .intro-prog .intro-prog-bar { width: 90px; }
+          .intro-chip { padding: 8px 11px; font-size: 11.5px; }
+          .intro-chips { gap: 8px; margin-top: 22px; }
         }
       `}</style>
 
@@ -472,40 +505,40 @@ export default function IntroOverlay() {
         {/* Grille subtile de fond */}
         <div className="intro-grid-bg" aria-hidden="true" />
 
-        {/* Chips en orbite (5 produits) */}
-        <div className="intro-chips" aria-hidden="true">
-          {CHIPS.map((chip) => (
-            <span
-              key={chip.label}
-              className="intro-chip"
-              style={{
-                left: chip.x,
-                top: chip.y,
-                // Delai = 2500ms (chips) + stagger propre a chaque chip.
-                animationDelay: `${2.5 + chip.delay}s`,
-              }}
-            >
-              <span className="intro-chip-dot" style={{ color: chip.color }} aria-hidden="true" />
-              {chip.label}
-            </span>
-          ))}
-        </div>
-
-        {/* Coeur central : spark + logo image (next/image -> WebP/AVIF auto) + tagline */}
+        {/* Coeur central : spark + logo (entree floue -> nette + eclat) + tagline + chips */}
         <div className="intro-core">
           <div className="intro-spark" aria-hidden="true" />
-          <Image
-            src="/images/logo-nexartis-light-v3.svg"
-            alt="Nexartis"
-            className="intro-logo"
-            width={1600}
-            height={800}
-            priority
-            unoptimized
-          />
+          <div className="intro-logowrap">
+            <Image
+              src="/images/logo-nexartis-light-v3.svg"
+              alt="Nexartis"
+              className="intro-logo"
+              width={1600}
+              height={800}
+              priority
+              unoptimized
+            />
+            <div className="intro-shine" aria-hidden="true" />
+          </div>
           <p className="intro-tag">
-            Tous vos outils artisan. <b>Un seul prix.</b>
+            L&rsquo;outil de gestion <b>pens&eacute; pour tous les artisans.</b>
           </p>
+          {/* Chips produits — barre alignee, stagger 120ms a partir de 2500ms */}
+          <div className="intro-chips" aria-hidden="true">
+            {CHIPS.map((chip) => (
+              <span
+                key={chip.label}
+                className="intro-chip"
+                style={{
+                  color: chip.color,
+                  animationDelay: `${2.5 + chip.delay}s`,
+                }}
+              >
+                <span className="intro-chip-dot" aria-hidden="true" />
+                <span className="intro-chip-label">{chip.label}</span>
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Barre de progression (bas gauche) */}

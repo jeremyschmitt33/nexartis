@@ -108,7 +108,7 @@ export default function HeroOrbital() {
           >
             Tous vos outils artisan.
             <br />
-            <span className="landing-text-grad">Un seul prix.</span>{' '}
+            <span className="landing-text-grad">Une seule appli.</span>{' '}
             <span className="text-accent-2 font-spline-mono tracking-tight whitespace-nowrap">
               Dès 15€/mois.
             </span>

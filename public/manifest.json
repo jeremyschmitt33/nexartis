@@ -1,7 +1,7 @@
 {
   "name": "Nexartis — Logiciel artisan",
   "short_name": "Nexartis",
-  "description": "Devis, factures, planning chantier pour artisans du BTP. Tous vos outils. Un seul prix.",
+  "description": "Devis, factures, planning chantier pour artisans du BTP. L'outil de gestion pensé pour tous les artisans.",
   "start_url": "/?utm_source=pwa",
   "scope": "/",
   "display": "standalone",
