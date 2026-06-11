@@ -107,7 +107,7 @@ export function mapFactureToFacturX(facture: FactureData): MappingResult {
     group.basis = round2(group.basis + base)
     vatMap.set(key, group)
   }
-  const vatGroups = [...vatMap.values()].map((g) => ({ ...g, tax: round2((g.basis * g.rate) / 100) }))
+  const vatGroups = Array.from(vatMap.values()).map((g) => ({ ...g, tax: round2((g.basis * g.rate) / 100) }))
 
   const lineTotalHt = round2(vatGroups.reduce((sum, g) => sum + g.basis, 0))
   const taxTotal = round2(vatGroups.reduce((sum, g) => sum + g.tax, 0))
