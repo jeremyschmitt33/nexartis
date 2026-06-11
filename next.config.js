@@ -2,6 +2,27 @@
 const nextConfig = {
   poweredByHeader: false,
 
+  // Factur-X : node-zugferd fait un `await import("xsd-schema-validator")` vers une
+  // dependance OPTIONNELLE (validateur Java) non installee. Webpack tente de la
+  // resoudre au build et echoue ("Module not found"). On externalise donc le
+  // paquet : Next le `require()` au runtime au lieu de le bundler. Comme on utilise
+  // node-zugferd en mode `strict:false`, ce validateur n'est JAMAIS appele a
+  // l'execution -> aucun probleme runtime, et le build passe.
+  experimental: {
+    serverComponentsExternalPackages: ['node-zugferd'],
+  },
+
+  // Securite n2 (independante) : si malgre tout webpack tente de bundler ce
+  // validateur Java optionnel, on le resout vers un module vide ("false")
+  // au lieu d'echouer avec "Module not found". Jamais execute (strict:false).
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'xsd-schema-validator': false,
+    }
+    return config
+  },
+
   // V5 fix build : éviter qu'un warning ESLint bloque le déploiement Vercel.
   // Les vérifications tsc tournent toujours en local (`npx tsc --noEmit`),
   // les règles ESLint ne sont qu'indicatives pour ce projet.
