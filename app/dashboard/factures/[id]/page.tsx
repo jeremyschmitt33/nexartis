@@ -17,6 +17,8 @@ import {
   Mail,
   X,
   Pencil,
+  FileCheck2,
+  Loader2,
 } from 'lucide-react'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
@@ -153,6 +155,7 @@ export default function FactureDetailPage() {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [downloadingFx, setDownloadingFx] = useState(false)
 
   // V3.0d : telechargement PDF cross-platform via helper lib/download-pdf.ts.
   //   - iOS Safari : ouvre dans nouvel onglet + toast d'aide (Partager -> Fichiers).
@@ -179,6 +182,33 @@ export default function FactureDetailPage() {
       setTimeout(() => setToastMsg(null), 4000)
     } finally {
       setDownloading(false)
+    }
+  }
+
+  // Factur-X : telechargement du PDF/A-3 hybride (PDF visuel identique + XML EN 16931).
+  // Route ISOLEE /api/download-facture-x : ne modifie pas le telechargement PDF classique.
+  async function handleDownloadFacturX() {
+    if (!facture || downloadingFx) return
+    setDownloadingFx(true)
+    setToastMsg('Génération du Factur-X...')
+    try {
+      const result = await fetchAndDownloadPdf(
+        '/api/download-facture-x',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ factureId: facture.id }),
+        },
+        `Facture-${facture.numero}-facturx.pdf`,
+      )
+      setToastMsg(result.helpMessage)
+      setTimeout(() => setToastMsg(null), result.openedInNewTab ? 6000 : 2500)
+    } catch (err) {
+      console.error('Download facture-x error:', err)
+      setToastMsg('Échec de la génération Factur-X. Vous pouvez utiliser « Télécharger PDF ».')
+      setTimeout(() => setToastMsg(null), 4000)
+    } finally {
+      setDownloadingFx(false)
     }
   }
 
@@ -479,6 +509,21 @@ export default function FactureDetailPage() {
             className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all disabled:opacity-50"
           >
             <Download size={14} /> {downloading ? 'Téléchargement...' : 'Télécharger PDF'}
+          </button>
+          {/* V2 Factur-X (brainstorm 3 agents) : libelle humain "Facture electronique"
+              (les artisans ne connaissent pas "Factur-X"), icone distincte FileCheck2
+              (conformite, pas un 2e "Download"), aria-label + infobulle rassurante,
+              focus visible. Le bouton "Telecharger PDF" reste inchange. */}
+          <button
+            onClick={handleDownloadFacturX}
+            disabled={downloadingFx}
+            aria-busy={downloadingFx}
+            aria-label="Télécharger la facture électronique Factur-X : même facture, avec les données structurées conformes à la réforme 2026"
+            title="Même facture, au format électronique exigé par la réforme 2026 — à transmettre à votre comptable ou à un logiciel de comptabilité."
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2"
+          >
+            {downloadingFx ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
+            {downloadingFx ? 'Génération...' : 'Facture électronique'}
           </button>
           {/* CTA primaire orange : envoyer par email */}
           <button
