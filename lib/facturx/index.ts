@@ -15,10 +15,12 @@
 import type { FactureData } from '../pdf'
 import { invoicer } from './invoicer'
 import { mapFactureToFacturX, type MappingResult } from './mapping'
+import { packagePdfA3 } from './pdfa3'
 
 export { mapFactureToFacturX } from './mapping'
 export type { MappingResult } from './mapping'
 export { unitCode } from './units'
+export { packagePdfA3 } from './pdfa3'
 
 /**
  * Genere le XML Factur-X (Cross Industry Invoice, profil EN 16931) d'une facture.
@@ -45,12 +47,13 @@ export async function embarquerFacturX(
   facture: FactureData,
   options?: { titre?: string },
 ): Promise<Buffer> {
-  const { data } = mapFactureToFacturX(facture)
-  const invoice = invoicer.create(data)
-  const result = await invoice.embedInPdf(pdf as Buffer, {
-    metadata: { title: options?.titre || `Facture ${facture.numero}` },
+  // 1. XML Factur-X (EN 16931) via node-zugferd (genere + mappe).
+  const xml = await genererFacturXml(facture)
+  // 2. Conteneur PDF/A-3b via notre packager pdf-lib (conforme veraPDF).
+  return packagePdfA3(pdf, xml, {
+    title: options?.titre || `Facture ${facture.numero}`,
+    numero: facture.numero,
   })
-  return Buffer.from(result)
 }
 
 /** Re-export pratique du recapitulatif de totaux recalcules (audit de reconciliation). */

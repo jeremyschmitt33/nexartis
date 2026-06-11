@@ -64,6 +64,29 @@ Résultat sur les **4 scénarios** (B2B, B2C, autoliquidation, franchise), via l
 
 > Note : le validateur applique par défaut la surcouche allemande **XRechnung** (règles `BR-DE-*`, `PEPPOL-*`). Ces règles **ne concernent pas** le Factur-X français et sont hors périmètre. Notre identifiant `urn:cen.eu:en16931:2017` est la valeur correcte pour la France.
 
+## 7 bis. Conformité PDF/A-3 : RÉSOLUE (packager pdf-lib maison)
+
+Premier test veraPDF : le PDF hybride produit par `node-zugferd.embedInPdf()` était **non conforme PDF/A-3** (node-zugferd suppose un PDF d'entrée déjà PDF/A ; jsPDF ne produit pas du PDF/A → ni OutputIntent, ni XMP pdfaid, etc.).
+
+**Solution retenue** : un **packager PDF/A-3b maison en pdf-lib pur** (`lib/facturx/pdfa3.ts`), 100% JS donc compatible Vercel (aucun Ghostscript/Java au runtime). node-zugferd ne sert plus qu'à **générer le XML** (déjà prouvé) ; le conteneur PDF/A-3 est construit par notre code, qui ajoute :
+
+- la pièce jointe `factur-x.xml` (AFRelationship « Alternative ») ;
+- un **OutputIntent** avec profil **ICC sRGB embarqué** (`lib/facturx/srgb-icc.ts`) ;
+- les métadonnées **XMP** : `pdfaid:part=3` / `conformance=B` + le **schéma d'extension Factur-X** ;
+- le `/ID` du trailer + une table xref classique (pas de flux xref).
+
+**Résultat validé** (validateur Mustangproject embarquant veraPDF), sur le **code de production réel** :
+
+- PDF/A-3 : **`flavour=3b`, `isCompliant=true`** ✓ (0 assertion en échec)
+- XML EN 16931 : **valide** ✓
+- Global : **`valid`** ✓
+
+**Dernier point à vérifier** : ce test utilise un PDF source à polices embarquées (façon jsPDF). Il reste à valider une fois sur la **vraie** sortie `generateFacturePdf` (avec logo/tampon réels) — c'est la dernière vérification avant exposition aux utilisateurs.
+
+## 7 ter. Refactor anti-divergence (fait, local)
+
+Pour garantir que le PDF de téléchargement classique et le PDF Factur-X partent des **mêmes données** (règle : dashboard / PDF identiques), l'assemblage `FactureData` a été extrait dans `lib/facturx/build-facture-data.ts`, utilisé par `/api/download-facture` (refactorisé, comportement identique) et par la future route Factur-X. Le visuel reste `generateFacturePdf`, inchangé. Vérifié : typecheck verbatim 0 erreur.
+
 ## 8. Prochaines étapes (non faites aujourd'hui)
 
 1. **Validation PDF/A-3 finale avec veraPDF** sur la **vraie** sortie jsPDF de Nexartis. La conformité PDF/A-3 dépend du PDF source (polices entièrement embarquées, profil colorimétrique, OutputIntent). C'est le **point de vigilance n°1** avant branchement : il faudra passer le PDF jsPDF → `embarquerFacturX` au crible de veraPDF et corriger les écarts éventuels.
