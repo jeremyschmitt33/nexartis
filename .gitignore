@@ -48,3 +48,17 @@ SPECS_FEATURE_CONTACT.md
 post-facebook-textes.md
 veille-concurrentielle-2026-05-28.md
 components/parametres/DocumentMockup.tsx.new
+
+# Scripts one-shot et outils de session Cowork (jamais versionnes)
+push-*.bat
+diagnostic-*.bat
+nettoyage-*.bat
+mockup-*.html
+_archives/
+
+# Docs de travail internes (gardes en local, jamais versionnes)
+ARGUMENTAIRE_MARKETING.md
+AUDIT_SITE_2026-06-11.md
+DESIGN_SYSTEM_V4.md
+HANDOFF_BANDEAU_DESIGN.md
+STRATEGIE_PRICING_2_OFFRES.md
