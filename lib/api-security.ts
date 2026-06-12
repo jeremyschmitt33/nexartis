@@ -29,22 +29,16 @@ export async function getAuthenticatedUser() {
 // ADMIN — Vérifie que l'utilisateur est un administrateur
 // ======================================================================
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'admin@nexartis.fr').split(',').map(e => e.trim().toLowerCase())
-
 /**
  * Vérifie que l'utilisateur connecté est un admin.
- * Utilise une variable d'environnement ADMIN_EMAILS (liste séparée par virgules).
+ * SÉCURITÉ (R1-004) : autorisation basée UNIQUEMENT sur le rôle stocké dans
+ * app_metadata (écrit côté serveur/DB, non modifiable par l'utilisateur).
  */
 export async function getAdminUser() {
   const user = await getAuthenticatedUser()
-  if (!user?.email) return null
-  // SÉCURITÉ (R1-004) : on se base d'abord sur le rôle stocké dans app_metadata
-  // (non modifiable par l'utilisateur, car écrit uniquement côté serveur/DB).
-  // L'email reste un filet de sécurité transitoire, à retirer une fois le rôle
-  // validé en production.
+  if (!user) return null
   const isAdminByRole = (user.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
-  const isAdminByEmail = ADMIN_EMAILS.includes(user.email.toLowerCase())
-  return (isAdminByRole || isAdminByEmail) ? user : null
+  return isAdminByRole ? user : null
 }
 
 // ======================================================================

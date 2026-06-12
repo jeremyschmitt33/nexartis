@@ -110,11 +110,9 @@ export async function updateSession(request: NextRequest) {
   // EXCEPTION : la page /dashboard/abonnement n'est JAMAIS bloquee, sinon
   // un utilisateur expire ne pourrait jamais se reabonner.
   // Idem pour l'admin qui ne paye pas.
-  const ADMIN_EMAIL = 'admin@nexartis.fr'
   const isAbonnementPage = pathname.startsWith('/dashboard/abonnement')
-  // SÉCURITÉ (R1-004) : rôle app_metadata prioritaire, email en filet transitoire.
+  // SÉCURITÉ (R1-004) : accès admin basé UNIQUEMENT sur le rôle app_metadata.
   const isAdminUser = (user?.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
-    || user?.email?.toLowerCase() === ADMIN_EMAIL
 
   if (user && isDashboardRoute && !isAbonnementPage && !isAdminUser) {
     const TRIAL_DAYS = 14

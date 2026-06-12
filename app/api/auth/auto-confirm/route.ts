@@ -33,12 +33,10 @@ export async function POST(request: NextRequest) {
       if (!user) {
         return unauthorizedError()
       }
-      // Vérifier que c'est un admin — SÉCURITÉ (R1-004) : rôle app_metadata
-      // prioritaire, email en filet de sécurité transitoire.
-      const adminEmails = (process.env.ADMIN_EMAILS || 'admin@nexartis.fr').split(',').map(e => e.trim().toLowerCase())
+      // Vérifier que c'est un admin — SÉCURITÉ (R1-004) : autorisation basée
+      // UNIQUEMENT sur le rôle app_metadata.
       const isAdminByRole = (user.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
-      const isAdminByEmail = !!user.email && adminEmails.includes(user.email.toLowerCase())
-      if (!isAdminByRole && !isAdminByEmail) {
+      if (!isAdminByRole) {
         return secureError('Accès refusé', 403)
       }
     }
