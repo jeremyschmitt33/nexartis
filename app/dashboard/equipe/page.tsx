@@ -28,6 +28,9 @@ import {
   PremiumButton,
 } from '@/components/ui/v4'
 import { toast } from '@/lib/toast'
+// Section « Comptes & accès » (feature multi-utilisateur, Push 1).
+// Composant autonome isolé pour ne pas alourdir ce fichier déjà volumineux.
+import ComptesAccesSection from '@/components/dashboard/ComptesAccesSection'
 
 // -------------------------------------------------------------------
 // Types
@@ -499,6 +502,12 @@ export default function EquipePage() {
 
   return (
     <div className="space-y-6">
+      {/* ============ Comptes & accès (multi-utilisateur, Push 1) ============ */}
+      {/* Bloc autonome : liste des comptes pouvant se connecter à l'espace,
+          invitation/révocation pour le dirigeant. Distinct de la gestion RH
+          des intervenants ci-dessous (fiches métier, contrats, planning). */}
+      <ComptesAccesSection />
+
       {/* ============ Header de page — V4 ============ */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="font-hanken font-extrabold text-3xl text-[#0f1a3a] tracking-[-0.025em] leading-tight">

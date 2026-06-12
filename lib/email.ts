@@ -810,6 +810,101 @@ export async function sendRelanceJ30(
 }
 
 // -------------------------------------------------------------------
+// 6ter. Invitation d'un membre d'équipe (multi-utilisateur — Phase 2b)
+// -------------------------------------------------------------------
+// Envoyé par POST /api/equipe/inviter quand un dirigeant invite un
+// collaborateur (commercial ou ouvrier) à rejoindre son entreprise.
+// Le bouton pointe vers la page d'activation publique (création du
+// mot de passe). Le lien expire au bout de 7 jours.
+// -------------------------------------------------------------------
+
+interface InvitationEmailParams {
+  to: string
+  entrepriseNom: string
+  /** Libellé humain du rôle (déjà résolu via ROLE_LABELS côté route). */
+  role: string
+  /** URL absolue d'activation (ex : https://nexartis.fr/auth/invitation/<token>). */
+  inviteUrl: string
+  /** Nom de la personne qui invite (facultatif). */
+  inviterName?: string
+  /** Date d'expiration de l'invitation (ISO ou Date). */
+  expiresAt: string | Date
+}
+
+export async function sendInvitationEmail(params: InvitationEmailParams) {
+  const { to, entrepriseNom, role, inviteUrl, inviterName, expiresAt } = params
+  // Échappement HTML (anti-injection / anti-phishing) : entrepriseNom et
+  // inviterName sont saisis par l'utilisateur → on ne les injecte JAMAIS bruts
+  // dans le HTML de l'email. role vient de ROLE_LABELS (déjà sûr) mais on
+  // l'échappe aussi par principe de défense en profondeur.
+  const escapeHtml = (s: string) =>
+    String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  const entNom = entrepriseNom || 'votre entreprise' // brut : sujet + nom d'expéditeur (texte simple, pas HTML)
+  const entNomSafe = escapeHtml(entNom) // pour le corps HTML
+  const roleSafe = escapeHtml(role)
+  const expiresFmt = new Date(expiresAt).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  })
+  const invitedByLine = inviterName
+    ? `<strong>${escapeHtml(inviterName)}</strong> vous invite à rejoindre`
+    : `Vous êtes invité(e) à rejoindre`
+
+  const body = `
+    <h2 style="margin:0 0 16px;font-size:24px;color:#0f1a3a;font-weight:800;letter-spacing:-0.01em;line-height:1.25;">Vous êtes invité(e) sur Nexartis</h2>
+
+    <p style="font-size:15px;color:#475569;line-height:1.75;margin:0 0 14px;">
+      Bonjour,
+    </p>
+
+    <p style="font-size:15px;color:#475569;line-height:1.75;margin:0 0 14px;">
+      ${invitedByLine} l'espace de travail de <strong>${entNomSafe}</strong> sur Nexartis,
+      l'outil de gestion pensé pour les artisans.
+    </p>
+
+    <!-- Encart rôle -->
+    <div style="background:#fff8f0;border:1px solid #f5c8a0;border-left:4px solid #e87a2a;border-radius:8px;padding:16px 20px;margin:22px 0;">
+      <p style="margin:0 0 4px;font-size:12px;color:#9a3412;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Votre accès</p>
+      <p style="margin:0;font-size:16px;color:#0f1a3a;font-weight:700;line-height:1.4;">${roleSafe}</p>
+    </div>
+
+    <p style="font-size:15px;color:#475569;line-height:1.75;margin:0 0 8px;">
+      Pour activer votre compte, cliquez sur le bouton ci-dessous et choisissez votre mot de passe.
+    </p>
+
+    ${btn('Activer mon compte', inviteUrl)}
+
+    <!-- Lien de secours en clair : certains clients mail (mobile, pro) bloquent
+         les boutons. On donne le lien copiable-collable. inviteUrl est généré
+         côté serveur (UUID), pas une saisie utilisateur → href brut sûr. -->
+    <p style="font-size:13px;color:#64748b;line-height:1.7;margin:4px 0 0;word-break:break-all;">
+      Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :<br/>
+      <a href="${inviteUrl}" style="color:#2563eb;text-decoration:underline;">${escapeHtml(inviteUrl)}</a>
+    </p>
+
+    <p style="font-size:13px;color:#94a3b8;line-height:1.7;margin:20px 0 0;">
+      Cette invitation expire le <strong>${expiresFmt}</strong>.<br/>
+      Si vous n'êtes pas concerné(e) par cette invitation, vous pouvez ignorer cet email.
+    </p>`
+
+  return sendEmail({
+    to: { email: to, name: to },
+    // L'employé voit « [Entreprise] via Nexartis » comme expéditeur → confiance
+    // accrue, moins de risque spam (P0-6).
+    senderName: `${entNom} via Nexartis`,
+    subject: `Invitation à rejoindre ${entNom} sur Nexartis`,
+    html: layout(body, {
+      entrepriseNom: 'Nexartis',
+      logoUrl: 'https://nexartis.fr/images/logo-nexartis.png',
+    }),
+  })
+}
+
+// -------------------------------------------------------------------
 // 7. Alerte admin : nouvelle inscription
 // -------------------------------------------------------------------
 
