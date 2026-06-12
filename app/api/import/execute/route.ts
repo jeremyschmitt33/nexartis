@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { DataCategory } from '@/lib/import/mappers'
+import { checkRateLimit, rateLimitError } from '@/lib/api-security'
 
 interface ImportedRow {
   [key: string]: unknown
@@ -186,6 +187,100 @@ const BATCH_SIZE = 500
 // directe. Doit rester aligné avec lib/hooks.tsx > TABLES_WITHOUT_USER_ID.
 const TABLES_WITHOUT_USER_ID = new Set(['devis_lignes', 'facture_lignes', 'paiements'])
 
+// ═══════════════════════════════════════════════════════════════════
+// ALLOWLIST DE COLONNES (R1-007) — defense contre l'injection de colonnes
+// ═══════════════════════════════════════════════════════════════════
+// Avant cette protection, resolveFK faisait `{ ...row, user_id }` puis on
+// inserait tel quel : un attaquant authentifie pouvait glisser des colonnes
+// non mappees dans son fichier importe (ex: deleted_at, created_at, un statut
+// de paiement antidatete) et corrompre ses propres donnees comptables.
+//
+// L'allowlist ci-dessous = EXACTEMENT les `targetField` definis dans
+// lib/import/mappers.ts pour chaque categorie (union des 6 sources :
+// obat, obat_comptable, tolteck, batappli, henrri, excel), PLUS les colonnes
+// de cle etrangere resolues par resolveFK (client_id, chantier_id, devis_id,
+// prestation_id, intervenant_id, fournisseur_id) et user_id.
+//
+// ⚠ CONSERVATEUR : en cas de doute on garde la colonne. L'objectif est de
+// bloquer les colonnes clairement interdites (deleted_at, created_at,
+// updated_at, id, signature_token, stripe_*, abonnement_*, etc.), pas de
+// casser un import legitime. Si on ajoute un nouveau mapping dans mappers.ts,
+// il faut ajouter le targetField correspondant ici.
+const IMPORT_COLUMN_ALLOWLIST: Record<string, Set<string>> = {
+  clients: new Set([
+    'user_id',
+    'adresse', 'code_postal', 'email', 'nom', 'notes_internes',
+    'prenom', 'raison_sociale', 'siret', 'telephone', 'ville',
+  ]),
+  devis: new Set([
+    'user_id', 'client_id', 'chantier_id',
+    'acompte_pourcentage', 'conditions_paiement', 'date_emission',
+    'date_validite', 'montant_ht', 'montant_ttc', 'montant_tva',
+    'numero', 'objet', 'statut',
+  ]),
+  factures: new Set([
+    'user_id', 'client_id', 'chantier_id',
+    'date_echeance', 'date_emission', 'date_paiement', 'montant_ht',
+    'montant_paye', 'montant_ttc', 'montant_tva', 'numero', 'statut', 'type',
+  ]),
+  devis_lignes: new Set([
+    'devis_id', 'prestation_id',
+    'designation', 'montant_ht', 'ordre', 'prix_unitaire_ht',
+    'quantite', 'taux_tva', 'unite',
+  ]),
+  facture_lignes: new Set([
+    'facture_id',
+    'designation', 'montant_ht', 'ordre', 'prix_unitaire_ht',
+    'quantite', 'taux_tva', 'unite',
+  ]),
+  chantiers: new Set([
+    'user_id', 'client_id',
+    'adresse_chantier', 'code_postal_chantier', 'date_debut',
+    'date_fin_prevue', 'description', 'notes', 'statut', 'titre',
+    'ville_chantier',
+  ]),
+  prestations: new Set([
+    'user_id',
+    'categorie', 'designation', 'prix_unitaire_ht', 'taux_tva', 'unite',
+  ]),
+  fournisseurs: new Set([
+    'user_id',
+    'adresse', 'code_postal', 'contact', 'email', 'nom', 'notes',
+    'siret', 'telephone', 'ville',
+  ]),
+  intervenants: new Set([
+    'user_id',
+    'email', 'metier', 'nom', 'prenom', 'taux_horaire', 'telephone',
+    'type_contrat',
+  ]),
+  planning: new Set([
+    'user_id', 'chantier_id', 'intervenant_id', 'client_id',
+    'creneau', 'date_debut', 'date_fin', 'description_travaux',
+    'heure_debut', 'heure_fin', 'notes', 'statut', 'titre',
+  ]),
+  paiements: new Set([
+    'facture_id',
+    'date_paiement', 'methode', 'montant', 'reference',
+  ]),
+  achats: new Set([
+    'user_id', 'chantier_id', 'fournisseur_id',
+    'date_achat', 'description', 'montant_ht', 'montant_ttc', 'taux_tva',
+  ]),
+}
+
+// Filtre une row pour ne garder QUE les colonnes autorisees de la categorie.
+// Si la categorie est inconnue de l'allowlist (ne devrait pas arriver), on
+// retourne la row inchangee (comportement conservateur, pas de casse).
+function applyColumnAllowlist(table: string, row: ImportedRow): ImportedRow {
+  const allowed = IMPORT_COLUMN_ALLOWLIST[table]
+  if (!allowed) return row
+  const filtered: ImportedRow = {}
+  for (const key of Object.keys(row)) {
+    if (allowed.has(key)) filtered[key] = row[key]
+  }
+  return filtered
+}
+
 function resolveFK(
   table: string,
   row: ImportedRow,
@@ -265,7 +360,10 @@ function resolveFK(
     delete insertData.facture_numero
   }
 
-  return insertData
+  // ✅ SÉCURITÉ (R1-007) : ne conserver que les colonnes autorisees pour cette
+  // categorie (cf. IMPORT_COLUMN_ALLOWLIST), apres resolution des FK. Bloque
+  // l'injection de colonnes non mappees (deleted_at, created_at, id, etc.).
+  return applyColumnAllowlist(table, insertData)
 }
 
 function naturalKey(row: ImportedRow): string {
@@ -450,6 +548,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    // ✅ SÉCURITÉ (R1-007) : rate-limit (5 imports / 60s par utilisateur)
+    // pour empecher les imports massifs en boucle (charge DB / DoS partiel).
+    if (!checkRateLimit(`import-execute:${user.id}`, 5, 60_000)) {
+      return rateLimitError()
     }
 
     // ✅ SÉCURITÉ : Limite de taille du body JSON (10 MB max)

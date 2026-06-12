@@ -32,9 +32,16 @@ export async function POST(req: NextRequest) {
     if (!isValidUUID(devisId)) return secureError('ID de devis invalide')
     if (!isValidEmail(emailDestinataire)) return secureError('Email invalide')
 
+    // ✅ SÉCURITÉ (R1-010) : fail-fast si la clé service_role est absente.
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      console.error('send-devis: SUPABASE_SERVICE_ROLE_KEY absente')
+      return secureError('Configuration serveur invalide', 500)
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      serviceRoleKey,
     )
 
     // ✅ SÉCURITÉ : Vérifier que le devis appartient à l'utilisateur connecté
@@ -210,7 +217,16 @@ ${dateValidite ? `<p style="font-size:13px;color:#e87a2a;margin:0 0 16px;">Ce de
       return NextResponse.json({ error: brevoErr.message || 'Erreur envoi Brevo' }, { status: 500 })
     }
 
-    await supabase.from('devis').update({ statut: 'envoye', date_envoi: new Date().toISOString() }).eq('id', devisId)
+    // ✅ SÉCURITÉ (R1-003) : a chaque envoi, (re)definir l'expiration du lien
+    // de signature a +30 jours et reouvrir la fenetre (used_at = null) au cas
+    // ou le devis aurait deja ete signe puis renvoye.
+    const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000
+    await supabase.from('devis').update({
+      statut: 'envoye',
+      date_envoi: new Date().toISOString(),
+      signature_token_expire_at: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
+      signature_token_used_at: null,
+    }).eq('id', devisId)
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
 import {
   getAdminUser, getClientIp, checkRateLimit, isValidUUID,
   secureJson, secureError, rateLimitError, forbiddenError,
@@ -25,7 +24,11 @@ export async function GET() {
 
   // 1. Source de vérité : TOUS les comptes auth Supabase
   const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers()
-  if (authError) return NextResponse.json({ error: authError.message }, { status: 500 })
+  // ✅ SÉCURITÉ (R1-009) : log serveur detaille, reponse generique au client.
+  if (authError) {
+    console.error('[admin/users GET] listUsers error:', authError.message)
+    return secureError('Erreur serveur', 500)
+  }
 
   // 2. Récupérer les données entreprises pour enrichir
   const { data: entreprises } = await supabaseAdmin
@@ -136,7 +139,11 @@ export async function PATCH(request: Request) {
     .update(updates)
     .eq('id', entreprise_id)
 
-  if (error) return secureError(error.message, 500)
+  // ✅ SÉCURITÉ (R1-009) : log serveur detaille, reponse generique au client.
+  if (error) {
+    console.error('[admin/users PATCH] update entreprise error:', error.message)
+    return secureError('Erreur serveur', 500)
+  }
 
   // V3.0c.18 / V3.0c.20 : mail automatique selon le contexte
   // - Geste commercial (+1 / +3 mois) → sendGesteCommercialEmail
@@ -250,10 +257,11 @@ export async function DELETE(request: Request) {
   // 2. Supprimer le compte auth Supabase
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
   if (authError) {
-    console.error('Auth delete error:', authError)
-    // Retourner le vrai message d'erreur + les erreurs des tables pour debug
+    // ✅ SÉCURITÉ (R1-009) : detail des erreurs uniquement cote serveur,
+    // reponse generique au client (ne pas exposer noms de tables/contraintes).
     const details = [authError.message, ...errors].filter(Boolean).join(' | ')
-    return secureError(`Suppression échouée : ${details}`, 500)
+    console.error('[admin/users DELETE] auth delete error:', details)
+    return secureError('Suppression échouée', 500)
   }
 
   return secureJson({ success: true, cleanedTables: tablesToClean.length })

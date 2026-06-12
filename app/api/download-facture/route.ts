@@ -27,9 +27,18 @@ export async function POST(req: NextRequest) {
     // ✅ SÉCURITÉ : Valider l'input
     if (!isValidUUID(factureId)) return secureError('ID de facture invalide')
 
+    // ✅ SÉCURITÉ (R1-010) : fail-fast si la clé service_role est absente,
+    // au lieu d'un fallback silencieux sur la clé anon (qui dégrade en
+    // silence le comportement de la route).
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      console.error('download-facture: SUPABASE_SERVICE_ROLE_KEY absente')
+      return secureError('Configuration serveur invalide', 500)
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      serviceRoleKey,
     )
 
     // ✅ SÉCURITÉ : Vérifier que la facture appartient à l'utilisateur connecté
@@ -45,7 +54,9 @@ export async function POST(req: NextRequest) {
     // Return the base64 PDF
     return NextResponse.json({ pdfBase64, filename: `Facture-${facture.numero}.pdf` })
   } catch (error) {
+    // ✅ SÉCURITÉ (R1-009) : log serveur detaille, reponse generique au client
+    // (ne pas exposer error.message brut de Postgres/Supabase).
     console.error('Download facture error:', error)
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 })
+    return secureError('Erreur serveur', 500)
   }
 }

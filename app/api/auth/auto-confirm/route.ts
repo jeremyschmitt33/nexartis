@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
-  isValidUUID,
+  isValidUUID, isValidEmail, sanitizeString,
   secureJson, secureError, rateLimitError, unauthorizedError,
 } from '@/lib/api-security'
 
@@ -49,6 +49,29 @@ export async function POST(request: NextRequest) {
       return secureError('user_id invalide')
     }
 
+    // ✅ SÉCURITÉ (R1-002) : Valider strictement les inputs attaquant-contrôlés
+    // avant toute insertion dans la table entreprises.
+    if (email !== undefined && email !== null && email !== '') {
+      if (typeof email !== 'string' || !isValidEmail(email)) {
+        return secureError('email invalide')
+      }
+    }
+    if (entreprise !== undefined && entreprise !== null && entreprise !== '') {
+      if (typeof entreprise !== 'string' || entreprise.length > 200) {
+        return secureError('entreprise invalide')
+      }
+    }
+    if (prenom !== undefined && prenom !== null && prenom !== '') {
+      if (typeof prenom !== 'string' || prenom.length > 100) {
+        return secureError('prenom invalide')
+      }
+    }
+    if (nom !== undefined && nom !== null && nom !== '') {
+      if (typeof nom !== 'string' || nom.length > 100) {
+        return secureError('nom invalide')
+      }
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -73,11 +96,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!existing) {
+      // ✅ SÉCURITÉ (R1-002) : nettoyer les champs texte avant insertion
       const { error: insertError } = await supabaseAdmin.from('entreprises').insert({
         user_id,
-        email: email || '',
-        nom: entreprise || '',
-        prenom: prenom || '',
+        email: email ? sanitizeString(email, 320) : '',
+        nom: entreprise ? sanitizeString(entreprise, 200) : '',
+        prenom: prenom ? sanitizeString(prenom, 100) : '',
         metier: '',
         abonnement_type: 'trial',
         trial_started_at: new Date().toISOString(),

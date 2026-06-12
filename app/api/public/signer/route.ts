@@ -39,6 +39,12 @@ export async function POST(req: NextRequest) {
       return secureError('Nom invalide')
     }
 
+    // ✅ SÉCURITÉ (R1-005) : le signataire est un utilisateur public non
+    // authentifié. On échappe son nom (< > " ' &) AVANT toute interpolation HTML
+    // (email artisan + subject) ET avant stockage DB, pour empêcher l'injection
+    // HTML/phishing dans l'email reçu par l'artisan et un XSS stocké côté dashboard/PDF.
+    const safeSignedBy = sanitizeString(signedBy.trim(), 200)
+
     if (!mode || !['draw', 'approve'].includes(mode)) {
       return secureError('Mode de signature invalide')
     }
@@ -61,13 +67,28 @@ export async function POST(req: NextRequest) {
     // 1. Chercher le devis par token
     const { data: devis, error: devisErr } = await supabase
       .from('devis')
-      .select('id, numero, statut, user_id, client_id, montant_ttc, objet')
+      .select('id, numero, statut, user_id, client_id, montant_ttc, objet, signature_token_expire_at, signature_token_used_at')
       .eq('signature_token', token)
       .single()
 
     if (devisErr || !devis) {
       // ✅ SÉCURITÉ : Message générique pour ne pas révéler l'existence de devis
       return secureError('Lien invalide ou expiré', 404)
+    }
+
+    // ✅ SÉCURITÉ (R1-003) : refuser un lien expire (les anciens devis sans
+    // date d'expiration ne sont pas affectes).
+    if (
+      devis.signature_token_expire_at &&
+      new Date(devis.signature_token_expire_at).getTime() < Date.now()
+    ) {
+      return secureError('Lien invalide ou expiré', 410)
+    }
+
+    // ✅ SÉCURITÉ (R1-003) : usage unique — si le token a deja servi a signer,
+    // on refuse une nouvelle signature (re-signature / rejeu impossibles).
+    if (devis.signature_token_used_at) {
+      return secureError('Ce devis a déjà été signé')
     }
 
     // 2. Vérifier que le devis est signable
@@ -82,7 +103,12 @@ export async function POST(req: NextRequest) {
     const updateData: Record<string, unknown> = {
       statut: 'signe',
       date_signature: new Date().toISOString(),
-      signed_by: signedBy.trim(),
+      signed_by: safeSignedBy,
+      // ✅ SÉCURITÉ (R1-003) : marquer le token comme utilise (single-use).
+      // On NE met PAS signature_token = NULL : le dashboard et la page publique
+      // relisent le devis via ce token apres signature pour afficher la
+      // confirmation. used_at suffit a bloquer toute nouvelle signature.
+      signature_token_used_at: new Date().toISOString(),
     }
 
     if (mode === 'draw' && signatureBase64) {
@@ -90,7 +116,7 @@ export async function POST(req: NextRequest) {
     } else {
       // Mode "approve" — on stocke un marqueur texte
       updateData.client_signature_base64 = null
-      updateData.signed_by = `${signedBy.trim()} (approuvé électroniquement)`
+      updateData.signed_by = `${safeSignedBy} (approuvé électroniquement)`
     }
 
     const { error: updateErr } = await supabase
@@ -105,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Envoyer la notification email à l'artisan
     try {
-      await sendArtisanNotification(supabase, devis, signedBy.trim(), mode)
+      await sendArtisanNotification(supabase, devis, safeSignedBy, mode)
     } catch (notifErr) {
       // On ne bloque pas la signature si l'email échoue
       console.error('Notification email error:', notifErr)
@@ -145,6 +171,9 @@ async function sendArtisanNotification(
 
   const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
   const modeLabel = mode === 'draw' ? 'signature manuscrite' : 'approbation électronique'
+  // ✅ SÉCURITÉ (R1-005) : signedBy est déjà échappé en amont. On échappe aussi
+  // l'objet (défense en profondeur) avant interpolation dans le HTML de l'email.
+  const safeObjet = devis.objet ? sanitizeString(devis.objet, 500) : ''
 
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
 <div style="max-width:580px;margin:0 auto;padding:20px;">
@@ -157,7 +186,7 @@ async function sendArtisanNotification(
 <p style="font-size:15px;color:#374151;margin:0 0 16px;line-height:1.6;">Votre devis <strong>n° ${devis.numero}</strong> vient d'être accepté par <strong>${signedBy}</strong> via ${modeLabel}.</p>
 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:0 0 20px;">
 <p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Montant :</strong> ${fmt(devis.montant_ttc || 0)}</p>
-${devis.objet ? `<p style="margin:0;font-size:14px;color:#374151;"><strong>Objet :</strong> ${devis.objet}</p>` : ''}
+${safeObjet ? `<p style="margin:0;font-size:14px;color:#374151;"><strong>Objet :</strong> ${safeObjet}</p>` : ''}
 </div>
 <div style="text-align:center;margin:20px 0;">
 <a href="https://nexartis.fr/dashboard/devis/${devis.id}" style="background:#2563eb;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;">Voir le devis signé</a>

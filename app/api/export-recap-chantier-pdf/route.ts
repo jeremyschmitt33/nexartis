@@ -37,9 +37,16 @@ export async function GET(req: NextRequest) {
     // ✅ SÉCURITÉ : Valider que c'est bien un UUID
     if (!isValidUUID(chantierId)) return secureError('ID du chantier invalide')
 
+    // ✅ SÉCURITÉ (R1-010) : fail-fast si la clé service_role est absente.
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      console.error('export-recap-chantier-pdf: SUPABASE_SERVICE_ROLE_KEY absente')
+      return secureError('Configuration serveur invalide', 500)
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      serviceRoleKey,
     )
 
     // Charger le chantier (en vérifiant user_id pour éviter cross-tenant)

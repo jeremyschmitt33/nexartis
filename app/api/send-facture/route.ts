@@ -31,9 +31,16 @@ export async function POST(req: NextRequest) {
     if (!isValidUUID(factureId)) return secureError('ID de facture invalide')
     if (!isValidEmail(emailDestinataire)) return secureError('Email invalide')
 
+    // ✅ SÉCURITÉ (R1-010) : fail-fast si la clé service_role est absente.
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      console.error('send-facture: SUPABASE_SERVICE_ROLE_KEY absente')
+      return secureError('Configuration serveur invalide', 500)
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      serviceRoleKey,
     )
 
     // ✅ SÉCURITÉ : Vérifier que la facture appartient à l'utilisateur connecté

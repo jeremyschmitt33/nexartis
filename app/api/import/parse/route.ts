@@ -11,6 +11,7 @@ import {
   detectSource,
 } from '@/lib/import/mappers'
 import { preprocessObatComptable } from '@/lib/import/obat-comptable'
+import { checkRateLimit, rateLimitError } from '@/lib/api-security'
 
 // Note (P10 audit securite) : xlsx (SheetJS sur npm) bloque sur deux CVE
 // (Prototype Pollution + ReDoS) et a quitte npm officiel. Nous utilisons
@@ -219,6 +220,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    }
+
+    // ✅ SÉCURITÉ (R1-013) : rate-limit (10 parsings / 60s par utilisateur)
+    // pour empecher le DoS partiel par envois en boucle de fichiers 10 MB.
+    if (!checkRateLimit(`import-parse:${user.id}`, 10, 60_000)) {
+      return rateLimitError()
     }
 
     const formData = await req.formData()

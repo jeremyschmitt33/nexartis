@@ -49,6 +49,19 @@ export async function GET(
       return secureError('Lien invalide ou expiré', 404)
     }
 
+    // ✅ SÉCURITÉ (R1-003) : refuser un lien expire, SAUF si le devis est deja
+    // signe/facture (on doit alors pouvoir continuer a afficher la confirmation
+    // de signature au client et au dashboard). Les anciens devis sans date
+    // d'expiration (signature_token_expire_at = NULL) ne sont pas affectes.
+    const alreadySignedOrInvoiced = devis.statut === 'signe' || devis.statut === 'facture'
+    if (
+      !alreadySignedOrInvoiced &&
+      devis.signature_token_expire_at &&
+      new Date(devis.signature_token_expire_at).getTime() < Date.now()
+    ) {
+      return secureError('Lien invalide ou expiré', 410)
+    }
+
     // 2. Vérifier que le devis est dans un statut signable
     if (!['envoye', 'finalise'].includes(devis.statut)) {
       // Si déjà signé, on renvoie quand même le devis mais avec un flag
