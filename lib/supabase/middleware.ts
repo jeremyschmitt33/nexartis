@@ -112,7 +112,9 @@ export async function updateSession(request: NextRequest) {
   // Idem pour l'admin qui ne paye pas.
   const ADMIN_EMAIL = 'admin@nexartis.fr'
   const isAbonnementPage = pathname.startsWith('/dashboard/abonnement')
-  const isAdminUser = user?.email?.toLowerCase() === ADMIN_EMAIL
+  // SÉCURITÉ (R1-004) : rôle app_metadata prioritaire, email en filet transitoire.
+  const isAdminUser = (user?.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
+    || user?.email?.toLowerCase() === ADMIN_EMAIL
 
   if (user && isDashboardRoute && !isAbonnementPage && !isAdminUser) {
     const TRIAL_DAYS = 14
