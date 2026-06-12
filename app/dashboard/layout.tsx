@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUser, useEntreprise, useDevis, useFactures } from '@/lib/hooks'
+// Push 2 — menu + garde de route par rôle (sans effet pour dirigeant / role=null)
+import { useCurrentRole } from '@/lib/hooks-equipe'
+import { canAccessDashboardPath, DEFAULT_LANDING, type UserRole } from '@/lib/roles'
 import { applySidebarTheme } from '@/components/ThemeSelector'
 import {
   isRouteBlockedForPlan,
@@ -191,6 +194,7 @@ function Sidebar({
   effectivePlan,
   isTrial,
   badges,
+  role,
 }: {
   collapsed: boolean
   mobileOpen: boolean
@@ -207,6 +211,8 @@ function Sidebar({
   isTrial: boolean
   /** QW2 -- Compteurs alertes par route */
   badges?: Record<string, number>
+  /** Push 2 — rôle du membre courant (null = dirigeant legacy / inconnu → voit tout) */
+  role: UserRole | null
 }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
@@ -367,7 +373,16 @@ function Sidebar({
 
         {/* ---- Navigation ---- */}
         <nav className="flex-1 px-2 space-y-0.5">
-          {NAV_GROUPS.map((group, gi) => (
+          {NAV_GROUPS
+            // Push 2 — filtrage par rôle. role=null (dirigeant legacy / inconnu) ou
+            // dirigeant → canAccessDashboardPath renvoie true partout : menu INCHANGÉ.
+            .map((group) =>
+              group.filter((item) => role === null || canAccessDashboardPath(role, item.href)),
+            )
+            // On masque les groupes devenus vides pour éviter un <hr> orphelin.
+            .map((group, gi) => ({ group, gi }))
+            .filter(({ group }) => group.length > 0)
+            .map(({ group, gi }) => (
             <div key={gi}>
               {gi > 0 && <hr className="border-white/[0.06] my-1 mx-2.5" />}
               {group.map((item) => {
@@ -598,10 +613,22 @@ function DashboardHeader({
 function MobileBottomNav({
   pathname,
   onMoreClick,
+  role,
 }: {
   pathname: string
   onMoreClick: () => void
+  /** Push 2 — rôle du membre courant (null = dirigeant legacy → tout visible) */
+  role: UserRole | null
 }) {
+  // Push 2 — on filtre les onglets du bas par rôle (un Ouvrier ne voit pas
+  // Devis/Factures). '#more' n'est pas une route → toujours conservé (il ouvre
+  // le menu complet, lui-même déjà filtré). role=null/dirigeant → INCHANGÉ.
+  const visibleNav = BOTTOM_NAV.filter(
+    (item) =>
+      item.href === '#more' ||
+      role === null ||
+      canAccessDashboardPath(role, item.href),
+  )
   // V3.0d.2 — Bottom nav premium :
   //   - Pill orange douce (gradient orange/20 -> orange/10) sous l'icone active
   //   - Barre indicatrice orange au-dessus de l'item actif
@@ -614,7 +641,7 @@ function MobileBottomNav({
       className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-gray-100 flex items-start justify-around md:hidden shadow-[0_-8px_24px_-12px_rgba(15,26,58,0.08)]"
       style={{ paddingTop: 10, paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
     >
-      {BOTTOM_NAV.map((item) => {
+      {visibleNav.map((item) => {
         const Icon = item.icon
         const active = item.href !== '#more' && isActive(pathname, item.href)
         const isMore = item.href === '#more'
@@ -690,6 +717,9 @@ export default function DashboardLayout({
   const router = useRouter()
   const { user, loading: userLoading } = useUser()
   const { entreprise, loading: entrepriseLoading } = useEntreprise()
+  // Push 2 — rôle du membre courant. role=null = compte legacy (dirigeant
+  // historique) ou inconnu : on NE change RIEN (menu complet + aucune garde).
+  const { role, loading: roleLoading } = useCurrentRole()
   // QW2 -- Data pour badges sidebar
   const { data: devisData } = useDevis()
   const { data: facturesData } = useFactures()
@@ -775,6 +805,21 @@ export default function DashboardLayout({
       )
     }
   }, [isLoading, entreprise, user, pathname, router])
+
+  // ─────────────────────────────────────────────────────────
+  // Push 2 — Garde de route PAR RÔLE.
+  // Si le rôle est connu (employé : commercial / ouvrier) et que la route
+  // courante ne lui est pas autorisée, on le renvoie vers sa page d'accueil.
+  // STRICTEMENT sans effet pour le dirigeant et pour role=null (compte legacy
+  // / inconnu) → c'est ce qui rend ce bloc déployable sans risque, et c'est
+  // indépendant des gardes abonnement ci-dessus (placé après, ne les touche pas).
+  // ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (roleLoading) return
+    if (role === null || role === 'dirigeant') return
+    if (canAccessDashboardPath(role, pathname)) return
+    router.replace(DEFAULT_LANDING[role])
+  }, [roleLoading, role, pathname, router])
 
   // Calcul du nombre de jours restants pour le bandeau d'alerte
   // Affiché si trial avec ≤7 jours restants OU suspendu avec date proche
@@ -951,6 +996,7 @@ export default function DashboardLayout({
           effectivePlan={effectivePlan}
           isTrial={isTrial}
           badges={sidebarBadges}
+          role={role}
         />
       </div>
 
@@ -971,6 +1017,7 @@ export default function DashboardLayout({
           effectivePlan={effectivePlan}
           isTrial={isTrial}
           badges={sidebarBadges}
+          role={role}
         />
       </div>
 
@@ -991,6 +1038,7 @@ export default function DashboardLayout({
           effectivePlan={effectivePlan}
           isTrial={isTrial}
           badges={sidebarBadges}
+          role={role}
         />
       </div>
 
@@ -1074,6 +1122,7 @@ export default function DashboardLayout({
       <MobileBottomNav
         pathname={pathname}
         onMoreClick={() => setMobileOpen(true)}
+        role={role}
       />
 
       {/* Tutoriel onboarding */}

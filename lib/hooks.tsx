@@ -2,6 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState, useCallback } from 'react'
+// Push 2 : rôle du membre courant pour router l'Ouvrier vers les vues masquées
+// (chantiers_ouvrier / intervenants_safe). hooks-equipe n'importe PAS hooks.tsx
+// → aucun cycle d'import.
+import { useCurrentRole } from '@/lib/hooks-equipe'
 
 // ── Generic hook ──────────────────────────────────────────────
 
@@ -14,20 +18,30 @@ type QueryState<T> = {
 
 function useSupabaseQuery<T>(
   table: string,
-  options?: { orderBy?: string; ascending?: boolean; filters?: Record<string, unknown>; includeDeleted?: boolean }
+  // Push 2 : `enabled` permet d'attendre une donnée préalable (ex. le rôle du
+  // membre, pour choisir la bonne table). Par défaut true → aucun changement de
+  // comportement pour tous les appels existants.
+  options?: { orderBy?: string; ascending?: boolean; filters?: Record<string, unknown>; includeDeleted?: boolean; enabled?: boolean }
 ): QueryState<T> {
   const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const enabled = options?.enabled ?? true
+
   const fetch = useCallback(async () => {
+    if (!enabled) return
     setLoading(true)
     setError(null)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Non connecté'); setLoading(false); return }
 
-    let query = supabase.from(table).select('*').eq('user_id', user.id)
+    // Push 2 : lecture déléguée à la RLS role-aware (plus de filtre .eq('user_id'))
+    // La RLS Supabase (membership + rôle) limite déjà les lignes à l'entreprise
+    // du membre courant selon son rôle. Les écritures, elles, gardent leur
+    // .eq('user_id') (voir insertRow/updateRow/...).
+    let query = supabase.from(table).select('*')
 
     // Corbeille : par défaut on exclut les éléments supprimés
     // Les tables avec deleted_at : devis, factures, intervenants (D3 - 2026-06-08)
@@ -54,7 +68,7 @@ function useSupabaseQuery<T>(
     setData((rows ?? []) as T[])
     setLoading(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table])
+  }, [table, enabled])
 
   useEffect(() => { fetch() }, [fetch])
 
@@ -81,8 +95,8 @@ function useSupabaseRecord<T>(table: string, id: string | null): SingleState<T> 
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setError('Non connecté'); setLoading(false); return }
-      // Double sécurité : filtre user_id côté client + RLS côté Supabase
-      const { data: row, error: err } = await supabase.from(table).select('*').eq('id', id).eq('user_id', user.id).single()
+      // Push 2 : lecture déléguée à la RLS role-aware (plus de filtre .eq('user_id'))
+      const { data: row, error: err } = await supabase.from(table).select('*').eq('id', id).single()
       if (err) { setError(err.message); setLoading(false); return }
       setData(row as T)
       setLoading(false)
@@ -260,7 +274,13 @@ function useEntreprise() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-      const { data } = await supabase.from('entreprises').select('*').eq('user_id', user.id).single()
+      // Push 2 : lecture déléguée à la RLS role-aware (plus de filtre .eq('user_id')).
+      // Un membre (employé) appartient à 1 entreprise via la policy membership de
+      // `entreprises` : la RLS ne renvoie donc que SON entreprise. On prend la
+      // 1re ligne via limit(1)+maybeSingle() (au lieu de .single() qui jetterait
+      // si 0 ligne pour un compte non encore rattaché). Le dirigeant legacy voit
+      // toujours son entreprise (policy owner OR membership) — comportement inchangé.
+      const { data } = await supabase.from('entreprises').select('*').limit(1).maybeSingle()
       setEntreprise(data as EntrepriseRecord | null)
       setLoading(false)
     }
@@ -525,9 +545,37 @@ type Row = Record<string, unknown>
 
 function useClients() { return useSupabaseQuery<Row>('clients', { orderBy: 'created_at' }) }
 function useFournisseurs() { return useSupabaseQuery<Row>('fournisseurs', { orderBy: 'created_at' }) }
-function useIntervenants() { return useSupabaseQuery<Row>('intervenants', { orderBy: 'created_at' }) }
 function usePrestations() { return useSupabaseQuery<Row>('prestations', { orderBy: 'created_at' }) }
-function useChantiers() { return useSupabaseQuery<Row>('chantiers', { orderBy: 'created_at' }) }
+
+// ── Routage Ouvrier vers les vues masquées (Push 2) ──────────
+//
+// Un Ouvrier n'a PAS accès aux tables de base `chantiers` / `intervenants`
+// (elles portent des montants / le taux horaire). La RLS le bloque dessus.
+// Il lit à la place des vues sans colonnes sensibles, scopées par la RLS :
+//   - chantiers_ouvrier  : chantiers où il est affecté, sans montants.
+//   - intervenants_safe  : collègues sans taux_horaire / contact.
+//
+// On attend que le rôle soit CONNU avant de requêter (enabled: !roleLoading),
+// pour ne jamais taper la mauvaise table pendant le chargement du rôle.
+//
+// Note soft delete : `intervenants` est dans SOFT_DELETE_TABLES, mais la vue
+// `intervenants_safe` n'expose PAS deleted_at — useSupabaseQuery ne déclenche
+// le filtre que sur les noms de la liste, donc la vue n'est jamais filtrée
+// sur deleted_at (correct). `chantiers` n'a de toute façon pas de soft delete.
+function useIntervenants() {
+  const { role, loading: roleLoading } = useCurrentRole()
+  const isOuvrier = role === 'ouvrier'
+  const table = isOuvrier ? 'intervenants_safe' : 'intervenants'
+  // La vue safe ne garantit pas la colonne created_at → on trie par 'nom'.
+  const orderBy = isOuvrier ? 'nom' : 'created_at'
+  return useSupabaseQuery<Row>(table, { orderBy, ascending: isOuvrier ? true : false, enabled: !roleLoading })
+}
+function useChantiers() {
+  const { role, loading: roleLoading } = useCurrentRole()
+  const isOuvrier = role === 'ouvrier'
+  const table = isOuvrier ? 'chantiers_ouvrier' : 'chantiers'
+  return useSupabaseQuery<Row>(table, { orderBy: 'created_at', enabled: !roleLoading })
+}
 function useDevis() { return useSupabaseQuery<Row>('devis', { orderBy: 'created_at' }) }
 function useFactures() { return useSupabaseQuery<Row>('factures', { orderBy: 'created_at' }) }
 function useDeletedDevis() { return useSupabaseQuery<Row>('devis', { orderBy: 'created_at', includeDeleted: true }) }

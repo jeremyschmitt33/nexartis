@@ -39,7 +39,7 @@ import {
   type EntrepriseMembre,
   type MembreStatut,
 } from '@/lib/hooks-equipe'
-import { useEntreprise } from '@/lib/hooks'
+import { useEntreprise, useIntervenants } from '@/lib/hooks'
 import { getEffectivePlan } from '@/lib/plans'
 import {
   ROLE_LABELS,
@@ -92,14 +92,26 @@ function roleLabelOf(role: string): string {
 function InviterModal({
   onClose,
   onInvited,
+  linkedIntervenantIds,
 }: {
   onClose: () => void
   onInvited: () => void
+  /** intervenant_id déjà rattachés à un compte (à exclure du sélecteur). */
+  linkedIntervenantIds: Set<string>
 }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<UserRole>(INVITABLE_ROLES[0])
+  const [intervenantId, setIntervenantId] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Fiches équipe de l'entreprise (table `intervenants`, vue dirigeant).
+  const { data: intervenantsData, loading: intervenantsLoading } = useIntervenants()
+
+  // Intervenants encore disponibles = ceux non déjà liés à un compte.
+  const intervenantsDisponibles = (intervenantsData ?? []).filter(
+    (it) => !linkedIntervenantIds.has(String((it as Record<string, unknown>).id)),
+  )
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,10 +123,18 @@ function InviterModal({
     }
     setSubmitting(true)
     try {
+      // Push 2 — `intervenantId` est OPTIONNEL : on ne l'envoie que s'il est
+      // choisi (le back le rattache à entreprise_membres.intervenant_id).
+      const payload: { email: string; role: UserRole; intervenantId?: string } = {
+        email: trimmed,
+        role,
+      }
+      if (intervenantId) payload.intervenantId = intervenantId
+
       const res = await fetch('/api/equipe/inviter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed, role }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data?.ok) {
@@ -199,6 +219,43 @@ function InviterModal({
                 className="mt-2 rounded-lg bg-[#ff7a1a]/[0.06] border border-[#ff7a1a]/15 px-3 py-2.5 font-hanken text-[13px] text-[#0f1a3a]/80 leading-relaxed"
               >
                 {ROLE_DESCRIPTIONS[role]}
+              </p>
+            </div>
+
+            {/* Push 2 — Association OPTIONNELLE à une fiche intervenant.
+                Indispensable pour un Ouvrier : c'est ce lien qui lui ouvre
+                l'accès à SES chantiers affectés (sinon il ne verra rien). */}
+            <div>
+              <PremiumSelect
+                label="Associer à un intervenant (fiche équipe)"
+                value={intervenantId}
+                onChange={(e) => setIntervenantId(e.target.value)}
+                disabled={intervenantsLoading}
+              >
+                <option value="">
+                  {intervenantsLoading
+                    ? 'Chargement…'
+                    : '— Aucun (à associer plus tard) —'}
+                </option>
+                {intervenantsDisponibles.map((it) => {
+                  const row = it as Record<string, unknown>
+                  const id = String(row.id)
+                  const prenom = (row.prenom as string) || ''
+                  const nom = (row.nom as string) || ''
+                  const metier = (row.metier as string) || ''
+                  const label =
+                    `${prenom} ${nom}`.trim() + (metier ? ` — ${metier}` : '')
+                  return (
+                    <option key={id} value={id}>
+                      {label || 'Intervenant'}
+                    </option>
+                  )
+                })}
+              </PremiumSelect>
+              <p className="mt-2 font-hanken text-[12.5px] text-gray-500 leading-relaxed">
+                {role === 'ouvrier'
+                  ? "Recommandé pour un ouvrier : c'est ce lien qui lui donne accès aux chantiers où il est affecté."
+                  : 'Facultatif. Relie ce compte à une fiche de votre équipe.'}
               </p>
             </div>
           </div>
@@ -427,7 +484,17 @@ export default function ComptesAccesSection() {
       )}
 
       {showInviter && (
-        <InviterModal onClose={() => setShowInviter(false)} onInvited={refetch} />
+        <InviterModal
+          onClose={() => setShowInviter(false)}
+          onInvited={refetch}
+          linkedIntervenantIds={
+            new Set(
+              membres
+                .map((m) => m.intervenant_id)
+                .filter((v): v is string => typeof v === 'string' && v.length > 0),
+            )
+          }
+        />
       )}
     </PremiumCard>
   )

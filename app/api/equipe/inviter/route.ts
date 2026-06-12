@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return secureError('Requête invalide')
     }
-    const { email, role } = (body ?? {}) as { email?: unknown; role?: unknown }
+    const { email, role, intervenantId } = (body ?? {}) as { email?: unknown; role?: unknown; intervenantId?: unknown }
 
     if (typeof email !== 'string' || !isValidEmail(email)) {
       return secureError('Adresse email invalide')
@@ -143,6 +143,45 @@ export async function POST(request: NextRequest) {
       return secureError('Cet email a déjà été invité', 409)
     }
 
+    // 7bis) Lien intervenant optionnel (Push 2) : associe le compte invité à une
+    //       fiche intervenant existante → alimente entreprise_membres.intervenant_id,
+    //       prérequis du périmètre « chantiers affectés » de l'Ouvrier.
+    //       SÉCURITÉ : vérifier que l'intervenant appartient bien à l'entreprise de
+    //       l'appelant (sinon un dirigeant pourrait lier un intervenant d'une autre
+    //       entreprise). On valide d'abord le format UUID, puis l'appartenance.
+    let intervenantLie: string | null = null
+    if (intervenantId !== undefined && intervenantId !== null && intervenantId !== '') {
+      const isUuid =
+        typeof intervenantId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(intervenantId)
+      if (!isUuid) {
+        return secureError('Intervenant invalide')
+      }
+      const { data: interv, error: intervErr } = await supabase
+        .from('intervenants')
+        .select('id, user_id')
+        .eq('id', intervenantId)
+        .maybeSingle()
+      if (intervErr) {
+        console.error('[equipe/inviter] lookup intervenant:', intervErr.message)
+        return secureError('Erreur serveur', 500)
+      }
+      let appartientEntreprise = false
+      if (interv) {
+        const { data: membreInterv } = await supabase
+          .from('entreprise_membres')
+          .select('id')
+          .eq('entreprise_id', entrepriseId)
+          .eq('user_id', interv.user_id as string)
+          .maybeSingle()
+        appartientEntreprise = !!membreInterv
+      }
+      if (!interv || !appartientEntreprise) {
+        return secureError('Intervenant invalide')
+      }
+      intervenantLie = interv.id as string
+    }
+
     // 8) Insert de l'invitation (service_role bypass RLS).
     const inviteToken = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -157,6 +196,7 @@ export async function POST(request: NextRequest) {
         invite_token: inviteToken,
         invite_expires_at: expiresAt,
         invited_by: user.id,
+        intervenant_id: intervenantLie,
       })
 
     if (insertErr) {
