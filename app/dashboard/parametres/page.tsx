@@ -652,7 +652,7 @@ function EntrepriseSection({
         <PremiumInput
           label="N° TVA intracommunautaire"
           value={tva}
-          onChange={setTva}
+          onChange={(v) => setTva(v.toUpperCase().replace(/\s+/g, ''))}
           placeholder="FR 12 345678901"
           error={validateTva(tva)}
           hint="FR + 11 chiffres"
@@ -663,7 +663,7 @@ function EntrepriseSection({
         <PremiumInput
           label="Code NAF"
           value={naf}
-          onChange={setNaf}
+          onChange={(v) => setNaf(v.toUpperCase())}
           placeholder="4322A"
           error={validateNaf(naf)}
           hint="4 chiffres + 1 lettre (ex : 4322A)"
@@ -673,7 +673,7 @@ function EntrepriseSection({
         <PremiumInput
           label="RCS / RM (n° + ville)"
           value={rcsRm}
-          onChange={setRcsRm}
+          onChange={(v) => setRcsRm(v.toUpperCase())}
           placeholder="RM Bordeaux 123456789"
           error={validateRcsRm(rcsRm)}
           hint='"RCS" ou "RM" + ville + SIREN (9 chiffres)'
@@ -751,7 +751,7 @@ function EntrepriseSection({
         <PremiumInput
           label="N° de police"
           value={decennale}
-          onChange={setDecennale}
+          onChange={(v) => setDecennale(v.toUpperCase())}
           placeholder="POL-2024-XXXXX"
         />
         <PremiumInput
