@@ -64,22 +64,22 @@ export function drawHeader(
   // === Zone GAUCHE (navy) - trapeze : largeur 137 en haut, oblique 20mm a droite ===
   setFill(doc, P.navy)
   doc.lines(
-    [[137, 0], [-20, headerH], [-117, 0], [0, -headerH]],
+    [[125, 0], [-20, headerH], [-105, 0], [0, -headerH]],
     0, 0, [1, 1], 'F', true,
   )
 
   // === Zone DROITE (navyDroite) - trapeze symetrique ===
   setFill(doc, P.navyDroite)
   doc.lines(
-    [[pageW - 137, 0], [0, headerH], [-(pageW - 117), 0], [20, -headerH]],
-    137, 0, [1, 1], 'F', true,
+    [[pageW - 125, 0], [0, headerH], [-(pageW - 105), 0], [20, -headerH]],
+    125, 0, [1, 1], 'F', true,
   )
 
   // === Barre doree (accent) - separateur diagonal de 4mm ===
   setFill(doc, P.orange)
   doc.lines(
     [[4, 0], [-20, headerH], [-4, 0], [20, -headerH]],
-    135, 0, [1, 1], 'F', true,
+    123, 0, [1, 1], 'F', true,
   )
 
   // === Carte logo : V3.1.5 valeurs ajustees ===
