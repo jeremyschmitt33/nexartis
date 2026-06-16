@@ -54,8 +54,7 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useOnboarding, useEntreprise } from '@/lib/hooks'
-import { isAutoEntrepreneur } from '@/lib/helpers'
+import { useOnboarding } from '@/lib/hooks'
 import { driver, type Driver, type DriveStep } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
@@ -91,10 +90,6 @@ export default function OnboardingTour() {
   const pathname = usePathname()
   const router = useRouter()
   const { state, loading, markStepSeen } = useOnboarding()
-  // V1 Fix #7 (28/05/2026) : on lit la forme juridique pour ajouter
-  // une bulle "Mon équipe" supplémentaire en mode Société uniquement.
-  const { entreprise } = useEntreprise()
-  const isSociete = !isAutoEntrepreneur(entreprise)
   const driverRef = useRef<Driver | null>(null)
 
   useEffect(() => {
@@ -115,8 +110,7 @@ export default function OnboardingTour() {
     // step est conditionnel a la presence de son DOM et a son
     // flag "seen" en base.
     const isOnDashboardWithPendingTour =
-      pathname === '/dashboard' &&
-      (!state.tour_install_seen || !state.tour_voice_seen || !state.tour_dashboard_seen)
+      pathname === '/dashboard' && !state.tour_dashboard_seen
 
     if (isOnDashboardWithPendingTour) {
       const timer = setTimeout(() => {
@@ -124,74 +118,7 @@ export default function OnboardingTour() {
         // dont (a) l'utilisateur n'a pas deja vu la bulle et
         // (b) l'element cible existe bien dans le DOM.
         const steps: DriveStep[] = []
-        const stepNames: Array<'install' | 'voice' | 'dashboard'> = []
-
-        if (!state.tour_install_seen) {
-          const s = buildStep(
-            '[data-tour="install-banner"]',
-            'Installe Nexartis sur ton téléphone',
-            `
-              <p style="margin: 0 0 10px 0;">Une vraie app, <strong>sans passer par les stores</strong>. Une icône sur ton écran d'accueil, ouverture instantanée.</p>
-              <p style="margin: 0; color: #445068; font-size: 13px;">Tu peux installer Nexartis depuis ce bandeau, ou plus tard depuis ton navigateur (option "Ajouter à l'écran d'accueil").</p>
-            `,
-            'bottom',
-            'center'
-          )
-          if (s) {
-            steps.push(s)
-            stepNames.push('install')
-          } else {
-            // Bandeau pas dans le DOM (deja installe ou dismiss) → skip silencieux
-            markStepSeen('install')
-          }
-        }
-
-        if (!state.tour_voice_seen) {
-          const s = buildStep(
-            '[data-tour="voice-btn"]',
-            'Dicte tes devis et factures',
-            `
-              <p style="margin: 0 0 10px 0;">Parle, Nexartis <strong>transcrit et structure</strong>. Idéal entre deux chantiers, sur le trajet ou en pause.</p>
-              <p style="margin: 0; color: #445068; font-size: 13px;">Clique sur ce bouton micro depuis n'importe quelle page pour créer un devis, une facture ou planifier une intervention à la voix.</p>
-            `,
-            'bottom',
-            'end'
-          )
-          if (s) {
-            steps.push(s)
-            stepNames.push('voice')
-          } else {
-            // Plan Essentiel hors trial → bouton absent → skip silencieux
-            markStepSeen('voice')
-          }
-        }
-
-        // V3 (09/06/2026) : bulle "Ton inventaire pro" sur le lien Matériel
-        // de la sidebar. Ride-along sur tour_dashboard_seen — quand la chaine
-        // dashboard est marquée vue, ce step l'est aussi (pas de flag dédié,
-        // donc pas de migration SQL nécessaire). On l'insère AVANT le step
-        // "parametres" pour respecter l'ordre visuel de la sidebar (Matériel
-        // est plus haut que Paramètres) et garder la dernière étape sur
-        // Paramètres qui déclenche la redirection vers /dashboard/parametres.
-        if (!state.tour_dashboard_seen) {
-          const sMateriel = buildStep(
-            '[data-tour="materiel"]',
-            'Ton inventaire pro',
-            `
-              <p style="margin: 0 0 10px 0;">Outillage, échafaudage, véhicule, EPI : centralise tout ton <strong>matériel pro</strong> ici.</p>
-              <p style="margin: 0; color: #445068; font-size: 13px;">Suivi crédit, assurance, amortissement — pour ne plus rien oublier au moment des déclarations ou d'un contrôle.</p>
-            `,
-            'right',
-            'start'
-          )
-          if (sMateriel) {
-            steps.push(sMateriel)
-            // Pas de stepNames.push : ride-along sur 'dashboard',
-            // pas de flag dédié à marquer.
-          }
-          // Si le lien Matériel n'est pas dans le DOM (sidebar collapsed
-          // ou autre), on skippe silencieusement — pas de flag à toucher.
-        }
+        const stepNames: Array<'dashboard'> = []
 
         if (!state.tour_dashboard_seen) {
           const s = buildStep(
@@ -300,13 +227,13 @@ export default function OnboardingTour() {
         const steps: DriveStep[] = []
         const stepNames: Array<'parametres' | 'theme'> = []
 
-        // Bulle "Tu y es" sur la zone profil
+        // Bulle 1 : "Tu y es — verifie bien tous les onglets"
         if (!state.tour_parametres_seen) {
           const s = buildStep(
             '[data-tour="parametres-content"]',
             'Tu y es !',
             `
-              <p style="margin: 0 0 10px 0;">C'est ici que tu remplis ton profil entreprise. <strong>Coche toutes les sections</strong> (Entreprise, Documents, Facturation, Signature…).</p>
+              <p style="margin: 0 0 10px 0;">C'est ici que tu remplis ton profil entreprise. <strong>Pense à vérifier tous les onglets</strong> (Entreprise, Documents, Facturation, Signature, Apparence…).</p>
               <p style="margin: 0; color: #445068; font-size: 13px;">Chaque case remplie est réutilisée automatiquement dans tes devis et factures. Une fois fait, tu es prêt à créer ton premier devis pro.</p>
             `,
             'top',
@@ -320,14 +247,16 @@ export default function OnboardingTour() {
           }
         }
 
-        // V3 : Bulle "Habille tes documents à tes couleurs"
+        // Bulle 2 : "Aide & Tutoriels — tout est explique ici" (lien sidebar).
+        // On reutilise le flag tour_theme_seen (pas de migration) et on le track
+        // dans stepNames pour qu'il soit marque "vu" => plus de boucle.
         if (!state.tour_theme_seen) {
           const s = buildStep(
-            '[data-tour="param-documents"]',
-            'Habille tes documents à tes couleurs',
+            '[data-tour="aide"]',
+            'Tout est expliqué ici',
             `
-              <p style="margin: 0 0 10px 0;">Dans l'onglet <strong>Documents</strong>, tu peux personnaliser <strong>6 zones</strong> de tes devis et factures (en-tête, totaux, accents…).</p>
-              <p style="margin: 0; color: #445068; font-size: 13px;">Reprends les couleurs de ton logo ou de ta camionnette pour des documents <strong>à ton image</strong>, instantanément reconnaissables par tes clients.</p>
+              <p style="margin: 0 0 10px 0;">Un doute sur une fonction ? L'onglet <strong>Aide &amp; Tutoriels</strong>, en bas de la barre latérale, explique <strong>chaque partie de Nexartis</strong>.</p>
+              <p style="margin: 0; color: #445068; font-size: 13px;">Tu peux aussi y <em>rejouer cette visite guidée</em> à tout moment.</p>
             `,
             'right',
             'center'
@@ -338,66 +267,6 @@ export default function OnboardingTour() {
           } else {
             markStepSeen('theme')
           }
-        }
-
-        // V3.0d.2 (09/06/2026) : Bulle "Habille ton dashboard a tes couleurs"
-        // sur l'onglet Apparence. Pas de tracking dedie (option a) :
-        // se valide en meme temps que tour_parametres_seen via stepNames.
-        // Skip defensif si l'element n'existe pas dans le DOM.
-        if (
-          !state.tour_parametres_seen &&
-          document.querySelector('[data-tour="param-apparence"]')
-        ) {
-          steps.push({
-            element: '[data-tour="param-apparence"]',
-            popover: {
-              title: 'Habille ton dashboard à tes couleurs',
-              description: `
-                <p style="margin: 0 0 10px 0;">Choisis parmi <strong>7 couleurs</strong> (Orange, Bleu, Rouge, Jaune, Vert, Violet, Noir) pour personnaliser la barre latérale de ton dashboard.</p>
-                <p style="margin: 0; color: #445068; font-size: 13px;">Le contraste du texte s'ajuste automatiquement pour rester lisible. Réglage par appareil, idéal pour distinguer tes machines.</p>
-              `,
-              side: 'bottom',
-              align: 'center',
-            },
-          })
-        }
-
-        // Bulle "Mon équipe" — V1 Fix #7, mode Société uniquement.
-        // Reste hors gestion seen (purement contextuelle).
-        if (
-          isSociete &&
-          document.querySelector('[data-tour="equipe"]') &&
-          !state.tour_parametres_seen
-        ) {
-          steps.push({
-            element: '[data-tour="equipe"]',
-            popover: {
-              title: 'Pense à créer ton équipe',
-              description: `
-                <p style="margin: 0 0 10px 0;">Comme tu es en <strong>société</strong>, tu peux ajouter tous tes collaborateurs dans <strong>Mon équipe</strong>.</p>
-                <p style="margin: 0; color: #445068; font-size: 13px;">Chaque membre devient ensuite sélectionnable comme intervenant dans le planning : tu pourras leur assigner des interventions, suivre leur charge et les afficher dans la grille hebdomadaire.</p>
-              `,
-              side: 'right',
-              align: 'center',
-            },
-          })
-        }
-
-        // Bulle "Besoin d'aide à tout moment ?" — uniquement si on
-        // affiche la bulle parametres (cohérence avec V1).
-        if (!state.tour_parametres_seen && document.querySelector('[data-tour="aide"]')) {
-          steps.push({
-            element: '[data-tour="aide"]',
-            popover: {
-              title: 'Besoin d\'aide à tout moment ?',
-              description: `
-                <p style="margin: 0 0 10px 0;">Cet onglet <strong>Aide &amp; Tutoriels</strong> en bas de la barre latérale regroupe une explication détaillée de <strong>chaque onglet de Nexartis</strong>.</p>
-                <p style="margin: 0; color: #445068; font-size: 13px;">Tu y trouveras aussi un bouton <em>Rejouer la visite guidée</em> si tu veux revoir le tutoriel ou le montrer à un confrère.</p>
-              `,
-              side: 'right',
-              align: 'center',
-            },
-          })
         }
 
         if (steps.length === 0) return
@@ -603,9 +472,7 @@ export default function OnboardingTour() {
 
       return () => clearTimeout(timer)
     }
-    // `isSociete` ajouté car la branche /parametres en dépend pour ajouter
-    // ou non la bulle "Mon équipe" (V1 Fix #7).
-  }, [pathname, state, loading, markStepSeen, router, isSociete])
+  }, [pathname, state, loading, markStepSeen, router])
 
   // Nettoyage final au démontage du composant
   useEffect(() => {

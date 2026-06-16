@@ -145,7 +145,11 @@ export default function LogoThemeProposals() {
       })
       if (res.ok) {
         setApplied(true)
-        // Refresh la page pour que le DocumentThemePicker recharge
+        // On garde l'onglet Apparence apres le rechargement : la page Parametres
+        // lit le hash de l'URL au montage (voir parametres/page.tsx). Evite de
+        // retomber sur l'onglet Entreprise apres l'application d'un theme.
+        if (typeof window !== 'undefined') window.location.hash = 'apparence'
+        // Rechargement pour que le DocumentThemePicker relise le theme applique.
         setTimeout(() => window.location.reload(), 600)
       }
     } catch {

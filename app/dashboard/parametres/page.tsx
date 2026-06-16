@@ -2764,6 +2764,16 @@ export default function ParametresPage() {
   const { entreprise, loading: loadingEntreprise, update } = useEntreprise()
   const { user, loading: loadingUser } = useUser()
 
+  // Restaure l'onglet actif depuis l'URL (#apparence, #documents...) au montage,
+  // pour qu'un rechargement (ex. apres application d'un theme) revienne au bon
+  // onglet au lieu de retomber sur "Entreprise".
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const h = window.location.hash.replace('#', '')
+    const valid = ['entreprise', 'documents', 'facturation', 'signature', 'apparence', 'application', 'notifications', 'compte']
+    if (valid.includes(h)) setActiveSection(h as Section)
+  }, [])
+
   if (loadingEntreprise || loadingUser) {
     return (
       <div className="flex flex-col md:flex-row gap-6">
@@ -2798,7 +2808,10 @@ export default function ParametresPage() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveSection(item.id)}
+                  onClick={() => {
+                    setActiveSection(item.id)
+                    if (typeof window !== 'undefined') window.history.replaceState(null, '', `#${item.id}`)
+                  }}
                   data-tour={item.id === 'documents' ? 'param-documents' : item.id === 'apparence' ? 'param-apparence' : undefined}
                   className={`flex items-center gap-3 px-4 py-3 text-sm font-hanken font-medium transition-colors whitespace-nowrap w-full text-left ${
                     active
