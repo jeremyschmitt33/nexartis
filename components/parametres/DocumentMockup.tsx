@@ -3,22 +3,28 @@
 // ---------------------------------------------------------------------------
 // DocumentMockup
 //
-// Miniature WYSIWYG du devis Nexartis (~520px de large) avec 7 zones
-// cliquables qui reproduisent visuellement les zones colorees du vrai document.
-// Les couleurs sont passees en props et les clics remontent l'identifiant
-// de la zone pour ouvrir le color picker correspondant dans le parent.
+// Miniature WYSIWYG du devis Nexartis (pleine largeur du conteneur) avec
+// 7 zones cliquables qui reproduisent visuellement les zones colorees du vrai
+// document. Les couleurs sont passees en props et les clics remontent
+// l'identifiant de la zone pour ouvrir le color picker correspondant.
 //
-// V3.2 : agrandi (~340px -> ~520px) et en-tete refondu pour coller au vrai
-// rendu (document.css .dv-headD) :
+// V3.3 : pleine largeur (plus de plafond max-w). Les zones cliquables ne sont
+// plus des overlays absolus poses par-dessus (qui se desalignaient quand la
+// largeur changeait) : chaque VRAI div de zone est lui-meme interactif
+// (role="button" + onClick + onKeyDown), donc la zone cliquable epouse
+// toujours exactement la zone coloree, quelle que soit la taille.
+//
+// En-tete fidele au CSS reel (document.css .dv-headD) :
 //   - diagonale CENTREE : zone droite clipPath polygon(61.5% 0,100% 0,100% 100%,52% 100%)
 //     et barre accent polygon(57.5% 0,61.5% 0,52% 100%,48% 100%)
+//   - les clip-path limitent AUSSI le hit-test : un clic a gauche tombe sur le
+//     fond bandeauHaut, un clic sur la barre fine sur accent, un clic a droite
+//     sur bandeauHautDroite. stopPropagation() sur les couches enfants evite
+//     le double declenchement vers le fond parent.
 //   - GAUCHE : carte logo + nom EN PETIT centre SOUS le logo
-//   - DROITE : DEVIS + pastille numero + dates "Emis le ... . Valable jusqu'au ..."
-//     sur UNE seule ligne, alignees a droite dans la zone bleue.
-//   - logo (gauche) et bloc DEVIS (droite) sont sur la MEME bande horizontale.
+//   - DROITE : DEVIS + pastille numero + dates sur UNE seule ligne.
 //
-// Aucune donnee reelle : on affiche des placeholders ("Designation 1", "100,00 EUR")
-// pour que l'artisan voie la structure sans confusion avec un vrai devis.
+// Aucune donnee reelle : placeholders ("Designation 1", "100,00 EUR").
 // ---------------------------------------------------------------------------
 
 import { isLight } from '@/lib/document-theme'
@@ -50,32 +56,40 @@ const ZONE_LABELS: Record<ThemeZone, string> = {
   footer: 'Modifier la couleur du bandeau de pied',
 }
 
-// Composant : encadre cliquable transparent pose en absolute sur une zone.
-// Au hover : halo leger + curseur pointer. Au focus clavier : ring orange.
-function ZoneOverlay({
-  zone,
-  isActive,
-  onZoneClick,
-  className,
-  style,
-}: {
-  zone: ThemeZone
-  isActive: boolean
-  onZoneClick: (z: ThemeZone) => void
-  className?: string
-  style?: React.CSSProperties
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onZoneClick(zone)}
-      aria-label={ZONE_LABELS[zone]}
-      className={`absolute z-10 cursor-pointer rounded-md transition-all duration-150 hover:bg-white/10 hover:shadow-[0_0_0_2px_rgba(232,122,42,0.6)] focus:outline-none focus:ring-2 focus:ring-orange focus:ring-offset-1 ${
-        isActive ? 'shadow-[0_0_0_2px_rgba(232,122,42,0.9)] bg-white/5' : ''
-      } ${className ?? ''}`}
-      style={style}
-    />
-  )
+// Construit les attributs communs qui rendent un div de zone interactif :
+// role bouton, focusable au clavier, clic + Enter/Espace, aria-label, et un
+// anneau visuel quand la zone est active (sinon halo leger au hover).
+// `stopChildPropagation` evite que le clic d'une couche enfant (clip-path)
+// bulle vers le fond parent et double-declenche.
+function zoneInteractive(
+  zone: ThemeZone,
+  activeZone: ThemeZone | null,
+  onZoneClick: (z: ThemeZone) => void,
+  opts?: { stopPropagation?: boolean }
+) {
+  const isActive = activeZone === zone
+  const stop = opts?.stopPropagation ?? false
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    'aria-label': ZONE_LABELS[zone],
+    'aria-pressed': isActive,
+    onClick: (e: React.MouseEvent) => {
+      if (stop) e.stopPropagation()
+      onZoneClick(zone)
+    },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault()
+        if (stop) e.stopPropagation()
+        onZoneClick(zone)
+      }
+    },
+    // cursor + transition + halo hover + anneau actif (focus clavier inclus)
+    className: `cursor-pointer outline-none transition-all duration-150 hover:shadow-[0_0_0_2px_rgba(232,122,42,0.45)] focus-visible:ring-2 focus-visible:ring-orange focus-visible:ring-offset-1 ${
+      isActive ? 'ring-2 ring-orange ring-offset-1' : ''
+    }`,
+  }
 }
 
 export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props) {
@@ -89,36 +103,45 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
   const footerInk = isLight(theme.footer) ? '#1c1304' : '#ffffff'
 
   return (
-    <div className="relative mx-auto w-full max-w-[520px] select-none">
+    <div className="relative w-full select-none">
       {/* Ombre + bordure pour donner l'illusion d'une feuille A4 */}
       <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-        {/* ===== BANDEAU D'EN-TETE - V3.2 : diagonale centree, logo a gauche / DEVIS a droite ===== */}
-        {/* Zone GAUCHE (background plein) - sert aussi de fallback en cas de bug */}
+        {/* ===== BANDEAU D'EN-TETE : diagonale centree, logo a gauche / DEVIS a droite ===== */}
+        {/* Zone GAUCHE (background plein) = elle-meme cliquable (zone bandeauHaut). */}
         <div
-          className="relative flex items-start justify-between overflow-hidden px-6 pt-6 pb-12"
+          {...zoneInteractive('bandeauHaut', activeZone, onZoneClick)}
+          className={`relative flex items-start justify-between overflow-hidden px-6 pt-6 pb-12 ${
+            zoneInteractive('bandeauHaut', activeZone, onZoneClick).className
+          }`}
           style={{ background: theme.bandeauHaut, color: bandeauInk }}
         >
-          {/* Zone DROITE (bleue) : diagonale identique au CSS reel document.css */}
+          {/* Zone DROITE (bleue) : diagonale identique au CSS reel + cliquable.
+              clip-path limite le hit-test a la forme visible. z-[1] au-dessus du fond. */}
           <div
-            className="absolute inset-0"
+            {...zoneInteractive('bandeauHautDroite', activeZone, onZoneClick, { stopPropagation: true })}
+            className={`absolute inset-0 z-[1] ${
+              zoneInteractive('bandeauHautDroite', activeZone, onZoneClick).className
+            }`}
             style={{
               background: theme.bandeauHautDroite,
               clipPath: 'polygon(61.5% 0, 100% 0, 100% 100%, 52% 100%)',
             }}
-            aria-hidden="true"
           />
-          {/* Barre ACCENT (orange) : fine, oblique, centree (identique au CSS reel) */}
+          {/* Barre ACCENT (orange) : fine, oblique, centree + cliquable.
+              z-[2] au-dessus du bleu pour capter le clic sur la barre fine. */}
           <div
-            className="absolute inset-0"
+            {...zoneInteractive('accent', activeZone, onZoneClick, { stopPropagation: true })}
+            className={`absolute inset-0 z-[2] ${
+              zoneInteractive('accent', activeZone, onZoneClick).className
+            }`}
             style={{
               background: theme.accent,
               clipPath: 'polygon(57.5% 0, 61.5% 0, 52% 100%, 48% 100%)',
             }}
-            aria-hidden="true"
           />
 
-          {/* GAUCHE : carte logo + nom EN PETIT centre SOUS le logo */}
-          <div className="relative z-[2] flex max-w-[44%] flex-col items-center gap-2 self-center">
+          {/* GAUCHE : carte logo + nom (decoratif, ne bloque pas les clics de zone) */}
+          <div className="pointer-events-none relative z-[3] flex max-w-[44%] flex-col items-center gap-2 self-center">
             <div
               className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-white text-xl font-bold shadow-md"
               style={{ color: theme.bandeauHaut }}
@@ -133,8 +156,8 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
             </span>
           </div>
 
-          {/* DROITE : DEVIS + pastille numero + dates sur une seule ligne */}
-          <div className="relative z-[2] text-right">
+          {/* DROITE : DEVIS + pastille numero + dates (decoratif, ne bloque pas les clics) */}
+          <div className="pointer-events-none relative z-[3] text-right">
             <div
               className="font-syne text-[26px] font-extrabold uppercase leading-none"
               style={{ color: droiteInk }}
@@ -160,15 +183,18 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
         </div>
 
         {/* ===== CARTES PARTIES (zones 3 et 4) - chevauchent le bandeau ===== */}
-        <div className="relative z-[3] -mt-8 grid grid-cols-2 gap-3 px-6">
-          {/* Emetteur (zone 3) */}
+        <div className="relative z-[4] -mt-8 grid grid-cols-2 gap-3 px-6">
+          {/* Emetteur (zone 3) = carte elle-meme cliquable */}
           <div
-            className="relative overflow-hidden rounded-xl border border-slate-200 p-3.5 shadow-md"
+            {...zoneInteractive('cadreEmetteur', activeZone, onZoneClick)}
+            className={`relative overflow-hidden rounded-xl border border-slate-200 p-3.5 shadow-md ${
+              zoneInteractive('cadreEmetteur', activeZone, onZoneClick).className
+            }`}
             style={{ background: theme.cadreEmetteur, color: emetteurInk }}
           >
             {/* Trait vertical accent a gauche (rappel zone accent) */}
             <div
-              className="absolute left-0 top-0 h-full w-[5px]"
+              className="pointer-events-none absolute left-0 top-0 h-full w-[5px]"
               style={{ background: theme.accent }}
               aria-hidden="true"
             />
@@ -188,9 +214,12 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
             </div>
           </div>
 
-          {/* Adresse a (zone 4) */}
+          {/* Adresse a (zone 4) = carte elle-meme cliquable */}
           <div
-            className="rounded-xl p-3.5 shadow-md"
+            {...zoneInteractive('cadreAdresse', activeZone, onZoneClick)}
+            className={`rounded-xl p-3.5 shadow-md ${
+              zoneInteractive('cadreAdresse', activeZone, onZoneClick).className
+            }`}
             style={{ background: theme.cadreAdresse, color: adresseInk }}
           >
             <div
@@ -257,9 +286,12 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
                 <span>Total TTC</span>
                 <span>510,00 EUR</span>
               </div>
-              {/* Net a payer (zone 5) */}
+              {/* Net a payer (zone 5) = bloc lui-meme cliquable */}
               <div
-                className="flex items-baseline justify-between px-3 py-2.5"
+                {...zoneInteractive('netPayer', activeZone, onZoneClick)}
+                className={`flex items-baseline justify-between px-3 py-2.5 ${
+                  zoneInteractive('netPayer', activeZone, onZoneClick).className
+                }`}
                 style={{ background: theme.netPayer, color: netPayerInk }}
               >
                 <span className="text-[10px] font-bold">Net a payer</span>
@@ -269,9 +301,12 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
           </div>
         </div>
 
-        {/* ===== FOOTER (zone 6) ===== */}
+        {/* ===== FOOTER (zone 6) = bandeau lui-meme cliquable ===== */}
         <div
-          className="border-t-[4px] px-6 py-3 text-center"
+          {...zoneInteractive('footer', activeZone, onZoneClick)}
+          className={`border-t-[4px] px-6 py-3 text-center ${
+            zoneInteractive('footer', activeZone, onZoneClick).className
+          }`}
           style={{
             background: theme.footer,
             color: footerInk,
@@ -285,66 +320,6 @@ export default function DocumentMockup({ theme, activeZone, onZoneClick }: Props
             RCS Bordeaux &mdash; APE 4321A
           </div>
         </div>
-
-        {/* ============================================================ */}
-        {/* OVERLAYS CLIQUABLES - positionnes en absolute sur les zones    */}
-        {/* ============================================================ */}
-
-        {/* Zone bandeau GAUCHE (logo + nom) - jusqu'au debut de la barre accent (~48%) */}
-        <ZoneOverlay
-          zone="bandeauHaut"
-          isActive={activeZone === 'bandeauHaut'}
-          onZoneClick={onZoneClick}
-          style={{ top: 0, left: 0, width: '48%', height: '104px' }}
-        />
-
-        {/* Zone ACCENT : la barre oblique centree (clip 48-61.5%), zone cliquable au centre */}
-        <ZoneOverlay
-          zone="accent"
-          isActive={activeZone === 'accent'}
-          onZoneClick={onZoneClick}
-          style={{ top: 0, left: '48%', width: '13.5%', height: '104px' }}
-        />
-
-        {/* Zone bandeau DROITE (DEVIS + numero + dates) - apres la barre accent (~61.5%) */}
-        <ZoneOverlay
-          zone="bandeauHautDroite"
-          isActive={activeZone === 'bandeauHautDroite'}
-          onZoneClick={onZoneClick}
-          style={{ top: 0, right: 0, width: '38%', height: '104px' }}
-        />
-
-        {/* Zone 3 - Carte Emetteur (gauche, chevauche le bandeau) */}
-        <ZoneOverlay
-          zone="cadreEmetteur"
-          isActive={activeZone === 'cadreEmetteur'}
-          onZoneClick={onZoneClick}
-          style={{ top: '96px', left: '24px', width: 'calc(50% - 30px)', height: '96px' }}
-        />
-
-        {/* Zone 4 - Carte Adresse a (droite, chevauche le bandeau) */}
-        <ZoneOverlay
-          zone="cadreAdresse"
-          isActive={activeZone === 'cadreAdresse'}
-          onZoneClick={onZoneClick}
-          style={{ top: '96px', right: '24px', width: 'calc(50% - 30px)', height: '96px' }}
-        />
-
-        {/* Zone 5 - Net a payer (en bas de la mini-table) */}
-        <ZoneOverlay
-          zone="netPayer"
-          isActive={activeZone === 'netPayer'}
-          onZoneClick={onZoneClick}
-          style={{ bottom: '58px', right: '24px', width: '170px', height: '34px' }}
-        />
-
-        {/* Zone 6 - Footer (en bas) */}
-        <ZoneOverlay
-          zone="footer"
-          isActive={activeZone === 'footer'}
-          onZoneClick={onZoneClick}
-          style={{ bottom: 0, left: 0, right: 0, height: '52px' }}
-        />
       </div>
 
       {/* Legende discrete sous le mockup */}
