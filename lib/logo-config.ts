@@ -24,7 +24,8 @@ export const DEFAULT_LOGO_CONFIG: LogoConfig = {
   style: 'carte-classique',
   logoSize: 100,
   nomSize: 100,
-  showCompanyName: true,
+  // V3.2 : logo seul par defaut (le nom n'apparait plus a cote du logo).
+  showCompanyName: false,
 }
 
 // V3.1.7 : facteur d'agrandissement applique au logo quand le nom est masque.
@@ -51,8 +52,8 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
   const style = entreprise.doc_logo_style as string | null
   const logoSize = entreprise.doc_logo_size as number | null
   const nomSize = entreprise.doc_nom_size as number | null
-  // V3.1.7 : null/undefined = TRUE (backward-compat strict). Seul un FALSE
-  // explicite enregistre par l'artisan masque le wordmark.
+  // V3.2 : null/undefined = FALSE (logo seul par defaut). Seul un TRUE
+  // explicite enregistre par l'artisan affiche le nom (sous le logo, en petit).
   const showCompanyNameRaw = entreprise.document_show_company_name as boolean | null | undefined
 
   const safeLogoSize = typeof logoSize === 'number'
@@ -68,7 +69,7 @@ export function logoConfigFromEntreprise(entreprise: any | null): LogoConfig {
       : DEFAULT_LOGO_CONFIG.style,
     logoSize: safeLogoSize,
     nomSize: safeNomSize,
-    showCompanyName: showCompanyNameRaw === false ? false : true,
+    showCompanyName: showCompanyNameRaw === true ? true : false,
   }
 }
 
@@ -76,16 +77,23 @@ export function logoConfigToCssVars(cfg: LogoConfig): Record<string, string> {
   // V3.x : "la carte epouse le logo". Taille pilotee par la HAUTEUR du logo ;
   // la largeur = fit-content (CSS) plafonnee a --dv-logo-maxw. Memes valeurs
   // (proportionnelles, ~3.47px/mm) que le PDF (lib/pdf/header.ts) -> PDF == HTML.
-  const baseHpx = cfg.style === 'carte-minimaliste' ? 76 : 90
-  const LOGO_H_MAX_PX = 132
-  const nomBase = 41
+  // V3.2 : bandeau ~13% moins haut. Base logo 90 -> 78px (classique), 76 -> 66px
+  // (minimaliste), plafond 132 -> 115px. Coherent avec headerH PDF 50 -> 43.5mm.
+  const baseHpx = cfg.style === 'carte-minimaliste' ? 66 : 78
+  const LOGO_H_MAX_PX = 115
+  // V3.2 : quand le nom est affiche, il va EN PETIT SOUS le logo (plus a cote).
+  // Taille reduite (~15px de base) pour rester contenu dans la zone gauche sans
+  // jamais toucher la diagonale doree.
+  const nomBase = 15
   const clampedLogoSize = Math.min(130, Math.max(70, cfg.logoSize))
   const clampedNomSize = Math.min(130, Math.max(70, cfg.nomSize))
   const sizeMultiplier = cfg.showCompanyName ? 1 : LOGO_LARGE_FACTOR
   const logoH = Math.round(Math.min(baseHpx * (clampedLogoSize / 100) * sizeMultiplier, LOGO_H_MAX_PX))
   const padPx = cfg.style === 'sans-carte' ? 0 : cfg.style === 'carte-minimaliste' ? 5 : 9
   const cardH = logoH + 2 * padPx
-  const maxW = cfg.showCompanyName ? 104 : 222 // nom affiche: 30mm (~ancienne carte) / nom masque: 64mm
+  // V3.2 : la zone gauche du bandeau (logo + nom dessous) reste large et bornee
+  // bien avant la diagonale (CSS max-width:46% sur .dv-d-brand fait le clamp dur).
+  const maxW = 200
   return {
     '--dv-logo-card-h': cardH + 'px',
     '--dv-logo-card-pad': padPx + 'px',

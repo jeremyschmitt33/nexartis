@@ -28,7 +28,8 @@
    parties qui chevauchent dessous via margin-top:-46px). Plus de hauteur fixe :
    le bandeau s'adapte naturellement a son contenu, comme avant les tentatives ratees. */
 .dv-headD .dv-d-band { position:relative; background:var(--accent);
-  padding:40px 54px 76px;
+  /* V3.2 : bandeau ~13% moins haut (top 40->34, bottom 76->66). */
+  padding:34px 54px 66px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
 /* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
    par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
@@ -55,8 +56,8 @@
    - max-width:46% -> plafond DUR a ~365px, BIEN AVANT la barre doree qui demarre a 53% (421px).
      Buffer de 56px : le bord droit du brand ne touche JAMAIS la barre doree, meme avec un nom long.
    - margin-right:auto -> securise le collage gauche si .dv-d-title est vide. */
-.dv-headD .dv-d-brand { display:flex; align-items:center; gap:18px; position:relative; z-index:2;
-  flex:0 1 auto; max-width:46%; min-width:0; margin-right:auto; }
+.dv-headD .dv-d-brand { display:flex; flex-direction:column; align-items:center; gap:9px; position:relative; z-index:2;
+  flex:0 1 auto; max-width:46%; min-width:0; margin-right:auto; align-self:center; }
 /* V3.1 : carte logo pilotee par les variables --dv-logo-* (config personnalisable) */
 .dv-headD .dv-d-logomark {
   height:var(--dv-logo-card-h, 100px);
@@ -75,21 +76,21 @@
 /* V3.1.5 : brandtext shrinkable pour que l'ellipsis fonctionne dans un flex container. */
 /* V3.1.7 : si --dv-brandtext-display vaut 'none', le wrapper est masque pour
    collapser le gap:18px du flex parent (sinon on garderait un trou inutile). */
-.dv-headD .dv-d-brandtext { display:var(--dv-brandtext-display, flex); flex-direction:column; min-width:0; flex:1 1 auto; overflow:hidden; }
+.dv-headD .dv-d-brandtext { display:var(--dv-brandtext-display, none); flex-direction:column; align-items:center; min-width:0; max-width:100%; overflow:hidden; text-align:center; }
 /* V3.1.5 : nom = 41px (= --title-size, = taille de "DEVIS") pour parite visuelle.
    Ellipsis classique (white-space:nowrap + overflow:hidden + text-overflow:ellipsis) :
    methode standard, deterministe sur tous navigateurs. Supprime word-break:break-word
    qui autorisait des retours a la ligne au milieu d'un mot. */
-.dv-headD .dv-d-name { color:#fff; font-weight:800;
-  font-size:var(--dv-nom-size, 41px); letter-spacing:-.01em; line-height:1.05;
-  /* V3.1.7 : display piloté par --dv-name-display (block par defaut, none si
-     l'artisan a desactive l'affichage du nom). Le logo s'agrandit en parallele
-     via --dv-logo-card-size (voir logoConfigToCssVars). */
-  display:var(--dv-name-display, block);
+.dv-headD .dv-d-name { color:#fff; font-weight:700;
+  /* V3.2 : nom EN PETIT, centre SOUS le logo (plus a cote). Taille ~15px (var). */
+  font-size:var(--dv-nom-size, 15px); letter-spacing:0; line-height:1.15;
+  /* display piloté par --dv-name-display : none par defaut (logo seul), block si
+     l'artisan a active l'affichage du nom. */
+  display:var(--dv-name-display, none);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width:100%; }
+  max-width:100%; text-align:center; }
 .dv-headD .dv-d-base { color:rgba(255,255,255,.72); font-size:15px; margin-top:5px; font-weight:500; }
 .dv-headD .dv-d-title { position:relative; z-index:2; text-align:right; }
 .dv-headD .dv-d-doctype { color:#fff; font-weight:800; font-size:var(--title-size); line-height:.85;
@@ -99,8 +100,14 @@
 .dv-headD .dv-d-num { display:inline-block; margin-top:14px; background:var(--accent2);
   color:var(--accent2-ink); font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
   font-weight:600; font-size:14px; padding:6px 13px; border-radius:7px; letter-spacing:-.01em; }
-.dv-headD .dv-d-metaline { display:flex; flex-direction:column; align-items:flex-end; gap:3px; margin-top:14px;
+.dv-headD .dv-d-metaline { display:flex; flex-direction:row; flex-wrap:nowrap; justify-content:flex-end;
+  align-items:baseline; gap:8px; margin-top:14px; white-space:nowrap;
   font-size:11.5px; color:rgba(255,255,255,.66); text-align:right; }
+/* V3.2 : "Emis le …" et "Valable jusqu'au …" sur la MEME ligne, separes par un
+   point median. Le bandeau restant a droite du clip diagonal, l'alignement a
+   droite (justify-content:flex-end) garde le texte dans la zone bleue. */
+.dv-headD .dv-d-metaline > div:not(:last-child)::after { content:"\00B7"; margin-left:8px;
+  color:rgba(255,255,255,.5); font-weight:600; }
 .dv-headD .dv-d-metaline strong { color:#fff; font-weight:600; }
 .dv-headD .dv-d-parties { display:grid; grid-template-columns:1fr 1fr; gap:20px;
   padding:0 54px; margin-top:-46px; position:relative; z-index:3; }
@@ -260,7 +267,8 @@
   .dv-headD .dv-d-doctype { font-size:30px; }
   .dv-doctype-facture .dv-headD .dv-d-doctype { font-size:24px; }
   .dv-headD .dv-d-num { font-size:12px; padding:5px 10px; margin-top:10px; }
-  .dv-headD .dv-d-metaline { font-size:10.5px; gap:2px; margin-top:10px; }
+  /* V3.2 : sur mobile, autoriser le retour a la ligne des dates si trop etroit. */
+  .dv-headD .dv-d-metaline { font-size:10.5px; gap:6px; margin-top:10px; flex-wrap:wrap; white-space:normal; }
 
   /* CARTES Emetteur / Adresse a : empilees en mobile */
   .dv-headD .dv-d-parties {

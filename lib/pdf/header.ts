@@ -59,7 +59,7 @@ export function drawHeader(
 ): number {
   const P = palette
   const pageW = 210
-  const headerH = 50 // V3.1.5 : reduit de 58 a 50mm (bandeau plus aere)
+  const headerH = 43.5 // V3.2 : reduit de 50 a 43.5mm (~13% moins haut)
 
   // === Zone GAUCHE (navy) - trapeze : largeur 137 en haut, oblique 20mm a droite ===
   setFill(doc, P.navy)
@@ -86,7 +86,7 @@ export function drawHeader(
   // V3.1.7 : si showCompanyName === false, le wordmark "Nom Société" n'est pas
   // dessine et on agrandit le logo (LOGO_LARGE_FACTOR), en plafonnant la taille
   // pour ne pas deborder du bandeau de 50mm.
-  const showCompanyName = ent.document_show_company_name === false ? false : true
+  const showCompanyName = ent.document_show_company_name === true ? true : false // V3.2 : logo seul par defaut
   const logoStyle = ent.doc_logo_style ?? 'carte-classique'
   const rawLogoSize = ent.doc_logo_size ?? 100
   const clampedLogoSize = Math.min(130, Math.max(70, rawLogoSize))
@@ -96,15 +96,17 @@ export function drawHeader(
   // du logo, et la carte blanche n'est qu'une petite marge autour -> plus de
   // grand carre blanc gaspille, surtout pour les logos larges (wordmark).
   const sizeMultiplier = showCompanyName ? 1 : LOGO_LARGE_FACTOR
-  const baseH = logoStyle === 'carte-minimaliste' ? 22 : 26
-  const LOGO_H_MAX_MM = 38 // plafond hauteur logo (bandeau 50mm, marges ~6mm)
+  // V3.2 : bandeau 43.5mm (au lieu de 50). Bases logo legerement reduites
+  // (26->23, 22->20) + plafond 38->33mm pour rester dans le bandeau raccourci.
+  const baseH = logoStyle === 'carte-minimaliste' ? 20 : 23
+  const LOGO_H_MAX_MM = 33 // plafond hauteur logo (bandeau 43.5mm, marges ~5mm)
   const targetLogoH = Math.min(baseH * logoScale * sizeMultiplier, LOGO_H_MAX_MM)
   // Marge de la carte autour du logo : classique un peu plus genereuse,
   // minimaliste serree, sans-carte aucune (pas de carte dessinee).
   const cardPad = logoStyle === 'sans-carte' ? 0 : logoStyle === 'carte-minimaliste' ? 1.5 : 2.5
-  // Largeur max du logo : plus contrainte quand le nom est affiche (il faut lui
-  // laisser de la place a droite), plus large quand le nom est masque.
-  const maxLogoW = showCompanyName ? 30 : 64 // nom affiche: largeur ~= ancienne carte (preserve la place du nom)
+  // V3.2 : le nom passe SOUS le logo (plus a cote), donc pas besoin de reserver
+  // de la largeur a droite. Logo large dans les deux cas (zone gauche ~115mm).
+  const maxLogoW = 64
 
   let logoW = targetLogoH
   let logoH = targetLogoH
@@ -130,10 +132,13 @@ export function drawHeader(
   const cardW = logoW + 2 * cardPad
   const cardH = logoH + 2 * cardPad
   const logoCardX = 12
-  // Centre vertical dans le bandeau quelle que soit la hauteur de la carte.
-  const logoCardY = Math.max(3, (headerH - cardH) / 2)
-  const logoCardCenterY = logoCardY + cardH / 2 // centre vertical (alignement nom)
-  const logoCardRightEdge = logoCardX + cardW // bord droit (debut du nom)
+  // V3.2 : si le nom est affiche, il va EN PETIT SOUS le logo. On reserve une
+  // bande basse (NAME_BAND_H) et on centre la carte logo dans l'espace restant.
+  // Sinon (logo seul, vedette), la carte est centree verticalement dans tout le bandeau.
+  const NAME_BAND_H = showCompanyName ? 7 : 0
+  const logoZoneH = headerH - NAME_BAND_H
+  const logoCardY = Math.max(3, (logoZoneH - cardH) / 2)
+  const logoCardCenterX = logoCardX + cardW / 2 // centre horizontal (alignement nom dessous)
 
   if (logoStyle !== 'sans-carte') {
     const radius = logoStyle === 'carte-minimaliste' ? 3 : 5
@@ -146,29 +151,28 @@ export function drawHeader(
     drawLogoPlaceholder(doc, ent.nom, logoCardX, logoCardY, cardW, P)
   }
 
-  // === Nom artisan - V3.1.5 : 30pt, centre verticalement sur le logo ===
-  // V3.1.7 : entierement saute si showCompanyName === false. Le logo, deja
-  // agrandi en amont, occupe seul l'espace gauche du bandeau.
+  // === Nom artisan - V3.2 : EN PETIT, centre SOUS le logo ===
+  // Saute entierement si showCompanyName === false (logo seul, defaut V3.2).
+  // Le nom reste dans la zone gauche (bordee bien avant la diagonale doree a
+  // x~115mm) : on plafonne sa largeur pour eviter tout chevauchement.
   if (showCompanyName) {
-    const textLeftX = logoCardRightEdge + 6
     const rawNomSize = ent.doc_nom_size ?? 100
     const clampedNomSize = Math.min(130, Math.max(70, rawNomSize))
     const nomScale = clampedNomSize / 100
-    const nomBase = 30 // V3.1.5 : passe de 20 a 30pt (= titleSize "DEVIS")
-    const nomMaxWidth = 133 - textLeftX // V3.1.5 : gagne 2mm (etait 135 - textLeftX - 2)
+    const nomBase = 11 // ~ equivalent du 15px HTML (parite visuelle)
+    // Largeur max : on borne sur la zone gauche pour ne JAMAIS toucher la barre
+    // doree (qui demarre a x~115mm en bas du bandeau). Marge de securite a 100mm.
+    const nomMaxWidth = 100 - logoCardX
     let nomFontSize = nomBase * nomScale
-    font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
-    // Auto-fit : reduit la police par paliers de 1pt jusqu'a tenir dans nomMaxWidth.
-    // Plancher 14pt (au lieu de 11) pour eviter qu'un nom long devienne ridicule
-    // en face d'un DEVIS a 30pt.
-    while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 14) {
-      nomFontSize -= 1
-      font(doc, 'Hanken Grotesk', 'extrabold', nomFontSize, P.white)
+    font(doc, 'Hanken Grotesk', 'bold', nomFontSize, P.white)
+    // Auto-fit : reduit par paliers de 0.5pt jusqu'a tenir, plancher 7pt.
+    while (doc.getTextWidth(ent.nom || '') > nomMaxWidth && nomFontSize > 7) {
+      nomFontSize -= 0.5
+      font(doc, 'Hanken Grotesk', 'bold', nomFontSize, P.white)
     }
-    // V3.1.5 : y_nom calcule APRES l'auto-fit (utilise la fontSize finale) pour
-    // que le centrage reste correct meme si le nom a ete reduit.
-    const yNom = logoCardCenterY + nomFontSize * BASELINE_CENTER_FACTOR
-    doc.text(ent.nom || 'Votre entreprise', textLeftX, yNom)
+    // Baseline du nom : sous la carte logo, dans la bande basse reservee.
+    const yNom = logoCardY + cardH + 1.5 + nomFontSize * 0.3528 * 0.7
+    textCentered(doc, ent.nom || 'Votre entreprise', logoCardCenterX, yNom)
   }
 
   // === Titre + pastille numero (zone droite) ===
@@ -183,7 +187,8 @@ export function drawHeader(
   //   - 20pt -> yTitle = 12 + 2.48 = 14.48mm (top a ~9.6mm)
   // Le titre n'est plus aligne avec le nom artisan (qui suit le centre du logo),
   // mais c'est volontaire : les 2 zones sont separees par la barre doree.
-  const titleCenterY = 12
+  // V3.2 : bandeau raccourci (43.5mm) -> titre remonte legerement (12 -> 10.5mm).
+  const titleCenterY = 10.5
   const yTitle = titleCenterY + titleSize * BASELINE_CENTER_FACTOR
   font(doc, 'Hanken Grotesk', 'extrabold', titleSize, P.white)
   textCentered(doc, title, zoneRightCenter, yTitle)
@@ -216,46 +221,32 @@ export function drawHeader(
     }
   }
 
-  // Calcul des y des dates : on les place sous la pastille avec un gap de 4.5mm
-  // pour la 1ere, puis interligne 4.5mm pour la 2eme. Plancher sur headerH - 2.
-  const pillBottom = pillY + pillH // bas de la pastille
-  const yDate1 = Math.max(headerH - 6.5, pillBottom + 4.5)
-  const yDate2 = yDate1 + 4.5
+  // === Dates : V3.2 — TOUJOURS sur UNE seule ligne (parite dashboard HTML) ===
+  // Format : "[label1] [date1]  ·  [label2] [date2]", separateur point median,
+  // aligne a droite (rightAnchorX=200) -> reste dans la zone bleue, jamais sur
+  // la diagonale doree (qui demarre a x~115mm en bas du bandeau, soit 85mm a
+  // gauche de l'ancre droite, bien plus que la largeur du texte des dates).
+  //
+  // Marge basse : on place la ligne sous la pastille (gap 5mm) puis on PLAFONNE a
+  // headerH - 6 pour garder ~6mm de marge sous "Valable jusqu'au …" (le PDF avait
+  // un texte colle au bord bas a headerH-3 ; le dashboard, lui, est bien espace).
+  const pillBottom = pillY + pillH
+  const yDates = Math.min(pillBottom + 5, headerH - 6)
 
-  // Si les 2 lignes dates depassent le bandeau (cas logo 130% + 2 dates), on
-  // fusionne en une seule ligne plus compacte pour eviter le debordement.
-  const overflow = yDate2 > headerH - 1 && Boolean(dateGauche) && Boolean(dateDroite)
-
-  if (overflow) {
-    // Mode fusionne : "[label1] [date1]   [label2] [date2]" sur une ligne unique
-    drawDateLine(
-      [
-        { txt: labelGauche + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
-        { txt: dateGauche, size: 8.5, weight: 'bold', color: P.white },
-        { txt: '   ' + labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
-        { txt: dateDroite, size: 8.5, weight: 'bold', color: P.white },
-      ],
-      headerH - 3,
-    )
-  } else {
-    if (dateGauche) {
-      drawDateLine(
-        [
-          { txt: labelGauche + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
-          { txt: dateGauche, size: 8.5, weight: 'bold', color: P.white },
-        ],
-        yDate1,
-      )
+  const datePieces: DatePiece[] = []
+  if (dateGauche) {
+    datePieces.push({ txt: labelGauche + ' ', size: 8, weight: 'normal', color: P.whiteSoft })
+    datePieces.push({ txt: dateGauche, size: 8.5, weight: 'bold', color: P.white })
+  }
+  if (dateDroite) {
+    if (datePieces.length > 0) {
+      datePieces.push({ txt: '   ·   ', size: 8, weight: 'normal', color: P.whiteSoft })
     }
-    if (dateDroite) {
-      drawDateLine(
-        [
-          { txt: labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft },
-          { txt: dateDroite, size: 8.5, weight: 'bold', color: P.white },
-        ],
-        yDate2,
-      )
-    }
+    datePieces.push({ txt: labelDroite + ' ', size: 8, weight: 'normal', color: P.whiteSoft })
+    datePieces.push({ txt: dateDroite, size: 8.5, weight: 'bold', color: P.white })
+  }
+  if (datePieces.length > 0) {
+    drawDateLine(datePieces, yDates)
   }
 
   return headerH
