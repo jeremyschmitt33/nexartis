@@ -2,6 +2,9 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState, useCallback } from 'react'
+// Cache navigateur (perf navigation) : dédup de getUser + stale-while-revalidate.
+// Sécurité : caches scopés par utilisateur + purge au changement de compte.
+import { getCachedUser, makeCacheKey, readDataCache, writeDataCache, clearDataCache, ensureAuthListener } from '@/lib/data-cache'
 // Push 2 : rôle du membre courant pour router l'Ouvrier vers les vues masquées
 // (chantiers_ouvrier / intervenants_safe). hooks-equipe n'importe PAS hooks.tsx
 // → aucun cycle d'import.
@@ -23,19 +26,24 @@ function useSupabaseQuery<T>(
   // comportement pour tous les appels existants.
   options?: { orderBy?: string; ascending?: boolean; filters?: Record<string, unknown>; includeDeleted?: boolean; enabled?: boolean }
 ): QueryState<T> {
-  const [data, setData] = useState<T[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const enabled = options?.enabled ?? true
+  // Clé de cache scopée utilisateur (anti-fuite) — recalculée à chaque render.
+  const cacheKey = makeCacheKey(table, options)
+
+  // Affichage instantané depuis le cache si dispo (et hook activé), sinon skeleton.
+  const [data, setData] = useState<T[]>(() => (enabled ? (readDataCache(cacheKey) as T[] | undefined) : undefined) ?? [])
+  const [loading, setLoading] = useState(() => !(enabled && readDataCache(cacheKey)))
+  const [error, setError] = useState<string | null>(null)
 
   const fetch = useCallback(async () => {
     if (!enabled) return
-    setLoading(true)
+    // On NE remet PAS loading=true ici : si des données (cache/précédentes) sont
+    // affichées, la revalidation se fait en arrière-plan sans skeleton.
     setError(null)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    ensureAuthListener()
+    const user = await getCachedUser()
     if (!user) { setError('Non connecté'); setLoading(false); return }
+    const supabase = createClient()
 
     // Push 2 : lecture déléguée à la RLS role-aware (plus de filtre .eq('user_id'))
     // La RLS Supabase (membership + rôle) limite déjà les lignes à l'entreprise
@@ -65,7 +73,11 @@ function useSupabaseQuery<T>(
 
     const { data: rows, error: err } = await query
     if (err) { setError(err.message); setLoading(false); return }
-    setData((rows ?? []) as T[])
+    const result = (rows ?? []) as T[]
+    // Clé recalculée ICI (identité désormais confirmée) pour que lecture et
+    // écriture partagent la même clé scopée utilisateur.
+    writeDataCache(makeCacheKey(table, options), result)
+    setData(result)
     setLoading(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table, enabled])
@@ -92,9 +104,10 @@ function useSupabaseRecord<T>(table: string, id: string | null): SingleState<T> 
     if (!id) { setLoading(false); return }
     async function fetch() {
       setLoading(true)
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      ensureAuthListener()
+      const user = await getCachedUser()
       if (!user) { setError('Non connecté'); setLoading(false); return }
+      const supabase = createClient()
       // Push 2 : lecture déléguée à la RLS role-aware (plus de filtre .eq('user_id'))
       const { data: row, error: err } = await supabase.from(table).select('*').eq('id', id).single()
       if (err) { setError(err.message); setLoading(false); return }
@@ -119,6 +132,7 @@ async function insertRow(table: string, values: Record<string, unknown>) {
   const row = TABLES_WITHOUT_USER_ID.has(table) ? values : { ...values, user_id: user.id }
   const { data, error } = await supabase.from(table).insert(row).select().single()
   if (error) throw new Error(error.message)
+  clearDataCache()
   return data
 }
 
@@ -128,6 +142,7 @@ async function updateRow(table: string, id: string, values: Record<string, unkno
   if (!user) throw new Error('Non connecté')
   const { data, error } = await supabase.from(table).update(values).eq('id', id).eq('user_id', user.id).select().single()
   if (error) throw new Error(error.message)
+  clearDataCache()
   return data
 }
 
@@ -137,6 +152,7 @@ async function deleteRow(table: string, id: string) {
   if (!user) throw new Error('Non connecté')
   const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', user.id)
   if (error) throw new Error(error.message)
+  clearDataCache()
 }
 
 // ── Corbeille (soft delete) ──────────────────────────────────
@@ -152,6 +168,7 @@ async function softDeleteRow(table: string, id: string) {
     .eq('id', id)
     .eq('user_id', user.id)
   if (error) throw new Error(error.message)
+  clearDataCache()
 }
 
 /** Restaurer un élément depuis la corbeille */
@@ -165,6 +182,7 @@ async function restoreRow(table: string, id: string) {
     .eq('id', id)
     .eq('user_id', user.id)
   if (error) throw new Error(error.message)
+  clearDataCache()
 }
 
 /** Supprimer définitivement (suppression réelle en base) */
@@ -174,6 +192,7 @@ async function permanentDeleteRow(table: string, id: string) {
   if (!user) throw new Error('Non connecté')
   const { error } = await supabase.from(table).delete().eq('id', id).eq('user_id', user.id)
   if (error) throw new Error(error.message)
+  clearDataCache()
 }
 
 /** Purger les éléments de la corbeille de plus de 7 jours */
@@ -186,6 +205,7 @@ async function purgeCorbeille() {
   await supabase.from('devis').delete().eq('user_id', user.id).not('deleted_at', 'is', null).lt('deleted_at', sevenDaysAgo)
   // Supprimer les factures expirées
   await supabase.from('factures').delete().eq('user_id', user.id).not('deleted_at', 'is', null).lt('deleted_at', sevenDaysAgo)
+  clearDataCache()
 }
 
 // ── Entreprise interface ──────────────────────────────────────
@@ -254,9 +274,9 @@ function useUser() {
 
   useEffect(() => {
     async function fetch() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user ? { id: user.id, email: user.email ?? '', user_metadata: (user.user_metadata ?? {}) as Record<string, string> } : null)
+      ensureAuthListener()
+      const user = await getCachedUser()
+      setUser(user)
       setLoading(false)
     }
     fetch()
@@ -271,9 +291,10 @@ function useEntreprise() {
 
   useEffect(() => {
     async function fetch() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      ensureAuthListener()
+      const user = await getCachedUser()
       if (!user) { setLoading(false); return }
+      const supabase = createClient()
       // Push 2 : lecture déléguée à la RLS role-aware (plus de filtre .eq('user_id')).
       // Un membre (employé) appartient à 1 entreprise via la policy membership de
       // `entreprises` : la RLS ne renvoie donc que SON entreprise. On prend la
@@ -293,6 +314,7 @@ function useEntreprise() {
     const { data, error } = await supabase.from('entreprises').update(values).eq('id', entreprise.id).select().single()
     if (error) throw new Error(error.message)
     setEntreprise(data as EntrepriseRecord)
+    clearDataCache()
     return data
   }
 
