@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Trash2, Plus, ArrowLeft, Mic, MicOff, X } from 'lucide-react'
-import { useClients, useChantiers, useEntreprise, usePointsCollecte, insertRow, LoadingSkeleton } from '@/lib/hooks'
+import { useClients, useChantiers, useEntreprise, usePointsCollecte, usePrestations, insertRow, LoadingSkeleton } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
+import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
+import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 
 // -------------------------------------------------------------------
 // Types
@@ -425,6 +427,8 @@ function NouveauDevisPage() {
   const { data: chantiersRaw } = useChantiers()
   const { entreprise } = useEntreprise()
   const { data: pointsCollecteRaw } = usePointsCollecte()
+  const { data: prestationsRows } = usePrestations()
+  const prestationSuggestions = useMemo(() => buildSuggestions(prestationsRows), [prestationsRows])
   const clients = clientsRaw as unknown as ClientRecord[]
   const chantiers = chantiersRaw as unknown as ChantierRecord[]
   const pointsCollecte = pointsCollecteRaw as unknown as { id: string; nom: string; adresse?: string; type_installation?: string }[]
@@ -747,6 +751,8 @@ function NouveauDevisPage() {
           numero: item.numero || null,
         })
       }
+      // Mémorisation auto des prestations (best-effort, ne bloque jamais le succès)
+      await memorizePrestations(lines.map(l => ({ designation: l.designation, unit: l.unit, priceHT: l.priceHT, tva: (l as { tva?: number }).tva, type: l.type })))
       // Sauvegarder/mettre à jour le client + chantier dans la base de données et lier au devis
       const devisId = (devis as { id: string }).id
       let clientId: string | null = null
@@ -1274,13 +1280,32 @@ function NouveauDevisPage() {
               )}
               {lines.map(line => (
                 <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#fafbfc] border-l-4 border-l-[#ff7a1a]' : line.type === 'subsection' ? 'bg-white border-l-2 border-l-[#ff7a1a]/60' : ''}`}>
-                  <textarea
-                    value={line.designation}
-                    onChange={e => { updateLine(line.id, 'designation', e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
-                    className={`text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 mr-2 resize-none overflow-hidden min-h-[38px] ${line.type === 'section' ? 'font-bold text-[#0f1a3a]' : line.type === 'subsection' ? 'font-semibold text-[#0f1a3a]' : ''}`}
-                    placeholder={line.type === 'section' ? 'Nom de la section (ex : Demolition, Maconnerie...)' : line.type === 'subsection' ? 'Nom de la sous-section (ex : Cuisine, Plomberie...)' : line.type === 'text' ? 'Texte libre...' : 'Désignation...'}
-                    rows={1}
-                  />
+                  {line.type === 'line' ? (
+                    <div className="mr-2">
+                      <DesignationAutocomplete
+                        value={line.designation}
+                        onChange={v => updateLine(line.id, 'designation', v)}
+                        onPick={s => {
+                          updateLine(line.id, 'designation', s.designation)
+                          updateLine(line.id, 'unit', s.unite)
+                          updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
+                          updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
+                        }}
+                        suggestions={prestationSuggestions}
+                        placeholder="Désignation..."
+                        rows={1}
+                        className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[38px]"
+                      />
+                    </div>
+                  ) : (
+                    <textarea
+                      value={line.designation}
+                      onChange={e => { updateLine(line.id, 'designation', e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+                      className={`text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 mr-2 resize-none overflow-hidden min-h-[38px] ${line.type === 'section' ? 'font-bold text-[#0f1a3a]' : line.type === 'subsection' ? 'font-semibold text-[#0f1a3a]' : ''}`}
+                      placeholder={line.type === 'section' ? 'Nom de la section (ex : Demolition, Maconnerie...)' : line.type === 'subsection' ? 'Nom de la sous-section (ex : Cuisine, Plomberie...)' : line.type === 'text' ? 'Texte libre...' : 'Désignation...'}
+                      rows={1}
+                    />
+                  )}
                   {line.type === 'line' ? (
                     <>
                       <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mt-0.5 mx-1" min={0} />
@@ -1549,6 +1574,8 @@ function NouveauDevisPage() {
         onSaveAndNew={handleSheetSaveAndNew}
         defaultType={sheetDefaultType}
         unitOptions={UNIT_SUGGESTIONS}
+        prestations={prestationSuggestions}
+        autoEntrepreneur={autoEntrepreneur}
       />
     </div>
   )

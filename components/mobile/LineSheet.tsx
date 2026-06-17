@@ -21,6 +21,8 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import Stepper from './Stepper'
 import UnitChips from './UnitChips'
+import DesignationAutocomplete from '../DesignationAutocomplete'
+import type { PrestationSuggestion } from '@/lib/prestations-memo'
 
 export interface SheetLine {
   id: number
@@ -43,6 +45,10 @@ interface LineSheetProps {
   unitOptions?: string[]
   // Type forcé si on crée une nouvelle ligne (depuis bouton "Section" par ex.)
   defaultType?: 'line' | 'section' | 'subsection' | 'text'
+  // Anciennes prestations de l'artisan pour l'autocomplétion (mode 'line')
+  prestations?: PrestationSuggestion[]
+  // Auto-entrepreneur : force TVA à 0 lors d'une sélection de suggestion
+  autoEntrepreneur?: boolean
 }
 
 function formatCurrencyFR(n: number): string {
@@ -58,6 +64,8 @@ export default function LineSheet({
   defaultUnit = 'U',
   unitOptions,
   defaultType = 'line',
+  prestations,
+  autoEntrepreneur = false,
 }: LineSheetProps) {
   // État local du form (réinitialisé à chaque ouverture)
   const [designation, setDesignation] = useState('')
@@ -65,6 +73,8 @@ export default function LineSheet({
   const [unit, setUnit] = useState(defaultUnit)
   const [priceHT, setPriceHT] = useState(0)
   const [type, setType] = useState<SheetLine['type']>(defaultType)
+  // TVA par ligne (devis). undefined côté facture pour ne pas l'injecter dans le payload.
+  const [tva, setTva] = useState<number | undefined>(undefined)
 
   // Re-sync à chaque ouverture / changement de ligne
   useEffect(() => {
@@ -75,6 +85,7 @@ export default function LineSheet({
       setUnit(line.unit || defaultUnit)
       setPriceHT(line.priceHT ?? 0)
       setType(line.type)
+      setTva(line.tva)
     } else {
       // Mode création
       setDesignation('')
@@ -82,6 +93,7 @@ export default function LineSheet({
       setUnit(defaultUnit)
       setPriceHT(0)
       setType(defaultType)
+      setTva(undefined)
     }
   }, [open, line, defaultUnit, defaultType])
 
@@ -101,6 +113,8 @@ export default function LineSheet({
     unit: type === 'line' ? unit : '',
     priceHT: type === 'line' ? priceHT : 0,
     type,
+    // N'inclut la TVA QUE si elle est définie (devis) — préserve le comportement facture.
+    ...(tva !== undefined ? { tva } : {}),
   })
 
   const handleSave = () => {
@@ -181,14 +195,32 @@ export default function LineSheet({
               {type === 'line' ? 'Désignation' : type === 'text' ? 'Texte' : 'Nom'}{' '}
               <span className="text-[#e87a2a]">*</span>
             </label>
-            <textarea
-              value={designation}
-              onChange={e => setDesignation(e.target.value)}
-              placeholder={designationPlaceholder}
-              rows={type === 'line' ? 3 : 2}
-              className="w-full rounded-2xl border-2 border-[#5ab4e0]/40 px-4 py-3 text-base text-[#0f1a3a] font-medium outline-none focus:border-[#5ab4e0] focus:ring-4 focus:ring-[#5ab4e0]/15 transition-all bg-white placeholder:text-gray-400 placeholder:font-normal resize-none"
-              autoFocus
-            />
+            {type === 'line' ? (
+              <DesignationAutocomplete
+                value={designation}
+                onChange={setDesignation}
+                onPick={s => {
+                  setDesignation(s.designation)
+                  setUnit(s.unite)
+                  setPriceHT(s.prix_unitaire_ht)
+                  setTva(autoEntrepreneur ? 0 : s.taux_tva)
+                }}
+                suggestions={prestations || []}
+                placeholder={designationPlaceholder}
+                rows={3}
+                className="w-full rounded-2xl border-2 border-[#5ab4e0]/40 px-4 py-3 text-base text-[#0f1a3a] font-medium outline-none focus:border-[#5ab4e0] focus:ring-4 focus:ring-[#5ab4e0]/15 transition-all bg-white placeholder:text-gray-400 placeholder:font-normal resize-none"
+                autoFocus
+              />
+            ) : (
+              <textarea
+                value={designation}
+                onChange={e => setDesignation(e.target.value)}
+                placeholder={designationPlaceholder}
+                rows={2}
+                className="w-full rounded-2xl border-2 border-[#5ab4e0]/40 px-4 py-3 text-base text-[#0f1a3a] font-medium outline-none focus:border-[#5ab4e0] focus:ring-4 focus:ring-[#5ab4e0]/15 transition-all bg-white placeholder:text-gray-400 placeholder:font-normal resize-none"
+                autoFocus
+              />
+            )}
           </div>
 
           {/* Champs spécifiques au mode 'line' */}

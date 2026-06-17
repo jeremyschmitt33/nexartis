@@ -1,16 +1,18 @@
 'use client'
 // Modifier devis — refonte parité Nouveau (patch 3)
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, X, Send } from 'lucide-react'
-import { useClients, useEntreprise, useChantiers, usePointsCollecte, useSupabaseRecord, useDevisLignes, updateRow, LoadingSkeleton } from '@/lib/hooks'
+import { useClients, useEntreprise, useChantiers, usePointsCollecte, useSupabaseRecord, useDevisLignes, usePrestations, updateRow, LoadingSkeleton } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
+import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
+import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 import EnvoyerDevisModal from '@/components/dashboard/EnvoyerDevisModal'
 
 interface LineItem {
@@ -125,6 +127,8 @@ export default function ModifierDevisPage() {
   const { data: chantiersRaw } = useChantiers()
   const { data: pointsCollecteRaw } = usePointsCollecte()
   const { entreprise } = useEntreprise()
+  const { data: prestationsRows } = usePrestations()
+  const prestationSuggestions = useMemo(() => buildSuggestions(prestationsRows), [prestationsRows])
   const clients = clientsRaw as unknown as ClientRecord[]
   const chantiers = (chantiersRaw as unknown as ChantierRecord[]) || []
   const pointsCollecte = pointsCollecteRaw as unknown as { id: string; nom: string; adresse?: string; type_installation?: string }[]
@@ -534,6 +538,9 @@ export default function ModifierDevisPage() {
       })
       if (rpcError) throw rpcError
 
+      // Mémorisation auto des prestations (best-effort, ne bloque jamais le succès)
+      await memorizePrestations(lines.map(l => ({ designation: l.designation, unit: l.unit, priceHT: l.priceHT, tva: (l as { tva?: number }).tva, type: l.type })))
+
       if (action === 'brouillon') {
         setToastMsg('Modifications sauvegardées')
         setTimeout(() => setToastMsg(null), 3000)
@@ -688,7 +695,22 @@ export default function ModifierDevisPage() {
               }
               return (
                 <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
-                  <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 h-9 mr-2" placeholder="Désignation..." />
+                  <div className="mr-2">
+                    <DesignationAutocomplete
+                      value={line.designation}
+                      onChange={v => updateLine(line.id, 'designation', v)}
+                      onPick={s => {
+                        updateLine(line.id, 'designation', s.designation)
+                        updateLine(line.id, 'unit', s.unite)
+                        updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
+                        updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
+                      }}
+                      suggestions={prestationSuggestions}
+                      placeholder="Désignation..."
+                      rows={1}
+                      className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
+                    />
+                  </div>
                   <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1" min={0} />
                   <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1 w-full">
                     {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}
@@ -918,7 +940,7 @@ export default function ModifierDevisPage() {
 
       {toastMsg && <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-hanken z-50">{toastMsg}</div>}
 
-      <LineSheet open={sheetOpen} onClose={() => setSheetOpen(false)} line={sheetLine as SheetLine | null} onSave={handleSheetSave} onSaveAndNew={handleSheetSaveAndNew} defaultType={sheetDefaultType} unitOptions={UNIT_SUGGESTIONS} />
+      <LineSheet open={sheetOpen} onClose={() => setSheetOpen(false)} line={sheetLine as SheetLine | null} onSave={handleSheetSave} onSaveAndNew={handleSheetSaveAndNew} defaultType={sheetDefaultType} unitOptions={UNIT_SUGGESTIONS} prestations={prestationSuggestions} autoEntrepreneur={autoEntrepreneur} />
 
       <EnvoyerDevisModal open={envoyerOpen} onClose={() => setEnvoyerOpen(false)} devisId={devis.id} numeroDevis={devis.numero} clientEmail={clientEmail} chantier={chantierDesc} onSuccess={() => { setEnvoyerOpen(false); router.push(`/dashboard/devis/${devis.id}`) }} />
     </div>

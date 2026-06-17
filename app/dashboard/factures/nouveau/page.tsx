@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
-import { useClients, useEntreprise, useChantiers, insertRow } from '@/lib/hooks'
+import { useClients, useEntreprise, useChantiers, usePrestations, insertRow } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
+import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
+import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -65,6 +67,11 @@ export default function NouvelleFacturePage() {
   const { data: chantiersRaw } = useChantiers()
   // entreprise — utilisée pour auto-détection franchise TVA (micro / EI / auto-entrepreneur)
   const { entreprise } = useEntreprise()
+  const { data: prestationsRows } = usePrestations()
+  const prestationSuggestions = useMemo(() => buildSuggestions(prestationsRows), [prestationsRows])
+  // AE (franchise TVA) : source de vérité = helper isAutoEntrepreneur. Sert à forcer
+  // la TVA à 0 lors d'une sélection de suggestion de prestation.
+  const autoEntrepreneur = isAutoEntrepreneur(entreprise)
   const clients = clientsRaw as unknown as ClientRecord[]
   const chantiers = (chantiersRaw as unknown as ChantierRecord[]) || []
 
@@ -669,6 +676,9 @@ export default function NouvelleFacturePage() {
         })
       }
 
+      // Mémorisation auto des prestations (best-effort, ne bloque jamais le succès)
+      await memorizePrestations(lines.map(l => ({ designation: l.designation, unit: l.unit, priceHT: l.priceHT, tva: (l as { tva?: number }).tva, type: l.type })))
+
       router.push(`/dashboard/factures/${factureId}`)
     } catch (err) {
       setError((err as Error).message)
@@ -1194,13 +1204,22 @@ export default function NouvelleFacturePage() {
               // Ligne de prestation classique
               return (
                 <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
-                  <input
-                    type="text"
-                    value={line.designation}
-                    onChange={e => updateLine(line.id, 'designation', e.target.value)}
-                    className="font-hanken text-sm text-[#0f1a3a] border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] px-2 h-9 mr-2 transition-all"
-                    placeholder="Désignation..."
-                  />
+                  <div className="mr-2">
+                    <DesignationAutocomplete
+                      value={line.designation}
+                      onChange={v => updateLine(line.id, 'designation', v)}
+                      onPick={s => {
+                        updateLine(line.id, 'designation', s.designation)
+                        updateLine(line.id, 'unit', s.unite)
+                        updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
+                        updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
+                      }}
+                      suggestions={prestationSuggestions}
+                      placeholder="Désignation..."
+                      rows={1}
+                      className="w-full font-hanken text-sm text-[#0f1a3a] border-[1.5px] border-gray-100 hover:border-gray-200 rounded-lg outline-none bg-white focus:border-[#ff7a1a] focus:shadow-[0_0_0_3px_rgba(255,122,26,0.10)] px-2 py-1.5 resize-none overflow-hidden min-h-[36px] transition-all"
+                    />
+                  </div>
                   <input
                     type="number"
                     value={line.qty}
@@ -1459,6 +1478,8 @@ export default function NouvelleFacturePage() {
         onSaveAndNew={handleSheetSaveAndNew}
         defaultType={sheetDefaultType}
         unitOptions={UNIT_SUGGESTIONS}
+        prestations={prestationSuggestions}
+        autoEntrepreneur={autoEntrepreneur}
       />
     </div>
   )
