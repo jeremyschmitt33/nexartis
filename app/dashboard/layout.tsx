@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -16,12 +17,17 @@ import {
   isPremiumNavItem,
   type PlanId,
 } from '@/lib/plans'
-import OnboardingTour from '@/components/OnboardingTour'
-import ContactFloatingButton from '@/components/dashboard/ContactFloatingButton'
-import InstallReminderBanner from '@/components/InstallReminderBanner'
-import PWAUpdateToast from '@/components/PWAUpdateToast'
+// Chargement à la demande (next/dynamic, ssr:false) : composants non critiques
+// / rarement visibles au premier paint. On allège le JS initial du dashboard
+// pour accélérer le rendu sur ordinateurs anciens. Tous sont des `export default`.
+// NB : VoiceProvider reste un import STATIQUE (Provider de contexte qui enveloppe
+// tout l'arbre — il doit être présent dès le rendu initial).
+const OnboardingTour = dynamic(() => import('@/components/OnboardingTour'), { ssr: false })
+const ContactFloatingButton = dynamic(() => import('@/components/dashboard/ContactFloatingButton'), { ssr: false })
+const InstallReminderBanner = dynamic(() => import('@/components/InstallReminderBanner'), { ssr: false })
+const PWAUpdateToast = dynamic(() => import('@/components/PWAUpdateToast'), { ssr: false })
+const UniversalVoiceButton = dynamic(() => import('@/components/voice/UniversalVoiceButton'), { ssr: false })
 import { VoiceProvider } from '@/components/voice/VoiceProvider'
-import UniversalVoiceButton from '@/components/voice/UniversalVoiceButton'
 import {
   Home,
   LayoutGrid,

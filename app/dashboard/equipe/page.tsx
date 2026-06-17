@@ -289,6 +289,8 @@ export default function EquipePage() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<FilterType>('tous')
   const [filterMetier, setFilterMetier] = useState<string>('tous')
+  // Pagination "Voir plus" (recherche/filtres portent sur toute la liste).
+  const [visibleCount, setVisibleCount] = useState(30)
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingIntervenant, setEditingIntervenant] = useState<Intervenant | null>(null)
@@ -336,6 +338,12 @@ export default function EquipePage() {
     }
     return true
   })
+
+  // Sous-liste réellement affichée (pagination "Voir plus").
+  const visible = filtered.slice(0, visibleCount)
+
+  // À chaque changement de recherche/filtre, on revient au haut des résultats.
+  useEffect(() => { setVisibleCount(30) }, [search, filterType, filterMetier])
 
   // --- Form creer ---
   // Session 13 V2 : suppression du flag `isSelf` côté formulaire. Le badge
@@ -596,7 +604,7 @@ export default function EquipePage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((intervenant) => {
+            {visible.map((intervenant) => {
               const type = getTypeFromContrat(intervenant.type_contrat)
               const typeColor = TYPE_COLORS[type]
               return (
@@ -695,11 +703,22 @@ export default function EquipePage() {
             <p className="text-sm font-hanken text-gray-500">Aucun membre trouvé</p>
           </div>
         )}
+        {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center py-4 border-t border-gray-100">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ============ Cartes mobile (< sm) — V4 ============ */}
       <div className="sm:hidden space-y-3">
-        {filtered.map((intervenant) => {
+        {visible.map((intervenant) => {
           const type = getTypeFromContrat(intervenant.type_contrat)
           const typeColor = TYPE_COLORS[type]
           return (
@@ -783,6 +802,17 @@ export default function EquipePage() {
           <div className="py-12 text-center">
             <Users size={40} className="mx-auto text-gray-300 mb-3" />
             <p className="text-sm font-hanken text-gray-500">Aucun membre trouvé</p>
+          </div>
+        )}
+        {/* Bouton "Voir plus" (mobile) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
           </div>
         )}
       </div>

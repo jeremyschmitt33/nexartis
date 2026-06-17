@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -69,6 +69,8 @@ export default function ChantiersListPage() {
   const [openActions, setOpenActions] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  // Pagination "Voir plus" (recherche/filtre portent toujours sur toute la liste).
+  const [visibleCount, setVisibleCount] = useState(30)
 
   // Fermer le menu au scroll ou clic extérieur
   const closeMenu = useCallback(() => { setOpenActions(null); setMenuPos(null) }, [])
@@ -97,39 +99,47 @@ export default function ChantiersListPage() {
     setOpenActions(chantierId)
   }
 
-  const clientMap = new Map(clients.map((c) => [c.id as string, c]))
+  // clientMap mémoïsé : ne se recalcule que si la liste clients change.
+  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id as string, c])), [clients])
 
-  // Calcul dynamique : facturé TTC et encaissé par chantier (depuis les factures)
-  const factureParChantier = new Map<string, { facture: number; encaisse: number }>()
-  for (const f of factures) {
-    const rec = f as Record<string, unknown>
-    const cId = rec.chantier_id as string
-    if (!cId) continue
-    const montant = Number(rec.montant_ttc || 0)
-    const entry = factureParChantier.get(cId) || { facture: 0, encaisse: 0 }
-    entry.facture += montant
-    if (rec.statut === 'payee') entry.encaisse += montant
-    factureParChantier.set(cId, entry)
-  }
-
-  // Devis montant TTC par chantier (fallback si montant_devis_total est 0)
-  const devisParChantier = new Map<string, number>()
-  // Comptage des devis par chantier (total + ceux pas encore facturés = "en cours")
-  // "en cours" = statuts qui ne sont pas 'facture' ni 'refuse' ni 'expire'
-  const devisCountParChantier = new Map<string, { total: number; enCours: number }>()
-  for (const d of devisData) {
-    const rec = d as Record<string, unknown>
-    const cId = rec.chantier_id as string
-    if (!cId) continue
-    devisParChantier.set(cId, (devisParChantier.get(cId) || 0) + Number(rec.montant_ttc || 0))
-    const current = devisCountParChantier.get(cId) || { total: 0, enCours: 0 }
-    current.total += 1
-    const statut = rec.statut as string
-    if (statut !== 'facture' && statut !== 'refuse' && statut !== 'expire') {
-      current.enCours += 1
+  // Bloc d'agrégation mémoïsé : on parcourt factures + devis une seule fois et
+  // on retourne les 3 Maps utilisées par les helpers ci-dessous. Recalculé
+  // uniquement quand `factures` ou `devisData` changent (et plus à chaque render).
+  const { factureParChantier, devisParChantier, devisCountParChantier } = useMemo(() => {
+    // Calcul dynamique : facturé TTC et encaissé par chantier (depuis les factures)
+    const factureParChantier = new Map<string, { facture: number; encaisse: number }>()
+    for (const f of factures) {
+      const rec = f as Record<string, unknown>
+      const cId = rec.chantier_id as string
+      if (!cId) continue
+      const montant = Number(rec.montant_ttc || 0)
+      const entry = factureParChantier.get(cId) || { facture: 0, encaisse: 0 }
+      entry.facture += montant
+      if (rec.statut === 'payee') entry.encaisse += montant
+      factureParChantier.set(cId, entry)
     }
-    devisCountParChantier.set(cId, current)
-  }
+
+    // Devis montant TTC par chantier (fallback si montant_devis_total est 0)
+    const devisParChantier = new Map<string, number>()
+    // Comptage des devis par chantier (total + ceux pas encore facturés = "en cours")
+    // "en cours" = statuts qui ne sont pas 'facture' ni 'refuse' ni 'expire'
+    const devisCountParChantier = new Map<string, { total: number; enCours: number }>()
+    for (const d of devisData) {
+      const rec = d as Record<string, unknown>
+      const cId = rec.chantier_id as string
+      if (!cId) continue
+      devisParChantier.set(cId, (devisParChantier.get(cId) || 0) + Number(rec.montant_ttc || 0))
+      const current = devisCountParChantier.get(cId) || { total: 0, enCours: 0 }
+      current.total += 1
+      const statut = rec.statut as string
+      if (statut !== 'facture' && statut !== 'refuse' && statut !== 'expire') {
+        current.enCours += 1
+      }
+      devisCountParChantier.set(cId, current)
+    }
+
+    return { factureParChantier, devisParChantier, devisCountParChantier }
+  }, [factures, devisData])
 
   const filtered = chantiers.filter((c: Record<string, unknown>) => {
     const displayFilter = statutToFilter(c.statut as string)
@@ -145,6 +155,12 @@ export default function ChantiersListPage() {
     }
     return true
   })
+
+  // Sous-liste réellement affichée (pagination "Voir plus").
+  const visible = filtered.slice(0, visibleCount)
+
+  // À chaque changement de recherche/filtre, on revient au haut des résultats.
+  useEffect(() => { setVisibleCount(30) }, [search, filter])
 
   // Couleur de la barre d'avancement (gardée — sémantique métier)
   async function getProgressColor(percent: number) {
@@ -266,7 +282,7 @@ export default function ChantiersListPage() {
             <p className="font-hanken text-sm text-gray-500 mt-1">Essayez d&apos;ajuster vos filtres ou créez-en un nouveau.</p>
           </div>
         ) : (
-          filtered.map((chantier: Record<string, unknown>) => {
+          visible.map((chantier: Record<string, unknown>) => {
             const client = clientMap.get(chantier.client_id as string)
             const clientName = client ? `${client.prenom ?? ''} ${client.nom ?? ''}`.trim() : '—'
             const avancement = computeAvancement(chantier)
@@ -298,6 +314,17 @@ export default function ChantiersListPage() {
             )
           })
         )}
+        {/* Bouton "Voir plus" (mobile) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Desktop : table dans PremiumCard (rounded-2xl, sans accent line) ── */}
@@ -316,7 +343,7 @@ export default function ChantiersListPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((chantier: Record<string, unknown>, idx: number) => {
+            {visible.map((chantier: Record<string, unknown>, idx: number) => {
               const client = clientMap.get(chantier.client_id as string)
               const clientName = client ? `${client.prenom ?? ''} ${client.nom ?? ''}`.trim() : '—'
               const avancement = computeAvancement(chantier)
@@ -404,6 +431,17 @@ export default function ChantiersListPage() {
             </div>
             <p className="font-hanken font-semibold text-[#0f1a3a] text-base">Aucun chantier trouvé</p>
             <p className="font-hanken text-sm text-gray-500 mt-1">Essayez d&apos;ajuster vos filtres ou créez-en un nouveau.</p>
+          </div>
+        )}
+        {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center py-4 border-t border-gray-100">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
           </div>
         )}
       </div>

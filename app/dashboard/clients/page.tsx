@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -60,6 +60,8 @@ export default function ClientsPage() {
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('Tous')
+  // Pagination "Voir plus" (recherche/filtre portent sur toute la liste).
+  const [visibleCount, setVisibleCount] = useState(30)
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -218,6 +220,12 @@ export default function ClientsPage() {
     return true
   })
 
+  // Sous-liste réellement affichée (pagination "Voir plus").
+  const visible = filtered.slice(0, visibleCount)
+
+  // À chaque changement de recherche/filtre, on revient au haut des résultats.
+  useEffect(() => { setVisibleCount(30) }, [search, filter])
+
   const formatDate = (iso: string) => {
     const d = new Date(iso)
     return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
@@ -295,7 +303,7 @@ export default function ClientsPage() {
               <p className="text-sm font-hanken text-gray-500">Aucun client trouvé</p>
             </div>
           ) : (
-            filtered.map((client) => (
+            visible.map((client) => (
               <div
                 key={client.id}
                 onClick={() => router.push(`/dashboard/clients/${client.id}`)}
@@ -339,6 +347,17 @@ export default function ClientsPage() {
               </div>
             ))
           )}
+          {/* Bouton "Voir plus" (mobile) — total basé sur filtered.length. */}
+          {filtered.length > visibleCount && (
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => setVisibleCount((c) => c + 30)}
+                className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+              >
+                Voir plus ({filtered.length - visibleCount} restants)
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -360,7 +379,7 @@ export default function ClientsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((client) => (
+              {visible.map((client) => (
                 <tr
                   key={client.id}
                   onClick={() => router.push(`/dashboard/clients/${client.id}`)}
@@ -408,6 +427,17 @@ export default function ClientsPage() {
             <div className="py-12 text-center">
               <Users size={40} className="mx-auto text-gray-300 mb-3" />
               <p className="text-sm font-hanken text-gray-500">Aucun client trouvé</p>
+            </div>
+          )}
+          {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
+          {filtered.length > visibleCount && (
+            <div className="flex justify-center py-4 border-t border-gray-100">
+              <button
+                onClick={() => setVisibleCount((c) => c + 30)}
+                className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+              >
+                Voir plus ({filtered.length - visibleCount} restants)
+              </button>
             </div>
           )}
         </div>

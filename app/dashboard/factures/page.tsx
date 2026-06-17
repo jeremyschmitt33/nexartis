@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -21,8 +22,11 @@ import {
 } from 'lucide-react'
 import { useFactures, useClients, softDeleteRow, insertRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
-import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
-import ExportComptableModal from '@/components/dashboard/ExportComptableModal'
+// Chargement à la demande (next/dynamic, ssr:false) : ces modales ne sont
+// rendues qu'à l'ouverture. On évite ainsi de charger leur JS au premier render
+// de la liste — gain perceptible sur ordinateurs anciens.
+const EnvoyerFactureModal = dynamic(() => import('@/components/dashboard/EnvoyerFactureModal'), { ssr: false })
+const ExportComptableModal = dynamic(() => import('@/components/dashboard/ExportComptableModal'), { ssr: false })
 // V4 light premium : on remplace l'Input legacy par PremiumInput pour le champ recherche
 // et on utilise PremiumButton pour les actions principales.
 import { PremiumInput, PremiumButton } from '@/components/ui/v4'
@@ -91,6 +95,9 @@ export default function FacturesListPage() {
   const [sendTarget, setSendTarget] = useState<{ id: string; numero: string; email: string; clientNom: string; montantTtcLabel: string } | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  // Pagination "Voir plus" : on n'affiche que les `visibleCount` premières
+  // factures (la recherche/le filtre portent toujours sur TOUTE la liste).
+  const [visibleCount, setVisibleCount] = useState(30)
 
   const loading = loadingF || loadingC
 
@@ -108,14 +115,20 @@ export default function FacturesListPage() {
     }
   }, [openActions, closeMenu])
 
-  const clientMap = new Map<string, string>()
-  for (const c of clients) {
-    const nom = [c.nom, c.prenom].filter(Boolean).join(' ') || (c.raison_sociale as string) || ''
-    clientMap.set(c.id as string, nom)
-  }
+  // clientMap m\u00e9mo\u00efs\u00e9 : ne se recalcule que si la liste clients change.
+  const clientMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of clients) {
+      const nom = [c.nom, c.prenom].filter(Boolean).join(' ') || (c.raison_sociale as string) || ''
+      map.set(c.id as string, nom)
+    }
+    return map
+  }, [clients])
 
   type EnrichedFacture = Record<string, unknown> & { paidPercent: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
-  const enriched: EnrichedFacture[] = factures.map((f) => {
+  // enriched m\u00e9mo\u00efs\u00e9 : map co\u00fbteuse sur toutes les factures, recalcul\u00e9e
+  // uniquement quand `factures` ou `clientMap` changent (et plus \u00e0 chaque render).
+  const enriched: EnrichedFacture[] = useMemo(() => factures.map((f) => {
     const montantTtc = (f.montant_ttc as number) ?? 0
     const montantPaye = (f.montant_paye as number) ?? 0
     const paidPercent = montantTtc > 0 ? Math.round((montantPaye / montantTtc) * 100) : 0
@@ -124,9 +137,10 @@ export default function FacturesListPage() {
     const typeF = getFactureTypeFilter(f)
     const clientName = clientMap.get(f.client_id as string) || (f.client_nom as string) || (f.notes_client as string)?.split(' | ')[0]?.trim() || '\u2014'
     return { ...f, paidPercent, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
-  })
+  }), [factures, clientMap])
 
-  const filtered = enriched.filter((f) => {
+  // filtered m\u00e9mo\u00efs\u00e9 : ne refiltre que si enriched/recherche/filtres changent.
+  const filtered = useMemo(() => enriched.filter((f) => {
     if (filter !== 'Toutes' && f.category !== filter) return false
     if (typeFilter !== 'Toutes' && f.typeFilter !== typeFilter) return false
     if (search) {
@@ -138,7 +152,13 @@ export default function FacturesListPage() {
       )
     }
     return true
-  })
+  }), [enriched, filter, typeFilter, search])
+
+  // Sous-liste r\u00e9ellement affich\u00e9e (pagination "Voir plus").
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
+
+  // \u00c0 chaque changement de recherche/filtre, on revient au haut des r\u00e9sultats.
+  useEffect(() => { setVisibleCount(30) }, [search, filter, typeFilter])
 
   const totalCount = enriched.length
   const totalHT = enriched.reduce((s, f) => s + ((f.montant_ht as number) ?? 0), 0)
@@ -415,7 +435,7 @@ export default function FacturesListPage() {
             <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
           </div>
         ) : (
-          filtered.map((facture) => {
+          visible.map((facture) => {
             const id = facture.id as string
             const restant = facture.montantTtc - facture.montantPaye
             const retardLabel = facture.category === 'En retard' && facture.overdue > 0 ? `En retard ${facture.overdue}j` : undefined
@@ -467,6 +487,17 @@ export default function FacturesListPage() {
             )
           })
         )}
+        {/* Bouton "Voir plus" (mobile) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* V4 light : tableau desktop — fond blanc, ombre douce, en-tête uppercase Hanken,
@@ -489,7 +520,7 @@ export default function FacturesListPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((facture) => {
+            {visible.map((facture) => {
               const id = facture.id as string
               const restant = facture.montantTtc - facture.montantPaye
               const restantLabel = facture.paidPercent > 0 && facture.paidPercent < 100 ? `${formatCurrency(restant)} restants` : undefined
@@ -536,6 +567,17 @@ export default function FacturesListPage() {
           <div className="py-16 text-center">
             <FileText size={40} className="mx-auto text-gray-300 mb-3" />
             <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
+          </div>
+        )}
+        {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center py-4 border-t border-[#0f1a3a]/[0.04]">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
           </div>
         )}
       </div>
@@ -621,11 +663,15 @@ export default function FacturesListPage() {
         />
       )}
 
-      <ExportComptableModal
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        type="factures"
-      />
+      {/* Rendu conditionnel : le composant dynamique n'est monté qu'à l'ouverture
+          (il retournait déjà null quand fermé, on évite ici jusqu'au chargement du JS). */}
+      {exportOpen && (
+        <ExportComptableModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          type="factures"
+        />
+      )}
     </div>
   )
 }

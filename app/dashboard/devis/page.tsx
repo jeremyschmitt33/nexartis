@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -33,7 +34,9 @@ import {
 } from "@/lib/hooks"
 import { champsLegauxManquants } from "@/lib/helpers"
 import { PremiumInput, PremiumSelect, PremiumButton, InfoBanner } from "@/components/ui/v4"
-import ExportComptableModal from "@/components/dashboard/ExportComptableModal"
+// Chargement à la demande (next/dynamic, ssr:false) : la modale d'export n'est
+// montée qu'à l'ouverture, on évite de charger son JS au premier render.
+const ExportComptableModal = dynamic(() => import("@/components/dashboard/ExportComptableModal"), { ssr: false })
 import { toast } from '@/lib/toast'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 
@@ -102,6 +105,8 @@ export default function DevisListPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  // Pagination "Voir plus" (recherche/filtre/tri portent sur toute la liste).
+  const [visibleCount, setVisibleCount] = useState(30)
 
   // Fermer le menu au scroll ou clic extérieur
   const closeMenu = useCallback(() => { setOpenActions(null); setMenuPos(null) }, [])
@@ -182,6 +187,12 @@ export default function DevisListPage() {
     return list
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devisList, filter, search, sort, clientMap, chantierMap])
+
+  // Sous-liste réellement affichée (pagination "Voir plus").
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
+
+  // À chaque changement de recherche/filtre/tri, on revient au haut des résultats.
+  useEffect(() => { setVisibleCount(30) }, [search, filter, sort])
 
   async function handleDelete(id: string) {
     if (!(await askConfirm({ title: "Envoyer ce devis a la corbeille ?", variant: "danger", confirmLabel: "Envoyer" }))) return
@@ -392,7 +403,7 @@ export default function DevisListPage() {
             <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
           </div>
         ) : (
-          filtered.map((devis) => {
+          visible.map((devis) => {
             const statut = (devis.statut as DevisStatus) || "brouillon"
             return (
               <div
@@ -450,6 +461,17 @@ export default function DevisListPage() {
             )
           })
         )}
+        {/* Bouton "Voir plus" (mobile) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* V4 : Desktop table dans une carte secondaire (rounded-2xl, ombre subtile).
@@ -465,7 +487,7 @@ export default function DevisListPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((devis, idx) => {
+            {visible.map((devis, idx) => {
               const statut = (devis.statut as DevisStatus) || "brouillon"
               return (
                 <tr key={String(devis.id)} onClick={() => router.push(`/dashboard/devis/${devis.id}`)} className={`border-b border-gray-100 hover:bg-[#fafbfc] cursor-pointer transition-colors ${idx % 2 === 1 ? "bg-[#fbfcfd]" : ""}`}>
@@ -492,6 +514,17 @@ export default function DevisListPage() {
             <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
           </div>
         )}
+        {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
+        {filtered.length > visibleCount && (
+          <div className="flex justify-center py-4 border-t border-gray-100">
+            <button
+              onClick={() => setVisibleCount((c) => c + 30)}
+              className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-hanken font-medium text-[#0f1a3a] hover:bg-gray-50 transition-colors"
+            >
+              Voir plus ({filtered.length - visibleCount} restants)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* V4 : Menu flottant d'actions (rounded-xl, ombre douce bleutée) */}
@@ -510,11 +543,14 @@ export default function DevisListPage() {
         </div>
       )}
 
-      <ExportComptableModal
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        type="devis"
-      />
+      {/* Rendu conditionnel : composant dynamique monté uniquement à l'ouverture. */}
+      {exportOpen && (
+        <ExportComptableModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          type="devis"
+        />
+      )}
     </div>
   )
 }
