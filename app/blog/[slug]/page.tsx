@@ -88,9 +88,25 @@ export default function BlogArticlePage({ params }: { params: Params }) {
     '@type': 'Article',
     headline: frontmatter.title,
     description: frontmatter.description,
-    datePublished: frontmatter.date,
+    inLanguage: 'fr',
+    datePublished:
+      (frontmatter as { publishedDate?: string }).publishedDate ||
+      frontmatter.date,
+    dateModified:
+      (frontmatter as { updated?: string }).updated ||
+      (frontmatter as { publishedDate?: string }).publishedDate ||
+      frontmatter.date,
     author: frontmatter.author
-      ? { '@type': 'Person', name: frontmatter.author.name }
+      ? {
+          '@type': 'Person',
+          name: frontmatter.author.name,
+          jobTitle: frontmatter.author.role,
+          worksFor: {
+            '@type': 'Organization',
+            '@id': 'https://nexartis.fr/#organization',
+            name: 'Nexartis',
+          },
+        }
       : undefined,
     publisher: {
       '@type': 'Organization',

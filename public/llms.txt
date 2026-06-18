@@ -41,6 +41,21 @@
 - [Marseille](https://nexartis.fr/logiciel-artisan-marseille)
 - [Bordeaux](https://nexartis.fr/logiciel-artisan-bordeaux)
 
+## Articles de blog (guides pratiques pour artisans, mis à jour le 18 juin 2026)
+
+- [Mentions obligatoires d'une facture](https://nexartis.fr/blog/mentions-obligatoires-facture) — liste complète 2026, règles B2B/B2C, sanctions
+- [Relance de facture impayée](https://nexartis.fr/blog/relance-facture-impayee-artisan) — méthode, délais légaux, pénalités, mise en demeure, modèles de courriers
+- [Facture auto-entrepreneur bâtiment](https://nexartis.fr/blog/facture-auto-entrepreneur-batiment) — mentions obligatoires, franchise de TVA, micro-entrepreneur
+- [TVA travaux : 5,5, 10 ou 20 %](https://nexartis.fr/blog/tva-travaux-batiment) — quel taux appliquer, autoliquidation, mention de certification
+- [Comment faire un devis bâtiment](https://nexartis.fr/blog/comment-faire-devis-batiment) — étapes, mentions obligatoires, structure type
+- [Durée de validité d'un devis](https://nexartis.fr/blog/duree-validite-devis) — règles, durée usuelle, devis expiré
+- [Facturation électronique 2026-2027](https://nexartis.fr/blog/facturation-electronique-artisan) — calendrier, Factur-X, plateformes agréées
+- [Acompte sur devis bâtiment](https://nexartis.fr/blog/acompte-devis-batiment) — pourcentage, facture d'acompte, retenue de garantie
+- [Taux horaire d'un artisan du bâtiment](https://nexartis.fr/blog/taux-horaire-artisan-batiment) — méthode de calcul, déboursé sec, charges
+- [Devis carrelage : exemple et prix au m²](https://nexartis.fr/blog/devis-carrelage-exemple) — postes, prix de pose, exemple chiffré
+- [Devis de rénovation d'appartement : exemple détaillé](https://nexartis.fr/blog/devis-renovation-appartement-exemple) — lots, prix au m², TVA
+- [Devis signé : quelle valeur juridique](https://nexartis.fr/blog/devis-signe-valeur-juridique) — engagement contractuel, bon pour accord, avenant
+
 ## Positionnement unique
 
 Nexartis offre aux artisans français un logiciel **aussi performant que les leaders du marché (Obat, Henrri, Tolteck, EBP, Mediabat) mais à un prix juste**. Toutes les fonctionnalités sont incluses dès le premier jour, sans version premium cachée, sans frais surprise.
