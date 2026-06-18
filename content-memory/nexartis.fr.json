@@ -1,0 +1,23 @@
+{
+  "site": "nexartis.fr",
+  "last_updated": "2026-06-18",
+  "articles": [
+    { "slug": "/blog/tolteck-avis", "keyword": "tolteck avis", "type": "comparatif" },
+    { "slug": "/blog/obat-avis", "keyword": "obat avis", "type": "comparatif" },
+    { "slug": "/blog/henrri-avis", "keyword": "henrri avis", "type": "comparatif" },
+    { "slug": "/blog/batigest-avis", "keyword": "batigest avis", "type": "comparatif" },
+    { "slug": "/blog/vertuoza-avis", "keyword": "vertuoza avis", "type": "comparatif" },
+    { "slug": "/blog/comment-faire-devis-batiment", "keyword": "comment faire un devis bâtiment", "type": "guide", "vol": 50 },
+    { "slug": "/blog/facture-auto-entrepreneur-batiment", "keyword": "facture auto-entrepreneur bâtiment", "type": "guide", "vol": 170 },
+    { "slug": "/blog/tva-travaux-batiment", "keyword": "tva travaux 10 ou 20", "type": "guide", "vol": 70 },
+    { "slug": "/blog/facturation-electronique-artisan", "keyword": "facturation électronique artisan", "type": "actualite", "vol": 40 },
+    { "slug": "/blog/relance-facture-impayee-artisan", "keyword": "relance facture impayée", "type": "guide", "vol": 1300 },
+    { "slug": "/blog/acompte-devis-batiment", "keyword": "acompte devis bâtiment", "type": "guide", "vol": 30 },
+    { "slug": "/blog/mentions-obligatoires-facture", "keyword": "mentions obligatoires facture", "type": "pilier", "vol": 1900 },
+    { "slug": "/blog/duree-validite-devis", "keyword": "durée de validité d'un devis", "type": "guide", "vol": 50 },
+    { "slug": "/blog/taux-horaire-artisan-batiment", "keyword": "taux horaire artisan bâtiment", "type": "guide", "vol": 20 },
+    { "slug": "/blog/devis-carrelage-exemple", "keyword": "devis carrelage", "type": "guide", "vol": 110 },
+    { "slug": "/blog/devis-renovation-appartement-exemple", "keyword": "devis rénovation appartement", "type": "guide", "vol": 110 },
+    { "slug": "/blog/devis-signe-valeur-juridique", "keyword": "devis signé valeur juridique", "type": "guide", "vol": 20 }
+  ]
+}
