@@ -895,8 +895,12 @@ function NouveauDevisPage() {
     if (data.client_ville) setClientVille(data.client_ville as string)
     if (data.client_telephone) setClientTelephone(data.client_telephone as string)
     if (data.client_email) setClientEmail(data.client_email as string)
-    if (data.chantier) setChantierDesc(data.chantier as string)
-    if (data.objet) setChantierDesc(data.objet as string)
+    // Le champ "chantier/objet" du devis est unique cote formulaire (chantierDesc).
+    // On donne la priorite au chantier explicitement nomme par l'artisan, sinon
+    // on retombe sur l'objet (nature des travaux). Evite le double setState qui
+    // ecrasait systematiquement chantier par objet.
+    const chantierOuObjet = (data.chantier as string) || (data.objet as string) || ''
+    if (chantierOuObjet) setChantierDesc(chantierOuObjet)
     if (data.conditions_paiement) setConditionsLibres(data.conditions_paiement as string)
     if (data.notes) setNotes(data.notes as string)
     if (data.tva_taux != null) setGlobalTvaRate(data.tva_taux as number)

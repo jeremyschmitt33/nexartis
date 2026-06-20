@@ -177,7 +177,8 @@ export const geminiCommandResponseSchema = {
     client_ville: { type: 'string', nullable: true },
     client_telephone: { type: 'string', nullable: true, description: 'Telephone FR au format 0X XX XX XX XX' },
     client_email: { type: 'string', nullable: true },
-    chantier: { type: 'string', nullable: true, description: 'Adresse du chantier si differente du client' },
+    chantier: { type: 'string', nullable: true, description: 'Nom OU adresse du chantier mentionne par l artisan. Remplis-le des que l artisan dit "pour le chantier X", "sur le chantier X", "c est pour le chantier de X", ou donne une adresse de chantier differente du client (ex: "chantier Dupont", "le chantier renovation cuisine", "12 rue de la Paix").' },
+    objet: { type: 'string', nullable: true, description: 'Objet du devis ou de la facture : nature courte de la prestation (ex: Terrassement terrain, Renovation salle de bain, Pose carrelage). Tu DOIS le remplir des que l artisan dit "pour un X", "objet X", "prestation X", "c est pour faire X" ou decrit la nature des travaux.' },
     lignes: {
       type: 'array',
       items: {
