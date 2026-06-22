@@ -27,7 +27,7 @@
 import { createClient } from '@/lib/supabase/client'
 
 // ── Cache utilisateur ────────────────────────────────────────────────────────
-export type CachedUser = { id: string; email: string; user_metadata: Record<string, string> } | null
+export type CachedUser = { id: string; email: string; user_metadata: Record<string, string>; app_metadata?: Record<string, unknown> } | null
 
 let cachedUser: CachedUser = null
 let userTs = 0
@@ -47,7 +47,7 @@ export async function getCachedUser(): Promise<CachedUser> {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       const next: CachedUser = user
-        ? { id: user.id, email: user.email ?? '', user_metadata: (user.user_metadata ?? {}) as Record<string, string> }
+        ? { id: user.id, email: user.email ?? '', user_metadata: (user.user_metadata ?? {}) as Record<string, string>, app_metadata: (user.app_metadata ?? {}) as Record<string, unknown> }
         : null
       // Changement d'utilisateur (ou déconnexion) → on jette tout le cache données.
       if ((next?.id ?? null) !== (cachedUser?.id ?? null)) clearDataCache()

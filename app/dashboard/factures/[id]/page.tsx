@@ -26,6 +26,7 @@ import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import FactureRelancesTimeline from '@/components/dashboard/FactureRelancesTimeline'
+import EfactureStatutCard from '@/components/dashboard/EfactureStatutCard'
 import { buildFactureDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
@@ -345,7 +346,9 @@ export default function FactureDetailPage() {
     : facture.client_nom || devisSource?.notes_client?.split(' | ')[0] || 'Non renseigné'
   // Etape 3 e-facture : bouton reserve a l'admin (feature beta), et actif
   // uniquement pour un client PRO avec SIRET (facturation electronique B2B).
-  const isAdmin = user?.email?.toLowerCase() === 'admin@nexartis.fr'
+  // Securite alignee sur le serveur (getAdminUser) : base sur app_metadata.role,
+  // PAS sur l'email seul (cf. CLAUDE.md).
+  const isAdmin = (user?.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
   const clientIsPro = client?.type === 'professionnel' && !!client?.siret
   const totalHT = facture.montant_ht ?? lignes.reduce((s, l) => s + (l.total_ht ?? 0), 0)
   const totalTVA = facture.montant_tva ?? 0
@@ -677,6 +680,11 @@ export default function FactureDetailPage() {
 
         {/* Sidebar : informations + suivi paiements (cartes V4 light). */}
         <div className="space-y-4 sidebar-col">
+          {/* Etape 4 e-facture (ADMIN, beta) : suivi du cycle de vie SUPER PDP,
+              uniquement si la facture a deja ete envoyee en electronique. */}
+          {isAdmin && facture.superpdp_invoice_id && (
+            <EfactureStatutCard factureId={facture.id} />
+          )}
           {/* Carte Informations — métadonnées de la facture */}
           <div className="relative bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 space-y-4 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             {/* Accent line orange V4 */}

@@ -32,9 +32,21 @@ export interface SuperPdpCompany {
   [key: string]: unknown
 }
 
+/** Evenement de cycle de vie d'une facture (renvoye dans invoice.events). */
+export interface SuperPdpInvoiceEvent {
+  id?: number
+  invoice_id?: number
+  status_code?: string // ex: 'api:uploaded', 'api:sent', 'fr:212'...
+  status_text?: string // libelle lisible fourni par SUPER PDP
+  created_at?: string
+  [key: string]: unknown
+}
+
 export interface SuperPdpInvoice {
   id: number
   en_invoice?: unknown
+  /** Liste des evenements de traitement (cycle de vie) — present sur GET /invoices/{id}. */
+  events?: SuperPdpInvoiceEvent[]
   [key: string]: unknown
 }
 

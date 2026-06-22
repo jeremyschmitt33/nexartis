@@ -269,7 +269,7 @@ export interface EntrepriseRecord {
 // ── User / Entreprise ─────────────────────────────────────────
 
 function useUser() {
-  const [user, setUser] = useState<{ id: string; email: string; user_metadata: Record<string, string> } | null>(null)
+  const [user, setUser] = useState<{ id: string; email: string; user_metadata: Record<string, string>; app_metadata?: Record<string, unknown> } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

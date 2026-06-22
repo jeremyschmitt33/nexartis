@@ -2858,8 +2858,9 @@ export default function ParametresPage() {
   const { user, loading: loadingUser } = useUser()
 
   // Etape 2 e-facture : la section "Facturation électronique" n'est visible que
-  // par l'admin (même logique que la page Abonnement). NE PAS exposer aux clients.
-  const isAdmin = user?.email?.toLowerCase() === 'admin@nexartis.fr'
+  // par l'admin. Securite alignee sur le serveur (getAdminUser) : base sur
+  // app_metadata.role, PAS sur l'email seul (cf. CLAUDE.md). NE PAS exposer aux clients.
+  const isAdmin = (user?.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
 
   // Statut renvoyé par le tunnel SUPER PDP au retour (?superpdp=connecte|refuse|erreur|indisponible).
   const [superpdpStatus, setSuperpdpStatus] = useState<string | null>(null)
