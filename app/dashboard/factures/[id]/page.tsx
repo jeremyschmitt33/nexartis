@@ -19,6 +19,7 @@ import {
   Pencil,
   FileCheck2,
   Loader2,
+  Zap,
 } from 'lucide-react'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
@@ -34,6 +35,7 @@ import {
   useSupabaseRecord,
   useFactureLignes,
   useEntreprise,
+  useUser,
   updateRow,
   LoadingSkeleton,
 } from '@/lib/hooks'
@@ -78,6 +80,9 @@ interface FactureRecord {
   // 2026-06-10 — Autoliquidation BTP (sous-traitance). Nullable car la migration
   // SQL peut ne pas etre encore executee en BDD (colonne absente → undefined).
   autoliquidation_btp?: boolean | null
+  superpdp_invoice_id?: string | null
+  superpdp_status?: string | null
+  superpdp_envoyee_at?: string | null
   created_at: string
   updated_at?: string
 }
@@ -95,7 +100,8 @@ interface ClientRecord {
   ville?: string
   telephone?: string
   email?: string
-  client_type?: string
+  /** Type reel du client en base ('particulier' | 'professionnel'). */
+  type?: 'particulier' | 'professionnel'
   /** P11 (audit) : SIRET du client à afficher sur facture (art. L441-9 C. comm.) */
   siret?: string
 }
@@ -149,6 +155,7 @@ export default function FactureDetailPage() {
   const { data: client, loading: loadingClient } = useSupabaseRecord<ClientRecord>('clients', facture?.client_id ?? null)
   const { data: devisSource } = useSupabaseRecord<{ notes_client?: string }>('devis', facture?.devis_id ?? null)
   const { entreprise } = useEntreprise()
+  const { user } = useUser()
 
   const [sendModalOpen, setSendModalOpen] = useState(false)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
@@ -156,6 +163,8 @@ export default function FactureDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadingFx, setDownloadingFx] = useState(false)
+  // Etape 3 e-facture (admin only) : envoi electronique vers SUPER PDP.
+  const [sendingEfacture, setSendingEfacture] = useState(false)
 
   // V3.0d : telechargement PDF cross-platform via helper lib/download-pdf.ts.
   //   - iOS Safari : ouvre dans nouvel onglet + toast d'aide (Partager -> Fichiers).
@@ -209,6 +218,36 @@ export default function FactureDetailPage() {
       setTimeout(() => setToastMsg(null), 4000)
     } finally {
       setDownloadingFx(false)
+    }
+  }
+
+  // Etape 3 (admin only) : envoi electronique vers SUPER PDP.
+  // La route valide d'abord la facture ; si non conforme, elle bloque et
+  // renvoie le detail. On affiche un toast clair dans tous les cas.
+  async function handleSendEfacture() {
+    if (!facture || sendingEfacture) return
+    setSendingEfacture(true)
+    try {
+      const res = await fetch('/api/superpdp/send-facture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ factureId: facture.id }),
+      })
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; invoiceId?: string | null; message?: string; error?: string }
+        | null
+      if (!res.ok || !data?.ok) {
+        toast.error(data?.message || data?.error || "Échec de l'envoi électronique")
+        return
+      }
+      toast.success(
+        `Facture déposée chez SUPER PDP${data.invoiceId ? ` (id ${data.invoiceId})` : ''}`,
+      )
+      router.refresh()
+    } catch (err) {
+      toast.error('Erreur réseau : ' + (err instanceof Error ? err.message : 'Échec'))
+    } finally {
+      setSendingEfacture(false)
     }
   }
 
@@ -304,6 +343,10 @@ export default function FactureDetailPage() {
   const resolvedClientName = client
     ? [client.civilite, client.prenom, client.nom].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
     : facture.client_nom || devisSource?.notes_client?.split(' | ')[0] || 'Non renseigné'
+  // Etape 3 e-facture : bouton reserve a l'admin (feature beta), et actif
+  // uniquement pour un client PRO avec SIRET (facturation electronique B2B).
+  const isAdmin = user?.email?.toLowerCase() === 'admin@nexartis.fr'
+  const clientIsPro = client?.type === 'professionnel' && !!client?.siret
   const totalHT = facture.montant_ht ?? lignes.reduce((s, l) => s + (l.total_ht ?? 0), 0)
   const totalTVA = facture.montant_tva ?? 0
   const totalTTC = facture.montant_ttc ?? totalHT + totalTVA
@@ -525,6 +568,34 @@ export default function FactureDetailPage() {
             {downloadingFx ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
             {downloadingFx ? 'Génération...' : 'Facture électronique'}
           </button>
+          {/* Etape 3 e-facture (ADMIN UNIQUEMENT — beta) : envoi electronique
+              vers SUPER PDP. Additif : ne modifie pas les boutons existants.
+              Desactive (avec explication) si le client n'est pas pro+SIRET. */}
+          {isAdmin && (
+            facture.superpdp_invoice_id ? (
+              <span
+                title={`Déjà envoyée en électronique (id ${facture.superpdp_invoice_id})`}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 font-hanken text-[13.5px] font-semibold text-emerald-700"
+              >
+                <Zap size={14} /> Envoyée en électronique
+              </span>
+            ) : (
+              <button
+                onClick={handleSendEfacture}
+                disabled={sendingEfacture || !clientIsPro}
+                title={
+                  clientIsPro
+                    ? 'Déposer cette facture chez SUPER PDP (validation puis envoi). Réservé admin — bêta.'
+                    : 'Disponible uniquement pour un client professionnel avec SIRET (facturation électronique B2B).'
+                }
+                aria-label="Envoyer cette facture en électronique via SUPER PDP"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-[#5ab4e0]/40 bg-[#5ab4e0]/10 hover:bg-[#5ab4e0]/20 font-hanken text-[13.5px] font-semibold text-[#2b6c91] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5ab4e0] focus-visible:ring-offset-2"
+              >
+                {sendingEfacture ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                {sendingEfacture ? 'Envoi…' : 'Envoyer en électronique'}
+              </button>
+            )
+          )}
           {/* CTA primaire orange : envoyer par email */}
           <button
             onClick={() => setSendModalOpen(true)}

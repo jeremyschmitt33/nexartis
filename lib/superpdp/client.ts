@@ -246,3 +246,44 @@ export async function sendInvoiceEvent(
   if (!resp.ok) throw new SuperPdpError('Envoi du statut impossible', resp.status)
   return true
 }
+
+// ---------------------------------------------------------------------------
+// Validation (pre-envoi) — verifie la conformite d'une facture AVANT de l'envoyer
+// ---------------------------------------------------------------------------
+
+/** Rapport de validation renvoye par SUPER PDP (champ cle : is_valid). */
+export interface SuperPdpValidationReport {
+  is_valid: boolean
+  [key: string]: unknown
+}
+
+/**
+ * Valide une facture (Factur-X / UBL / CII) via le validateur officiel SUPER PDP.
+ * Le format est detecte automatiquement. N'envoie PAS la facture : verifie juste
+ * sa conformite (schematrons EN 16931 + regles France) pour bloquer en amont une
+ * facture invalide. Ne necessite pas de jeton (endpoint de validation public).
+ *
+ * Renvoie le 1er rapport (`data[0]`). `is_valid === true` => la facture est conforme.
+ */
+export async function validateInvoice(
+  content: Uint8Array | Buffer | string,
+  filename = 'facture.pdf',
+): Promise<SuperPdpValidationReport> {
+  const form = new FormData()
+  // Blob accepte string ou donnees binaires (Buffer/Uint8Array) cote Node 18+.
+  const blob =
+    typeof content === 'string'
+      ? new Blob([content])
+      : new Blob([new Uint8Array(content)])
+  form.append('file', blob, filename)
+
+  const resp = await fetch(`${getSuperPdpEndpoint()}/v1.beta/validation_reports`, {
+    method: 'POST',
+    body: form,
+  })
+  if (!resp.ok) {
+    throw new SuperPdpError('Validation de la facture impossible', resp.status)
+  }
+  const json = (await resp.json()) as { data?: SuperPdpValidationReport[] }
+  return json.data?.[0] ?? { is_valid: false }
+}
