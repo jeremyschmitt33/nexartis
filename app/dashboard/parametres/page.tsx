@@ -1177,9 +1177,15 @@ function DocumentsSection({
 function FacturationSection({
   entreprise,
   update,
+  isAdmin = false,
+  superpdpStatus = null,
 }: {
   entreprise: Record<string, unknown>
   update: (v: Record<string, unknown>) => Promise<unknown>
+  // Etape 2 e-facture : reserve a l'admin tant que la fonctionnalite n'est pas finie.
+  isAdmin?: boolean
+  // Statut renvoye par le tunnel SUPER PDP au retour (?superpdp=connecte|refuse|erreur|indisponible).
+  superpdpStatus?: string | null
 }) {
   const [tvaDefaut, setTvaDefaut] = useState('20')
   const [delaiPaiement, setDelaiPaiement] = useState('30')
@@ -1189,6 +1195,29 @@ function FacturationSection({
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // Etat de la connexion SUPER PDP (admin uniquement). On ne recupere QUE des
+  // infos non sensibles via /api/superpdp/status (jamais les jetons).
+  const [efactureConnected, setEfactureConnected] = useState<boolean | null>(null)
+  const [efactureName, setEfactureName] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isAdmin) return
+    let cancelled = false
+    fetch('/api/superpdp/status')
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        setEfactureConnected(!!d.connected)
+        setEfactureName(d.formalName ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setEfactureConnected(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin, superpdpStatus])
 
   useEffect(() => {
     if (entreprise) {
@@ -1337,6 +1366,70 @@ function FacturationSection({
           <PremiumInput label="Escompte" value={escompte} onChange={setEscompte} />
         </div>
       </div>
+
+      {/* ============ FACTURATION ÉLECTRONIQUE (réforme 2026) — ADMIN UNIQUEMENT ============
+          IMPORTANT : ce bloc est volontairement réservé à l'admin tant que la
+          fonctionnalité n'est pas finalisée (étapes 3 et 4 à venir). NE PAS
+          l'exposer aux vrais clients. La route /api/superpdp/connect est aussi
+          verrouillée côté serveur (getAdminUser) en défense en profondeur. */}
+      {isAdmin && (
+        <>
+          <GroupTitle>Facturation électronique (bêta — admin)</GroupTitle>
+
+          <InfoBanner tone="warn">
+            <strong>Fonctionnalité en cours de finalisation</strong> — visible uniquement par l&apos;administrateur.
+            Réforme française : <em>réception</em> obligatoire en septembre 2026, <em>émission</em> en septembre 2027.
+            Connexion en bac à sable (sandbox) via SUPER PDP.
+          </InfoBanner>
+
+          {/* Message de retour du tunnel SUPER PDP (?superpdp=...) */}
+          {superpdpStatus === 'connecte' && (
+            <SuccessMessage message="Facturation électronique connectée avec succès à SUPER PDP." />
+          )}
+          {superpdpStatus === 'refuse' && (
+            <ErrorMessage message="La connexion a été refusée ou annulée. Vous pouvez réessayer." />
+          )}
+          {superpdpStatus === 'erreur' && (
+            <ErrorMessage message="Une erreur est survenue pendant la connexion. Merci de réessayer." />
+          )}
+          {superpdpStatus === 'indisponible' && (
+            <ErrorMessage message="Service indisponible pour le moment (configuration serveur). Réessayez plus tard." />
+          )}
+
+          {/* État courant de la connexion (lu via /api/superpdp/status) */}
+          {efactureConnected === true && (
+            <div className="mt-2 mb-4 rounded-xl bg-emerald-50/80 border border-emerald-200/70 px-4 py-3">
+              <p className="font-hanken text-sm text-emerald-800">
+                ✓ Compte connecté{efactureName ? ` — ${efactureName}` : ''} (bac à sable).
+              </p>
+            </div>
+          )}
+
+          <div className="mt-2">
+            <a
+              href="/api/superpdp/connect"
+              className="
+                inline-flex items-center gap-2.5
+                h-[52px] px-7 rounded-[14px]
+                bg-white border-[1.5px] border-[#ff7a1a]
+                text-[#ff7a1a] font-hanken font-extrabold text-[15px] tracking-[-0.01em]
+                shadow-[0_4px_12px_rgba(255,122,26,0.12)]
+                hover:bg-[#fff7f0] hover:-translate-y-0.5
+                active:translate-y-0
+                transition-all duration-[250ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]
+              "
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              {efactureConnected
+                ? 'Reconnecter ma facturation électronique'
+                : 'Connecter ma facturation électronique'}
+            </a>
+          </div>
+        </>
+      )}
 
       {/* ============ BOUTON ENREGISTRER — V4 Premium ============ */}
       <div className="mt-10 flex justify-end">
@@ -2764,6 +2857,13 @@ export default function ParametresPage() {
   const { entreprise, loading: loadingEntreprise, update } = useEntreprise()
   const { user, loading: loadingUser } = useUser()
 
+  // Etape 2 e-facture : la section "Facturation électronique" n'est visible que
+  // par l'admin (même logique que la page Abonnement). NE PAS exposer aux clients.
+  const isAdmin = user?.email?.toLowerCase() === 'admin@nexartis.fr'
+
+  // Statut renvoyé par le tunnel SUPER PDP au retour (?superpdp=connecte|refuse|erreur|indisponible).
+  const [superpdpStatus, setSuperpdpStatus] = useState<string | null>(null)
+
   // Restaure l'onglet actif depuis l'URL (#apparence, #documents...) au montage,
   // pour qu'un rechargement (ex. apres application d'un theme) revienne au bon
   // onglet au lieu de retomber sur "Entreprise".
@@ -2772,6 +2872,15 @@ export default function ParametresPage() {
     const h = window.location.hash.replace('#', '')
     const valid = ['entreprise', 'documents', 'facturation', 'signature', 'apparence', 'application', 'notifications', 'compte']
     if (valid.includes(h)) setActiveSection(h as Section)
+
+    // Retour du tunnel SUPER PDP : on bascule sur l'onglet Facturation pour
+    // afficher le message, puis on nettoie l'URL (retire ?superpdp=...).
+    const sp = new URLSearchParams(window.location.search).get('superpdp')
+    if (sp) {
+      setSuperpdpStatus(sp)
+      setActiveSection('facturation')
+      window.history.replaceState(null, '', `${window.location.pathname}#facturation`)
+    }
   }, [])
 
   if (loadingEntreprise || loadingUser) {
@@ -2832,7 +2941,7 @@ export default function ParametresPage() {
       <div className="flex-1 min-w-0">
         {activeSection === 'entreprise' && entreprise && <EntrepriseSection entreprise={entreprise} update={update} />}
         {activeSection === 'documents' && entreprise && <DocumentsSection entreprise={entreprise} update={update} />}
-        {activeSection === 'facturation' && entreprise && <FacturationSection entreprise={entreprise} update={update} />}
+        {activeSection === 'facturation' && entreprise && <FacturationSection entreprise={entreprise} update={update} isAdmin={isAdmin} superpdpStatus={superpdpStatus} />}
         {activeSection === 'signature' && entreprise && <SignatureSection entreprise={entreprise} update={update} />}
         {activeSection === 'apparence' && <ApparenceSection />}
         {activeSection === 'application' && <ApplicationSection />}

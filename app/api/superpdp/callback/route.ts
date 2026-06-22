@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getAuthenticatedUser } from '@/lib/api-security'
+import { getAuthenticatedUser, getAdminUser } from '@/lib/api-security'
 import { exchangeCodeForTokens, getCompanyMe } from '@/lib/superpdp/client'
 
 /**
@@ -24,6 +24,13 @@ export async function GET(req: NextRequest) {
   const user = await getAuthenticatedUser()
   if (!user) {
     return NextResponse.redirect(new URL('/login', origin))
+  }
+
+  // GARDE-FOU (etape 2) : meme reserve a l'admin que /connect, par coherence
+  // (seul l'admin peut avoir initie le flux et obtenu un state valide).
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    return back(origin, 'indisponible')
   }
 
   if (oauthError || !code) {
