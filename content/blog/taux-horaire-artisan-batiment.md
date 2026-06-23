@@ -4,7 +4,7 @@ description: "Méthode complète pour calculer le taux horaire artisan : coût d
 slug: "taux-horaire-artisan-batiment"
 category: "Gestion"
 date: "18 juin 2026"
-updated: "2026-06-18"
+updated: "2026-06-23"
 publishedDate: "2026-06-18"
 readingTime: "9 min"
 heroImage: ""
@@ -35,6 +35,8 @@ Le danger d'un taux trop bas est invisible au début. Vous remportez des chantie
 Le calcul repose sur une formule reconnue dans le secteur et reprise par les organisations professionnelles comme la [FFB](https://www.ffbatiment.fr/gestion-entreprise/devis-publicite-relations-clients/definir-mon-prix) et la [CAPEB](https://www.capeb.fr/service/calculer-ses-prix). Elle se décompose en deux temps : d'abord le coût de revient horaire, ensuite le prix de vente horaire une fois la marge appliquée.
 
 Le coût de revient horaire correspond à la somme de votre coût salarial annuel et de vos frais généraux annuels, divisée par votre nombre d'heures facturables. Le prix de vente horaire s'obtient en multipliant ce coût de revient par votre coefficient de marge. C'est ce prix de vente qui figure ensuite dans vos devis.
+
+Pour appliquer cette formule sans calcul manuel, vous pouvez utiliser notre [calculateur de taux horaire artisan](/calculateur-taux-horaire-artisan) : renseignez vos charges et vos heures réellement facturables, il vous donne instantanément votre coût de revient, votre taux de vente HT et votre prix à la journée.
 
 Voici les trois variables à réunir avant tout calcul :
 

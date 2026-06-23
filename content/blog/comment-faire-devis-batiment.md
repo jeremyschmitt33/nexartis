@@ -4,7 +4,7 @@ description: "Comment faire un devis bâtiment conforme et convaincant : mention
 slug: "comment-faire-devis-batiment"
 category: "Devis & facture"
 date: "18 juin 2026"
-updated: "2026-06-18"
+updated: "2026-06-23"
 publishedDate: "2026-06-18"
 readingTime: "10 min"
 heroImage: ""
@@ -65,7 +65,7 @@ La question de la TVA mérite une attention particulière selon votre statut. Un
 
 En principe, un **devis est gratuit**. Vous ne pouvez le facturer que si vous en avez informé le client au préalable et obtenu son accord, idéalement par écrit. Cette information peut prendre la forme d'un affichage en magasin ou d'une mention sur votre site, par exemple lorsque le chiffrage suppose une étude technique poussée ou un déplacement long.
 
-Les **frais de déplacement** suivent la même logique. S'ils sont appliqués, ils doivent être annoncés clairement avant l'intervention et détaillés sur le devis, au même titre que le taux horaire de la main-d'œuvre. Un client qui découvre des frais de déplacement non annoncés peut légitimement les contester. La transparence en amont reste votre meilleure protection.
+Les **frais de déplacement** suivent la même logique. S'ils sont appliqués, ils doivent être annoncés clairement avant l'intervention et détaillés sur le devis, au même titre que le [taux horaire de la main-d'œuvre](/calculateur-taux-horaire-artisan). Un client qui découvre des frais de déplacement non annoncés peut légitimement les contester. La transparence en amont reste votre meilleure protection.
 
 ## Un exemple de devis bâtiment chiffré
 

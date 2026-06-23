@@ -4,7 +4,7 @@ description: "La durée de validité d'un devis n'est pas imposée par la loi ma
 slug: "duree-validite-devis"
 category: "Devis & facture"
 date: "18 juin 2026"
-updated: "2026-06-18"
+updated: "2026-06-23"
 publishedDate: "2026-06-18"
 readingTime: "8 min"
 heroImage: ""
@@ -101,7 +101,7 @@ Un devis périmé n'a plus aucune valeur d'engagement, mais il garde son utilit�
 Voici la marche à suivre pour remettre un devis caduc à jour :
 
 - Vérifier les **prix des matériaux** auprès de vos fournisseurs et corriger les lignes concernées.
-- Réviser le **coût de la main-d'œuvre** si votre taux horaire a évolué depuis l'édition initiale.
+- Réviser le **coût de la main-d'œuvre** si votre [taux horaire](/calculateur-taux-horaire-artisan) a évolué depuis l'édition initiale.
 - Mettre à jour la **date d'émission** et fixer une **nouvelle durée de validité**.
 - Contrôler les **mentions obligatoires** (assurance, conditions de paiement, médiation) qui ont pu changer.
 - Renvoyer le devis actualisé au client en signalant qu'il remplace le précédent, désormais caduc.
