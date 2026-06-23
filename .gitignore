@@ -21,6 +21,7 @@ NEXARTIS_SECURITY_FIX.md
 # Exceptions : fichiers .txt qui DOIVENT etre versionnes
 !public/llms.txt
 !public/robots.txt
+!public/0cc941fa94b6449d98829db3a5f436d0.txt
 
 # os
 .DS_Store
