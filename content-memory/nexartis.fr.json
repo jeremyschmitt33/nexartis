@@ -1,6 +1,6 @@
 {
   "site": "nexartis.fr",
-  "last_updated": "2026-06-18",
+  "last_updated": "2026-06-23",
   "articles": [
     {
       "slug": "/blog/tolteck-avis",
@@ -108,6 +108,18 @@
       "slug": "/blog/prix-logiciel-devis-facture-artisan",
       "keyword": "prix logiciel devis facture artisan",
       "type": "comparatif"
+    },
+    {
+      "slug": "/blog/nexartis-pret-facturation-electronique-2026",
+      "keyword": "nexartis facturation électronique",
+      "type": "actualite-marque",
+      "semantic_field": ["nexartis", "facturation électronique", "plateforme agréée", "factur-x", "annonce"]
+    },
+    {
+      "slug": "/blog/factur-x-c-est-quoi",
+      "keyword": "factur-x c'est quoi",
+      "type": "definition",
+      "semantic_field": ["factur-x", "facture électronique", "PDF XML", "EN 16931", "profil factur-x", "UBL CII"]
     }
   ]
 }
