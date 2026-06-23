@@ -54,6 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/a-propos`, changeFrequency: 'monthly' as const, priority: 0.7 },
     { url: `${baseUrl}/blog`, changeFrequency: 'weekly' as const, priority: 0.8 },
     { url: `${baseUrl}/planning-chantier-intelligent`, changeFrequency: 'monthly' as const, priority: 0.9 },
+    { url: `${baseUrl}/calculateur-taux-horaire-artisan`, changeFrequency: 'monthly' as const, priority: 0.8 },
     { url: `${baseUrl}/logiciel-devis-factures`, changeFrequency: 'monthly' as const, priority: 0.9 },
     { url: `${baseUrl}/logiciel-artisan-auto-entrepreneur`, changeFrequency: 'monthly' as const, priority: 0.8 },
   ]
