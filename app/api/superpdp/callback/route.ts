@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     const row = {
       user_id: user.id,
-      environment: 'sandbox',
+      environment: 'production',
       status: 'connecte',
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token ?? null,
