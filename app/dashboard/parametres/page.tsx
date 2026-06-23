@@ -48,17 +48,63 @@ interface NavItem {
   id: Section
   label: string
   icon: React.ElementType
+  // Info-bulle explicative (au survol) pour aider l'artisan a comprendre chaque section.
+  description: string
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'entreprise', label: 'Entreprise', icon: Building2 },
-  { id: 'documents', label: 'Documents', icon: FileText },
-  { id: 'facturation', label: 'Facturation', icon: Receipt },
-  { id: 'signature', label: 'Ma signature', icon: PenTool },
-  { id: 'apparence', label: 'Apparence', icon: Palette },
-  { id: 'application', label: 'Application', icon: Smartphone },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'compte', label: 'Compte', icon: User },
+  {
+    id: 'entreprise',
+    label: 'Entreprise',
+    icon: Building2,
+    description:
+      'Vos informations légales : nom, SIRET, adresse, assurance décennale et mentions obligatoires. Elles apparaissent automatiquement sur vos devis et factures.',
+  },
+  {
+    id: 'documents',
+    label: 'Documents',
+    icon: FileText,
+    description:
+      'Numérotation, conditions et présentation de vos devis et factures, ainsi que les options du PDF de chantier.',
+  },
+  {
+    id: 'facturation',
+    label: 'Facturation',
+    icon: Receipt,
+    description:
+      'Taux de TVA, délais de paiement et mentions légales par défaut. C’est aussi ici que se connecte la facturation électronique.',
+  },
+  {
+    id: 'signature',
+    label: 'Ma signature',
+    icon: PenTool,
+    description: 'Votre signature manuscrite, ajoutée automatiquement à vos documents.',
+  },
+  {
+    id: 'apparence',
+    label: 'Apparence',
+    icon: Palette,
+    description:
+      'Les couleurs et le thème de votre espace et de vos devis/factures, pour les mettre à vos couleurs.',
+  },
+  {
+    id: 'application',
+    label: 'Application',
+    icon: Smartphone,
+    description: 'Installer Nexartis comme application sur votre téléphone ou votre ordinateur.',
+  },
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    icon: Bell,
+    description: 'Choisir les emails et alertes que vous recevez (devis signé, relances…).',
+  },
+  {
+    id: 'compte',
+    label: 'Compte',
+    icon: User,
+    description: 'Votre email de connexion et la gestion de votre compte.',
+  },
 ]
 // Note : la section "Abonnement" a sa propre page dédiée /dashboard/abonnement
 
@@ -1379,7 +1425,7 @@ function FacturationSection({
           <InfoBanner tone="warn">
             <strong>Fonctionnalité en cours de finalisation</strong> — visible uniquement par l&apos;administrateur.
             Réforme française : <em>réception</em> obligatoire en septembre 2026, <em>émission</em> en septembre 2027.
-            Connexion en bac à sable (sandbox) via SUPER PDP.
+            Connexion active en production via SUPER PDP (plateforme agréée DGFiP).
           </InfoBanner>
 
           {/* Message de retour du tunnel SUPER PDP (?superpdp=...) */}
@@ -1400,7 +1446,7 @@ function FacturationSection({
           {efactureConnected === true && (
             <div className="mt-2 mb-4 rounded-xl bg-emerald-50/80 border border-emerald-200/70 px-4 py-3">
               <p className="font-hanken text-sm text-emerald-800">
-                ✓ Compte connecté{efactureName ? ` — ${efactureName}` : ''} (bac à sable).
+                ✓ Compte connecté{efactureName ? ` — ${efactureName}` : ''} (production).
               </p>
             </div>
           )}
