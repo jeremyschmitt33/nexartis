@@ -62,6 +62,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const metierPages = [
     'electricien', 'plombier', 'chauffagiste', 'carreleur',
     'couvreur', 'menuisier', 'maconnerie', 'peintre', 'paysagiste',
+    'serrurier', 'vitrier', 'plaquiste',
   ].map(metier => ({
     url: `${baseUrl}/logiciel-devis-${metier}`,
     changeFrequency: 'monthly' as const,
