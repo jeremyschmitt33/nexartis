@@ -252,7 +252,7 @@ export default function CookieConsent() {
           <CategoryRow
             id="cat-analytics"
             title="Mesure d'audience"
-            description="Nous aide à comprendre comment vous utilisez Nexartis pour améliorer le service. Données anonymisées via Google Analytics (IP masquée, pas de publicité ciblée)."
+            description="Nous aide à comprendre comment vous utilisez Nexartis pour améliorer le service. Mesure réalisée via Google Analytics 4 (adresse IP tronquée, pas de publicité ciblée, pas de signaux Google)."
             checked={analytics}
             disabled={false}
             onChange={setAnalytics}
