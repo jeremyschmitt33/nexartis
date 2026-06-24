@@ -96,6 +96,7 @@ const NAV_GROUPS: NavItem[][] = [
   [
     { label: 'Statistiques', href: '/dashboard/statistiques', icon: TrendingUp },
     { label: 'Prestations', href: '/dashboard/prestations', icon: FileText },
+    { label: 'Catalogue', href: '/dashboard/catalogue', icon: Library },
     { label: 'Calculatrices', href: '/dashboard/calculatrice', icon: Calculator },
     { label: 'Abonnement', href: '/dashboard/abonnement', icon: CreditCard },
     { label: 'Paramètres', href: '/dashboard/parametres', icon: SlidersHorizontal },
@@ -125,6 +126,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/bibliotheque': 'Bibliothèque',
   '/dashboard/statistiques': 'Statistiques',
   '/dashboard/prestations': 'Prestations',
+  '/dashboard/catalogue': 'Catalogue de prestations',
   '/dashboard/calculatrice': 'Calculatrices',
   '/dashboard/import': 'Importer des données',
   '/dashboard/abonnement': 'Abonnement',
