@@ -6,8 +6,9 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Pencil, User, Phone, Calendar, HardHat,
   FileText, Receipt, Clock, Plus, Download,
-  ChevronLeft, ChevronRight, Check, X, Users, Zap, Trash2,
+  ChevronLeft, ChevronRight, Check, X, Users, Zap, Trash2, Camera,
 } from 'lucide-react'
+import ChantierPhotos from '@/components/chantiers/ChantierPhotos'
 import {
   useSupabaseRecord, useClients, useIntervenants, useDevis, useFactures,
   usePlanning, useAchats, useChantierNotes, useSousTraitantPaiements,
@@ -23,12 +24,13 @@ import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 // Types & helpers
 // -------------------------------------------------------------------
 type R = Record<string, unknown>
-type TabKey = 'resume' | 'devis' | 'factures'
+type TabKey = 'resume' | 'devis' | 'factures' | 'photos'
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'resume', label: 'Vue générale', icon: HardHat },
   { key: 'devis', label: 'Devis', icon: FileText },
   { key: 'factures', label: 'Factures', icon: Receipt },
+  { key: 'photos', label: 'Photos', icon: Camera },
 ]
 
 const NOTE_CATS = [
@@ -733,6 +735,19 @@ export default function ChantierDetailPage() {
           <ProgressBar label="Avancement en valeur" value={`${formatEur(finances.factureTotal)} / ${formatEur(finances.deviseTotal)} • ${finances.pctValeur}%`} pct={finances.pctValeur} color="bg-[#e87a2a]" sub={`${formatEur(finances.factureTotal)} facturés / ${formatEur(finances.deviseTotal)} TTC`} />
           <ProgressBar label="Encaissement" value={`${formatEur(finances.encaisse)} / ${formatEur(finances.deviseTotal)} • ${finances.pctEncaissement}%`} pct={finances.pctEncaissement} color="bg-[#22c55e]" sub={`${formatEur(finances.encaisse)} encaissés / ${formatEur(finances.deviseTotal)} TTC`} />
         </div>
+
+        {/* ── PHOTOS DU CHANTIER ── */}
+        {activeTab === 'photos' && (
+          <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] p-5 mb-5">
+            <ChantierPhotos
+              chantierId={id}
+              adresse={[
+                String(chantier.adresse_chantier ?? ''),
+                [String(chantier.code_postal_chantier ?? ''), String(chantier.ville_chantier ?? '')].filter(Boolean).join(' '),
+              ].filter(Boolean).join(', ')}
+            />
+          </div>
+        )}
 
         {/* ── GANTT CHART ── */}
         {(activeTab === 'resume') && (

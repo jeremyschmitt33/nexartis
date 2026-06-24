@@ -1,0 +1,393 @@
+'use client'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Camera, Trash2, Download, X, ShieldCheck, Loader2, AlertTriangle } from 'lucide-react'
+import { useEntreprise } from '@/lib/hooks'
+
+type Album = 'avant' | 'pendant' | 'apres'
+const ALBUMS: { key: Album; label: string }[] = [
+  { key: 'avant', label: 'Avant' },
+  { key: 'pendant', label: 'Pendant' },
+  { key: 'apres', label: 'Après' },
+]
+
+interface Photo {
+  id: string
+  album: Album
+  legende: string | null
+  prise_le: string | null
+  created_at: string
+  thumb_url: string | null
+  url: string
+}
+
+const MAX_ORIGINAL = 2000 // px (cote le plus long)
+const MAX_THUMB = 480
+
+// -------------------------------------------------------------------
+// Traitement image (compression + tampon de preuve), 100% navigateur
+// -------------------------------------------------------------------
+
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob null'))), 'image/jpeg', quality)
+  })
+}
+
+function loadLogo(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    if (!url) return resolve(null)
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null) // si le logo ne charge pas, on continue sans
+    img.src = url
+  })
+}
+
+function drawWatermark(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  lignes: string[],
+  logo: HTMLImageElement | null,
+) {
+  const pad = Math.round(w * 0.025)
+  const fontSize = Math.max(14, Math.round(w * 0.028))
+  const lineH = Math.round(fontSize * 1.35)
+  const barH = lineH * lignes.length + pad
+
+  // Bandeau sombre semi-transparent en bas
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'
+  ctx.fillRect(0, h - barH, w, barH)
+
+  // Texte (date, adresse)
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `500 ${fontSize}px Arial, sans-serif`
+  ctx.textBaseline = 'top'
+  let y = h - barH + pad / 2
+  for (const ligne of lignes) {
+    ctx.fillText(ligne, pad, y)
+    y += lineH
+  }
+
+  // Logo en bas a droite (si disponible)
+  if (logo && logo.width > 0) {
+    const logoH = Math.min(barH - pad / 2, Math.round(w * 0.07))
+    const logoW = Math.round((logo.width / logo.height) * logoH)
+    try {
+      ctx.drawImage(logo, w - logoW - pad, h - logoH - pad / 3, logoW, logoH)
+    } catch {
+      // canvas tainted ou autre : on ignore le logo
+    }
+  }
+}
+
+interface Drawable {
+  width: number
+  height: number
+  draw: (ctx: CanvasRenderingContext2D, dw: number, dh: number) => void
+  close: () => void
+}
+
+// Charge l'image de facon robuste. createImageBitmap (rapide, respecte l'EXIF) si
+// dispo, sinon repli via <img> (vieux navigateurs / webviews in-app sur mobile).
+async function loadDrawable(file: File): Promise<Drawable> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+      return {
+        width: bmp.width,
+        height: bmp.height,
+        draw: (ctx, dw, dh) => ctx.drawImage(bmp, 0, 0, dw, dh),
+        close: () => bmp.close?.(),
+      }
+    } catch {
+      // on bascule sur le repli ci-dessous
+    }
+  }
+  const url = URL.createObjectURL(file)
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image()
+    i.onload = () => resolve(i)
+    i.onerror = () => reject(new Error('image load'))
+    i.src = url
+  })
+  return {
+    width: img.naturalWidth,
+    height: img.naturalHeight,
+    draw: (ctx, dw, dh) => ctx.drawImage(img, 0, 0, dw, dh),
+    close: () => URL.revokeObjectURL(url),
+  }
+}
+
+async function traiterPhoto(
+  file: File,
+  lignes: string[],
+  logo: HTMLImageElement | null,
+): Promise<{ original: Blob; thumb: Blob; largeur: number; hauteur: number }> {
+  // Le re-encodage canvas supprime aussi les metadonnees EXIF (GPS) de l'original.
+  const src = await loadDrawable(file)
+  const ratio = Math.min(1, MAX_ORIGINAL / Math.max(src.width, src.height))
+  const ow = Math.round(src.width * ratio)
+  const oh = Math.round(src.height * ratio)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = ow
+  canvas.height = oh
+  const ctx = canvas.getContext('2d')!
+  src.draw(ctx, ow, oh)
+  drawWatermark(ctx, ow, oh, lignes, logo)
+  const original = await canvasToBlob(canvas, 0.82)
+
+  // Miniature (a partir du canvas deja tamponne)
+  const tRatio = Math.min(1, MAX_THUMB / Math.max(ow, oh))
+  const tw = Math.round(ow * tRatio)
+  const th = Math.round(oh * tRatio)
+  const tCanvas = document.createElement('canvas')
+  tCanvas.width = tw
+  tCanvas.height = th
+  tCanvas.getContext('2d')!.drawImage(canvas, 0, 0, tw, th)
+  const thumb = await canvasToBlob(tCanvas, 0.7)
+
+  src.close()
+  return { original, thumb, largeur: ow, hauteur: oh }
+}
+
+// -------------------------------------------------------------------
+// Composant
+// -------------------------------------------------------------------
+
+export default function ChantierPhotos({ chantierId, adresse }: { chantierId: string; adresse: string }) {
+  const { entreprise } = useEntreprise()
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [album, setAlbum] = useState<Album>('avant')
+  const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null)
+  const [erreur, setErreur] = useState<string | null>(null)
+  const [warn, setWarn] = useState(false)
+  const [lightbox, setLightbox] = useState<Photo | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const charger = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/chantier-photos?chantier_id=${encodeURIComponent(chantierId)}`)
+      const json = await res.json()
+      setPhotos(json.photos ?? [])
+    } catch {
+      setPhotos([])
+    } finally {
+      setLoading(false)
+    }
+  }, [chantierId])
+
+  useEffect(() => { charger() }, [charger])
+
+  const onPick = () => { setErreur(null); fileRef.current?.click() }
+
+  const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = '' // permet de re-selectionner les memes fichiers
+    if (files.length === 0) return
+
+    const logo = await loadLogo((entreprise?.logo_url as string) || '')
+    setUploading({ done: 0, total: files.length })
+    setErreur(null)
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      try {
+        const dateStr = new Date(file.lastModified || Date.now()).toLocaleDateString('fr-FR')
+        const lignes = [dateStr, adresse, (entreprise?.nom as string) || ''].filter(Boolean)
+        const { original, thumb, largeur, hauteur } = await traiterPhoto(file, lignes, logo)
+
+        // 1) Demander les URLs signees (+ controle quota)
+        const signRes = await fetch('/api/chantier-photos/sign-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chantier_id: chantierId, size: original.size }),
+        })
+        const sign = await signRes.json()
+        if (!signRes.ok) {
+          setErreur(sign.message || 'Envoi impossible.')
+          break // quota atteint ou erreur : on arrete le lot
+        }
+        if (sign.quota?.warn) setWarn(true)
+
+        // 2) Envoyer original + miniature directement vers R2
+        const putOpts = (b: Blob) => ({ method: 'PUT', body: b, headers: { 'Content-Type': 'image/jpeg' } })
+        const [r1, r2] = await Promise.all([
+          fetch(sign.putUrl, putOpts(original)),
+          fetch(sign.putThumbUrl, putOpts(thumb)),
+        ])
+        if (!r1.ok || !r2.ok) throw new Error('upload R2')
+
+        // 3) Confirmer (enregistrer les metadonnees)
+        await fetch('/api/chantier-photos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chantier_id: chantierId,
+            album,
+            r2_key: sign.key,
+            thumb_key: sign.thumbKey,
+            taille_octets: original.size,
+            largeur, hauteur,
+            prise_le: new Date(file.lastModified || Date.now()).toISOString(),
+          }),
+        })
+      } catch {
+        setErreur('Une photo n\'a pas pu être envoyée. Vérifiez votre connexion et réessayez.')
+      }
+      setUploading({ done: i + 1, total: files.length })
+    }
+
+    setUploading(null)
+    charger()
+  }
+
+  const supprimer = async (p: Photo) => {
+    if (!window.confirm('Supprimer cette photo définitivement ?')) return
+    setPhotos((prev) => prev.filter((x) => x.id !== p.id))
+    try {
+      const res = await fetch(`/api/chantier-photos/${p.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('delete')
+    } catch {
+      setErreur('La suppression a échoué. La photo a été restaurée.')
+      charger() // on resynchronise avec la base (rollback de la suppression optimiste)
+    }
+  }
+
+  const telecharger = async (p: Photo) => {
+    try {
+      const res = await fetch(p.url)
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `chantier-${p.album}-${p.id.slice(0, 8)}.jpg`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch {
+      setErreur('Téléchargement impossible.')
+    }
+  }
+
+  const photosAlbum = photos.filter((p) => p.album === album)
+  const compteByAlbum = (a: Album) => photos.filter((p) => p.album === a).length
+
+  return (
+    <div className="space-y-4">
+      {/* En-tete */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h3 className="font-syne font-bold text-lg text-[#1a1a2e] flex items-center gap-2">
+          <Camera size={20} className="text-[#5ab4e0]" /> Photos du chantier
+        </h3>
+        <button
+          onClick={onPick}
+          disabled={!!uploading}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#e87a2a] hover:bg-[#f09050] text-white font-manrope font-semibold text-sm transition disabled:opacity-60"
+        >
+          <Camera size={16} /> Ajouter des photos
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          capture="environment"
+          className="hidden"
+          onChange={onFiles}
+        />
+      </div>
+
+      {/* Tampon de preuve : explication */}
+      <div className="bg-[#eef7fc] border border-[#5ab4e0]/30 rounded-xl p-3 flex items-start gap-2.5">
+        <ShieldCheck size={18} className="text-[#1a6fb5] flex-shrink-0 mt-0.5" />
+        <p className="font-manrope text-xs text-[#1a6fb5] leading-relaxed">
+          Chaque photo est <strong>datée, localisée (adresse du chantier) et estampillée de votre logo</strong>, de façon
+          non modifiable — utile comme preuve en cas de litige.
+        </p>
+      </div>
+
+      {/* Avertissement quota */}
+      {warn && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+          <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="font-manrope text-xs text-amber-700 leading-relaxed">
+            Vous approchez votre limite de stockage photos. Pensez à faire le ménage dans vos anciennes photos.
+          </p>
+        </div>
+      )}
+
+      {/* Erreur */}
+      {erreur && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 font-manrope text-xs text-red-700">{erreur}</div>
+      )}
+
+      {/* Onglets albums */}
+      <div className="flex gap-2 flex-wrap">
+        {ALBUMS.map((a) => (
+          <button
+            key={a.key}
+            onClick={() => setAlbum(a.key)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-manrope font-medium transition ${
+              album === a.key ? 'bg-[#5ab4e0] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {a.label} <span className="opacity-70">· {compteByAlbum(a.key)}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Progression upload */}
+      {uploading && (
+        <div className="flex items-center gap-2 text-sm font-manrope text-[#1a1a2e]">
+          <Loader2 size={16} className="animate-spin text-[#5ab4e0]" />
+          Envoi en cours… {uploading.done}/{uploading.total}
+        </div>
+      )}
+
+      {/* Galerie */}
+      {loading ? (
+        <div className="text-sm text-gray-400 font-manrope py-8">Chargement…</div>
+      ) : photosAlbum.length === 0 ? (
+        <div className="text-center py-10 text-sm text-gray-400 font-manrope border border-dashed border-gray-200 rounded-xl">
+          Aucune photo dans « {ALBUMS.find((a) => a.key === album)?.label} » pour l’instant.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {photosAlbum.map((p) => (
+            <div key={p.id} className="relative group aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.thumb_url || p.url}
+                alt="Photo de chantier"
+                loading="lazy"
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={() => setLightbox(p)}
+              />
+              <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                <button onClick={() => telecharger(p)} aria-label="Télécharger" className="w-7 h-7 rounded-lg bg-white/90 flex items-center justify-center text-[#1a1a2e] hover:bg-white">
+                  <Download size={14} />
+                </button>
+                <button onClick={() => supprimer(p)} aria-label="Supprimer" className="w-7 h-7 rounded-lg bg-white/90 flex items-center justify-center text-red-600 hover:bg-white">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <button aria-label="Fermer" className="absolute top-4 right-4 text-white/80 hover:text-white"><X size={28} /></button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightbox.url} alt="Photo de chantier" className="max-w-full max-h-[88vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+    </div>
+  )
+}
