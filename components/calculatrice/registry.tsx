@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import React from 'react'
-import { Percent, Clock, Layers, Grid3x3, Home, Paintbrush, Cable, Flame, Sprout } from 'lucide-react'
+import { BadgePercent, Coins, BrickWall, Grid3x3, Home, PaintRoller, Cable, Flame, Sprout } from 'lucide-react'
 import { CalcTva, CalcTauxHoraire } from './CalcUniversel'
 import { CalcBeton, CalcCarrelage, CalcToiture } from './CalcGrosOeuvre'
 import { CalcPeinture, CalcCable, CalcChauffage } from './CalcSecondOeuvre'
@@ -23,12 +23,12 @@ export interface CalcDef {
 }
 
 export const CALCULATRICES: CalcDef[] = [
-  { id: 'tva', label: 'TVA travaux', icon: Percent, universal: true, metiers: [], Component: CalcTva },
-  { id: 'taux-horaire', label: 'Taux horaire', icon: Clock, universal: true, metiers: [], Component: CalcTauxHoraire },
-  { id: 'beton', label: 'Beton & ciment', icon: Layers, universal: false, metiers: ['macon', 'maconnerie', 'terrassier', 'paysagiste'], Component: CalcBeton },
+  { id: 'tva', label: 'TVA travaux', icon: BadgePercent, universal: true, metiers: [], Component: CalcTva },
+  { id: 'taux-horaire', label: 'Taux horaire', icon: Coins, universal: true, metiers: [], Component: CalcTauxHoraire },
+  { id: 'beton', label: 'Beton & ciment', icon: BrickWall, universal: false, metiers: ['macon', 'maconnerie', 'terrassier', 'paysagiste'], Component: CalcBeton },
   { id: 'carrelage', label: 'Carrelage', icon: Grid3x3, universal: false, metiers: ['carreleur'], Component: CalcCarrelage },
   { id: 'toiture', label: 'Toiture (pente)', icon: Home, universal: false, metiers: ['couvreur', 'charpentier'], Component: CalcToiture },
-  { id: 'peinture', label: 'Peinture', icon: Paintbrush, universal: false, metiers: ['peintre', 'plaquiste'], Component: CalcPeinture },
+  { id: 'peinture', label: 'Peinture', icon: PaintRoller, universal: false, metiers: ['peintre', 'plaquiste'], Component: CalcPeinture },
   { id: 'cable', label: 'Section de cable', icon: Cable, universal: false, metiers: ['electricien'], Component: CalcCable },
   { id: 'chauffage', label: 'Puissance chauffage', icon: Flame, universal: false, metiers: ['chauffagiste', 'plombier'], Component: CalcChauffage },
   { id: 'sable-gazon', label: 'Sable gazon synthetique', icon: Sprout, universal: false, metiers: ['paysagiste'], Component: CalcSableGazon },

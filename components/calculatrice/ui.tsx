@@ -1,25 +1,40 @@
 'use client'
 
 // ---------------------------------------------------------------------------
-// Briques UI partagees des calculatrices du dashboard.
-// Style aligne sur la palette Nexartis (navy / orange / cream) + police hanken.
-// Aucune dependance externe : pur Tailwind.
+// Briques UI partagees des calculatrices (V2).
+// Palette Nexartis (navy / orange / cream), police hanken + spline-mono.
+// V2 : contour de carte plus epais, champs plus hauts, resultat "heros"
+// (degrade navy + gros chiffre orange + bouton copier), couleurs chaudes.
 // ---------------------------------------------------------------------------
 
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Copy, Check, Info } from 'lucide-react'
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ')
 }
 
-/** Champ numerique etiquete avec unite optionnelle. */
+/** Formate un nombre en francais (espace milliers, n decimales). */
+export function fmt(n: number, decimals = 0): string {
+  if (!Number.isFinite(n)) return '0'
+  return n.toLocaleString('fr-FR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+}
+
+/**
+ * Champ numerique. Etat texte interne -> on peut vider le champ (pas de "0
+ * fantome" colle devant la saisie) et taper la virgule. La valeur 0 s'affiche
+ * comme un champ vide ; le calcul recoit toujours un nombre.
+ */
 export function NumberInput({
   label,
   value,
   onChange,
   unit,
-  step = 1,
-  min = 0,
+  step,
+  min,
   hint,
 }: {
   label: string
@@ -30,31 +45,48 @@ export function NumberInput({
   min?: number
   hint?: string
 }) {
+  void step
+  void min
+  const [text, setText] = useState<string>(() => (value === 0 ? '' : String(value)))
+
+  // Resynchronise si la valeur change a l'exterieur (ex. bascule de mode).
+  useEffect(() => {
+    const parsed = text.trim() === '' ? 0 : Number(text.replace(',', '.'))
+    if (parsed !== value) setText(value === 0 ? '' : String(value))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+
+  function handle(raw: string) {
+    setText(raw)
+    const n = raw.trim() === '' ? 0 : Number(raw.replace(',', '.'))
+    if (Number.isFinite(n)) onChange(n)
+  }
+
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-navy/80 mb-1">{label}</span>
-      <div className="flex items-stretch rounded-xl border border-navy/15 bg-white focus-within:border-orange focus-within:ring-2 focus-within:ring-orange/20 overflow-hidden">
+      <span className="block text-[13px] font-semibold text-navy/70 mb-1.5">{label}</span>
+      <div className="flex items-stretch rounded-xl border-2 border-navy/15 bg-white focus-within:border-orange focus-within:ring-4 focus-within:ring-orange/15 transition overflow-hidden">
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step={step}
-          min={min}
-          value={Number.isFinite(value) ? value : 0}
-          onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-          className="w-full px-3 py-2.5 text-navy bg-transparent outline-none font-spline-mono"
+          enterKeyHint="next"
+          value={text}
+          placeholder="0"
+          onChange={(e) => handle(e.target.value)}
+          className="w-full h-12 px-3.5 text-navy text-lg bg-transparent outline-none font-spline-mono"
         />
         {unit ? (
-          <span className="flex items-center px-3 text-sm text-navy/50 bg-navy/5 border-l border-navy/10 whitespace-nowrap">
+          <span className="flex items-center px-3.5 text-sm font-semibold text-navy/60 bg-cream border-l-2 border-navy/10 whitespace-nowrap">
             {unit}
           </span>
         ) : null}
       </div>
-      {hint ? <span className="block text-xs text-navy/45 mt-1">{hint}</span> : null}
+      {hint ? <span className="block text-xs text-navy/55 mt-1">{hint}</span> : null}
     </label>
   )
 }
 
-/** Selecteur etiquete (choix simple). */
+/** Selecteur etiquete. */
 export function ChoiceSelect({
   label,
   value,
@@ -68,11 +100,11 @@ export function ChoiceSelect({
 }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-navy/80 mb-1">{label}</span>
+      <span className="block text-[13px] font-semibold text-navy/70 mb-1.5">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2.5 rounded-xl border border-navy/15 bg-white text-navy outline-none focus:border-orange focus:ring-2 focus:ring-orange/20"
+        className="w-full h-12 px-3.5 rounded-xl border-2 border-navy/15 bg-white text-navy outline-none focus:border-orange focus:ring-4 focus:ring-orange/15"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -84,17 +116,17 @@ export function ChoiceSelect({
   )
 }
 
-/** Ligne de resultat secondaire (libelle + valeur). */
+/** Ligne de resultat secondaire. */
 export function ResultRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1.5 border-b border-navy/8 last:border-0">
-      <span className="text-sm text-navy/65">{label}</span>
-      <span className="font-spline-mono font-semibold text-navy text-right">{value}</span>
+    <div className="flex items-baseline justify-between gap-3 py-2 border-b border-navy/10 last:border-0">
+      <span className="text-[13px] text-navy/70">{label}</span>
+      <span className="font-spline-mono font-semibold text-navy text-[15px] text-right">{value}</span>
     </div>
   )
 }
 
-/** Resultat principal mis en avant (gros chiffre). */
+/** Resultat principal "heros" : degrade navy, gros chiffre orange, bouton copier. */
 export function Highlight({
   label,
   value,
@@ -104,32 +136,57 @@ export function Highlight({
   value: React.ReactNode
   unit?: string
 }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  function copy() {
+    const t = (ref.current?.textContent || '').trim()
+    try {
+      navigator.clipboard?.writeText(t)
+    } catch {
+      /* clipboard indisponible */
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1400)
+  }
+
   return (
-    <div className="rounded-xl bg-navy text-white px-4 py-3">
-      <div className="text-xs uppercase tracking-wide text-white/60">{label}</div>
-      <div className="font-spline-mono text-2xl font-bold leading-tight">
-        {value}
-        {unit ? <span className="text-base font-medium text-orange ml-1">{unit}</span> : null}
+    <div className="relative rounded-2xl px-5 py-4 text-white shadow-md bg-gradient-to-br from-navy to-navy-mid">
+      <button
+        onClick={copy}
+        aria-label="Copier le resultat"
+        className="absolute top-3 right-3 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-white/25 bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition"
+      >
+        {copied ? <Check size={14} /> : <Copy size={14} />}
+        {copied ? 'Copie' : 'Copier'}
+      </button>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70 mb-1 pr-20">
+        {label}
       </div>
+      <span ref={ref} className="flex items-baseline gap-1 flex-wrap">
+        <span className="font-spline-mono font-bold text-4xl leading-none text-orange">{value}</span>
+        {unit ? <span className="font-spline-mono text-lg font-semibold text-white/90">{unit}</span> : null}
+      </span>
     </div>
   )
 }
 
-/** Bloc de resultats (encadre creme). */
+/** Bloc des resultats secondaires (fond cream). */
 export function ResultBox({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl bg-cream/60 border border-navy/10 p-3 space-y-2">{children}</div>
+  return <div className="rounded-xl bg-cream/60 px-3.5 py-1.5">{children}</div>
 }
 
 /** Avertissement (estimation indicative). */
 export function Disclaimer({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs text-navy/55 bg-gold/10 border border-gold/30 rounded-lg px-3 py-2 mt-1">
-      {children}
+    <p className="flex gap-2 text-xs text-navy/60 bg-gold/12 border border-gold/30 rounded-xl px-3 py-2 mt-1">
+      <Info size={14} className="text-navy/45 shrink-0 mt-0.5" />
+      <span>{children}</span>
     </p>
   )
 }
 
-/** Carte conteneur d'une calculatrice. */
+/** Carte conteneur d'une calculatrice (contour epais + filet orange). */
 export function CalcCard({
   title,
   icon: Icon,
@@ -140,25 +197,16 @@ export function CalcCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl bg-white border border-navy/10 shadow-sm overflow-hidden">
-      <header className="flex items-center gap-2.5 px-4 py-3 border-b border-navy/8 bg-cream/40">
+    <section className="rounded-2xl bg-white border-2 border-navy/15 shadow-sm overflow-hidden">
+      <header className="flex items-center gap-3 px-4 py-3.5 bg-cream/60 border-b-2 border-navy/10 border-l-4 border-l-orange">
         {Icon ? (
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange/10 text-orange shrink-0">
-            <Icon size={18} />
+          <span className="flex items-center justify-center w-11 h-11 rounded-xl bg-orange/15 text-orange shrink-0">
+            <Icon size={22} />
           </span>
         ) : null}
-        <h2 className="font-hanken font-semibold text-navy">{title}</h2>
+        <h2 className="font-hanken font-bold text-navy text-[17px] leading-tight">{title}</h2>
       </header>
-      <div className="p-4 space-y-3">{children}</div>
+      <div className="p-4 space-y-3.5">{children}</div>
     </section>
   )
-}
-
-/** Formate un nombre en francais (espace milliers, n decimales). */
-export function fmt(n: number, decimals = 0): string {
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString('fr-FR', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })
 }
