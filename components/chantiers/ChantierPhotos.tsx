@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Camera, Trash2, Download, X, ShieldCheck, Loader2, AlertTriangle } from 'lucide-react'
+import { Camera, Trash2, Download, X, ShieldCheck, Loader2, AlertTriangle, Upload } from 'lucide-react'
 import { useEntreprise } from '@/lib/hooks'
 
 type Album = 'avant' | 'pendant' | 'apres'
@@ -176,6 +176,7 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
   const [erreur, setErreur] = useState<string | null>(null)
   const [warn, setWarn] = useState(false)
   const [lightbox, setLightbox] = useState<Photo | null>(null)
+  const camRef = useRef<HTMLInputElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const charger = useCallback(async () => {
@@ -193,7 +194,8 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
 
   useEffect(() => { charger() }, [charger])
 
-  const onPick = () => { setErreur(null); fileRef.current?.click() }
+  const onPrendre = () => { setErreur(null); camRef.current?.click() }
+  const onImporter = () => { setErreur(null); fileRef.current?.click() }
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
@@ -309,13 +311,33 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
         <h3 className="font-syne font-bold text-lg text-[#1a1a2e] flex items-center gap-2">
           <Camera size={20} className="text-[#5ab4e0]" /> Photos du chantier
         </h3>
-        <button
-          onClick={onPick}
-          disabled={!!uploading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#e87a2a] hover:bg-[#f09050] text-white font-manrope font-semibold text-sm transition disabled:opacity-60"
-        >
-          <Camera size={16} /> Ajouter des photos
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onPrendre}
+            disabled={!!uploading}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#e87a2a] hover:bg-[#f09050] text-white font-manrope font-semibold text-sm transition disabled:opacity-60"
+          >
+            <Camera size={16} /> Prendre une photo
+          </button>
+          <button
+            onClick={onImporter}
+            disabled={!!uploading}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-[#1a1a2e] font-manrope font-semibold text-sm transition disabled:opacity-60"
+          >
+            <Upload size={16} /> Galerie
+          </button>
+        </div>
+        {/* Appareil photo (capture force) */}
+        <input
+          ref={camRef}
+          type="file"
+          accept="image/*"
+          multiple
+          capture="environment"
+          className="hidden"
+          onChange={onFiles}
+        />
+        {/* Galerie / fichiers (sans capture) */}
         <input
           ref={fileRef}
           type="file"
