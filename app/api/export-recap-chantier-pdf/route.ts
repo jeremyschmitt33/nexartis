@@ -140,6 +140,7 @@ export async function GET(req: NextRequest) {
         ville_chantier: chantier.ville_chantier,
         date_debut: chantier.date_debut,
         date_fin_prevue: chantier.date_fin_prevue,
+        date_fin_reelle: chantier.date_fin_reelle,
       },
       client,
       interventions: interventions || [],
