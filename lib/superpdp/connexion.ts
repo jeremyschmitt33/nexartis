@@ -11,6 +11,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { refreshAccessToken, SuperPdpError } from './client'
+import { decryptToken, encryptToken } from './crypto'
 
 /** Marge de securite : on rafraichit si le jeton expire dans moins de 2 minutes. */
 const EXPIRY_MARGIN_MS = 2 * 60 * 1000
@@ -52,19 +53,31 @@ export async function getValidAccessTokenForUser(
 
   const connexion = row as SuperPdpConnexionRow
 
+  // Dechiffrement des jetons (compat : une valeur en clair "legacy" est renvoyee telle quelle).
+  // Si un jeton chiffre est illisible (cle changee/corrompue), on force une reconnexion
+  // plutot que de laisser remonter une erreur crypto brute (500 non maitrise).
+  let accessTokenClair: string | null
+  let refreshTokenClair: string | null
+  try {
+    accessTokenClair = decryptToken(connexion.access_token)
+    refreshTokenClair = decryptToken(connexion.refresh_token)
+  } catch {
+    throw new SuperPdpError('RECONNEXION_REQUISE', 401)
+  }
+
   // Jeton encore valide ? (avec marge)
   const expiresAtMs = connexion.token_expires_at
     ? new Date(connexion.token_expires_at).getTime()
     : 0
   const stillValid =
-    !!connexion.access_token && expiresAtMs - Date.now() > EXPIRY_MARGIN_MS
+    !!accessTokenClair && expiresAtMs - Date.now() > EXPIRY_MARGIN_MS
 
-  if (stillValid && connexion.access_token) {
-    return connexion.access_token
+  if (stillValid && accessTokenClair) {
+    return accessTokenClair
   }
 
   // Sinon : rafraichissement obligatoire.
-  if (!connexion.refresh_token) {
+  if (!refreshTokenClair) {
     throw new SuperPdpError('RECONNEXION_REQUISE', 401)
   }
 
@@ -79,7 +92,7 @@ export async function getValidAccessTokenForUser(
     refreshed = await refreshAccessToken({
       clientId,
       clientSecret,
-      refreshToken: connexion.refresh_token,
+      refreshToken: refreshTokenClair,
     })
   } catch {
     // Le refresh_token est invalide/revoque : l'artisan doit se reconnecter.
@@ -91,16 +104,24 @@ export async function getValidAccessTokenForUser(
     : null
 
   // Mise a jour de la connexion (on garde l'ancien refresh_token si SUPER PDP
-  // n'en renvoie pas de nouveau).
-  await admin
+  // n'en renvoie pas de nouveau). On VERIFIE l'ecriture : SUPER PDP fait tourner
+  // (rotate) le refresh_token, donc si la persistance echoue, l'ancien sera mort
+  // au prochain cycle -> on alerte au moins dans les logs.
+  const { error: updateError } = await admin
     .from('superpdp_connexions')
     .update({
-      access_token: refreshed.access_token,
-      refresh_token: refreshed.refresh_token ?? connexion.refresh_token,
+      access_token: encryptToken(refreshed.access_token),
+      refresh_token: encryptToken(refreshed.refresh_token ?? refreshTokenClair),
       token_expires_at: newExpiresAt,
       status: 'connecte',
     })
     .eq('id', connexion.id)
+
+  if (updateError) {
+    console.error(
+      'superpdp/connexion: echec de persistance du jeton rafraichi (reconnexion possible au prochain cycle)',
+    )
+  }
 
   return refreshed.access_token
 }

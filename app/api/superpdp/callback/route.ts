@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser, getAdminUser } from '@/lib/api-security'
 import { exchangeCodeForTokens, getCompanyMe } from '@/lib/superpdp/client'
+import { encryptToken } from '@/lib/superpdp/crypto'
 
 /**
  * Retour du tunnel SUPER PDP (flux OAuth Authorization Code).
@@ -81,8 +82,8 @@ export async function GET(req: NextRequest) {
       user_id: user.id,
       environment: 'production',
       status: 'connecte',
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token ?? null,
+      access_token: encryptToken(tokens.access_token),
+      refresh_token: encryptToken(tokens.refresh_token ?? null),
       token_expires_at: expiresAt,
       formal_name: formalName,
       deleted_at: null,
@@ -96,10 +97,13 @@ export async function GET(req: NextRequest) {
       .is('deleted_at', null)
       .maybeSingle()
 
-    if (existing) {
-      await admin.from('superpdp_connexions').update(row).eq('id', existing.id)
-    } else {
-      await admin.from('superpdp_connexions').insert(row)
+    const { error: writeError } = existing
+      ? await admin.from('superpdp_connexions').update(row).eq('id', existing.id)
+      : await admin.from('superpdp_connexions').insert(row)
+
+    if (writeError) {
+      console.error('superpdp/callback: echec ecriture connexion')
+      return back(origin, 'erreur')
     }
 
     const res = back(origin, 'connecte')
