@@ -24,6 +24,7 @@ import {
 } from './pdf/legal'
 import { drawSignatures } from './pdf/signatures'
 import { drawFooterAllPages } from './pdf/footer'
+import { drawSepaPaymentBlock, canDrawSepaQr } from './sepa-qr'
 import { buildPalette, type Palette } from './pdf/palette'
 import type { DocumentTheme } from './document-theme'
 
@@ -387,6 +388,24 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     y,
     palette,
   )
+
+  // 6.bis QR de paiement SEPA (virement pre-rempli) — si IBAN renseigne
+  {
+    const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0)
+    const entInfo = ent as { nom?: string; iban?: string }
+    if (canDrawSepaQr(entInfo?.iban, netAPayer)) {
+      y = drawSepaPaymentBlock(
+        doc,
+        {
+          name: entInfo?.nom || '',
+          iban: entInfo?.iban || '',
+          amount: netAPayer,
+          reference: `Facture ${data.numero}`,
+        },
+        y,
+      )
+    }
+  }
 
   // 7. Mentions legales
   y += 4
