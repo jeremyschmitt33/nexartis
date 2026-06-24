@@ -8,7 +8,7 @@ import {
   FileText, Receipt, Clock, Plus, Download,
   ChevronLeft, ChevronRight, Check, X, Users, Zap, Trash2, Camera,
 } from 'lucide-react'
-import ChantierPhotos from '@/components/chantiers/ChantierPhotos'
+import PhotoSection from '@/components/photos/PhotoSection'
 import {
   useSupabaseRecord, useClients, useIntervenants, useDevis, useFactures,
   usePlanning, useAchats, useChantierNotes, useSousTraitantPaiements,
@@ -739,8 +739,11 @@ export default function ChantierDetailPage() {
         {/* ── PHOTOS DU CHANTIER ── */}
         {activeTab === 'photos' && (
           <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] p-5 mb-5">
-            <ChantierPhotos
+            <PhotoSection
+              scope="chantier"
+              clientId={String(chantier.client_id ?? '')}
               chantierId={id}
+              titre="Photos du chantier"
               adresse={[
                 String(chantier.adresse_chantier ?? ''),
                 [String(chantier.code_postal_chantier ?? ''), String(chantier.ville_chantier ?? '')].filter(Boolean).join(' '),

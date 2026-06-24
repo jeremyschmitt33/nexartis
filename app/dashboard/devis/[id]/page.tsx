@@ -20,6 +20,7 @@ import EnvoyerDevisModal from '@/components/dashboard/EnvoyerDevisModal'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
+import PhotoSection from '@/components/photos/PhotoSection'
 import { buildDevisDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
@@ -613,6 +614,18 @@ export default function DevisDetailPage() {
         <div className="flex-1 min-w-0">
           <div className="bg-white shadow-xl rounded-xl p-3 sm:p-8 lg:p-12 print-zone">
             <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} logoConfig={logoConfigFromEntreprise(entreprise)} />
+          </div>
+
+          {/* Photos liees a ce devis */}
+          <div className="bg-white shadow-xl rounded-xl p-5 sm:p-8 mt-4">
+            <PhotoSection
+              scope="devis"
+              clientId={String(devis.client_id ?? '')}
+              devisId={id}
+              chantierId={devis.chantier_id || undefined}
+              titre="Photos"
+              adresse={String(client?.adresse ?? '')}
+            />
           </div>
         </div>
 

@@ -9,17 +9,16 @@ import { presignR2Url } from '@/lib/r2'
 
 /**
  * POST /api/chantier-photos/sign-upload
- * Body : { chantier_id }
+ * Body : { client_id (requis), chantier_id?, devis_id?, facture_id?, size }
  *
- * Verifie l'auth + la propriete du chantier + le QUOTA de l'artisan, puis renvoie
- * des URLs signees pour envoyer DIRECTEMENT l'original + la miniature vers R2.
- *
- * Quota par artisan : avertissement a 1 Go, BLOCAGE a 2 Go.
+ * Verifie l'auth + la propriete du CLIENT + le QUOTA, puis renvoie des URLs
+ * signees pour envoyer directement l'original + la miniature vers R2.
+ * (Les photos sont rattachees au client ; chantier/devis/facture sont des liens.)
  */
 export const dynamic = 'force-dynamic'
 
-const SOFT_LIMIT = 1 * 1024 * 1024 * 1024 // 1 Go : on previent
-const HARD_LIMIT = 2 * 1024 * 1024 * 1024 // 2 Go : on bloque
+const SOFT_LIMIT = 1 * 1024 * 1024 * 1024 // 1 Go : avertissement
+const HARD_LIMIT = 2 * 1024 * 1024 * 1024 // 2 Go : blocage
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -28,11 +27,10 @@ export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser()
   if (!user) return unauthorizedError()
 
-  let body: { chantier_id?: string; size?: number }
+  let body: { client_id?: string; size?: number }
   try { body = await req.json() } catch { return secureError('Requete invalide') }
-  const chantierId = body.chantier_id
-  if (!chantierId) return secureError('chantier_id requis')
-  // Taille annoncee de la photo a venir (octets) — bornee pour le controle quota.
+  const clientId = body.client_id
+  if (!clientId) return secureError('client_id requis')
   const taille = Math.max(0, Math.min(Number(body.size) || 0, 50 * 1024 * 1024))
 
   const admin = createClient(
@@ -41,24 +39,23 @@ export async function POST(req: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 
-  // Propriete du chantier
-  const { data: chantier } = await admin
-    .from('chantiers')
+  // Propriete du client
+  const { data: client } = await admin
+    .from('clients')
     .select('id')
-    .eq('id', chantierId)
+    .eq('id', clientId)
     .eq('user_id', user.id)
     .single()
-  if (!chantier) return secureError('Chantier introuvable', 404)
+  if (!client) return secureError('Client introuvable', 404)
 
   // Quota : somme des tailles des photos non supprimees de l'artisan
   const { data: rows } = await admin
-    .from('chantier_photos')
+    .from('photos')
     .select('taille_octets')
     .eq('user_id', user.id)
     .is('deleted_at', null)
   const used = (rows ?? []).reduce((s, r) => s + (Number(r.taille_octets) || 0), 0)
 
-  // Blocage AVANT l'upload : on refuse si la photo a venir ferait depasser 2 Go.
   if (used + taille >= HARD_LIMIT) {
     return secureJson({
       error: 'quota_depasse',
@@ -68,19 +65,14 @@ export async function POST(req: NextRequest) {
   }
 
   const uuid = randomUUID()
-  const key = `${user.id}/${chantierId}/${uuid}.jpg`
-  const thumbKey = `${user.id}/${chantierId}/${uuid}_thumb.jpg`
+  const key = `${user.id}/${clientId}/${uuid}.jpg`
+  const thumbKey = `${user.id}/${clientId}/${uuid}_thumb.jpg`
 
   return secureJson({
     key,
     thumbKey,
     putUrl: presignR2Url('PUT', key, 900),
     putThumbUrl: presignR2Url('PUT', thumbKey, 900),
-    quota: {
-      used,
-      soft: SOFT_LIMIT,
-      hard: HARD_LIMIT,
-      warn: used + taille >= SOFT_LIMIT,
-    },
+    quota: { used, soft: SOFT_LIMIT, hard: HARD_LIMIT, warn: used + taille >= SOFT_LIMIT },
   })
 }

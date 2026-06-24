@@ -26,7 +26,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   )
 
   const { data: photo } = await admin
-    .from('chantier_photos')
+    .from('photos')
     .select('id, r2_key, thumb_key')
     .eq('id', id)
     .eq('user_id', user.id)
@@ -44,7 +44,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   await admin
-    .from('chantier_photos')
+    .from('photos')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user.id)

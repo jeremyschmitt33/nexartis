@@ -28,6 +28,7 @@ import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import FactureRelancesTimeline from '@/components/dashboard/FactureRelancesTimeline'
 import EfactureStatutCard from '@/components/dashboard/EfactureStatutCard'
+import PhotoSection from '@/components/photos/PhotoSection'
 import { buildFactureDocument } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
@@ -685,6 +686,18 @@ export default function FactureDetailPage() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-3 sm:p-8 print-zone shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} logoConfig={logoConfigFromEntreprise(entreprise)} />
+          </div>
+
+          {/* Photos liees a cette facture / intervention */}
+          <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 sm:p-6 mt-4 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+            <PhotoSection
+              scope="facture"
+              clientId={String(facture.client_id ?? '')}
+              factureId={facture.id}
+              chantierId={facture.chantier_id || undefined}
+              titre="Photos de l'intervention"
+              adresse={String(facture.client_adresse ?? '')}
+            />
           </div>
         </div>
 

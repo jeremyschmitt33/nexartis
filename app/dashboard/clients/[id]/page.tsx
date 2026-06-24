@@ -20,6 +20,7 @@ import {
   useSupabaseQuery,
   LoadingSkeleton,
 } from '@/lib/hooks'
+import PhotoSection from '@/components/photos/PhotoSection'
 
 // -------------------------------------------------------------------
 // Types
@@ -391,6 +392,11 @@ export default function ClientDetailPage() {
             </a>
           )}
         </div>
+      </div>
+
+      {/* ============ Photos du client (toutes interventions) ============ */}
+      <div className="relative bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-6 shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+        <PhotoSection scope="client" clientId={id} titre="Photos du client" adresse={String(client.adresse ?? '')} />
       </div>
     </div>
   )

@@ -7,14 +7,16 @@ import {
 import { presignR2Url, r2HeadContentLength } from '@/lib/r2'
 
 /**
- * GET  /api/chantier-photos?chantier_id=...  -> liste des photos (URLs signees)
- * POST /api/chantier-photos                  -> confirme l'enregistrement (metadonnees)
+ * GET  /api/chantier-photos?client_id=|chantier_id=|devis_id=|facture_id=  -> liste
+ * POST /api/chantier-photos                                               -> confirme l'enregistrement
  *
- * Les binaires vivent sur R2 ; ici on ne gere QUE les metadonnees (Supabase).
+ * Photos rattachees au client (lib generale), avec liens optionnels vers
+ * chantier / devis / facture. Binaire sur R2, metadonnees en base.
  */
 export const dynamic = 'force-dynamic'
 
 const ALBUMS = ['avant', 'pendant', 'apres']
+const FILTERS = ['client_id', 'chantier_id', 'devis_id', 'facture_id'] as const
 
 function adminClient() {
   return createClient(
@@ -29,15 +31,21 @@ export async function GET(req: NextRequest) {
   const user = await getAuthenticatedUser()
   if (!user) return unauthorizedError()
 
-  const chantierId = req.nextUrl.searchParams.get('chantier_id')
-  if (!chantierId) return secureError('chantier_id requis')
+  // On filtre par le 1er contexte fourni (client/chantier/devis/facture)
+  let filterCol: string | null = null
+  let filterVal: string | null = null
+  for (const f of FILTERS) {
+    const v = req.nextUrl.searchParams.get(f)
+    if (v) { filterCol = f; filterVal = v; break }
+  }
+  if (!filterCol || !filterVal) return secureError('Filtre requis (client_id, chantier_id, devis_id ou facture_id)')
 
   const admin = adminClient()
   const { data: photos } = await admin
-    .from('chantier_photos')
-    .select('id, album, r2_key, thumb_key, taille_octets, largeur, hauteur, legende, prise_le, created_at')
+    .from('photos')
+    .select('id, album, r2_key, thumb_key, taille_octets, largeur, hauteur, legende, prise_le, created_at, client_id, chantier_id, devis_id, facture_id')
     .eq('user_id', user.id)
-    .eq('chantier_id', chantierId)
+    .eq(filterCol, filterVal)
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
 
@@ -47,7 +55,10 @@ export async function GET(req: NextRequest) {
     legende: p.legende,
     prise_le: p.prise_le,
     created_at: p.created_at,
-    // URLs signees a duree de vie courte (lecture seule)
+    client_id: p.client_id,
+    chantier_id: p.chantier_id,
+    devis_id: p.devis_id,
+    facture_id: p.facture_id,
     thumb_url: p.thumb_key ? presignR2Url('GET', p.thumb_key as string, 3600) : null,
     url: presignR2Url('GET', p.r2_key as string, 3600),
   }))
@@ -66,39 +77,41 @@ export async function POST(req: NextRequest) {
   let b: Record<string, unknown>
   try { b = await req.json() } catch { return secureError('Requete invalide') }
 
-  const chantierId = String(b.chantier_id || '')
+  const clientId = String(b.client_id || '')
   const album = ALBUMS.includes(String(b.album)) ? String(b.album) : 'pendant'
   const r2Key = String(b.r2_key || '')
   const thumbKey = b.thumb_key ? String(b.thumb_key) : null
-  if (!chantierId || !r2Key) return secureError('Donnees manquantes')
+  if (!clientId || !r2Key) return secureError('Donnees manquantes')
 
-  // Anti-falsification : la cle DOIT appartenir au prefixe de cet utilisateur + ce chantier.
-  const prefix = `${user.id}/${chantierId}/`
+  // Anti-falsification : la cle DOIT appartenir au prefixe de cet utilisateur.
+  const prefix = `${user.id}/`
   if (!r2Key.startsWith(prefix) || (thumbKey && !thumbKey.startsWith(prefix))) {
     return secureError('Cle de fichier invalide', 403)
   }
 
   const admin = adminClient()
 
-  // Propriete du chantier
-  const { data: chantier } = await admin
-    .from('chantiers')
+  // Propriete du client
+  const { data: client } = await admin
+    .from('clients')
     .select('id')
-    .eq('id', chantierId)
+    .eq('id', clientId)
     .eq('user_id', user.id)
     .single()
-  if (!chantier) return secureError('Chantier introuvable', 404)
+  if (!client) return secureError('Client introuvable', 404)
 
-  // Taille REELLE lue sur R2 (anti-triche : on ne fait pas confiance au client).
-  // Si l'objet n'existe pas, l'upload a echoue -> on refuse la confirmation.
+  // Taille REELLE lue sur R2 (anti-triche). Objet absent => upload echoue.
   const realSize = await r2HeadContentLength(r2Key)
   if (realSize === null) return secureError('Fichier introuvable sur le stockage', 400)
 
   const { data: inserted, error } = await admin
-    .from('chantier_photos')
+    .from('photos')
     .insert({
       user_id: user.id,
-      chantier_id: chantierId,
+      client_id: clientId,
+      chantier_id: b.chantier_id ? String(b.chantier_id) : null,
+      devis_id: b.devis_id ? String(b.devis_id) : null,
+      facture_id: b.facture_id ? String(b.facture_id) : null,
       album,
       r2_key: r2Key,
       thumb_key: thumbKey,
@@ -112,7 +125,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) {
-    console.error('[chantier-photos] insert error:', error)
+    console.error('[photos] insert error:', error)
     return secureError('Enregistrement impossible', 500)
   }
 
