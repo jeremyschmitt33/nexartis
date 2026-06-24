@@ -27,6 +27,9 @@ const ContactFloatingButton = dynamic(() => import('@/components/dashboard/Conta
 const InstallReminderBanner = dynamic(() => import('@/components/InstallReminderBanner'), { ssr: false })
 const PWAUpdateToast = dynamic(() => import('@/components/PWAUpdateToast'), { ssr: false })
 const UniversalVoiceButton = dynamic(() => import('@/components/voice/UniversalVoiceButton'), { ssr: false })
+// Filet de securite (invisible) de la capture de parrainage : rattache le filleul
+// a son parrain si le cookie nexartis_ref est present (couvre l'inscription Google).
+const ParrainageCapture = dynamic(() => import('@/components/ParrainageCapture'), { ssr: false })
 import { VoiceProvider } from '@/components/voice/VoiceProvider'
 import {
   Home,
@@ -135,6 +138,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/parametres': 'Paramètres',
   '/dashboard/corbeille': 'Corbeille',
   '/dashboard/admin': 'Administration',
+  '/dashboard/admin/parrainages': 'Parrainages',
   '/dashboard/aide': 'Aide & Tutoriels',
 }
 
@@ -1137,6 +1141,9 @@ export default function DashboardLayout({
         onMoreClick={() => setMobileOpen(true)}
         role={role}
       />
+
+      {/* Filet de securite capture parrainage (invisible) */}
+      <ParrainageCapture />
 
       {/* Tutoriel onboarding */}
       <OnboardingTour />

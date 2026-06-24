@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
+import { getInvoiceSubscriptionId } from '@/lib/parrainage-recompense'
 
 /**
  * POST /api/stripe/webhook
@@ -111,6 +112,23 @@ export async function POST(req: NextRequest) {
             .eq('id', entrepriseId)
 
           console.log(`[Stripe] Abonnement active pour entreprise ${entrepriseId}`)
+
+          // PARRAINAGE : si ce parrain avait un credit "1 mois offert" en attente
+          // (filleul deja recompense alors que le parrain n'etait pas encore abonne),
+          // on l'applique a son tout nouvel abonnement. Non bloquant.
+          try {
+            const { appliquerCreditsParrainEnAttente } = await import('@/lib/parrainage-recompense')
+            await appliquerCreditsParrainEnAttente(
+              supabase,
+              stripe,
+              entrepriseId,
+              typeof session.customer === 'string' ? session.customer : null,
+              session.amount_total ?? null,
+              session.currency ?? null,
+            )
+          } catch (e) {
+            console.error('[Stripe] credit parrain en attente echoue:', e)
+          }
         }
         break
       }
@@ -118,7 +136,7 @@ export async function POST(req: NextRequest) {
       // === FACTURE PAYEE (renouvellement mensuel) ===
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
-        const subscriptionId = (invoice as any).subscription as string | null
+        const subscriptionId = getInvoiceSubscriptionId(invoice)
 
         if (subscriptionId) {
           const { data: entreprise } = await supabase
@@ -134,13 +152,21 @@ export async function POST(req: NextRequest) {
               .eq('id', entreprise.id)
           }
         }
+
+        // PARRAINAGE : 1er vrai paiement du filleul => 1 mois offert pour les deux.
+        // Le traitement est idempotent (compare-and-swap + Idempotency-Key Stripe).
+        // On le laisse remonter une erreur eventuelle pour que Stripe rejoue.
+        {
+          const { traiterRecompenseParrainage } = await import('@/lib/parrainage-recompense')
+          await traiterRecompenseParrainage(supabase, stripe, invoice)
+        }
         break
       }
 
       // === PAIEMENT ECHOUE ===
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        const subscriptionId = (invoice as any).subscription as string | null
+        const subscriptionId = getInvoiceSubscriptionId(invoice)
 
         if (subscriptionId) {
           const { data: entreprise } = await supabase
@@ -209,6 +235,43 @@ export async function POST(req: NextRequest) {
             .from('entreprises')
             .update({ abonnement_type: abonnementType })
             .eq('id', entreprise.id)
+        }
+        break
+      }
+
+      // === REMBOURSEMENT (anti-fraude parrainage) ===
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+        // On n'annule QUE sur remboursement TOTAL (un remboursement partiel,
+        // ex: geste commercial de quelques euros, ne doit pas annuler la recompense).
+        const montant = charge.amount ?? 0
+        const rembourse = charge.amount_refunded ?? 0
+        const remboursementTotal = montant > 0 && rembourse >= montant
+        const invoiceId = typeof (charge as unknown as { invoice?: string }).invoice === 'string'
+          ? (charge as unknown as { invoice: string }).invoice
+          : null
+        if (remboursementTotal && invoiceId) {
+          const { annulerRecompensePourFacture } = await import('@/lib/parrainage-recompense')
+          await annulerRecompensePourFacture(supabase, stripe, invoiceId, 'remboursement')
+        }
+        break
+      }
+
+      // === LITIGE / CONTESTATION (anti-fraude parrainage) ===
+      case 'charge.dispute.created': {
+        const dispute = event.data.object as Stripe.Dispute
+        const chargeId = typeof dispute.charge === 'string'
+          ? dispute.charge
+          : (dispute.charge as Stripe.Charge)?.id
+        if (chargeId) {
+          const ch = await stripe.charges.retrieve(chargeId)
+          const invoiceId = typeof (ch as unknown as { invoice?: string }).invoice === 'string'
+            ? (ch as unknown as { invoice: string }).invoice
+            : null
+          if (invoiceId) {
+            const { annulerRecompensePourFacture } = await import('@/lib/parrainage-recompense')
+            await annulerRecompensePourFacture(supabase, stripe, invoiceId, 'litige')
+          }
         }
         break
       }

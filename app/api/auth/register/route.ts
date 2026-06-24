@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return rateLimitError()
     }
 
-    const { email, password, prenom, nom, entreprise } = await request.json()
+    const { email, password, prenom, nom, entreprise, ref } = await request.json()
 
     if (!email || !password) {
       return secureError('Email et mot de passe requis')
@@ -80,6 +80,16 @@ export async function POST(request: NextRequest) {
         trial_started_at: new Date().toISOString(),
       })
     } catch {} // Non bloquant
+
+    // 2ter. PARRAINAGE : rattacher le filleul a son parrain si un code ?ref est present.
+    // L'entreprise du filleul est creee de maniere synchrone par le trigger
+    // handle_new_user pendant createUser, donc elle existe ici. Non bloquant.
+    try {
+      const { attacherParrainage } = await import('@/lib/parrainage')
+      await attacherParrainage(supabaseAdmin, userId, ref)
+    } catch (e) {
+      console.error('attacherParrainage failed:', e)
+    }
 
     // 2bis. Alerte admin : nouvelle inscription (non bloquant)
     try {

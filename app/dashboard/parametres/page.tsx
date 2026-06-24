@@ -13,6 +13,7 @@ import {
   Palette,
   PlayCircle,
   Smartphone,
+  Gift,
 } from 'lucide-react'
 import {
   useEntreprise,
@@ -29,6 +30,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
+import ParrainageSection from '@/components/dashboard/ParrainageSection'
 
 // -------------------------------------------------------------------
 // Types & constants
@@ -43,6 +45,7 @@ type Section =
   | 'signature'
   | 'apparence'
   | 'application'
+  | 'parrainage'
 
 interface NavItem {
   id: Section
@@ -104,6 +107,13 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Compte',
     icon: User,
     description: 'Votre email de connexion et la gestion de votre compte.',
+  },
+  {
+    id: 'parrainage',
+    label: 'Parrainage',
+    icon: Gift,
+    description:
+      'Votre lien de parrainage : gagnez 1 mois offert (vous et votre filleul) à chaque artisan qui s’abonne grâce à vous.',
   },
 ]
 // Note : la section "Abonnement" a sa propre page dédiée /dashboard/abonnement
@@ -2994,6 +3004,7 @@ export default function ParametresPage() {
         {activeSection === 'application' && <ApplicationSection />}
         {activeSection === 'notifications' && entreprise && <NotificationsSection entreprise={entreprise} update={update} />}
         {activeSection === 'compte' && <CompteSection userEmail={user?.email || ''} />}
+        {activeSection === 'parrainage' && <ParrainageSection />}
       </div>
     </div>
   )

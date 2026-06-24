@@ -589,6 +589,14 @@ export default function AdminPage() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => router.push('/dashboard/admin/parrainages')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-manrope bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition text-purple-700"
+            title="Voir les parrainages (parrains et leurs filleuls)"
+          >
+            <Gift size={13} />
+            Parrainages
+          </button>
+          <button
             onClick={async () => {
               if (!(await askConfirm({ title: 'Recalculer la numerotation hierarchique ?', message: 'Cette operation recalcule TOUS les devis et factures existants et peut prendre quelques secondes.', confirmLabel: 'Recalculer' }))) return
               showToastMsg('Migration en cours...')

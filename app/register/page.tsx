@@ -5,7 +5,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function getPasswordStrength(password: string) {
   let score = 0
@@ -36,6 +36,28 @@ export default function RegisterPage() {
   const [resending, setResending] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
 
+  // PARRAINAGE : capter ?ref=CODE a l'atterrissage.
+  // On le memorise en cookie (90 jours) pour resister a la navigation / OAuth,
+  // et on le relit depuis le cookie si l'URL ne le contient pas.
+  const [refCode, setRefCode] = useState('')
+  useEffect(() => {
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get('ref')
+      if (fromUrl) {
+        const clean = fromUrl.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16)
+        if (clean.length >= 6) {
+          setRefCode(clean)
+          document.cookie = `nexartis_ref=${clean}; path=/; max-age=${90 * 24 * 3600}; SameSite=Lax`
+        }
+      } else {
+        const m = document.cookie.split('; ').find((c) => c.startsWith('nexartis_ref='))
+        if (m) setRefCode(decodeURIComponent(m.split('=')[1] || ''))
+      }
+    } catch {
+      // pas de blocage si l'acces cookie/URL echoue
+    }
+  }, [])
+
   const resendConfirmation = async () => {
     setResending(true)
     setResendSuccess(false)
@@ -57,7 +79,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, prenom, nom, entreprise }),
+      body: JSON.stringify({ email, password, prenom, nom, entreprise, ref: refCode || undefined }),
     })
 
     const data = await res.json()
@@ -100,6 +122,15 @@ export default function RegisterPage() {
             &#10003; 14 jours gratuits &mdash; Sans carte bancaire
           </span>
         </div>
+
+        {/* Bandeau parrainage (transparence filleul) */}
+        {!showConfirmation && refCode && (
+          <div className="flex justify-center mb-6">
+            <span className="inline-flex items-center gap-1.5 bg-sky/10 text-[#1a6fb5] text-sm font-manrope font-medium px-4 py-2 rounded-full text-center">
+              &#127881; Vous avez été parrainé &mdash; 1 mois offert pour vous et votre parrain dès votre 1<sup>er</sup> abonnement
+            </span>
+          </div>
+        )}
 
         {/* Écran confirmation email */}
         {showConfirmation && (
