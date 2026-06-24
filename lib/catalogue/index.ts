@@ -19,6 +19,7 @@ import { couvreur } from './couvreur'
 import { charpentier } from './charpentier'
 import { paysagiste } from './paysagiste'
 import { general } from './general'
+import { normalizeDesignation, type PrestationSuggestion } from '@/lib/prestations-memo'
 
 export type { CatalogueItem } from './types'
 
@@ -66,3 +67,44 @@ export function matchMetierSlug(metier?: string | null): string | null {
 
 /** Nombre total de prestations du catalogue. */
 export const CATALOGUE_TOTAL = CATALOGUE_METIERS.reduce((n, m) => n + m.items.length, 0)
+
+// ---------------------------------------------------------------------------
+// Suggestions pour l'autocompletion des devis/factures.
+// Le catalogue est expose comme des suggestions a PRIX 0 : elles aident a la
+// saisie mais ne sont PAS enregistrees tant que l'artisan n'a pas mis son prix
+// (la memorisation n'enregistre que les lignes a prix > 0).
+// ---------------------------------------------------------------------------
+
+/** Construit les suggestions du catalogue (metier de l'artisan + communes, sinon tout). */
+export function buildCatalogueSuggestions(metier?: string | null): PrestationSuggestion[] {
+  const slug = matchMetierSlug(metier)
+  const defs = slug
+    ? CATALOGUE_METIERS.filter((m) => m.slug === slug || m.slug === 'general')
+    : CATALOGUE_METIERS
+  const out: PrestationSuggestion[] = []
+  for (const def of defs) {
+    def.items.forEach((it, i) => {
+      out.push({
+        id: `cat:${def.slug}:${i}`,
+        designation: it.designation,
+        prix_unitaire_ht: 0,
+        unite: it.unite,
+        taux_tva: it.tva,
+        usage_count: 0,
+      })
+    })
+  }
+  return out
+}
+
+/** Fusionne les prestations perso de l'artisan + le catalogue (sans doublon de designation). */
+export function mergeCatalogueSuggestions(
+  userSuggestions: PrestationSuggestion[],
+  metier?: string | null,
+): PrestationSuggestion[] {
+  const have = new Set(userSuggestions.map((s) => normalizeDesignation(s.designation)))
+  const cat = buildCatalogueSuggestions(metier).filter(
+    (s) => !have.has(normalizeDesignation(s.designation)),
+  )
+  return [...userSuggestions, ...cat]
+}

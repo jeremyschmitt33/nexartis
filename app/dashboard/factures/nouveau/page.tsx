@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
 import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
+import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
@@ -68,7 +69,10 @@ export default function NouvelleFacturePage() {
   // entreprise — utilisée pour auto-détection franchise TVA (micro / EI / auto-entrepreneur)
   const { entreprise } = useEntreprise()
   const { data: prestationsRows } = usePrestations()
-  const prestationSuggestions = useMemo(() => buildSuggestions(prestationsRows), [prestationsRows])
+  const prestationSuggestions = useMemo(
+    () => mergeCatalogueSuggestions(buildSuggestions(prestationsRows), (entreprise as { metier?: string } | null | undefined)?.metier),
+    [prestationsRows, entreprise],
+  )
   // AE (franchise TVA) : source de vérité = helper isAutoEntrepreneur. Sert à forcer
   // la TVA à 0 lors d'une sélection de suggestion de prestation.
   const autoEntrepreneur = isAutoEntrepreneur(entreprise)

@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
 import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
+import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
@@ -428,7 +429,10 @@ function NouveauDevisPage() {
   const { entreprise } = useEntreprise()
   const { data: pointsCollecteRaw } = usePointsCollecte()
   const { data: prestationsRows } = usePrestations()
-  const prestationSuggestions = useMemo(() => buildSuggestions(prestationsRows), [prestationsRows])
+  const prestationSuggestions = useMemo(
+    () => mergeCatalogueSuggestions(buildSuggestions(prestationsRows), (entreprise as { metier?: string } | null | undefined)?.metier),
+    [prestationsRows, entreprise],
+  )
   const clients = clientsRaw as unknown as ClientRecord[]
   const chantiers = chantiersRaw as unknown as ChantierRecord[]
   const pointsCollecte = pointsCollecteRaw as unknown as { id: string; nom: string; adresse?: string; type_installation?: string }[]

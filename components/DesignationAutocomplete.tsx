@@ -182,12 +182,20 @@ export default function DesignationAutocomplete({
                 </div>
               </div>
 
-              {/* Prix bien visible, séparé à droite */}
+              {/* Prix bien visible, séparé à droite. Catalogue (prix 0) = "à définir". */}
               <div className="shrink-0 self-center text-right">
-                <div className="text-[17px] font-extrabold leading-tight text-[#0f1a3a]">
-                  {formatPriceFR(s.prix_unitaire_ht)}
-                </div>
-                <div className="text-[11px] text-gray-400">/ {s.unite || 'U'}</div>
+                {s.prix_unitaire_ht > 0 ? (
+                  <>
+                    <div className="text-[17px] font-extrabold leading-tight text-[#0f1a3a]">
+                      {formatPriceFR(s.prix_unitaire_ht)}
+                    </div>
+                    <div className="text-[11px] text-gray-400">/ {s.unite || 'U'}</div>
+                  </>
+                ) : (
+                  <div className="text-[12px] font-semibold leading-tight text-[#ff7a1a]">
+                    à définir
+                  </div>
+                )}
               </div>
             </li>
           ))}
