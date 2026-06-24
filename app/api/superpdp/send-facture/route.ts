@@ -59,6 +59,12 @@ export async function POST(req: NextRequest) {
       .single()
     if (factureErr || !facture) return secureError('Facture introuvable', 404)
 
+    // Anti double-envoi : une facture deja deposee chez SUPER PDP ne doit JAMAIS
+    // etre renvoyee (cela creerait une 2e facture electronique legale en doublon).
+    if (facture.superpdp_invoice_id) {
+      return secureError('Cette facture a deja ete envoyee en electronique.', 409)
+    }
+
     // Memes donnees + meme generateur que le telechargement / l'email.
     const { data, entreprise } = await buildFactureDataFromDb(supabase, facture)
 
