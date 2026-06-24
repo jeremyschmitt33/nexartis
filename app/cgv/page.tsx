@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Conditions générales de vente — Nexartis',
   description:
-    'Conditions générales de vente du logiciel Nexartis : abonnement, prix, paiement, rétractation, résiliation.',
+    'Conditions générales de vente du logiciel Nexartis, service réservé aux professionnels : abonnement, prix, paiement, garanties, résiliation.',
   robots: {
     index: true,
     follow: true,
@@ -24,7 +24,7 @@ export default function CgvPage() {
         <h1 className="mt-2 font-syne text-4xl font-bold tracking-tight text-navy sm:text-5xl">
           Conditions Générales de Vente
         </h1>
-        <p className="mt-3 text-sm text-navy/60">Dernière mise à jour : 8 juin 2026</p>
+        <p className="mt-3 text-sm text-navy/60">Dernière mise à jour : 24 juin 2026</p>
       </header>
 
       <div className="prose prose-slate max-w-none font-manrope text-[15px] leading-relaxed text-navy">
@@ -43,9 +43,19 @@ export default function CgvPage() {
             .
           </p>
           <p>
-            Le Service est destiné à un usage professionnel par les artisans, les auto-entrepreneurs et les
-            entreprises du bâtiment et du service. La souscription au Service implique l&apos;acceptation sans
-            réserve des présentes CGV.
+            Le Service est <strong>réservé aux professionnels</strong>. Est un Client tout professionnel, personne
+            physique ou morale, agissant à des fins qui entrent dans le cadre de son activité commerciale,
+            artisanale, industrielle, libérale ou agricole (notamment les artisans, auto-entrepreneurs et
+            entreprises du bâtiment et du service). Le Service n&apos;est destiné ni aux consommateurs ni aux
+            non-professionnels au sens de l&apos;article liminaire du Code de la consommation.
+          </p>
+          <p>
+            En souscrivant, le Client déclare et garantit agir pour les besoins de son activité professionnelle,
+            en avoir le pouvoir, et fournir un numéro SIRET valide et à jour. Cette déclaration constitue une
+            condition essentielle et déterminante du contrat. Toute souscription effectuée en dehors de cette
+            qualité est susceptible d&apos;être refusée ou résiliée de plein droit par l&apos;Éditeur, sans préjudice
+            des sommes dues au titre de la période d&apos;utilisation. La souscription au Service implique
+            l&apos;acceptation sans réserve des présentes CGV.
           </p>
         </section>
 
@@ -122,27 +132,14 @@ export default function CgvPage() {
 
         <section className="mb-10">
           <h2 className="font-syne text-2xl font-bold text-navy">
-            Article 6 — Droit de rétractation
+            Article 6 — Absence de droit de rétractation
           </h2>
           <p>
-            <strong>Clients professionnels (B2B)</strong> : conformément à l&apos;article L.221-3 du Code de la
-            consommation, le droit de rétractation ne s&apos;applique pas aux contrats conclus à des fins
-            professionnelles entre professionnels.
-          </p>
-          <p>
-            <strong>Clients particuliers (B2C)</strong> : en cas de souscription à titre privé, le Client
-            dispose d&apos;un délai de 14 jours à compter de la souscription pour exercer son droit de
-            rétractation, sans avoir à se justifier. Ce droit s&apos;exerce par email à{' '}
-            <a
-              href="mailto:contact.nexartis@gmail.com"
-              className="text-sky underline-offset-4 hover:underline"
-            >
-              contact.nexartis@gmail.com
-            </a>
-            . Toutefois, conformément à l&apos;article L.221-28 du Code de la consommation, le droit de
-            rétractation ne peut être exercé pour les contrats de fourniture de contenu numérique non
-            fourni sur support matériel dont l&apos;exécution a commencé après accord préalable exprès du
-            consommateur et renoncement exprès à son droit de rétractation.
+            Le droit de rétractation prévu par le Code de la consommation (articles L.221-18 et suivants) bénéficie
+            aux seuls consommateurs. Le Service étant réservé aux professionnels et le Client agissant en qualité
+            de professionnel pour les besoins de son activité, ce droit ne lui est pas applicable. La période
+            d&apos;essai gratuit de 14 jours prévue à l&apos;article 3 permet néanmoins au Client d&apos;évaluer
+            le Service sans engagement avant toute souscription payante.
           </p>
         </section>
 
@@ -237,43 +234,45 @@ export default function CgvPage() {
 
         <section className="mb-10">
           <h2 className="font-syne text-2xl font-bold text-navy">
-            Article 10 — Médiation de la consommation (B2C)
+            Article 10 — Réclamation et médiation
           </h2>
           <p>
-            Conformément à l&apos;article L.616-1 du Code de la consommation, en cas de litige entre un Client
-            consommateur et l&apos;Éditeur n&apos;ayant pas pu être résolu à l&apos;amiable, le Client peut recourir
-            gratuitement au médiateur de la consommation :
+            Pour toute réclamation, le Client est invité à contacter préalablement l&apos;Éditeur à l&apos;adresse{' '}
+            <a
+              href="mailto:contact.nexartis@gmail.com"
+              className="text-sky underline-offset-4 hover:underline"
+            >
+              contact.nexartis@gmail.com
+            </a>
+            , afin qu&apos;une solution amiable soit recherchée.
           </p>
           <p>
-            <strong>CM2C — Centre de la Médiation de la Consommation de Conciliateurs de Justice</strong>
+            Le Service s&apos;adressant exclusivement à des professionnels, le dispositif de médiation de la
+            consommation n&apos;a pas vocation à régir les relations contractuelles de l&apos;Éditeur. À titre de
+            simple précaution et de manière volontaire, l&apos;Éditeur a néanmoins adhéré à un médiateur de la
+            consommation. En conséquence, dans la seule hypothèse résiduelle où un Client serait amené à agir en
+            qualité de consommateur ou de non-professionnel au sens du Code de la consommation, et après avoir
+            saisi l&apos;Éditeur d&apos;une réclamation écrite restée sans réponse satisfaisante, celui-ci pourrait
+            recourir gratuitement à une procédure de médiation de la consommation auprès de :
+          </p>
+          <p>
+            <strong>CM2C</strong>
             <br />
-            Site web officiel et saisine en ligne :{' '}
+            49 rue de Ponthieu, 75008 Paris
+            <br />
+            Tél. : 01 89 47 00 14
+            <br />
+            Site internet :{' '}
             <a
-              href="https://www.cm2c.net"
+              href="https://www.cm2c.net/declarer-un-litige.php"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky underline-offset-4 hover:underline"
             >
-              www.cm2c.net
+              www.cm2c.net/declarer-un-litige.php
             </a>
             <br />
-            Email : <a href="mailto:cm2c@cm2c.net" className="text-sky underline-offset-4 hover:underline">cm2c@cm2c.net</a>
-            <br />
-            Adresse postale : 14 rue Saint-Jean, 75017 Paris
-            <br />
-            Nexartis est adhérent du CM2C pour une durée de 3 ans (adhésion souscrite le 8 juin 2026).
-          </p>
-          <p>
-            Le Client peut également recourir à la plateforme européenne de règlement en ligne des litiges :{' '}
-            <a
-              href="https://ec.europa.eu/consumers/odr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky underline-offset-4 hover:underline"
-            >
-              ec.europa.eu/consumers/odr
-            </a>
-            .
+            Email : <a href="mailto:litiges@cm2c.net" className="text-sky underline-offset-4 hover:underline">litiges@cm2c.net</a>
           </p>
         </section>
 
@@ -285,39 +284,26 @@ export default function CgvPage() {
             Les présentes CGV sont soumises au droit français.
           </p>
           <p>
-            <strong>Pour les Clients professionnels (B2B)</strong> : tout litige relatif à leur
-            interprétation ou à leur exécution sera soumis à la compétence exclusive des tribunaux
-            français du ressort du siège social de l&apos;Éditeur.
-          </p>
-          <p>
-            <strong>Pour les Clients consommateurs (B2C)</strong> : conformément aux articles R.631-3
-            du Code de la consommation et 46 du Code de procédure civile, le Client consommateur peut
-            saisir, à son choix, soit la juridiction du lieu où il demeurait au moment de la conclusion
-            du contrat, soit la juridiction du lieu où le fait dommageable s&apos;est produit, soit la
-            juridiction du siège de l&apos;Éditeur.
+            Le Client agissant en qualité de professionnel, tout litige relatif à l&apos;interprétation ou à
+            l&apos;exécution des présentes CGV sera soumis à la compétence exclusive des tribunaux français du
+            ressort du siège de l&apos;Éditeur, à défaut de résolution amiable.
           </p>
         </section>
 
         <section className="mb-10">
           <h2 className="font-syne text-2xl font-bold text-navy">
-            Article 11 bis — Garantie légale de conformité et garantie des vices cachés
+            Article 11 bis — Conformité du Service et garantie contractuelle
           </h2>
           <p>
-            Conformément aux articles L.224-25-12 et suivants du Code de la consommation, le Service
-            bénéficie pour les Clients consommateurs de la garantie légale de conformité.
-            L&apos;Éditeur s&apos;engage à fournir un Service conforme au contrat et exempt de défaut
-            de conformité dès sa mise à disposition et tout au long de la durée de l&apos;abonnement.
+            L&apos;Éditeur s&apos;engage à fournir un Service conforme à sa description en vigueur au jour de la
+            souscription et à mettre en œuvre les moyens raisonnables pour en assurer la disponibilité et le bon
+            fonctionnement. En cas de non-conformité signalée par le Client, l&apos;Éditeur s&apos;efforcera d&apos;y
+            remédier dans un délai raisonnable, par correction ou contournement.
           </p>
           <p>
-            En cas de défaut de conformité, le Client consommateur peut demander la mise en conformité
-            du Service, gratuitement et dans un délai raisonnable, sans inconvénient majeur pour lui.
-            À défaut, il peut obtenir une réduction du prix ou la résolution du contrat dans les
-            conditions prévues aux articles L.224-25-19 et suivants du Code de la consommation.
-          </p>
-          <p>
-            Le Client bénéficie également de la garantie des vices cachés au titre des articles
-            1641 et suivants du Code civil. Dans ce cadre, il peut choisir entre la résolution
-            de la vente ou la réduction du prix conformément à l&apos;article 1644 du Code civil.
+            Cette garantie est de nature contractuelle. Le Client agissant en qualité de professionnel, les
+            garanties légales prévues par le Code de la consommation au bénéfice des consommateurs ou des
+            non-professionnels ne s&apos;appliquent pas à la présente relation.
           </p>
         </section>
 
