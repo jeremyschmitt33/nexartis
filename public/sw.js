@@ -17,7 +17,7 @@
 // -----------------------------------------------------------------------------
 // La version est concaténée dans les noms de caches. Quand on incrémente la
 // version, l'event "activate" va supprimer tous les anciens caches automatiquement.
-const CACHE_VERSION = 'nexartis-v1.4.0-svg-clean'
+const CACHE_VERSION = 'nexartis-v1.5.0-r2-passthrough'
 const CACHE_NAME_HTML = 'nexartis-html-' + CACHE_VERSION
 const CACHE_NAME_STATIC = 'nexartis-static-' + CACHE_VERSION
 const OFFLINE_URL = '/offline'
@@ -118,7 +118,8 @@ self.addEventListener('fetch', (event) => {
     path.startsWith('/forgot-password') ||
     path.startsWith('/maintenance') ||
     url.hostname.endsWith('.supabase.co') ||
-    url.hostname.endsWith('.stripe.com')
+    url.hostname.endsWith('.stripe.com') ||
+    url.hostname.endsWith('.r2.cloudflarestorage.com')
 
   if (isSensitive) {
     // Pas d'event.respondWith → le navigateur fait sa requête normalement.
