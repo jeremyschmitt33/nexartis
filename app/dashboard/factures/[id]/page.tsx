@@ -22,6 +22,7 @@ import {
   Zap,
 } from 'lucide-react'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
+import RelanceSmsButton from '@/components/factures/RelanceSmsButton'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
@@ -660,6 +661,15 @@ export default function FactureDetailPage() {
             >
               <AlertTriangle size={14} /> {updating ? 'Envoi…' : 'Relancer maintenant'}
             </button>
+          )}
+          {client && client.telephone && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+            <RelanceSmsButton
+              telephone={client.telephone}
+              clientNom={[client.civilite, client.nom].filter(Boolean).join(' ')}
+              numero={facture.numero}
+              resteAPayer={(facture.montant_ttc || 0) - ((facture as { montant_paye?: number }).montant_paye || 0)}
+              entrepriseNom={(entreprise?.nom as string | undefined) || undefined}
+            />
           )}
         </div>
       </div>
