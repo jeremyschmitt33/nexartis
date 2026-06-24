@@ -158,6 +158,43 @@ export default function CgvPage() {
         </section>
 
         <section className="mb-10">
+          <h2 className="font-syne text-2xl font-bold text-navy">
+            Article 7 bis — Sous-traitance des données personnelles (article 28 du RGPD)
+          </h2>
+          <p>
+            Lorsque le Client enregistre dans le Service des données personnelles relatives à ses propres clients,
+            prospects ou tiers (notamment coordonnées, adresses de chantier et photographies), le Client agit en
+            qualité de <strong>responsable de traitement</strong> et l&apos;Éditeur en qualité de{' '}
+            <strong>sous-traitant</strong> au sens de l&apos;article 28 du RGPD. La présente clause constitue
+            l&apos;accord de sous-traitance entre les parties.
+          </p>
+          <p>
+            <strong>Objet et durée</strong> : le traitement a pour objet l&apos;hébergement et le traitement des
+            données nécessaires à la fourniture du Service, pour la durée de l&apos;abonnement. <strong>Nature et
+            finalité</strong> : collecte, stockage, organisation et restitution des devis, factures, fiches clients,
+            chantiers et photographies. <strong>Catégories de données</strong> : données d&apos;identification et de
+            contact, informations relatives aux chantiers, images. <strong>Catégories de personnes</strong> :
+            clients, prospects et contacts du Client.
+          </p>
+          <p>L&apos;Éditeur s&apos;engage à :</p>
+          <ul className="list-disc pl-6">
+            <li>ne traiter les données que sur instruction documentée du Client et pour la seule fourniture du Service ;</li>
+            <li>garantir la confidentialité des personnes autorisées à traiter les données ;</li>
+            <li>mettre en œuvre les mesures de sécurité appropriées (article 32 du RGPD) ;</li>
+            <li>
+              n&apos;avoir recours qu&apos;à des sous-traitants ultérieurs présentant des garanties suffisantes —
+              à ce jour Supabase (base de données, UE), Cloudflare R2 (stockage des photos, UE), Vercel (frontal),
+              Brevo (emails) et Stripe (paiements) — et informer le Client de tout changement afin qu&apos;il puisse
+              s&apos;y opposer ;
+            </li>
+            <li>aider le Client à répondre aux demandes d&apos;exercice des droits des personnes concernées ;</li>
+            <li>l&apos;assister dans le respect de ses obligations de sécurité, de notification de violation et, le cas échéant, d&apos;analyse d&apos;impact ;</li>
+            <li>au terme du contrat, restituer puis supprimer les données dans le délai prévu à l&apos;article 7 ;</li>
+            <li>mettre à la disposition du Client les informations nécessaires pour démontrer le respect de ces obligations.</li>
+          </ul>
+        </section>
+
+        <section className="mb-10">
           <h2 className="font-syne text-2xl font-bold text-navy">Article 8 — Obligations du Client</h2>
           <p>Le Client s&apos;engage à :</p>
           <ul className="list-disc pl-6">
@@ -223,7 +260,9 @@ export default function CgvPage() {
           <p>
             Les données applicatives du Client (devis, factures, clients, chantiers, équipe, prestations)
             sont hébergées au sein de l&apos;Union européenne, dans la région européenne de notre
-            sous-traitant Supabase (centres de données situés en Allemagne). Le frontal applicatif est servi
+            sous-traitant Supabase (centres de données situés en Allemagne). Les photos de chantier importées
+            par le Client sont stockées sur le service Cloudflare R2, dans un bucket privé configuré en
+            juridiction Union européenne (Francfort). Le frontal applicatif est servi
             via le réseau global de Vercel Inc. (États-Unis), dans le cadre des Clauses Contractuelles Types
             adoptées par la Commission européenne pour les transferts hors UE. Aucune donnée du Client
             n&apos;est transmise, vendue ou commercialisée à des tiers, sauf obligation légale. Le Client

@@ -25,7 +25,7 @@ export default function MentionsLegalesPage() {
           Mentions légales
         </h1>
         <p className="mt-3 text-sm text-navy/60">
-          Dernière mise à jour : 8 juin 2026
+          Dernière mise à jour : 24 juin 2026
         </p>
       </header>
 
@@ -43,7 +43,7 @@ export default function MentionsLegalesPage() {
               <strong>Exploitant</strong> : Jérémy SCHMITT, entrepreneur individuel
             </li>
             <li>
-              <strong>Forme juridique</strong> : Entreprise individuelle (micro-entreprise / auto-entrepreneur), régime de la franchise en base de TVA (article 293 B du Code général des impôts)
+              <strong>Forme juridique</strong> : Entrepreneur individuel (EI), relevant du régime de la franchise en base de TVA (article 293 B du Code général des impôts)
             </li>
             <li>
               <strong>Siège social</strong> : 144 avenue Pasteur, 33185 Le Haillan, France
@@ -114,6 +114,18 @@ export default function MentionsLegalesPage() {
                 supabase.com
               </a>
               . Le projet Nexartis est configuré sur la région européenne (Francfort, Allemagne), garantissant que les données utilisateurs sont stockées sur le territoire de l&apos;Union européenne.
+            </li>
+            <li>
+              <strong>Stockage des photos de chantier</strong> : Cloudflare, Inc., 101 Townsend Street, San Francisco, CA 94107, États-Unis, via le service de stockage objet R2.{' '}
+              <a
+                href="https://www.cloudflare.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky underline-offset-4 hover:underline"
+              >
+                cloudflare.com
+              </a>
+              . Le bucket est privé et configuré en juridiction Union européenne (Francfort) ; les photos importées par les artisans sont stockées sur le territoire de l&apos;UE.
             </li>
             <li>
               <strong>Traitement des paiements d&apos;abonnement</strong> : Stripe Payments Europe Ltd., 1 Grand Canal Street Lower, Grand Canal Dock, Dublin, Irlande. Téléphone : +353 1 905 2802.{' '}
