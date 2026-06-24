@@ -227,11 +227,16 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
         const { putUrl, putThumbUrl, key, thumbKey } = sign
 
         // 2) Envoi direct vers R2 (original + miniature)
-        const putOpts = (b: Blob): RequestInit => ({ method: 'PUT', body: b, headers: { 'Content-Type': 'image/jpeg' } })
+        // On envoie le corps en ArrayBuffer SANS en-tete Content-Type : cela evite
+        // le controle CORS preliminaire sur les en-tetes (R2 n'honore pas toujours
+        // le "*"), qui provoquait un "Failed to fetch".
+        const origBuf = await original.arrayBuffer()
+        const thumbBuf = await thumb.arrayBuffer()
+        const putOpts = (buf: ArrayBuffer): RequestInit => ({ method: 'PUT', body: buf })
         let put1: Response | null = null
         let put2: Response | null = null
         try {
-          const r = await Promise.all([fetch(putUrl, putOpts(original)), fetch(putThumbUrl, putOpts(thumb))])
+          const r = await Promise.all([fetch(putUrl, putOpts(origBuf)), fetch(putThumbUrl, putOpts(thumbBuf))])
           put1 = r[0]; put2 = r[1]
         } catch (netErr) {
           setErreur(`Le stockage des photos est inaccessible (réseau ou CORS). Détail : ${(netErr as Error).message}`)
