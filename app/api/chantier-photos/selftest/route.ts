@@ -35,6 +35,10 @@ export async function GET(_req: NextRequest) {
       result.put_body = (await putRes.text()).slice(0, 700)
     } else {
       result.head_len = await r2HeadContentLength(key)
+      // Test de lecture via URL signee (ce que fait la galerie)
+      const getRes = await fetch(presignR2Url('GET', key, 300))
+      result.get_status = getRes.status
+      result.get_content_type = getRes.headers.get('content-type')
       try { await r2Delete(key); result.cleaned = true } catch { result.cleaned = false }
     }
   } catch (e) {

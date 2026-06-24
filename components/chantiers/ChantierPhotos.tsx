@@ -227,12 +227,11 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
         const { putUrl, putThumbUrl, key, thumbKey } = sign
 
         // 2) Envoi direct vers R2 (original + miniature)
-        // On envoie le corps en ArrayBuffer SANS en-tete Content-Type : cela evite
-        // le controle CORS preliminaire sur les en-tetes (R2 n'honore pas toujours
-        // le "*"), qui provoquait un "Failed to fetch".
+        // On envoie le corps en ArrayBuffer AVEC le bon Content-Type pour que R2
+        // stocke bien des image/jpeg (sinon le navigateur n'affiche pas la photo).
         const origBuf = await original.arrayBuffer()
         const thumbBuf = await thumb.arrayBuffer()
-        const putOpts = (buf: ArrayBuffer): RequestInit => ({ method: 'PUT', body: buf })
+        const putOpts = (buf: ArrayBuffer): RequestInit => ({ method: 'PUT', body: buf, headers: { 'Content-Type': 'image/jpeg' } })
         let put1: Response | null = null
         let put2: Response | null = null
         try {
@@ -322,7 +321,6 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
           type="file"
           accept="image/*"
           multiple
-          capture="environment"
           className="hidden"
           onChange={onFiles}
         />
