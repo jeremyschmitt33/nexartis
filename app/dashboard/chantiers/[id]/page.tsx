@@ -604,7 +604,7 @@ export default function ChantierDetailPage() {
   return (
     <div className="min-h-screen">
       {/* ── HEADER V4 : sticky, fond blanc, typo Hanken ── */}
-      <header className="bg-white border-b border-[#0f1a3a]/[0.06] px-4 sm:px-6 py-4 sticky top-0 z-30 flex items-center justify-between gap-4 shadow-[0_1px_4px_rgba(15,26,58,0.04)]">
+      <header className="bg-white border-b border-[#0f1a3a]/[0.06] px-4 sm:px-6 py-4 sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 shadow-[0_1px_4px_rgba(15,26,58,0.04)]">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/dashboard/chantiers')}
@@ -617,7 +617,7 @@ export default function ChantierDetailPage() {
             {String(chantier.titre ?? '')}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
           <Link
             href="/dashboard/planning"
             className="flex items-center gap-2 px-4 py-2 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-[#ff7a1a] hover:text-[#ff7a1a] transition-all"

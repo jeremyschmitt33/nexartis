@@ -21,6 +21,15 @@ interface Photo {
   url: string
 }
 
+interface SignResponse {
+  putUrl?: string
+  putThumbUrl?: string
+  key?: string
+  thumbKey?: string
+  message?: string
+  quota?: { warn?: boolean }
+}
+
 const MAX_ORIGINAL = 2000 // px (cote le plus long)
 const MAX_THUMB = 480
 
@@ -202,43 +211,56 @@ export default function ChantierPhotos({ chantierId, adresse }: { chantierId: st
         const lignes = [dateStr, adresse, (entreprise?.nom as string) || ''].filter(Boolean)
         const { original, thumb, largeur, hauteur } = await traiterPhoto(file, lignes, logo)
 
-        // 1) Demander les URLs signees (+ controle quota)
+        // 1) URLs signees + controle quota
         const signRes = await fetch('/api/chantier-photos/sign-upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chantier_id: chantierId, size: original.size }),
         })
-        const sign = await signRes.json()
-        if (!signRes.ok) {
-          setErreur(sign.message || 'Envoi impossible.')
-          break // quota atteint ou erreur : on arrete le lot
+        let sign: SignResponse | null = null
+        try { sign = await signRes.json() } catch { /* reponse non JSON (erreur serveur) */ }
+        if (!signRes.ok || !sign?.putUrl || !sign?.putThumbUrl) {
+          setErreur(sign?.message || `Préparation de l'envoi refusée (code ${signRes.status}).`)
+          break
         }
         if (sign.quota?.warn) setWarn(true)
+        const { putUrl, putThumbUrl, key, thumbKey } = sign
 
-        // 2) Envoyer original + miniature directement vers R2
-        const putOpts = (b: Blob) => ({ method: 'PUT', body: b, headers: { 'Content-Type': 'image/jpeg' } })
-        const [r1, r2] = await Promise.all([
-          fetch(sign.putUrl, putOpts(original)),
-          fetch(sign.putThumbUrl, putOpts(thumb)),
-        ])
-        if (!r1.ok || !r2.ok) throw new Error('upload R2')
+        // 2) Envoi direct vers R2 (original + miniature)
+        const putOpts = (b: Blob): RequestInit => ({ method: 'PUT', body: b, headers: { 'Content-Type': 'image/jpeg' } })
+        let put1: Response | null = null
+        let put2: Response | null = null
+        try {
+          const r = await Promise.all([fetch(putUrl, putOpts(original)), fetch(putThumbUrl, putOpts(thumb))])
+          put1 = r[0]; put2 = r[1]
+        } catch (netErr) {
+          setErreur(`Le stockage des photos est inaccessible (réseau ou CORS). Détail : ${(netErr as Error).message}`)
+          break
+        }
+        if (!put1.ok || !put2.ok) {
+          setErreur(`Le stockage a refusé l'envoi (code ${!put1.ok ? put1.status : put2.status}). Réessayez ; si ça persiste, prévenez le support.`)
+          break
+        }
 
-        // 3) Confirmer (enregistrer les metadonnees)
-        await fetch('/api/chantier-photos', {
+        // 3) Confirmation (la taille reelle est relue sur R2 cote serveur)
+        const confRes = await fetch('/api/chantier-photos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chantier_id: chantierId,
             album,
-            r2_key: sign.key,
-            thumb_key: sign.thumbKey,
-            taille_octets: original.size,
+            r2_key: key,
+            thumb_key: thumbKey,
             largeur, hauteur,
             prise_le: new Date(file.lastModified || Date.now()).toISOString(),
           }),
         })
+        if (!confRes.ok) {
+          setErreur(`Enregistrement refusé (code ${confRes.status}).`)
+          break
+        }
       } catch {
-        setErreur('Une photo n\'a pas pu être envoyée. Vérifiez votre connexion et réessayez.')
+        setErreur('Cette photo n\'a pas pu être préparée par votre navigateur (format non supporté ?).')
       }
       setUploading({ done: i + 1, total: files.length })
     }
