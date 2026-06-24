@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { InfoBanner, HelpTooltip } from "@/components/ui/v4";
 import RappelsSection from "@/components/dashboard/RappelsSection";
 import DecennaleBanner from "@/components/dashboard/DecennaleBanner";
+import DoublonsAlert from "@/components/dashboard/DoublonsAlert";
 
 // Type pour un rappel artisan (note privée datée à afficher dans "À faire")
 interface ArtisanReminder {
@@ -684,6 +685,10 @@ export default function DashboardPage() {
         {/* V2 10/06/2026 : bandeau decennale (etat absente / warning / urgente / expiree).
             Le composant gere lui-meme son affichage selon decennale_date_fin. */}
         <DecennaleBanner dateFin={(entreprise?.decennale_date_fin as string | null | undefined) ?? null} />
+
+        {/* Alerte discrete : prestations qui se ressemblent dans le catalogue.
+            Le composant ne rend rien (ni marge) s'il n'y a aucun doublon. */}
+        <DoublonsAlert />
 
         {/* ═══════════════════ GREETING ═══════════════════ */}
         <div style={stagger(0)} className="mb-5 sm:mb-9 flex items-end justify-between flex-wrap gap-3 sm:gap-5">

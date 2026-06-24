@@ -19,6 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@/lib/supabase/client'
+import { fuzzyMatch } from './prestations-dedup'
 
 export interface PrestationSuggestion {
   id: string
@@ -77,13 +78,16 @@ export function filterSuggestions(
   if (q.length < minChars) return []
   const starts: PrestationSuggestion[] = []
   const contains: PrestationSuggestion[] = []
+  const fuzzy: PrestationSuggestion[] = []
   for (const s of suggestions) {
     const k = normalizeDesignation(s.designation)
     if (k.startsWith(q)) starts.push(s)
     else if (k.includes(q)) contains.push(s)
+    // Tolerance aux fautes de frappe : ne s'active que si rien d'exact ne matche ce libelle.
+    else if (q.length >= 4 && fuzzyMatch(q, s.designation)) fuzzy.push(s)
   }
   const byUsage = (a: PrestationSuggestion, b: PrestationSuggestion) => b.usage_count - a.usage_count
-  return [...starts.sort(byUsage), ...contains.sort(byUsage)].slice(0, max)
+  return [...starts.sort(byUsage), ...contains.sort(byUsage), ...fuzzy.sort(byUsage)].slice(0, max)
 }
 
 // Mémorisation best-effort. NE LÈVE JAMAIS d'erreur (ne doit jamais bloquer un save).
