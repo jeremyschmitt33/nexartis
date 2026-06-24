@@ -41,5 +41,25 @@ export async function GET(_req: NextRequest) {
     result.exception = (e as Error).message
   }
 
+  // Sonde du controle CORS preliminaire (ce que fait le navigateur avant le PUT)
+  try {
+    const key2 = `selftest/${randomUUID()}.txt`
+    const putUrl2 = presignR2Url('PUT', key2, 300)
+    const opt = await fetch(putUrl2, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://nexartis.fr',
+        'Access-Control-Request-Method': 'PUT',
+        'Access-Control-Request-Headers': 'content-type',
+      },
+    })
+    result.preflight_status = opt.status
+    result.preflight_allow_origin = opt.headers.get('access-control-allow-origin')
+    result.preflight_allow_methods = opt.headers.get('access-control-allow-methods')
+    result.preflight_allow_headers = opt.headers.get('access-control-allow-headers')
+  } catch (e) {
+    result.preflight_exception = (e as Error).message
+  }
+
   return secureJson(result)
 }
