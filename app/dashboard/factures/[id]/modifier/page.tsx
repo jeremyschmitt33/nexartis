@@ -35,6 +35,8 @@ interface FactureRecord {
   id: string
   numero: string
   statut: string
+  // Verrouillage : NULL = modifiable, non-NULL = figee (premiere transmission)
+  verrouillee_at?: string | null
   // V3.0c.17 — Type de facture (standard / acompte / situation / avoir)
   type?: 'standard' | 'acompte' | 'situation' | 'avoir' | null
   devis_ref?: string | null
@@ -637,10 +639,11 @@ export default function ModifierFacturePage() {
   if (loadingFacture || loadingLignes) return <div className="p-6"><LoadingSkeleton rows={8} /></div>
   if (!facture) return <div className="p-6"><p className="text-sm text-gray-500">Facture introuvable.</p></div>
 
-  // ── BLOCAGE LÉGAL : une facture émise est figée (art. L441-9 C. comm. + art. 242 nonies A CGI) ──
-  // Seul le statut "brouillon" autorise la modification. Pour toute autre, proposer la création d'un avoir.
-  // V4 light : carte de verrouillage légale (facture émise non modifiable).
-  if (facture.statut !== 'brouillon') {
+  // ── BLOCAGE LÉGAL : une facture transmise est figée (art. L441-9 C. comm. + art. 242 nonies A CGI) ──
+  // Modifiable SSI verrouillee_at est NULL (peu importe le statut). Le verrou est pose
+  // a la premiere action de transmission (telechargement / envoi). Pour corriger, emettre un avoir.
+  // V4 light : carte de verrouillage légale (facture transmise non modifiable).
+  if (facture.verrouillee_at) {
     return (
       <div className="min-h-screen flex items-start justify-center px-4 py-12">
         <div className="relative w-full max-w-2xl bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-8 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
@@ -663,7 +666,7 @@ export default function ModifierFacturePage() {
           {/* Bandeau d'avertissement légal (variant warn V4) */}
           <div className="rounded-xl bg-amber-50/80 border border-amber-200/70 px-4 py-3.5 mb-6">
             <p className="font-hanken text-sm text-amber-800 leading-relaxed">
-              Cette facture a déjà été émise et ne peut <strong>plus être modifiée légalement</strong> (article L441-9 du Code de commerce et article 242 nonies A du CGI). Pour corriger une erreur, vous devez émettre un <strong>avoir</strong> (facture rectificative négative), puis créer une nouvelle facture.
+              Cette facture a déjà été <strong>transmise</strong> (envoyée ou téléchargée) et ne peut <strong>plus être modifiée légalement</strong> (article L441-9 du Code de commerce et article 242 nonies A du CGI). Pour corriger une erreur, vous devez émettre un <strong>avoir</strong> (facture rectificative négative), puis créer une nouvelle facture.
             </p>
           </div>
 

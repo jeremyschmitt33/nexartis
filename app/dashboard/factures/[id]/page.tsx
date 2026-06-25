@@ -47,6 +47,8 @@ interface FactureRecord {
   id: string
   numero: string
   statut: string
+  // Verrouillage : NULL = modifiable, non-NULL = figee (premiere transmission)
+  verrouillee_at?: string | null
   client_id: string
   chantier_id?: string
   devis_id?: string
@@ -162,6 +164,12 @@ export default function FactureDetailPage() {
 
   const [sendModalOpen, setSendModalOpen] = useState(false)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  // Verrouillage : confirmation (cadre jaune) avant toute action de transmission.
+  // poseVerrouAuConfirm = true pour download/electronique (verrou pose au "Continuer"),
+  // = false pour l'email (le verrou est pose au SUCCES d'envoi, pas a l'ouverture du modal).
+  const [lockConfirm, setLockConfirm] = useState<
+    null | { titre: string; run: () => Promise<void> | void; poseVerrouAuConfirm: boolean }
+  >(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -254,6 +262,21 @@ export default function FactureDetailPage() {
     }
   }
 
+  // Verrouillage : execute une action de transmission. Si la facture est deja
+  // verrouillee -> action directe (pas d'avertissement). Sinon -> ouvre le cadre
+  // jaune de confirmation, qui posera verrouillee_at apres l'action (sauf email).
+  function runWithLock(
+    titre: string,
+    action: () => Promise<void> | void,
+    poseVerrouAuConfirm = true,
+  ) {
+    if (facture?.verrouillee_at) {
+      action()
+      return
+    }
+    setLockConfirm({ titre, run: action, poseVerrouAuConfirm })
+  }
+
   async function handleMarkPaid() {
     if (!facture || updating) return
     setUpdating(true)
@@ -340,6 +363,9 @@ export default function FactureDetailPage() {
       </div>
     )
   }
+
+  // Verrouillage : modifiable SSI verrouillee_at est NULL (peu importe le statut).
+  const estVerrouillee = !!facture.verrouillee_at
 
   const lignes = lignesRaw as unknown as LigneRecord[]
   // Ordre logique : Civilite + Prenom + Nom (ex: "M. Eric Dupont")
@@ -550,7 +576,7 @@ export default function FactureDetailPage() {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Action principale : télécharger PDF */}
           <button
-            onClick={handleDownloadPdf}
+            onClick={() => runWithLock('télécharger le PDF', handleDownloadPdf)}
             disabled={downloading}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all disabled:opacity-50"
           >
@@ -561,7 +587,7 @@ export default function FactureDetailPage() {
               (conformite, pas un 2e "Download"), aria-label + infobulle rassurante,
               focus visible. Le bouton "Telecharger PDF" reste inchange. */}
           <button
-            onClick={handleDownloadFacturX}
+            onClick={() => runWithLock('télécharger la facture électronique', handleDownloadFacturX)}
             disabled={downloadingFx}
             aria-busy={downloadingFx}
             aria-label="Télécharger la facture électronique Factur-X : même facture, avec les données structurées conformes à la réforme 2026"
@@ -584,7 +610,7 @@ export default function FactureDetailPage() {
               </span>
             ) : (
               <button
-                onClick={handleSendEfacture}
+                onClick={() => runWithLock('envoyer en électronique', handleSendEfacture)}
                 disabled={sendingEfacture || !clientIsPro}
                 title={
                   clientIsPro
@@ -599,14 +625,22 @@ export default function FactureDetailPage() {
               </button>
             )
           )}
-          {/* CTA primaire orange : envoyer par email */}
+          {/* CTA primaire orange : envoyer par email. Cas particulier : le verrou
+              est pose au SUCCES de l'envoi (cf. onSuccess du SendModal), pas a
+              l'ouverture du modal -> poseVerrouAuConfirm = false ici. */}
           <button
-            onClick={() => setSendModalOpen(true)}
+            onClick={() => {
+              if (estVerrouillee) {
+                setSendModalOpen(true)
+              } else {
+                setLockConfirm({ titre: 'envoyer par email', run: () => setSendModalOpen(true), poseVerrouAuConfirm: false })
+              }
+            }}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all"
           >
             <Send size={14} /> Envoyer par email
           </button>
-          {facture.statut === 'brouillon' ? (
+          {!estVerrouillee ? (
             <Link
               href={`/dashboard/factures/${facture.id}/modifier`}
               className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all"
@@ -617,7 +651,7 @@ export default function FactureDetailPage() {
             <button
               type="button"
               disabled
-              title="Facture émise : modification interdite par la loi (art. L441-9 C. comm.). Créez un avoir pour corriger."
+              title="Facture transmise : non modifiable"
               className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-gray-50 font-hanken text-[13.5px] font-semibold text-gray-400 cursor-not-allowed"
             >
               <Pencil size={14} /> Modifier (verrouillée)
@@ -844,6 +878,51 @@ export default function FactureDetailPage() {
         </div>
       )}
 
+      {/* Verrouillage : cadre jaune de confirmation avant la 1re transmission.
+          "Continuer" execute l'action, puis pose verrouillee_at (sauf email :
+          poseVerrouAuConfirm=false, le verrou est pose au succes d'envoi). */}
+      {lockConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-md bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-600" />
+              <div className="min-w-0">
+                <h3 className="font-hanken font-extrabold text-[15px] text-amber-900">
+                  ⚠️ Cette facture ne sera plus modifiable
+                </h3>
+                <p className="font-hanken text-sm text-amber-800 leading-relaxed mt-1.5">
+                  Après cette action ({lockConfirm.titre}), la facture sera définitivement verrouillée. Vérifiez qu&apos;elle est correcte.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setLockConfirm(null)}
+                className="h-10 px-5 rounded-xl border-[1.5px] border-amber-300 bg-white font-hanken text-[13.5px] font-semibold text-amber-900 hover:bg-amber-100 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const conf = lockConfirm
+                  await conf.run()
+                  if (conf.poseVerrouAuConfirm && !estVerrouillee) {
+                    await updateRow('factures', facture.id, { verrouillee_at: new Date().toISOString() })
+                  }
+                  setLockConfirm(null)
+                  router.refresh()
+                }}
+                className="h-10 px-5 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all"
+              >
+                Continuer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {facture && (
         <EnvoyerFactureModal
           open={sendModalOpen}
@@ -855,6 +934,11 @@ export default function FactureDetailPage() {
           montantTTC={fmt(totalTTC)}
           onSuccess={() => {
             setToastMsg('Facture envoyée avec succès !')
+            // Verrouillage email : pose verrouillee_at APRES un envoi reussi
+            // (best-effort, ne bloque jamais le succes), si pas deja verrouillee.
+            if (!estVerrouillee) {
+              updateRow('factures', facture.id, { verrouillee_at: new Date().toISOString() }).catch(() => {})
+            }
             setTimeout(() => { setToastMsg(null); router.refresh() }, 2000)
           }}
         />
