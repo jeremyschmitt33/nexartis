@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getInvoice, SuperPdpError } from '@/lib/superpdp/client'
 import { getValidAccessTokenForUser } from '@/lib/superpdp/connexion'
 import {
-  getAuthenticatedUser, getAdminUser, getClientIp, checkRateLimit,
+  getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, rateLimitError, secureError, unauthorizedError,
 } from '@/lib/api-security'
 
@@ -27,9 +27,7 @@ export async function POST(req: NextRequest) {
 
     const user = await getAuthenticatedUser()
     if (!user) return unauthorizedError()
-
-    const admin = await getAdminUser()
-    if (!admin) return secureError('Fonctionnalite reservee a l administrateur', 403)
+    // Ouvert a tous : la facture est filtree par user_id (propriete) ci-dessous.
 
     const { factureId } = await req.json()
     if (!factureId) return secureError('factureId manquant')

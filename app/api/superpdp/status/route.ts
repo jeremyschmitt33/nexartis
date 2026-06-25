@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getAdminUser } from '@/lib/api-security'
+import { getAuthenticatedUser } from '@/lib/api-security'
 
 /**
  * Etat de la connexion SUPER PDP de l'utilisateur (etape 2).
@@ -14,8 +14,9 @@ import { getAdminUser } from '@/lib/api-security'
  * policy RLS pour les roles anon/authenticated (jetons secrets).
  */
 export async function GET() {
-  const user = await getAdminUser()
-  // Non-admin (ou non connecte) : on ne revele rien, on dit juste "non connecte".
+  const user = await getAuthenticatedUser()
+  // Non connecte : on ne revele rien, on dit juste "non connecte".
+  // (Chaque artisan ne voit que SA propre connexion, filtree par user_id.)
   if (!user) {
     return NextResponse.json({ connected: false })
   }

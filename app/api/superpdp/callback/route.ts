@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getAuthenticatedUser, getAdminUser } from '@/lib/api-security'
+import { getAuthenticatedUser } from '@/lib/api-security'
 import { exchangeCodeForTokens, getCompanyMe } from '@/lib/superpdp/client'
 import { encryptToken } from '@/lib/superpdp/crypto'
 
@@ -27,12 +27,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', origin))
   }
 
-  // GARDE-FOU (etape 2) : meme reserve a l'admin que /connect, par coherence
-  // (seul l'admin peut avoir initie le flux et obtenu un state valide).
-  const adminUser = await getAdminUser()
-  if (!adminUser) {
-    return back(origin, 'indisponible')
-  }
+  // Ouvert a tous les artisans connectes. La protection anti-CSRF repose sur le
+  // "state" verifie ci-dessous (cookie pose par /connect, propre a cet utilisateur).
 
   if (oauthError || !code) {
     return back(origin, 'refuse')

@@ -7,7 +7,7 @@ import { embarquerFacturX } from '@/lib/facturx'
 import { validateInvoice, sendInvoice, SuperPdpError } from '@/lib/superpdp/client'
 import { getValidAccessTokenForUser } from '@/lib/superpdp/connexion'
 import {
-  getAuthenticatedUser, getAdminUser, getClientIp, checkRateLimit,
+  getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, rateLimitError, secureError, unauthorizedError,
 } from '@/lib/api-security'
 
@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
     const user = await getAuthenticatedUser()
     if (!user) return unauthorizedError()
 
-    // Reserve a l'admin tant que la fonctionnalite n'est pas finalisee.
-    const admin = await getAdminUser()
-    if (!admin) return secureError('Fonctionnalite reservee a l administrateur', 403)
+    // Ouvert a tous les artisans connectes. Garde-fous conserves : propriete de
+    // la facture, client B2B avec SIRET, validation conformite avant envoi,
+    // anti double-envoi, rate-limit.
 
     const { factureId } = await req.json()
     if (!factureId) return secureError('factureId manquant')

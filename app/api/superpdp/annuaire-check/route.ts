@@ -8,7 +8,7 @@ import {
 } from '@/lib/superpdp/client'
 import { getValidAccessTokenForUser } from '@/lib/superpdp/connexion'
 import {
-  getAuthenticatedUser, getAdminUser, getClientIp, checkRateLimit,
+  getAuthenticatedUser, getClientIp, checkRateLimit,
   rateLimitError, secureError, unauthorizedError, secureJson,
 } from '@/lib/api-security'
 
@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
 
   const user = await getAuthenticatedUser()
   if (!user) return unauthorizedError()
-  const admin = await getAdminUser()
-  if (!admin) return secureError('Fonctionnalite reservee a l administrateur', 403)
+  // Ouvert a tous : chaque artisan ne diagnostique que SA propre connexion
+  // (le jeton utilise est celui de l'utilisateur courant).
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) return secureError('Configuration serveur invalide', 500)

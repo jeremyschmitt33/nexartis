@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthenticatedUser, getAdminUser, checkRateLimit } from '@/lib/api-security'
+import { getAuthenticatedUser, checkRateLimit } from '@/lib/api-security'
 import { buildAuthorizeUrl } from '@/lib/superpdp/client'
 
 /**
@@ -13,14 +13,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.nextUrl.origin))
   }
 
-  // GARDE-FOU (etape 2) : tant que la facturation electronique n'est pas
-  // finalisee, ce flux est RESERVE A L'ADMIN. Empeche un vrai client de
-  // l'atteindre meme en tapant l'URL a la main. (Base sur app_metadata.role,
-  // non modifiable par l'utilisateur — voir getAdminUser.)
-  const admin = await getAdminUser()
-  if (!admin) {
-    return NextResponse.redirect(new URL('/dashboard/parametres', req.nextUrl.origin))
-  }
+  // Ouvert a TOUS les artisans connectes (reception 2026 + emission 2027).
+  // La securite repose sur : auth obligatoire, state anti-CSRF (cookie),
+  // rate-limit, et l'isolation multi-tenant cote stockage des jetons.
 
   // Anti brute-force
   if (!checkRateLimit(`superpdp_connect_${user.id}`, 10, 60_000)) {

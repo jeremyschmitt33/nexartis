@@ -1258,7 +1258,7 @@ function FacturationSection({
   const [efactureName, setEfactureName] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAdmin) return
+    // Ouvert a tous les artisans : chacun voit l'etat de SA propre connexion.
     let cancelled = false
     fetch('/api/superpdp/status')
       .then((r) => r.json())
@@ -1423,19 +1423,21 @@ function FacturationSection({
         </div>
       </div>
 
-      {/* ============ FACTURATION ÉLECTRONIQUE (réforme 2026) — ADMIN UNIQUEMENT ============
-          IMPORTANT : ce bloc est volontairement réservé à l'admin tant que la
-          fonctionnalité n'est pas finalisée (étapes 3 et 4 à venir). NE PAS
-          l'exposer aux vrais clients. La route /api/superpdp/connect est aussi
-          verrouillée côté serveur (getAdminUser) en défense en profondeur. */}
-      {isAdmin && (
+      {/* ============ FACTURATION ÉLECTRONIQUE (réforme 2026) ============
+          Ouvert à tous les artisans. Connexion via SUPER PDP (plateforme agréée
+          DGFiP). La réception alimente l'onglet « Factures reçues » (Achats) ;
+          l'émission ajoute un bouton « Envoyer en électronique » sur vos factures
+          (client professionnel avec SIRET). */}
+      {(
         <>
-          <GroupTitle>Facturation électronique (bêta — admin)</GroupTitle>
+          <GroupTitle>Facturation électronique (réforme 2026)</GroupTitle>
 
-          <InfoBanner tone="warn">
-            <strong>Fonctionnalité en cours de finalisation</strong> — visible uniquement par l&apos;administrateur.
-            Réforme française : <em>réception</em> obligatoire en septembre 2026, <em>émission</em> en septembre 2027.
-            Connexion active en production via SUPER PDP (plateforme agréée DGFiP).
+          <InfoBanner tone="info">
+            Connectez votre facturation pour <strong>recevoir vos factures fournisseurs</strong> directement
+            dans Nexartis (obligation au 1<sup>er</sup> septembre 2026) et, si vous le souhaitez,{' '}
+            <strong>émettre vos factures en électronique</strong> (obligation au 1<sup>er</sup> septembre 2027).
+            Via SUPER PDP, plateforme agréée par l&apos;État. Vos factures fournisseurs apparaîtront au fur et à
+            mesure que vos fournisseurs passent à la facture électronique.
           </InfoBanner>
 
           {/* Message de retour du tunnel SUPER PDP (?superpdp=...) */}

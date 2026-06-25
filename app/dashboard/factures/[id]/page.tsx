@@ -346,11 +346,9 @@ export default function FactureDetailPage() {
   const resolvedClientName = client
     ? [client.civilite, client.prenom, client.nom].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
     : facture.client_nom || devisSource?.notes_client?.split(' | ')[0] || 'Non renseigné'
-  // Etape 3 e-facture : bouton reserve a l'admin (feature beta), et actif
-  // uniquement pour un client PRO avec SIRET (facturation electronique B2B).
-  // Securite alignee sur le serveur (getAdminUser) : base sur app_metadata.role,
-  // PAS sur l'email seul (cf. CLAUDE.md).
-  const isAdmin = (user?.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
+  // E-facture : le bouton d'envoi electronique est actif uniquement pour un
+  // client PRO avec SIRET (facturation electronique B2B). Ouvert a tous les
+  // artisans connectes (la securite est verifiee cote serveur).
   const clientIsPro = client?.type === 'professionnel' && !!client?.siret
   const totalHT = facture.montant_ht ?? lignes.reduce((s, l) => s + (l.total_ht ?? 0), 0)
   const totalTVA = facture.montant_tva ?? 0
@@ -573,10 +571,10 @@ export default function FactureDetailPage() {
             {downloadingFx ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
             {downloadingFx ? 'Génération...' : 'Facture électronique'}
           </button>
-          {/* Etape 3 e-facture (ADMIN UNIQUEMENT — beta) : envoi electronique
-              vers SUPER PDP. Additif : ne modifie pas les boutons existants.
-              Desactive (avec explication) si le client n'est pas pro+SIRET. */}
-          {isAdmin && (
+          {/* E-facture : envoi electronique vers SUPER PDP. Ouvert a tous les
+              artisans connectes. Desactive (avec explication) si le client de la
+              facture n'est pas professionnel + SIRET (facturation electronique B2B). */}
+          {(
             facture.superpdp_invoice_id ? (
               <span
                 title={`Déjà envoyée en électronique (id ${facture.superpdp_invoice_id})`}
@@ -590,7 +588,7 @@ export default function FactureDetailPage() {
                 disabled={sendingEfacture || !clientIsPro}
                 title={
                   clientIsPro
-                    ? 'Déposer cette facture chez SUPER PDP (validation puis envoi). Réservé admin — bêta.'
+                    ? 'Déposer cette facture chez SUPER PDP (validation de conformité puis envoi électronique).'
                     : 'Disponible uniquement pour un client professionnel avec SIRET (facturation électronique B2B).'
                 }
                 aria-label="Envoyer cette facture en électronique via SUPER PDP"
@@ -703,9 +701,9 @@ export default function FactureDetailPage() {
 
         {/* Sidebar : informations + suivi paiements (cartes V4 light). */}
         <div className="space-y-4 sidebar-col">
-          {/* Etape 4 e-facture (ADMIN, beta) : suivi du cycle de vie SUPER PDP,
-              uniquement si la facture a deja ete envoyee en electronique. */}
-          {isAdmin && facture.superpdp_invoice_id && (
+          {/* E-facture : suivi du cycle de vie SUPER PDP, uniquement si la
+              facture a deja ete envoyee en electronique. */}
+          {facture.superpdp_invoice_id && (
             <EfactureStatutCard factureId={facture.id} />
           )}
           {/* Carte Informations — métadonnées de la facture */}
