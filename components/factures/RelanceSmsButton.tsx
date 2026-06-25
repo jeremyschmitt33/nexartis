@@ -9,6 +9,7 @@
 
 import { useMemo, useState } from 'react'
 import { MessageSquare, Copy, Check, X } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface Props {
   telephone: string
@@ -96,12 +97,13 @@ export default function RelanceSmsButton({
               rows={4}
               className="w-full rounded-xl border-2 border-gray-200 p-3 text-[14px] text-[#0f1a3a] outline-none focus:border-[#ff7a1a]"
             />
+            {/* MOBILE : ouvre l'appli Messages pre-remplie (envoi depuis le forfait, gratuit). */}
             <div className="mt-3 flex flex-col sm:flex-row gap-2">
               <a
                 href={smsHref}
                 className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-[#ff7a1a] hover:bg-[#f0913f] text-white font-semibold text-sm transition-colors"
               >
-                <MessageSquare size={16} /> Ouvrir Messages
+                <MessageSquare size={16} /> Ouvrir Messages (mobile)
               </a>
               <button
                 onClick={copy}
@@ -111,10 +113,18 @@ export default function RelanceSmsButton({
                 {copied ? 'Copie' : 'Copier le texte'}
               </button>
             </div>
-            <p className="text-[11px] text-gray-400 mt-3">
-              Sur telephone, « Ouvrir Messages » pre-remplit le numero et le texte : tu n'as plus
-              qu'a envoyer. Sur ordinateur, copie le texte.
-            </p>
+
+            {/* ORDINATEUR : QR a scanner avec le telephone -> ouvre le SMS pre-rempli sur le mobile. */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4">
+              <div className="shrink-0 rounded-xl bg-white p-2 border border-gray-200">
+                <QRCodeSVG value={smsHref} size={104} />
+              </div>
+              <p className="text-[12px] text-gray-600 leading-snug">
+                <span className="font-semibold text-[#0f1a3a]">Sur ordinateur :</span> scannez ce QR code
+                avec l&apos;appareil photo de votre telephone. Le SMS s&apos;ouvre pre-rempli sur le mobile,
+                vous n&apos;avez plus qu&apos;a l&apos;envoyer (gratuit, depuis votre forfait).
+              </p>
+            </div>
           </div>
         </div>
       )}
