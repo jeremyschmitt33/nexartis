@@ -72,7 +72,7 @@ export default function Page() {
               Nouvelle-Aquitaine ont multiplié les chantiers d&apos;isolation, de
               changement de chaudière et d&apos;installation de PAC. Ces dispositifs
               imposent une rigueur administrative nouvelle : devis détaillés,
-              attestations de TVA à 5,5%, traçabilité des matériaux. Nexartis a
+              mention de certification TVA à 5,5%, traçabilité des matériaux. Nexartis a
               été pensé pour absorber cette charge sans alourdir le terrain. Avec
               une offre dès <strong>15€ HT/mois</strong>, l&apos;outil reste accessible
               au plus petit artisan tout en couvrant l&apos;essentiel administratif.
@@ -106,7 +106,7 @@ export default function Page() {
               rattraper les devis et factures. Avec Nexartis, chaque intervention
               est saisie depuis la camionnette : un devis créé en 3 minutes, envoyé
               par SMS, signé sur le téléphone du client. La facture est générée
-              dans la foulée, avec les <strong>mentions Factur-X 2026</strong>, et
+              dans la foulée, <strong>prête pour la facturation électronique</strong>, et
               un bouton « Relancer » en un clic en cas d&apos;impayé. Le planning
               visuel évite les doubles affectations entre la rocade A630 et le centre.
             </p>
@@ -253,9 +253,10 @@ export default function Page() {
                 Oui. Nexartis applique automatiquement les trois taux de TVA en
                 vigueur (5,5% pour la rénovation énergétique éligible, 10% pour les
                 travaux d&apos;amélioration de logements de plus de deux ans, 20% en
-                taux normal). L&apos;attestation de TVA simplifiée — obligatoire pour
-                vos clients particuliers — est générée automatiquement et jointe au
-                devis. Un point particulièrement utile pour les artisans RGE de
+                taux normal). La mention de certification TVA réduite est ajoutée
+                automatiquement à vos devis et factures (l&apos;attestation papier
+                a été supprimée en 2025, elle est désormais remplacée par cette
+                mention). Un point particulièrement utile pour les artisans RGE de
                 Gironde qui réalisent de nombreux chantiers aidés.
               </p>
             </details>

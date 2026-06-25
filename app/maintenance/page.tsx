@@ -132,7 +132,7 @@ export default function MaintenancePage() {
             <div>
               <p className="text-sm font-semibold text-cream">Améliorations en cours</p>
               <p className="mt-0.5 text-xs text-cream/70">
-                Corrections de qualité et conformité Factur-X 2026.
+                Corrections de qualité et facturation électronique.
               </p>
             </div>
           </div>

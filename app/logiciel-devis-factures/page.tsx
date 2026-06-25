@@ -103,8 +103,8 @@ const faqItems = [
     a: "Oui, vous pouvez importer vos donn\u00e9es clients et prestations via un fichier CSV. Notre \u00e9quipe vous accompagne gratuitement pour la migration.",
   },
   {
-    q: "Qu\u2019est-ce que la facturation \u00e9lectronique Factur-X 2026\u00a0?",
-    a: "D\u00e8s septembre 2026, toutes les entreprises devront \u00e9mettre des factures au format \u00e9lectronique Factur-X. Vos factures Nexartis incluent d\u00e9j\u00e0 les mentions l\u00e9gales exig\u00e9es par la r\u00e9forme 2026.",
+    q: "Qu\u2019est-ce que la facturation \u00e9lectronique (Factur-X)\u00a0?",
+    a: "La r\u00e9forme fran\u00e7aise se d\u00e9ploie en deux temps : d\u00e8s le 1er septembre 2026, toutes les entreprises doivent \u00eatre en mesure de RECEVOIR les factures \u00e9lectroniques de leurs fournisseurs ; l\u2019\u00e9mission de vos propres factures au format \u00e9lectronique (Factur-X, UBL ou CII) devient obligatoire plus tard, \u00e0 partir du 1er septembre 2027, selon la taille de l\u2019entreprise. Nexartis g\u00e8re la facturation \u00e9lectronique de bout en bout (r\u00e9ception et \u00e9mission) via une plateforme agr\u00e9\u00e9e, et vos factures incluent d\u00e9j\u00e0 les mentions l\u00e9gales exig\u00e9es par la r\u00e9forme.",
   },
 ];
 
@@ -368,14 +368,19 @@ export default function LogicielDevisFacturesPage() {
               </span>
             </div>
             <h2 className="mb-6 font-syne text-2xl font-extrabold text-white md:text-3xl">
-              Factur-X 2026 : ce que &ccedil;a change pour vous
+              Facturation &eacute;lectronique : ce que &ccedil;a change pour vous
             </h2>
             <div className="space-y-4 font-manrope text-base leading-relaxed text-gray-300">
               <p>
                 &Agrave; partir du <strong className="text-white">1er septembre 2026</strong>, toutes
                 les entreprises fran&ccedil;aises, y compris les artisans et
-                micro-entreprises, devront &eacute;mettre leurs factures au{" "}
-                <strong className="text-white">format &eacute;lectronique Factur-X</strong>.
+                micro-entreprises, devront &ecirc;tre en mesure de{" "}
+                <strong className="text-white">recevoir les factures &eacute;lectroniques</strong> de
+                leurs fournisseurs. L&apos;&eacute;mission de vos propres factures au{" "}
+                <strong className="text-white">format &eacute;lectronique Factur-X</strong> deviendra
+                obligatoire plus tard, &agrave; partir du{" "}
+                <strong className="text-white">1er septembre 2027</strong> selon la taille de
+                l&apos;entreprise.
               </p>
               <p>
                 Factur-X est un format hybride : un PDF lisible par l&apos;humain,

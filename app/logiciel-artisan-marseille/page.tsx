@@ -73,8 +73,8 @@ export default function Page() {
               certificats d&apos;économie d&apos;énergie et les aides régionales
               Sud-PACA ont multiplié les chantiers d&apos;isolation et de
               rafraîchissement de l&apos;habitat. Ces dispositifs imposent une
-              rigueur administrative nouvelle : devis détaillés, attestations de
-              TVA à 5,5%, mentions RGE, traçabilité. Nexartis a été pensé pour
+              rigueur administrative nouvelle : devis détaillés, mention de
+              certification TVA à 5,5%, mentions RGE, traçabilité. Nexartis a été pensé pour
               absorber cette charge sans alourdir le terrain. Avec une offre dès
               <strong> 15€ HT/mois</strong>, l&apos;outil reste accessible au plus
               petit artisan tout en couvrant l&apos;essentiel administratif.
@@ -111,7 +111,7 @@ export default function Page() {
               rattraper devis et factures. Avec Nexartis, chaque intervention est
               saisie depuis la camionnette : un devis créé en quelques minutes,
               envoyé par SMS, signé sur le téléphone du client. La facture est
-              générée dans la foulée, avec les mentions Factur-X 2026, et un bouton
+              générée dans la foulée, prête pour la facturation électronique, et un bouton
               « Relancer » en un clic en cas d&apos;impayé. Le planning visuel évite
               les doubles affectations entre la côte bleue, les calanques et la
               vallée de l&apos;Huveaune.
@@ -270,9 +270,10 @@ export default function Page() {
                 Oui. Nexartis applique automatiquement les trois taux de TVA en
                 vigueur (5,5% pour la rénovation énergétique éligible, 10% pour
                 les travaux d&apos;amélioration de logements de plus de deux ans,
-                20% en taux normal). L&apos;attestation de TVA simplifiée —
-                obligatoire pour vos clients particuliers — est générée
-                automatiquement et jointe au devis. Un point particulièrement
+                20% en taux normal). La mention de certification TVA réduite est
+                ajoutée automatiquement à vos devis et factures (l&apos;attestation
+                papier a été supprimée en 2025, elle est désormais remplacée par
+                cette mention). Un point particulièrement
                 utile pour les artisans RGE QualiPAC des Bouches-du-Rhône qui
                 installent beaucoup de PAC air-eau et de climatisations depuis
                 les dernières canicules.

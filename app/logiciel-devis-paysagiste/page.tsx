@@ -137,7 +137,7 @@ const data = {
       question:
         "Le logiciel est-il conforme à la facturation électronique 2026 (Factur-X) ?",
       answer:
-        "Oui. La réforme française impose Factur-X en réception au 1er septembre 2026 pour toutes les entreprises, et en émission au 1er septembre 2027 pour les TPE et auto-entrepreneurs. Toutes les factures Nexartis intègrent déjà les **mentions légales Factur-X 2026** exigées par la réforme (numéros d'identification, références TVA, conditions de règlement, pénalités), et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne. Inclus par défaut dès l'offre Essentiel à 15€ HT/mois, y compris sur les factures récurrentes générées par vos contrats d'entretien.",
+        "Oui. La réforme française impose Factur-X en réception au 1er septembre 2026 pour toutes les entreprises, et en émission au 1er septembre 2027 pour les TPE et auto-entrepreneurs. Toutes les factures Nexartis intègrent déjà les **mentions légales** exigées par la réforme (numéros d'identification, références TVA, conditions de règlement, pénalités), et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne. Inclus par défaut dès l'offre Essentiel à 15€ HT/mois, y compris sur les factures récurrentes générées par vos contrats d'entretien.",
     },
     {
       question: "Comment facturer un chantier saisonnier de création de jardin ?",

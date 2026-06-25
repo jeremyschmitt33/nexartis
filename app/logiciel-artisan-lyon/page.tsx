@@ -72,7 +72,7 @@ export default function Page() {
               MaPrimeRénov&apos;, les CEE et les aides régionales d&apos;Auvergne-Rhône-Alpes
               ont multiplié les chantiers d&apos;isolation, de PAC et de
               changement de menuiseries. Les obligations administratives qui les
-              accompagnent — devis détaillés, attestations de TVA à 5,5%, traçabilité
+              accompagnent — devis détaillés, mention de certification TVA à 5,5%, traçabilité
               — imposent une rigueur que Nexartis prend en charge. Avec une offre
               dès <strong>15€ HT/mois</strong>, le logiciel reste accessible au
               plus petit artisan tout en couvrant l&apos;essentiel administratif.
@@ -107,7 +107,7 @@ export default function Page() {
               rattraper devis et factures. Avec Nexartis, chaque intervention est
               saisie depuis le véhicule : devis créé en 3 minutes, envoyé par SMS,
               signé sur le téléphone du client. La facture est générée dans la
-              foulée, avec les <strong>mentions Factur-X 2026</strong>, et un bouton
+              foulée, <strong>prête pour la facturation électronique</strong>, et un bouton
               « Relancer » en un clic en cas d&apos;impayé. Le planning visuel évite
               les doubles affectations entre le périphérique Laurent-Bonnevay et les
               communes de la première couronne.
@@ -263,9 +263,10 @@ export default function Page() {
                 Oui. Nexartis applique automatiquement les trois taux de TVA en
                 vigueur (5,5% pour la rénovation énergétique éligible, 10% pour
                 les travaux d&apos;amélioration de logements de plus de deux ans,
-                20% en taux normal). L&apos;attestation de TVA simplifiée —
-                obligatoire pour vos clients particuliers — est générée
-                automatiquement et jointe au devis. Pratique pour les artisans
+                20% en taux normal). La mention de certification TVA réduite est
+                ajoutée automatiquement à vos devis et factures (l&apos;attestation
+                papier a été supprimée en 2025, elle est désormais remplacée par
+                cette mention). Pratique pour les artisans
                 RGE de la Métropole qui enchaînent les chantiers MaPrimeRénov&apos;,
                 qu&apos;il s&apos;agisse d&apos;isolation à Vaise ou de PAC dans
                 un pavillon d&apos;Écully.
