@@ -145,6 +145,7 @@ export default function ModifierDevisPage() {
   const [clientCivilite, setClientCivilite] = useState('')
   const [clientNom, setClientNom] = useState('')
   const [clientPrenom, setClientPrenom] = useState('')
+  const [clientSiret, setClientSiret] = useState('')
   const [clientAdresse, setClientAdresse] = useState('')
   const [clientCodePostal, setClientCodePostal] = useState('')
   const [clientVille, setClientVille] = useState('')
@@ -249,7 +250,13 @@ export default function ModifierDevisPage() {
       supabase.from('clients').select('*').eq('id', devis.client_id).maybeSingle().then(({ data }) => {
         if (data) {
           const c = data as unknown as ClientRecord & { civilite?: string }
-          setClientCivilite(c.civilite || '')
+          const rawC = data as unknown as Record<string, string>
+          if (rawC.type === 'professionnel') {
+            setClientCivilite('Société')
+            setClientSiret(rawC.siret || '')
+          } else {
+            setClientCivilite(c.civilite || '')
+          }
           setClientNom(c.nom || ''); setClientPrenom(c.prenom || '')
           setClientAdresse(c.adresse || ''); setClientCodePostal(c.code_postal || '')
           setClientVille(c.ville || ''); setClientTelephone(c.telephone || '')
@@ -321,7 +328,13 @@ export default function ModifierDevisPage() {
     } else { setClientSuggestions([]); setClientDropdownOpen(false) }
   }
   const selectClientSuggestion = (c: ClientRecord) => {
-    setClientCivilite((c as unknown as Record<string, string>).civilite || '')
+    const raw = c as unknown as Record<string, string>
+    if (raw.type === 'professionnel') {
+      setClientCivilite('Société')
+      setClientSiret(raw.siret || '')
+    } else {
+      setClientCivilite(raw.civilite || '')
+    }
     setClientNom(c.nom); setClientPrenom(c.prenom || '')
     setClientAdresse(c.adresse || ''); setClientCodePostal(c.code_postal || '')
     setClientVille(c.ville || ''); setClientTelephone(c.telephone || '')
@@ -479,11 +492,16 @@ export default function ModifierDevisPage() {
               user_id: user.id,
             }
             if (clientCivilite) clientData.civilite = clientCivilite
+            // Client professionnel (Societe) : on persiste type + SIRET pour la
+            // facturation electronique B2B. Sinon on retombe sur 'particulier'.
+            const isPro = clientCivilite === 'Société'
+            clientData.type = isPro ? 'professionnel' : 'particulier'
+            if (isPro) clientData.siret = clientSiret.trim() || null
             if (existingClient) {
               devisData.client_id = existingClient.id
               await supabase.from('clients').update(clientData).eq('id', existingClient.id)
             } else {
-              const { data: newClient } = await supabase.from('clients').insert({ ...clientData, type: 'particulier', actif: true }).select('id').single()
+              const { data: newClient } = await supabase.from('clients').insert({ ...clientData, actif: true }).select('id').single()
               if (newClient) devisData.client_id = newClient.id
             }
           }
@@ -558,7 +576,7 @@ export default function ModifierDevisPage() {
       setError((err as Error).message); setSaving(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [devis, clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateDevis, dateValidite, dateTravaux, duree, chantierDesc, chantierId, selectedPayments, conditionsLibres, notes, totalHT, totalTVA, totalTTC, effectiveTva, lines, router, acomptePct, acompteActive, acompteLabel, dechetsNature, dechetsQuantite, dechetsResponsable, dechetsTri, dechetsCollecteNom, dechetsCollecteAdresse, dechetsCollecteType, dechetsCout, dechetsInclureCout, useForfait, forfaitHT])
+  }, [devis, clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateDevis, dateValidite, dateTravaux, duree, chantierDesc, chantierId, selectedPayments, conditionsLibres, notes, totalHT, totalTVA, totalTTC, effectiveTva, lines, router, acomptePct, acompteActive, acompteLabel, dechetsNature, dechetsQuantite, dechetsResponsable, dechetsTri, dechetsCollecteNom, dechetsCollecteAdresse, dechetsCollecteType, dechetsCout, dechetsInclureCout, useForfait, forfaitHT])
 
   if (loadingDevis || loadingLignes) return <div className="p-6"><LoadingSkeleton rows={8} /></div>
   if (!devis) return <div className="p-6"><p className="text-sm text-gray-500">Devis introuvable.</p></div>
@@ -627,7 +645,11 @@ export default function ModifierDevisPage() {
                   </div>
                 )}
               </div>
-              <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
+              {clientCivilite === 'Société' ? (
+                <input type="text" inputMode="numeric" value={clientSiret} onChange={e => setClientSiret(e.target.value)} placeholder="N° SIRET (14 chiffres)" className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'} />
+              ) : (
+                <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
+              )}
               <input type="text" value={clientAdresse} onChange={e => setClientAdresse(e.target.value)} placeholder="Adresse" className={inputCls} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input type="text" value={clientCodePostal} onChange={e => setClientCodePostal(e.target.value)} placeholder="Code postal" className={inputCls} />

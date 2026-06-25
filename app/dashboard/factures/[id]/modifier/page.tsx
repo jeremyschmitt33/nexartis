@@ -124,6 +124,7 @@ export default function ModifierFacturePage() {
   const [clientNom, setClientNom] = useState('')
   const [clientPrenom, setClientPrenom] = useState('')
   const [clientCivilite, setClientCivilite] = useState('')
+  const [clientSiret, setClientSiret] = useState('')
   const [clientAdresse, setClientAdresse] = useState('')
   const [clientCodePostal, setClientCodePostal] = useState('')
   const [clientVille, setClientVille] = useState('')
@@ -272,7 +273,13 @@ export default function ModifierFacturePage() {
       supabase.from('clients').select('*').eq('id', facture.client_id).maybeSingle().then(({ data }) => {
         if (data) {
           const c = data as unknown as ClientRecord & { civilite?: string }
-          setClientCivilite(c.civilite || '')
+          const rawC = data as unknown as Record<string, string>
+          if (rawC.type === 'professionnel') {
+            setClientCivilite('Société')
+            setClientSiret(rawC.siret || '')
+          } else {
+            setClientCivilite(c.civilite || '')
+          }
           setClientNom(c.nom || '')
           setClientPrenom(c.prenom || '')
           setClientAdresse(c.adresse || '')
@@ -376,7 +383,13 @@ export default function ModifierFacturePage() {
   }
 
   const selectClient = (c: ClientRecord) => {
-    setClientCivilite((c as unknown as Record<string, string>).civilite || '')
+    const raw = c as unknown as Record<string, string>
+    if (raw.type === 'professionnel') {
+      setClientCivilite('Société')
+      setClientSiret(raw.siret || '')
+    } else {
+      setClientCivilite(raw.civilite || '')
+    }
     setClientNom(c.nom)
     setClientPrenom(c.prenom || '')
     setClientAdresse(c.adresse || '')
@@ -505,6 +518,11 @@ export default function ModifierFacturePage() {
               user_id: user.id,
             }
             if (clientCivilite) clientData.civilite = clientCivilite
+            // Client professionnel (Societe) : on persiste type + SIRET pour la
+            // facturation electronique B2B. Sinon on retombe sur 'particulier'.
+            const isPro = clientCivilite === 'Société'
+            clientData.type = isPro ? 'professionnel' : 'particulier'
+            if (isPro) clientData.siret = clientSiret.trim() || null
 
             if (existingClient) {
               factureData.client_id = existingClient.id
@@ -512,7 +530,7 @@ export default function ModifierFacturePage() {
             } else {
               const { data: newClient } = await supabase
                 .from('clients')
-                .insert({ ...clientData, type: 'particulier', actif: true })
+                .insert({ ...clientData, actif: true })
                 .select('id')
                 .single()
               if (newClient) factureData.client_id = newClient.id
@@ -592,7 +610,7 @@ export default function ModifierFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [facture, clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, autoliquidationBtp])
+  }, [facture, clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, autoliquidationBtp])
 
   if (loadingFacture || loadingLignes) return <div className="p-6"><LoadingSkeleton rows={8} /></div>
   if (!facture) return <div className="p-6"><p className="text-sm text-gray-500">Facture introuvable.</p></div>
@@ -883,7 +901,11 @@ export default function ModifierFacturePage() {
                   </div>
                 )}
               </div>
-              <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
+              {clientCivilite === 'Société' ? (
+                <input type="text" inputMode="numeric" value={clientSiret} onChange={e => setClientSiret(e.target.value)} placeholder="N° SIRET (14 chiffres)" className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'} />
+              ) : (
+                <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
+              )}
               <input type="text" value={clientAdresse} onChange={e => setClientAdresse(e.target.value)} placeholder="Adresse" className={inputCls} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input

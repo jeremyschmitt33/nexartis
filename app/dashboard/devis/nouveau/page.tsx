@@ -441,6 +441,7 @@ function NouveauDevisPage() {
   const [clientCivilite, setClientCivilite] = useState('')
   const [clientNom, setClientNom] = useState('')
   const [clientPrenom, setClientPrenom] = useState('')
+  const [clientSiret, setClientSiret] = useState('')
   const [clientAdresse, setClientAdresse] = useState('')
   const [clientTelephone, setClientTelephone] = useState('')
   const [clientEmail, setClientEmail] = useState('')
@@ -787,8 +788,13 @@ function NouveauDevisPage() {
               }
               // Ajouter civilite seulement si la valeur est définie
               if (clientCivilite) clientData.civilite = clientCivilite
+              // Client professionnel (Societe) : on persiste type + SIRET pour la
+              // facturation electronique B2B. Sinon on retombe sur 'particulier'.
+              const isPro = clientCivilite === 'Société'
+              clientData.type = isPro ? 'professionnel' : 'particulier'
+              if (isPro) clientData.siret = clientSiret.trim() || null
               if (!existing) {
-                const { data: newClient, error: insertErr } = await supabase.from('clients').insert({ ...clientData, type: 'particulier', actif: true }).select('id').single()
+                const { data: newClient, error: insertErr } = await supabase.from('clients').insert({ ...clientData, actif: true }).select('id').single()
                 if (insertErr) console.error('Erreur sauvegarde client:', insertErr.message)
                 else if (newClient) clientId = newClient.id
               } else {
@@ -887,7 +893,7 @@ function NouveauDevisPage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [clientCivilite, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateDevis, dateValidite, dateTravaux, duree, chantierDesc, conditionsStr, notes, totalHT, totalTVA, totalTTC, effectiveTva, lines, router, acomptePct, dechetsNature, dechetsQuantite, dechetsResponsable, dechetsTri, dechetsCollecteNom, dechetsCollecteAdresse, dechetsCollecteType, dechetsCout, dechetsInclureCout])
+  }, [clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateDevis, dateValidite, dateTravaux, duree, chantierDesc, conditionsStr, notes, totalHT, totalTVA, totalTTC, effectiveTva, lines, router, acomptePct, dechetsNature, dechetsQuantite, dechetsResponsable, dechetsTri, dechetsCollecteNom, dechetsCollecteAdresse, dechetsCollecteType, dechetsCout, dechetsInclureCout])
 
   // --- Voice result handler ---
   const handleVoiceResult = (data: Record<string, unknown>) => {
@@ -948,7 +954,13 @@ function NouveauDevisPage() {
   }
 
   const selectClientSuggestion = (c: ClientRecord) => {
-    setClientCivilite((c as unknown as Record<string,string>).civilite || '')
+    const raw = c as unknown as Record<string,string>
+    if (raw.type === 'professionnel') {
+      setClientCivilite('Société')
+      setClientSiret(raw.siret || '')
+    } else {
+      setClientCivilite(raw.civilite || '')
+    }
     setClientNom(c.nom)
     setClientPrenom(c.prenom || '')
     setClientAdresse(c.adresse || '')
@@ -1169,8 +1181,12 @@ function NouveauDevisPage() {
                 )}
               </div>
 
-              {/* Ligne 2 : Prénom */}
-              <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
+              {/* Ligne 2 : Prénom (ou SIRET si client professionnel) */}
+              {clientCivilite === 'Société' ? (
+                <input type="text" inputMode="numeric" value={clientSiret} onChange={e => setClientSiret(e.target.value)} placeholder="N° SIRET (14 chiffres)" className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'} />
+              ) : (
+                <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
+              )}
 
               {/* Ligne 3 : Adresse */}
               <input type="text" value={clientAdresse} onChange={e => setClientAdresse(e.target.value)} placeholder="Adresse" className={inputCls} />
