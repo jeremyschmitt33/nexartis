@@ -180,7 +180,9 @@ function drawAddresseCard(
   // Bloc BAS (SIRET + TVA) 8pt normal
   const bottom: ContentLine[] = []
   if (client.clientSiret) {
-    bottom.push({ text: `SIRET ${client.clientSiret}`, size: 8, weight: 'normal', color: inkSecondary })
+    // Libelle adaptatif : SIREN si 9 chiffres, SIRET sinon (parite stricte avec DocumentRender).
+    const idLabel = client.clientSiret.replace(/\D/g, '').length === 9 ? 'SIREN' : 'SIRET'
+    bottom.push({ text: `${idLabel} ${client.clientSiret}`, size: 8, weight: 'normal', color: inkSecondary })
   }
   if (client.clientTvaIntra) {
     bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 8, weight: 'normal', color: inkSecondary })

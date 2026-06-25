@@ -129,7 +129,7 @@ function CardTo({ client }: { client: DocumentClient }) {
         {client.adresseLine2 && <div>{client.adresseLine2}</div>}
         {client.tel && <div>{formatPhone(client.tel)}</div>}
         {client.email && <div>{client.email}</div>}
-        {client.siret && <div>SIRET {client.siret}</div>}
+        {client.siret && <div>{(client.siret.replace(/\D/g, '').length === 9 ? 'SIREN' : 'SIRET')} {client.siret}</div>}
       </div>
     </div>
   )

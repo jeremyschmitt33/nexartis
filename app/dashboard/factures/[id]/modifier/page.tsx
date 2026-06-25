@@ -85,6 +85,15 @@ function formatCurrency(n: number): string {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
+// SIREN = 9 chiffres (minimum legal), SIRET = 14 chiffres (SIREN + etablissement).
+// On accepte les DEUX. Champ vide autorise (tant qu'on n'enregistre pas).
+// Retourne un message d'erreur si invalide, sinon null.
+function validateClientSiret(raw: string): string | null {
+  const digits = (raw || '').replace(/\D/g, '')
+  if (digits.length === 0 || digits.length === 9 || digits.length === 14) return null
+  return `Numéro invalide : un SIREN fait 9 chiffres, un SIRET 14 (vous avez saisi ${digits.length}).`
+}
+
 // V4 light : style input premium (fond #fafbfc, bordure 1.5px, halo orange au focus).
 const inputCls = 'w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200'
 
@@ -125,6 +134,8 @@ export default function ModifierFacturePage() {
   const [clientPrenom, setClientPrenom] = useState('')
   const [clientCivilite, setClientCivilite] = useState('')
   const [clientSiret, setClientSiret] = useState('')
+  // SIREN (9 chiffres) OU SIRET (14 chiffres) : tout autre nombre = invalide.
+  const [clientSiretError, setClientSiretError] = useState<string | null>(null)
   const [clientAdresse, setClientAdresse] = useState('')
   const [clientCodePostal, setClientCodePostal] = useState('')
   const [clientVille, setClientVille] = useState('')
@@ -384,6 +395,7 @@ export default function ModifierFacturePage() {
 
   const selectClient = (c: ClientRecord) => {
     const raw = c as unknown as Record<string, string>
+    setClientSiretError(null)
     if (raw.type === 'professionnel') {
       setClientCivilite('Société')
       setClientSiret(raw.siret || '')
@@ -456,6 +468,16 @@ export default function ModifierFacturePage() {
   // ── Save ──
   const handleSave = useCallback(async (action: 'brouillon' | 'enregistrer') => {
     if (!facture) return
+    // Blocage : client Societe + SIREN/SIRET non vide mais invalide (ni 9 ni 14 chiffres).
+    // On ne bloque PAS si le champ est vide (enregistrement possible sans identifiant).
+    if (clientCivilite === 'Société') {
+      const siretMsg = validateClientSiret(clientSiret)
+      if (siretMsg) {
+        setClientSiretError(siretMsg)
+        setError(siretMsg)
+        return
+      }
+    }
     setSaving(true)
     setError(null)
     try {
@@ -867,7 +889,7 @@ export default function ModifierFacturePage() {
                 <div className="flex gap-2">
                   <select
                     value={clientCivilite}
-                    onChange={e => setClientCivilite(e.target.value)}
+                    onChange={e => { setClientCivilite(e.target.value); if (e.target.value !== 'Société') setClientSiretError(null) }}
                     className="w-28 shrink-0 py-2.5 px-3 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken text-[14.5px] text-[#0f1a3a] cursor-pointer focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all"
                   >
                     <option value="">—</option>
@@ -902,7 +924,10 @@ export default function ModifierFacturePage() {
                 )}
               </div>
               {clientCivilite === 'Société' ? (
-                <input type="text" inputMode="numeric" value={clientSiret} onChange={e => setClientSiret(e.target.value)} placeholder="N° SIRET (14 chiffres)" className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'} />
+                <div>
+                  <input type="text" inputMode="numeric" value={clientSiret} onChange={e => setClientSiret(e.target.value)} onBlur={() => setClientSiretError(validateClientSiret(clientSiret))} placeholder="SIREN (9) ou SIRET (14)" className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]' + (clientSiretError ? ' border-red-500 focus:border-red-500' : '')} />
+                  {clientSiretError && <p className="mt-1 text-[12px] text-red-600 font-hanken">{clientSiretError}</p>}
+                </div>
               ) : (
                 <input type="text" value={clientPrenom} onChange={e => setClientPrenom(e.target.value)} placeholder="Prénom" className={inputCls} />
               )}
