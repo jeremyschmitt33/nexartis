@@ -4,7 +4,7 @@ import { useState } from "react";
 
 // V4 landing dark — section FAQ.
 // Anti-mensonge applique :
-// - Q4 (Factur-X) : retrait du "certifie conforme" -> phrase honnete sur l'integration progressive
+// - Q4 (e-facture) : reception des e-factures fournisseurs des 2026, emission prete pour 2027, plateforme agreee
 // - Q8 (donnees) : "France" -> "Union europeenne (Allemagne)" + format export PDF/CSV
 
 const faqs = [
@@ -21,8 +21,8 @@ const faqs = [
     a: "Oui. 14 jours d'essai complet, gratuit, sans entrer votre carte bancaire. Vous avez acces a tout pendant ces 14 jours.",
   },
   {
-    q: "Nexartis est-il conforme a la reforme de la facturation electronique 2026 ?",
-    a: "La reforme entre en vigueur progressivement a partir de septembre 2026. Toutes vos factures incluent deja les mentions legales Factur-X 2026 exigees par la reforme, et Nexartis evolue avec le calendrier officiel pour rester aligne avant l'echeance qui vous concerne.",
+    q: "Nexartis est-il conforme a la reforme de la facturation electronique ?",
+    a: "Oui. La reception des factures electroniques de vos fournisseurs est deja active dans Nexartis — c'est l'obligation qui demarre le 1er septembre 2026. L'emission de vos propres factures au format electronique est prete pour l'echeance qui vous concerne (a partir du 1er septembre 2027 selon la taille de votre entreprise). Nexartis passe par une plateforme agreee.",
   },
   {
     q: "Comment resilier mon abonnement Nexartis ?",
@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     q: "Nexartis gere-t-il les equipes avec plusieurs intervenants ?",
-    a: "Nexartis gere votre equipe (intervenants, chefs de chantier, apprentis) dans un planning unifie. La fonctionnalite multi-comptes avec login personnel par membre est en cours de developpement et arrivera en 2026.",
+    a: "Oui. Avec l'offre Complet, la gestion d'equipe et des intervenants (chefs de chantier, apprentis) est disponible dans un planning unifie, avec alertes en cas de conflit d'affectation.",
   },
   {
     q: "Ou sont hebergees mes donnees et comment sont-elles protegees ?",

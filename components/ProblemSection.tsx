@@ -7,7 +7,7 @@ const problems = [
   {
     num: "01",
     title: "Des tarifs transparents et maitrises",
-    text: "Les solutions du marche atteignent souvent 50 a 100 euros par mois pour acceder a l'ensemble des fonctionnalites. Nexartis propose tous les outils a 25 euros par mois, sans restriction ni option cachee.",
+    text: "Les solutions du marche atteignent souvent 50 a 100 euros par mois pour acceder a l'ensemble des fonctionnalites. Nexartis demarre a 15 euros par mois, sans restriction ni option cachee.",
     accent: "var(--mint, #2fd6a0)",
     svgPaths: (
       <>

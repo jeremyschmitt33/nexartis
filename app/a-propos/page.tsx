@@ -2,15 +2,15 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: "À propos de Nexartis — Un logiciel artisan performant et moins cher que les leaders",
+  title: "À propos de Nexartis — Un logiciel artisan complet à un prix juste",
   description:
-    "Nexartis est né du besoin d'un ami paysagiste. Notre conviction : offrir aux artisans un outil aussi performant que les leaders du marché, mais à un prix juste.",
+    "Nexartis est né du besoin d'un ami paysagiste. Notre conviction : offrir aux artisans un logiciel complet et fiable, à un prix juste.",
   robots: { index: true, follow: true },
   alternates: { canonical: '/a-propos' },
   openGraph: {
     title: 'À propos de Nexartis',
     description:
-      "Un logiciel artisan performant et moins cher que les leaders du marché, né du besoin réel d'un ami paysagiste.",
+      "Un logiciel artisan complet à un prix juste, né du besoin réel d'un ami paysagiste.",
     url: 'https://nexartis.fr/a-propos',
     type: 'website',
     siteName: 'Nexartis',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'À propos de Nexartis',
-    description: "Un logiciel artisan performant à un prix juste.",
+    description: "Un logiciel artisan complet à un prix juste.",
   },
 }
 
@@ -33,7 +33,7 @@ const jsonLd = {
     url: 'https://nexartis.fr',
     logo: 'https://nexartis.fr/images/logo-nexartis.png',
     description:
-      "Logiciel de gestion devis, factures, planning et chantiers pour artisans du BTP français. Mentions Factur-X 2026 incluses.",
+      "Logiciel de gestion devis, factures, planning et chantiers pour artisans du BTP français. Facturation électronique : réception des factures fournisseurs dès 2026, émission prête pour 2027.",
     founder: {
       '@type': 'Person',
       name: 'Jeremy Schmitt',
@@ -77,8 +77,8 @@ export default function AProposPage() {
           </h1>
           <p className="mt-5 font-manrope text-lg text-navy/70 leading-relaxed">
             Un outil né du besoin d&apos;un ami artisan paysagiste. Notre conviction :
-            <strong className="text-navy"> aussi performant que les leaders, mais moins
-            cher</strong>, parce que les artisans méritent les deux.
+            <strong className="text-navy"> un logiciel complet à un prix juste</strong>,
+            parce que les artisans méritent les deux.
           </p>
         </header>
 
@@ -142,10 +142,10 @@ export default function AProposPage() {
             </p>
             <p>
               Nexartis est construit autour d&apos;une idée simple :{' '}
-              <strong>les artisans méritent un outil aussi performant que les leaders
-              du marché, mais à un prix juste</strong>. Pas de fonctionnalités payantes
-              cachées, pas de version premium qui sort dans 6 mois pour faire grimper la
-              facture. Tout est inclus, tout de suite.
+              <strong>les artisans méritent un logiciel complet et fiable, à un prix
+              juste</strong>. Deux offres claires, l&apos;Essentiel pour chiffrer et
+              facturer, le Complet pour piloter une équipe. À l&apos;intérieur de votre
+              offre, pas de module premium surprise ni de coût par client ou par chantier.
             </p>
             <p>
               Cette conviction n&apos;est pas un slogan. Elle vient de mon goût pour{' '}

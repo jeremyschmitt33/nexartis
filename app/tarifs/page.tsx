@@ -31,16 +31,24 @@ const featuresComparison: Array<{
   { label: "Avoirs et rectifications", essential: true, complete: true },
   { label: "Tableau de bord chiffre d'affaires", essential: true, complete: true },
   { label: "Suivi des impayés et relance en 1 clic", essential: true, complete: true },
+  { label: "Relances auto (email) + relance SMS gratuite", essential: true, complete: true },
+  { label: "Client particulier ou société (SIREN/SIRET)", essential: true, complete: true },
+  { label: "Facture verrouillée après le 1er envoi", essential: true, complete: true },
+  { label: "Rappels assurance décennale", essential: true, complete: true },
+  { label: "Photos de chantier classées par client", essential: true, complete: true },
+  { label: "10 calculatrices métier + aide URSSAF", essential: true, complete: true },
+  { label: "QR de virement SEPA sur vos factures", essential: true, complete: true },
   { label: "Export PDF de chaque devis et facture", essential: true, complete: true },
   { label: "Export CSV comptable (Sage / EBP / FEC) — à venir", essential: true, complete: true },
-  { label: "Mentions Factur-X 2026 incluses", essential: true, complete: true },
+  { label: "Réception des factures fournisseurs (e-facture, dès 2026)", essential: true, complete: true },
+  { label: "Émission électronique prête (échéance 2027)", essential: true, complete: true },
   { label: "Optimisé smartphone et tablette", essential: true, complete: true },
   { label: "Données hébergées en Europe (RGPD)", essential: true, complete: true },
   { label: "Support email Lun-Ven 9h-18h", essential: true, complete: true },
   { label: "Mises à jour continues incluses", essential: true, complete: true },
   { label: "Aucune limite de clients", essential: true, complete: true },
   { label: "Aucune limite de chantiers", essential: true, complete: true },
-  { label: "Bibliothèque de prestations", essential: "50 max", complete: "Illimitée" },
+  { label: "Catalogue de +700 prestations + bibliothèque perso", essential: "50 max", complete: "Illimitée" },
   { label: "Planning chantier visuel", essential: false, complete: true },
   { label: "Alertes conflits d'affectation en temps réel", essential: false, complete: true },
   { label: "Gestion d'équipe et planning intervenants", essential: false, complete: true },
@@ -58,7 +66,7 @@ const faqItems = [
   },
   {
     q: "Y a-t-il des frais cachés ou des options payantes ?",
-    a: "Non, absolument aucun. Le tarif annoncé est définitif. Aucun module à acheter, aucun surcoût par utilisateur, aucune limite sur le nombre de clients ou de chantiers. Les mentions légales Factur-X 2026 sont incluses dans les deux offres.",
+    a: "Non, absolument aucun. Le tarif annoncé est définitif. Aucun module à acheter, aucun surcoût par utilisateur, aucune limite sur le nombre de clients ou de chantiers. La réception des factures électroniques de vos fournisseurs (obligation dès 2026) et la préparation de l'émission de vos propres factures (échéance 2027) sont incluses dans les deux offres.",
   },
   {
     q: "L'essai gratuit est-il vraiment sans carte bancaire ?",
@@ -228,8 +236,8 @@ export default function TarifsPage() {
           </div>
 
           <p className="mt-6 text-center font-manrope text-xs text-gray-400 italic">
-            * Les deux offres incluent les mises à jour à vie et les mentions
-            légales Factur-X 2026 sans surcoût.
+            * Les deux offres incluent les mises à jour à vie, la réception des
+            factures électroniques (dès 2026) et l'émission prête pour 2027, sans surcoût.
           </p>
         </div>
       </section>

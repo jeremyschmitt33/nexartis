@@ -6,8 +6,9 @@ import React from "react";
 // Atmosphere globale traverse via bg-transparent.
 // Anti-mensonge applique :
 // - Devis : "envoye par email" (retire "ou SMS" car pas dispo)
-// - Impayes : "Suivi des impayes simplifie" (relances pas auto, mais visualisation OK)
-// - Loi 2026 : "Pret pour la facturation electronique" + Factur-X arrive
+// - Impayes : relances email auto + SMS gratuite + relance manuelle 1 clic (livre)
+// - E-facture : reception des factures fournisseurs des 2026, emission prete pour 2027
+// - Catalogue : "plus de 700 prestations" (pas de nombre precis)
 // - Mobile : "Optimise mobile et terrain" (web responsive, pas apps natives)
 
 interface FeatureCard {
@@ -63,9 +64,9 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Suivi des impayes simplifie",
-    text: "Visualisez vos impayes et envoyez des relances en un clic. Vos clients qui doivent encore payer sont mis en avant sur votre tableau de bord.",
-    tag: "✓ Outil integre",
+    title: "Plus aucun impaye oublie",
+    text: "Relances automatiques par email, relance par SMS gratuite et relance manuelle en 1 clic. Vos clients qui doivent encore payer sont mis en avant sur votre tableau de bord.",
+    tag: "✓ Relances integrees",
     accent: "#8b6dff",
     svgPaths: (
       <>
@@ -75,11 +76,68 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Mentions Factur-X 2026 incluses",
-    text: "Toutes vos factures integrent deja les mentions legales obligatoires exigees par la reforme de facturation electronique 2026.",
-    tag: "★ Pret 2026",
+    title: "Facturation electronique, prete avant l'echeance",
+    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs, directement dans Nexartis. L'emission de vos propres factures est prete pour l'echeance qui vous concerne. Plateforme agreee, donnees chiffrees.",
+    tag: "✓ Reception 2026 · Emission 2027",
     accent: "#ff7a1a",
     svgPaths: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+  },
+  {
+    title: "Vos factures payees plus vite",
+    text: "Un QR de virement SEPA est ajoute sur chaque facture PDF. Votre client scanne, le virement est pre-rempli, et vous etes paye sans commission.",
+    tag: "✓ QR virement SEPA",
+    accent: "#2fd6a0",
+    svgPaths: (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <path d="M14 14h3v3" />
+        <path d="M21 14v7h-4" />
+      </>
+    ),
+  },
+  {
+    title: "10 calculatrices metier + aide URSSAF",
+    text: "Beton, carrelage, peinture, section de cable, puissance de chauffe, taux horaire... et votre CA encaisse a declarer a l'URSSAF, calcule en 1 clic.",
+    tag: "✓ 10 calculatrices",
+    accent: "#6aa0ff",
+    svgPaths: (
+      <>
+        <rect x="4" y="2" width="16" height="20" rx="2" />
+        <line x1="8" y1="6" x2="16" y2="6" />
+        <line x1="8" y1="11" x2="8" y2="11" />
+        <line x1="12" y1="11" x2="12" y2="11" />
+        <line x1="16" y1="11" x2="16" y2="11" />
+        <line x1="8" y1="15" x2="8" y2="15" />
+        <line x1="12" y1="15" x2="12" y2="15" />
+      </>
+    ),
+  },
+  {
+    title: "Vous ne partez jamais de zero",
+    text: "Un catalogue de plus de 700 prestations par metier vous est propose en autocompletion. Ajoutez vos propres lignes dans votre bibliotheque personnelle.",
+    tag: "✓ +700 prestations",
+    accent: "#2fd6a0",
+    svgPaths: (
+      <>
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      </>
+    ),
+  },
+  {
+    title: "Vos photos de chantier au bon endroit",
+    text: "Vos photos avant/apres sont classees par client et par album. Plus besoin de fouiller votre pellicule pour retrouver le bon chantier.",
+    tag: "✓ Photos par client",
+    accent: "#ff9d4d",
+    svgPaths: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <circle cx="9" cy="11" r="2" />
+        <path d="m21 15-4-4-9 9" />
+      </>
+    ),
   },
   {
     title: "Optimise mobile et terrain",

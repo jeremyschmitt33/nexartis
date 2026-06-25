@@ -68,9 +68,9 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Planning anti-conflit unique",
-    text: "Aucun autre outil BTP grand public ne vous alerte en direct quand un membre de l'equipe est affecte deux fois le meme jour.",
-    proof: "Exclusivite Nexartis",
+    title: "Planning anti-conflit, rare sur le marche",
+    text: "La plupart des outils BTP grand public ne vous alertent pas en direct quand un membre de l'equipe est affecte deux fois le meme jour. Nexartis le fait.",
+    proof: "Rare sur le marche",
     accent: "#ff7a1a",
     proofTone: "accent",
     svgPaths: (
@@ -98,9 +98,9 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Mentions Factur-X 2026 incluses",
-    text: "Toutes les mentions legales exigees par la reforme de facturation electronique sont integrees a vos factures sans surcout. Vos documents sont alignes sur les exigences 2026.",
-    proof: "Loi 2026 anticipee",
+    title: "Facturation electronique",
+    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026), et preparez l'emission de vos propres factures pour l'echeance qui vous concerne (a partir du 1er septembre 2027). Plateforme agreee.",
+    proof: "Reception 2026 · Emission 2027",
     accent: "#8b6dff",
     proofTone: "violet",
     svgPaths: (
@@ -112,8 +112,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Un seul abonnement, tout inclus",
-    text: "Pas de palier, pas de module premium, pas de surprise. Devis, planning, suivi, exports comptables : tout est dans le prix unique.",
+    title: "Deux offres claires, sans surcout cache",
+    text: "Essentiel pour chiffrer et facturer, Complet pour piloter une equipe. A l'interieur de votre offre, tout est inclus : pas de module premium surprise, pas de cout par client ou par chantier.",
     proof: "Aucun surcout cache",
     accent: "#6aa0ff",
     proofTone: "electric",
@@ -132,8 +132,8 @@ const comparison = [
   { label: "Alertes conflit planning en temps reel", classic: false, nexartis: true },
   { label: "Mentions legales francaises automatiques", classic: false, nexartis: true },
   { label: "Donnees hebergees en Europe", classic: false, nexartis: true },
-  { label: "Mentions Factur-X 2026 incluses", classic: false, nexartis: true },
-  { label: "Abonnement unique tout inclus", classic: false, nexartis: true },
+  { label: "Reception des e-factures fournisseurs (2026)", classic: false, nexartis: true },
+  { label: "Deux offres claires, sans surcout cache", classic: false, nexartis: true },
 ];
 
 const proofToneMap: Record<Force["proofTone"], { color: string; bg: string; border: string }> = {
