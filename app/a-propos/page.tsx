@@ -76,9 +76,10 @@ export default function AProposPage() {
             L&apos;histoire de Nexartis
           </h1>
           <p className="mt-5 font-manrope text-lg text-navy/70 leading-relaxed">
-            Un outil né du besoin d&apos;un ami artisan paysagiste. Notre conviction :
-            <strong className="text-navy"> un logiciel complet à un prix juste</strong>,
-            parce que les artisans méritent les deux.
+            Né d&apos;un coup de fil d&apos;un ami artisan paysagiste, à bout avec ses logiciels.
+            Notre conviction :
+            <strong className="text-navy"> un outil complet et fiable, à un prix juste</strong> —
+            parce que les artisans méritent les deux, pas l&apos;un ou l&apos;autre.
           </p>
         </header>
 

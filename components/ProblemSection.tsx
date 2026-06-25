@@ -6,8 +6,8 @@
 const problems = [
   {
     num: "01",
-    title: "Des tarifs transparents et maitrises",
-    text: "Les solutions du marche atteignent souvent 50 a 100 euros par mois pour acceder a l'ensemble des fonctionnalites. Nexartis demarre a 15 euros par mois, sans restriction ni option cachee.",
+    title: "Un prix juste, sans option cachee",
+    text: "Beaucoup de solutions grimpent vite a 50 ou 100 euros par mois une fois toutes les fonctions debloquees. Nexartis demarre a 15 euros par mois, et ce que vous voyez est ce que vous payez.",
     accent: "var(--mint, #2fd6a0)",
     svgPaths: (
       <>
@@ -19,8 +19,8 @@ const problems = [
   },
   {
     num: "02",
-    title: "Une planification fiable, sans conflit d'affectation",
-    text: "Les logiciels existants proposent un calendrier basique, sans detection de conflits. Nexartis vous alerte immediatement si un intervenant est deja affecte a un autre chantier le meme jour.",
+    title: "Un planning qui vous evite les couacs",
+    text: "La plupart des logiciels se contentent d'un calendrier basique, sans detecter les conflits. Nexartis vous alerte sur-le-champ si un intervenant est deja pris sur un autre chantier le meme jour.",
     accent: "var(--accent-2, #ff9d4d)",
     svgPaths: (
       <>
@@ -33,8 +33,8 @@ const problems = [
   },
   {
     num: "03",
-    title: "Concu pour une utilisation sur le terrain",
-    text: "Nexartis fonctionne parfaitement sur smartphone comme sur ordinateur. L'interface a ete pensee pour etre utilisee rapidement, en situation de mobilite, directement depuis vos chantiers.",
+    title: "Fait pour le chantier, pas pour le bureau",
+    text: "Nexartis tourne aussi bien sur smartphone que sur ordinateur. L'interface va a l'essentiel pour etre utilisable vite, les mains dans le platre, directement depuis vos chantiers.",
     accent: "var(--electric-2, #6aa0ff)",
     svgPaths: (
       <>
@@ -63,10 +63,10 @@ export default function ProblemSection() {
             Pourquoi Nexartis
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Des outils professionnels a la hauteur de votre activite
+            Vos galeres du quotidien, reglees une bonne fois
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
-            Trois problemes que les artisans rencontrent tous les jours, resolus en un seul logiciel.
+            Trois problemes que les artisans vivent chaque jour, regles dans un seul logiciel.
           </p>
         </div>
 

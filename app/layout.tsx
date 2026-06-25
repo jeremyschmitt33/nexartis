@@ -142,7 +142,7 @@ export default function RootLayout({
       height: 512,
     },
     description:
-      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Aussi performant que les leaders du marche, a partir de 15 EUR/mois (offre Essentiel) ou 25 EUR/mois tout inclus (offre Complet).",
+      "Logiciel francais de gestion pour artisans du BTP : devis, factures, planning chantier, gestion equipe. Complet, fiable et conforme, a un prix juste : a partir de 15 EUR/mois (offre Essentiel) ou 25 EUR/mois (offre Complet, avec planning et devis vocal IA).",
     foundingDate: '2024',
     foundingLocation: {
       '@type': 'Place',

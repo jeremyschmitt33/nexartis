@@ -461,7 +461,7 @@ export default function BlogArticleLayout({
               Prêt à essayer Nexartis ?
             </h2>
             <p className="mx-auto mt-3 max-w-lg font-hanken text-gray-300">
-              Devis, factures, planning chantier. Tout inclus, sans carte bancaire.
+              Devis, factures, planning chantier. Essai gratuit 14 jours, sans carte bancaire.
             </p>
             <Link
               href="/register"

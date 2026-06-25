@@ -25,13 +25,13 @@ const benefits = [
   },
   {
     icon: "💶",
-    title: "Dès 15€/mois, tout inclus",
+    title: "Dès 15€/mois, sans engagement",
     text: "Deux offres claires sans engagement, pas de frais cachés. Un prix honnête pour tous les artisans.",
   },
   {
     icon: "⚡",
-    title: "Mentions Factur-X 2026 incluses",
-    text: "La facture électronique devient obligatoire. Vos factures intègrent déjà les mentions légales exigées par la réforme 2026.",
+    title: "Facturation électronique intégrée",
+    text: "Recevez les factures électroniques de vos fournisseurs dès l'obligation du 1er septembre 2026, et émettez les vôtres au format électronique pour l'échéance qui vous concerne (à partir de 2027).",
   },
   {
     icon: "📱",
@@ -44,7 +44,7 @@ const features = [
   {
     icon: "📄",
     title: "Devis en quelques minutes",
-    text: "Créez vos devis professionnels en quelques clics. Envoyez par email ou SMS.",
+    text: "Créez vos devis professionnels en quelques clics et envoyez-les par email. Votre client signe en ligne.",
   },
   {
     icon: "💶",
@@ -96,11 +96,11 @@ export default function LocalPageTemplate({
     },
     {
       q: `Y a-t-il un support pour les artisans de ${ville} ?`,
-      a: `Notre support est disponible pour tous les artisans, y compris ceux de ${ville}. Vous pouvez nous contacter par email ou par chat, et nous répondons en moins de 2 heures.`,
+      a: `Notre support est disponible pour tous les artisans, y compris ceux de ${ville}. Vous pouvez nous contacter par email, du lundi au vendredi de 9h à 18h.`,
     },
     {
-      q: "Est-ce qu'Nexartis est aligné sur la réforme Factur-X 2026 ?",
-      a: "Oui. Toutes vos factures incluent déjà les mentions légales Factur-X 2026 exigées par la réforme française, et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne.",
+      q: "Nexartis est-il prêt pour la facturation électronique ?",
+      a: "Oui. La réception des factures électroniques de vos fournisseurs est déjà active dans Nexartis — c'est l'obligation qui démarre le 1er septembre 2026. L'émission de vos propres factures au format électronique est prête pour l'échéance qui vous concerne (à partir du 1er septembre 2027). Nexartis passe par une plateforme agréée.",
     },
   ];
 

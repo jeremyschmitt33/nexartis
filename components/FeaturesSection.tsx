@@ -22,8 +22,8 @@ interface FeatureCard {
 
 const cards: FeatureCard[] = [
   {
-    title: "Devis et factures en quelques minutes",
-    text: "Selectionnez votre client et vos prestations. Le devis est envoye par email. Votre client signe directement sur son telephone.",
+    title: "Un devis pro en 2 minutes, pas en 2 heures",
+    text: "Choisissez le client, ajoutez vos prestations, envoyez par email. Votre client signe en ligne depuis son telephone. Le chantier peut demarrer.",
     tag: "✓ Conforme legalement",
     accent: "#6aa0ff",
     svgPaths: (
@@ -36,8 +36,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Planning qui evite les conflits",
-    text: "Glissez vos chantiers sur le calendrier. Si vous affectez quelqu'un deux fois le meme jour, une alerte orange apparait immediatement.",
+    title: "Fini les deux equipes sur le meme chantier",
+    text: "Glissez vos chantiers sur le calendrier. Si vous affectez quelqu'un deux fois le meme jour, une alerte orange apparait aussitot. Plus jamais de double-booking.",
     tag: "★ Exclusif Nexartis",
     exclusive: true,
     accent: "#ff9d4d",
@@ -51,8 +51,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Suivi financier en temps reel",
-    text: "Combien vous avez facture ce mois-ci. Ce qui n'est pas encore paye. Ce qui arrive la semaine prochaine. Tout affiche simplement.",
+    title: "Savez enfin ou vous en etes, d'un coup d'oeil",
+    text: "Ce que vous avez facture ce mois-ci, ce qui reste a encaisser, ce qui tombe la semaine prochaine. Vos chiffres clairs, sans tableur ni calcul.",
     tag: "✓ Temps reel",
     accent: "#2fd6a0",
     svgPaths: (
@@ -64,8 +64,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Plus aucun impaye oublie",
-    text: "Relances automatiques par email, relance par SMS gratuite et relance manuelle en 1 clic. Vos clients qui doivent encore payer sont mis en avant sur votre tableau de bord.",
+    title: "Vos relances tournent toutes seules",
+    text: "Relances email automatiques, relance SMS gratuite, ou relance manuelle en 1 clic. Les clients qui n'ont pas paye remontent en haut de votre tableau de bord. Vous n'oubliez plus une facture.",
     tag: "✓ Relances integrees",
     accent: "#8b6dff",
     svgPaths: (
@@ -76,15 +76,15 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Facturation electronique, prete avant l'echeance",
-    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs, directement dans Nexartis. L'emission de vos propres factures est prete pour l'echeance qui vous concerne. Plateforme agreee, donnees chiffrees.",
+    title: "La facture electronique, deja prete pour vous",
+    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026). L'emission de vos propres factures est prete pour votre echeance (a partir du 1er septembre 2027). Plateforme agreee, donnees chiffrees.",
     tag: "✓ Reception 2026 · Emission 2027",
     accent: "#ff7a1a",
     svgPaths: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
   },
   {
-    title: "Vos factures payees plus vite",
-    text: "Un QR de virement SEPA est ajoute sur chaque facture PDF. Votre client scanne, le virement est pre-rempli, et vous etes paye sans commission.",
+    title: "Payez-moi : un QR, et c'est vire",
+    text: "Chaque facture PDF porte un QR de virement SEPA. Votre client le scanne, son virement est deja pre-rempli, il valide. Vous etes paye plus vite, et sans commission car c'est un virement.",
     tag: "✓ QR virement SEPA",
     accent: "#2fd6a0",
     svgPaths: (
@@ -98,8 +98,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "10 calculatrices metier + aide URSSAF",
-    text: "Beton, carrelage, peinture, section de cable, puissance de chauffe, taux horaire... et votre CA encaisse a declarer a l'URSSAF, calcule en 1 clic.",
+    title: "Vos calculs de chantier, sans vous tromper",
+    text: "Beton, carrelage, peinture, section de cable, puissance de chauffe, taux horaire... 10 calculatrices metier sous la main. Et votre CA a declarer a l'URSSAF, calcule en 1 clic.",
     tag: "✓ 10 calculatrices",
     accent: "#6aa0ff",
     svgPaths: (
@@ -115,8 +115,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Vous ne partez jamais de zero",
-    text: "Un catalogue de plus de 700 prestations par metier vous est propose en autocompletion. Ajoutez vos propres lignes dans votre bibliotheque personnelle.",
+    title: "Vous ne partez jamais d'une feuille blanche",
+    text: "Plus de 700 prestations par metier vous sont proposees en autocompletion : vous tapez, vous choisissez, c'est rempli. Et vous ajoutez vos propres lignes dans votre bibliotheque perso.",
     tag: "✓ +700 prestations",
     accent: "#2fd6a0",
     svgPaths: (
@@ -127,8 +127,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Vos photos de chantier au bon endroit",
-    text: "Vos photos avant/apres sont classees par client et par album. Plus besoin de fouiller votre pellicule pour retrouver le bon chantier.",
+    title: "Vos photos avant/apres, jamais perdues",
+    text: "Classees par client et par album, vos photos de chantier sont la quand vous en avez besoin. Fini de scroller 2000 photos pour retrouver le bon chantier.",
     tag: "✓ Photos par client",
     accent: "#ff9d4d",
     svgPaths: (
@@ -140,8 +140,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Optimise mobile et terrain",
-    text: "Creez un devis depuis votre chantier sur smartphone ou tablette. Votre client signe directement sur son telephone.",
+    title: "Pense pour le terrain, dans votre poche",
+    text: "Faites un devis depuis le chantier, sur smartphone ou tablette. Votre client signe dans la foulee sur son telephone. Tout marche sans installer d'appli.",
     tag: "✓ Web responsive",
     accent: "#6aa0ff",
     svgPaths: (
@@ -183,10 +183,10 @@ export default function FeaturesSection() {
             Fonctionnalites
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Tout ce dont votre entreprise a besoin
+            Tout votre quotidien d&apos;artisan, dans un seul outil
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
-            Prise en main immediate. Efficacite durable.
+            Du devis au paiement. Simple a prendre en main, fait pour durer.
           </p>
         </div>
 

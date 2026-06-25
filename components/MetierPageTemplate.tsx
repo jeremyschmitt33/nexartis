@@ -284,7 +284,7 @@ export default function MetierPageTemplate(props: MetierPageProps) {
           unitText: "MONTH",
         },
         description:
-          "Tout l'Essentiel + planning chantier visuel + gestion d'équipe + dictée vocale IA + chantiers + Pacte de chantier.",
+          "Tout l'Essentiel + planning chantier visuel + alertes de conflit + gestion d'équipe + devis vocal par IA.",
         availability: "https://schema.org/InStock",
         url: "https://nexartis.fr/tarifs",
       },
@@ -293,12 +293,12 @@ export default function MetierPageTemplate(props: MetierPageProps) {
       "Devis conformes BTP en moins de 2 minutes",
       "TVA réduite automatique (5,5% / 10% / 20%)",
       "Mention décennale obligatoire automatique",
-      "Mentions Factur-X 2026 incluses",
+      "Facturation électronique : réception 2026, émission 2027",
       "Signature électronique native",
       "Planning chantier visuel (offre Complet)",
       "Dictée vocale IA (offre Complet)",
       "Application installable PWA mobile",
-      "Données hébergées en France/Europe RGPD",
+      "Données hébergées en Europe (RGPD)",
     ],
     publisher: {
       "@type": "Organization",
@@ -630,7 +630,7 @@ export default function MetierPageTemplate(props: MetierPageProps) {
               Prêt à simplifier votre quotidien de {nom.toLowerCase()} ?
             </h2>
             <p className="mx-auto mt-3 max-w-lg font-hanken text-base text-gray-300 md:text-lg">
-              Devis, factures, planning chantier. Tout inclus, sans carte
+              Devis, factures, planning chantier. Essai gratuit 14 jours, sans carte
               bancaire, sans engagement.
             </p>
             <Link

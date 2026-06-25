@@ -41,8 +41,8 @@ interface Force {
 
 const forces: Force[] = [
   {
-    title: "Pense pour les artisans, pas les comptables",
-    text: "Vocabulaire metier (chantier, devis, attestation TVA), pas de jargon SaaS. Vous comprenez tout des le premier ecran.",
+    title: "Parle votre langue, pas celle des comptables",
+    text: "Chantier, devis, attestation TVA : le vocabulaire de votre metier, zero jargon de logiciel. Vous comprenez tout des le premier ecran.",
     proof: "Prise en main en moins de 10 minutes",
     accent: "#ff9d4d",
     proofTone: "accent",
@@ -54,8 +54,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Conforme legalement, sans y penser",
-    text: "Mentions obligatoires, TVA 5,5/10/20 %, attestations renovation, numerotation continue. Tout est genere automatiquement.",
+    title: "Conforme, sans y penser une seconde",
+    text: "Mentions obligatoires, TVA 5,5/10/20 %, attestations renovation, numerotation continue : tout est genere automatiquement. Vos documents sont en regle sans effort.",
     proof: "Mentions legales francaises completes",
     accent: "#6aa0ff",
     proofTone: "electric",
@@ -68,8 +68,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Planning anti-conflit, rare sur le marche",
-    text: "La plupart des outils BTP grand public ne vous alertent pas en direct quand un membre de l'equipe est affecte deux fois le meme jour. Nexartis le fait.",
+    title: "Le planning qui vous evite les doublons",
+    text: "La plupart des outils BTP grand public ne vous previennent pas quand un equipier est affecte deux fois le meme jour. Nexartis vous alerte en direct, avant que ca coince sur le chantier.",
     proof: "Rare sur le marche",
     accent: "#ff7a1a",
     proofTone: "accent",
@@ -85,8 +85,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Donnees hebergees en Europe",
-    text: "Infrastructure conforme RGPD, isolation par compte (chiffrement et RLS). Vos chantiers et vos clients restent chez vous.",
+    title: "Vos donnees restent en Europe, et a vous",
+    text: "Hebergement conforme RGPD, isolation stricte par compte (chiffrement et RLS). Vos chantiers et vos clients ne sont jamais vendus, jamais partages.",
     proof: "RGPD Europe",
     accent: "#2fd6a0",
     proofTone: "mint",
@@ -98,8 +98,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Facturation electronique",
-    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026), et preparez l'emission de vos propres factures pour l'echeance qui vous concerne (a partir du 1er septembre 2027). Plateforme agreee.",
+    title: "Prets pour la facture electronique, en avance",
+    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026). L'emission de vos propres factures est deja prete pour votre echeance (a partir du 1er septembre 2027). Plateforme agreee.",
     proof: "Reception 2026 · Emission 2027",
     accent: "#8b6dff",
     proofTone: "violet",
@@ -112,8 +112,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Deux offres claires, sans surcout cache",
-    text: "Essentiel pour chiffrer et facturer, Complet pour piloter une equipe. A l'interieur de votre offre, tout est inclus : pas de module premium surprise, pas de cout par client ou par chantier.",
+    title: "Deux offres claires, zero surprise sur la facture",
+    text: "Essentiel pour chiffrer et facturer, Complet pour piloter une equipe. Dans votre offre, tout est inclus : pas de module premium surprise, pas de cout par client ni par chantier.",
     proof: "Aucun surcout cache",
     accent: "#6aa0ff",
     proofTone: "electric",
@@ -166,7 +166,7 @@ export default function ForcesSection() {
             Nos forces
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Pourquoi Nexartis fait la difference
+            Ce qui change vraiment avec Nexartis
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[620px] mx-auto">
             Six raisons concretes pour lesquelles les artisans francais choisissent Nexartis plutot qu&apos;un outil generaliste.
@@ -333,10 +333,10 @@ export default function ForcesSection() {
         <div className="reveal flex flex-col sm:flex-row items-center justify-between gap-5 rounded-[22px] p-[28px] sm:p-[32px] bg-white/[0.04] border border-white/[0.09] backdrop-blur-[6px]">
           <div className="text-center sm:text-left">
             <p className="text-[17px] sm:text-[19px] font-[800] text-ink tracking-[-0.01em] mb-1">
-              Pret a tester ces forces sur vos chantiers ?
+              Testez tout ca sur vos vrais chantiers
             </p>
             <p className="text-[14px] text-ink-2 font-medium">
-              Essai gratuit 14 jours. Aucune carte bancaire requise.
+              14 jours d&apos;essai gratuit. Aucune carte bancaire requise.
             </p>
           </div>
           <Link

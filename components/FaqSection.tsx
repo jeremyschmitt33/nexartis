@@ -18,7 +18,7 @@ const faqs = [
   },
   {
     q: "Est-il possible d'essayer Nexartis avant de souscrire ?",
-    a: "Oui. 14 jours d'essai complet, gratuit, sans entrer votre carte bancaire. Vous avez acces a tout pendant ces 14 jours.",
+    a: "Oui, et sans risque. 14 jours d'essai complet, gratuit, sans entrer votre carte bancaire. Vous testez tout, en conditions reelles, avant de decider.",
   },
   {
     q: "Nexartis est-il conforme a la reforme de la facturation electronique ?",
@@ -45,8 +45,8 @@ const faqs = [
     a: "Non, et ce n'est pas son but. Nexartis vous aide a creer vos devis et factures, et a les envoyer a votre comptable en un clic au format qu'il utilise. Ca lui fait gagner du temps, et donc ca vous coute moins cher.",
   },
   {
-    q: "Comment Nexartis propose-t-il autant de fonctionnalites a un prix aussi competitif ?",
-    a: "Nous pensons qu'un bon logiciel artisan ne devrait pas couter le prix d'un repas au restaurant par semaine. Nous avons decide de rendre tous les outils accessibles a un prix honnete : 15 €/mois pour l'Essentiel, 25 €/mois pour le Complet (avec planning et IA vocale). Sans mauvaise surprise.",
+    q: "Comment Nexartis propose-t-il autant de fonctionnalites a un prix aussi juste ?",
+    a: "Parce qu'on pense qu'un bon logiciel artisan ne devrait pas couter une fortune. On a fait le choix d'un prix honnete : 15 €/mois pour l'Essentiel, 25 €/mois pour le Complet (avec le planning et le devis vocal par IA). Pas de palier surprise, pas de frais caches.",
   },
 ];
 
@@ -104,7 +104,7 @@ export default function FaqSection() {
             FAQ
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Vos questions, repondues simplement
+            Tout ce que vous vous demandez, sans detour
           </h2>
         </div>
 

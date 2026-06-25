@@ -26,17 +26,17 @@ interface FeatureRow {
 const ESSENTIAL_FEATURES: FeatureRow[] = [
   { label: "Devis illimités" },
   { label: "Factures illimitées" },
-  { label: "Signature électronique" },
+  { label: "Signature électronique en ligne" },
   { label: "Mentions légales BTP automatiques" },
   { label: "TVA 5,5 % / 10 % / 20 % automatique" },
   { label: "Attestations TVA rénovation auto" },
   { label: "Acomptes et factures de situation (#1, #2, #3)" },
-  { label: "Tableau de bord CA" },
+  { label: "Tableau de bord du chiffre d'affaires" },
   { label: "Suivi des impayés et relance en 1 clic" },
   { label: "Relances auto (email) + relance SMS gratuite" },
   { label: "Réception des factures fournisseurs (e-facture, dès 2026)" },
   { label: "Émission électronique prête (échéance 2027)" },
-  { label: "QR de virement SEPA sur vos factures" },
+  { label: "QR de virement SEPA pour être payé plus vite" },
   { label: "10 calculatrices métier + aide URSSAF" },
   { label: "Facture verrouillée après le 1er envoi" },
   { label: "Client particulier ou société (SIREN/SIRET)" },
@@ -118,10 +118,10 @@ export default function PricingSection() {
             Tarification
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Deux offres claires. Sans engagement.
+            Un tarif juste, sans mauvaise surprise
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[620px] mx-auto">
-            Choisissez selon votre activité. Vous pouvez passer de l&apos;une à l&apos;autre à tout moment.
+            Deux offres claires, sans engagement. Vous changez d&apos;offre quand vous voulez, en un clic.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export default function PricingSection() {
                   Essentiel
                 </h3>
                 <p className="text-[14px] text-ink-3 font-medium leading-snug">
-                  Pour l&apos;artisan qui chiffre et facture, sans équipe à gérer.
+                  Tout pour chiffrer, facturer et etre paye. Parfait quand vous travaillez seul.
                 </p>
               </div>
 
@@ -173,7 +173,7 @@ export default function PricingSection() {
                 href="/register?plan=essential"
                 className="block text-center rounded-[14px] py-3.5 px-6 font-hanken font-bold text-[15px] bg-white/[0.08] text-ink border border-white/[0.16] hover:bg-white/[0.12] hover:border-white/[0.24] transition-all duration-300"
               >
-                Commencer avec Essentiel
+                Demarrer avec Essentiel
               </Link>
               <p className="text-center text-[12px] text-ink-3 mt-3">
                 Essai gratuit 14 jours · Sans carte bancaire
@@ -220,7 +220,7 @@ export default function PricingSection() {
                 </div>
 
                 <p className="text-[14px] text-ink-3 font-medium leading-snug mb-4">
-                  Pour l&apos;artisan qui pilote son équipe et ses chantiers.
+                  L&apos;Essentiel + le planning et l&apos;equipe. Pour qui jongle entre plusieurs chantiers.
                 </p>
 
                 {/* Prix */}
@@ -240,7 +240,7 @@ export default function PricingSection() {
 
                 {/* En plus de l'Essentiel */}
                 <p className="text-[11.5px] uppercase tracking-[0.08em] font-bold text-accent-2 mb-3">
-                  Tout l&apos;Essentiel, plus :
+                  Tout l&apos;Essentiel + pour 10 € de plus :
                 </p>
                 <ul className="space-y-2.5 mb-6">
                   {COMPLETE_EXTRA_FEATURES.map((f) => (
@@ -294,7 +294,7 @@ export default function PricingSection() {
                     href="/register?plan=complete"
                     className="block text-center rounded-[14px] py-3.5 px-6 font-hanken font-bold text-[15px] bg-gradient-to-br from-accent-2 to-accent text-bgdark-ink shadow-[0_8px_30px_color-mix(in_srgb,var(--accent)_45%,transparent),inset_0_1px_0_rgba(255,255,255,0.4)] hover:-translate-y-0.5 hover:shadow-[0_14px_44px_color-mix(in_srgb,var(--accent)_60%,transparent),inset_0_1px_0_rgba(255,255,255,0.5)] transition-all duration-300"
                   >
-                    Commencer avec Complet
+                    Passer au Complet
                   </Link>
                   <p className="text-center text-[12px] text-ink-3 mt-3">
                     Essai gratuit 14 jours · Sans carte bancaire

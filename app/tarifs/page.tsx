@@ -58,7 +58,7 @@ const featuresComparison: Array<{
 const faqItems = [
   {
     q: "Quelle offre est faite pour moi ?",
-    a: "L'Essentiel à 15 € HT/mois convient à l'artisan solo qui chiffre, facture et n'a pas d'équipe à planifier. Le Complet à 25 € HT/mois ajoute le planning visuel, les alertes de conflit d'affectation, la gestion d'équipe et le devis vocal par IA. Si vous travaillez seul, Essentiel suffira amplement.",
+    a: "Vous travaillez seul ? L'Essentiel à 15 € HT/mois vous suffit largement pour chiffrer, facturer et suivre vos paiements. Vous jonglez entre plusieurs chantiers ou une équipe ? Le Complet à 25 € HT/mois ajoute le planning visuel, les alertes de conflit d'affectation, la gestion d'équipe et le devis vocal par IA — pour 10 € de plus.",
   },
   {
     q: "Puis-je passer d'une offre à l'autre ?",
@@ -162,13 +162,13 @@ export default function TarifsPage() {
         />
         <div className="relative mx-auto max-w-7xl px-6 text-center">
           <h1 className="font-syne text-3xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-            Deux offres.
+            À partir de 15 €/mois.
             <br />
-            <span className="text-sky">Aucun compromis sur la conformité.</span>
+            <span className="text-sky">Et rien de caché derrière.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl font-manrope text-lg leading-relaxed text-gray-300">
-            Que vous chiffriez seul ou que vous gériez une équipe, votre logiciel
-            est conforme à la réglementation française, sans option cachée.
+            Que vous chiffriez seul ou que vous pilotiez une équipe, vous restez
+            conforme à la réglementation française — sans option surprise sur la facture.
           </p>
         </div>
       </section>
@@ -180,10 +180,10 @@ export default function TarifsPage() {
       <section className="bg-cream py-20 lg:py-28">
         <div className="mx-auto max-w-5xl px-6">
           <h2 className="mb-4 text-center font-syne text-2xl font-extrabold text-navy md:text-3xl lg:text-4xl">
-            Tout ce qui est inclus, ligne par ligne
+            Tout est sur la table, ligne par ligne
           </h2>
           <p className="mx-auto mb-12 max-w-xl text-center font-manrope text-lg text-gray-500">
-            Comparez les deux offres en détail. Aucune surprise au moment de souscrire.
+            Comparez les deux offres en détail. Ce que vous voyez ici, c'est exactement ce que vous aurez.
           </p>
 
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
@@ -288,11 +288,11 @@ export default function TarifsPage() {
         <div className="mx-auto max-w-7xl px-6 text-center">
           <div>
             <h2 className="mb-4 font-syne text-3xl font-extrabold text-white md:text-4xl lg:text-5xl">
-              Prêt à essayer ?
+              Faites votre premier devis ce soir
             </h2>
             <p className="mx-auto mb-8 max-w-lg font-manrope text-lg text-gray-400">
               14 jours gratuits, toutes les fonctionnalités du Complet, sans
-              carte bancaire. Annulez quand vous voulez.
+              carte bancaire. Vous annulez quand vous voulez.
             </p>
             <Link
               href="/register"

@@ -37,8 +37,8 @@ export default function LocalFAQ({
       a: `Notre support est disponible pour tous les artisans, y compris ceux de ${ville}. Vous pouvez nous contacter par email à contact.nexartis@gmail.com pendant les heures ouvrées (8h-18h, du lundi au vendredi).`,
     },
     {
-      q: "Est-ce qu'Nexartis est aligné sur la réforme Factur-X 2026 ?",
-      a: "Oui. Vos factures incluent déjà toutes les **mentions légales Factur-X 2026** exigées par la réforme française, et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne.",
+      q: "Nexartis est-il prêt pour la facturation électronique ?",
+      a: "Oui. La réception des factures électroniques de vos fournisseurs est déjà active dans Nexartis (obligation au 1er septembre 2026), et l'émission de vos propres factures au format électronique est prête pour l'échéance qui vous concerne (à partir du 1er septembre 2027). Nexartis passe par une plateforme agréée.",
     },
   ];
 
