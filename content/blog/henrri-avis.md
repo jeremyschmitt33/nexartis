@@ -173,7 +173,7 @@ Henrri a fait un choix généraliste qui ne couvre pas la fiche compagnon, l'aff
 
 ### Mentions BTP partiellement gérées
 
-- TVA 5,5% rénovation énergétique : possible mais sans génération automatique de l'attestation TVA réduite que vous devez faire signer au client (obligation légale article 279-0 bis du CGI).
+- TVA 5,5% rénovation énergétique : possible mais sans apposition automatique de la mention de certification TVA réduite (5,5 %/10 %) sur le devis et la facture. Depuis 2025, l'attestation papier est supprimée : une simple mention de certification suffit, le client n'a plus à signer ni fournir de document séparé.
 - Autoliquidation TVA sous-traitance BTP (article 283 du CGI) : à activer manuellement ligne par ligne, sans helper.
 - Mention assurance décennale : à ajouter manuellement dans les conditions de vente.
 - Retenue de garantie 5% et factures de situation : non gérées nativement.
@@ -231,7 +231,7 @@ Nexartis propose deux offres pensées pour deux profils d'artisans.
 Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP — ce qu'Henrri ne propose pas.
 
 - Devis et factures illimités
-- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, mention TVA réduite (5,5 %/10 %) automatique, mention décennale
 - Signature électronique native
 - Suivi des paiements
 - Application installable sur smartphone (PWA) — ce que vous n'aurez pas avec Henrri
@@ -305,7 +305,7 @@ Oui, sans astérisque. Le plan Pro à 0€ inclut devis illimités, factures ill
 
 ### Henrri est-il adapté au BTP ?
 
-Partiellement. L'outil fait correctement les devis et factures, mais il lui manque le planning chantier, l'app mobile native, la bibliothèque de prix BTP, la gestion d'équipe et plusieurs mentions BTP natives (retenue de garantie 5%, factures de situation, attestation TVA 5,5% auto-générée). Pour un artisan solo en dépannage, ça passe. Pour une équipe avec chantiers multiples, vous toucherez les limites au bout de 3-6 mois. Comparer alors avec [Nexartis Essentiel à 15€/mois](/tarifs) qui couvre nativement ces fonctions.
+Partiellement. L'outil fait correctement les devis et factures, mais il lui manque le planning chantier, l'app mobile native, la bibliothèque de prix BTP, la gestion d'équipe et plusieurs mentions BTP natives (retenue de garantie 5%, factures de situation, mention TVA réduite 5,5 %/10 % apposée automatiquement sur devis et facture). Pour un artisan solo en dépannage, ça passe. Pour une équipe avec chantiers multiples, vous toucherez les limites au bout de 3-6 mois. Comparer alors avec [Nexartis Essentiel à 15€/mois](/tarifs) qui couvre nativement ces fonctions.
 
 ### Comment ça se finance Henrri si c'est gratuit ?
 

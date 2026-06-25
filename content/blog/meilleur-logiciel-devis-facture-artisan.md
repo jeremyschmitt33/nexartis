@@ -20,7 +20,7 @@ ogImage: ""
 
 Le **meilleur logiciel de devis facture artisan** dépend de votre profil : un artisan seul qui cherche le gratuit, une TPE qui veut un bon rapport qualité-prix, ou une PME du bâtiment avec plusieurs chantiers à piloter. Aucun outil n'est le meilleur pour tout le monde. Ce comparatif 2026 compare huit solutions françaises sur des critères vérifiables.
 
-Pour aller droit au but : Henrri et Tiime conviennent si vous voulez du gratuit assumé sans mobilité, Tolteck pour la rapidité de chiffrage sur le terrain, ArtisanSmart et ChantierFlow pour un outil mobile tout inclus à bas prix, Obat pour les TPE qui veulent du suivi de chantier, Sage Batigest pour les PME structurées, et Nexartis pour le **meilleur rapport qualité-prix** avec tout inclus à bas prix.
+Pour aller droit au but : Henrri et Tiime conviennent si vous voulez du gratuit assumé sans mobilité, Tolteck pour la rapidité de chiffrage sur le terrain, ArtisanSmart et ChantierFlow pour un outil mobile complet à bas prix, Obat pour les TPE qui veulent du suivi de chantier, Sage Batigest pour les PME structurées, et Nexartis pour le **meilleur rapport qualité-prix** (à partir de 15 €/mois, formule complète à 25 €, sans module payant en plus).
 
 Nous avons vérifié les tarifs publics en juin 2026 et reconnu les vraies forces de chaque concurrent. Ce comparatif relève de la publicité comparative : objectif, factuel, sans dénigrement.
 
@@ -51,7 +51,7 @@ Le tableau ci-dessous résume les positions de chaque outil sur les critères pr
 
 | Logiciel | Prix d'entrée (indicatif HT) | App mobile | Signature électronique | Suivi chantier | Conforme e-facture 2026 | Note | Pour qui |
 |---|---|---|---|---|---|---|---|
-| **Henrri** | Gratuit (offre Pro) | Non | Non | Limité | À confirmer | 3,5/5 | Artisan seul, budget zéro |
+| **Henrri** | Gratuit (offre Pro) | Non | Non | Limité | Oui (via plateforme agréée Pennylane) | 3,5/5 | Artisan seul, budget zéro |
 | **Tiime** | Gratuit (offre de base) | Oui | Non | Non | À confirmer | 3,5/5 | Micro-entrepreneur, facturation simple |
 | **Tolteck** | À partir de 19 €/mois (annuel) | Oui | Non (non native) | Basique | Oui (Factur-X annoncé) | 4/5 | Chiffrage rapide terrain |
 | **ChantierFlow** | À partir de 22,50 €/mois | Oui | Oui | Oui | Oui (native) | 4/5 | TPE mobile tout inclus |
@@ -72,7 +72,7 @@ Avant le détail, voici une lecture rapide par usage. Elle vous oriente vers deu
 | Le chiffrage rapide | Tolteck | Création de devis chiffré en quelques minutes |
 | Le suivi de chantier TPE | Obat | Bibliothèque d'ouvrages fournie et fonctions de suivi |
 | La PME structurée | Sage Batigest | Multi-chantiers, intégration comptable, écosystème mature |
-| Le rapport qualité-prix | Nexartis | Tout inclus, mobile et signature dès 15 €/mois |
+| Le rapport qualité-prix | Nexartis | Mobile et signature dès 15 €/mois, formule complète à 25 €, sans module payant en plus |
 
 ## Henrri : le gratuit assumé
 
@@ -128,7 +128,7 @@ ArtisanSmart convient à l'artisan qui chiffre beaucoup sur le terrain et veut a
 
 Obat est une solution française de devis et factures pensée pour le bâtiment, avec une bibliothèque de prix et des fonctions de suivi de chantier. Elle vise les TPE qui veulent aller plus loin que la simple facturation.
 
-Ses **forces** sont une couverture fonctionnelle large et une **bibliothèque d'ouvrages plus fournie que la nôtre**, avec des catalogues Batichiffrage disponibles en option. Sur la profondeur du catalogue de prix, Obat reste une référence à laquelle Nexartis ne prétend pas encore égaler. La grille tarifaire va d'environ 25 €/mois pour les plus petits profils à un pack Pro autour de 39 € et un pack Croissance autour de 69 € en annuel (prix indicatifs).
+Ses **forces** sont une couverture fonctionnelle large et une **bibliothèque d'ouvrages plus fournie que la nôtre**, avec des catalogues Batichiffrage disponibles en option. Sur la profondeur du catalogue de prix, Obat reste une référence à laquelle Nexartis ne prétend pas encore égaler. La grille tarifaire s'échelonne d'environ 25 €/mois (Micro) à 39 € (Pro) et 79 € (Premium) selon la formule (tarifs constatés en 2026).
 
 Sa **limite** est le coût qui grimpe vite dès que l'on ajoute des modules ou des catalogues de prix optionnels, facturés en supplément. Le budget réel peut dépasser le tarif d'entrée affiché.
 
@@ -195,7 +195,7 @@ Oui, Henrri et Tiime proposent des offres réellement gratuites pour la facturat
 
 ### Quel logiciel choisir pour un artisan seul avec un petit budget ?
 
-Pour un artisan seul, deux pistes ressortent. Si vous restez au bureau et voulez du gratuit, Henrri est solide. Si vous travaillez sur le terrain et voulez tout inclus à bas prix, Nexartis à partir de 15 €/mois apporte mobilité, relances et signature électronique, avec un essai gratuit de 14 jours sans engagement.
+Pour un artisan seul, deux pistes ressortent. Si vous restez au bureau et voulez du gratuit, Henrri est solide. Si vous travaillez sur le terrain et voulez un outil complet à bas prix, Nexartis à partir de 15 €/mois (formule complète à 25 €) apporte mobilité, relances et signature électronique, avec un essai gratuit de 14 jours sans engagement.
 
 ### Mon logiciel sera-t-il conforme à la facturation électronique 2026 ?
 

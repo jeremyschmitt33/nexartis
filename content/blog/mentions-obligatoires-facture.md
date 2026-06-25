@@ -102,7 +102,7 @@ Pour les ventes ou prestations destinées à un **particulier**, une mention sup
 Un artisan du BTP doit ajouter des informations qui n'apparaissent pas sur une facture classique. Elles découlent des obligations d'assurance et de la nature des travaux réalisés.
 
 - **Assurance décennale** : coordonnées de l'assureur ou du garant, et couverture géographique du contrat, pour toute activité de construction soumise à cette garantie.
-- **Taux de TVA réduit** : 10 % ou 5,5 % pour les travaux de rénovation ou d'amélioration énergétique dans un logement de plus de deux ans, avec attestation du client à conserver.
+- **Taux de TVA réduit** : 10 % ou 5,5 % pour les travaux de rénovation ou d'amélioration énergétique dans un logement de plus de deux ans, accompagné d'une mention de certification TVA réduite apposée sur le devis et la facture (l'attestation papier a été supprimée en 2025, le client n'a plus à signer ni fournir de document séparé).
 - **Détail de la main-d'œuvre et des matériaux** : distinction utile lorsque les taux de TVA diffèrent entre fourniture et pose.
 - **Référence au devis signé** : recommandée pour relier la facture au devis accepté et sécuriser le règlement.
 

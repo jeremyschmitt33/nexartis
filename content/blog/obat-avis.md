@@ -90,7 +90,7 @@ Beaucoup d'avis tiers oublient cette fonction, mais Obat propose un module de de
 
 ### Situations de travaux, acomptes et factures d'avancement
 
-Obat gère correctement les obligations métier du BTP français : acompte 30% à la commande, factures de situation au fil du chantier, retenue de garantie 5% à libérer à la fin, attestation TVA 5,5% pour la rénovation énergétique et autoliquidation TVA pour la sous-traitance (article 283 du CGI). Pour les gros chantiers en plusieurs paiements, c'est solide.
+Obat gère correctement les obligations métier du BTP français : acompte 30% à la commande, factures de situation au fil du chantier, retenue de garantie 5% à libérer à la fin, mention de certification TVA réduite (5,5 %/10 %) pour la rénovation énergétique apposée automatiquement sur le devis et la facture, et autoliquidation TVA pour la sous-traitance (article 283 du CGI). Pour les gros chantiers en plusieurs paiements, c'est solide.
 
 ### Conformité Factur-X 2026 opérationnelle
 
@@ -178,7 +178,7 @@ Nexartis propose deux offres pensées pour deux profils d'artisans.
 Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP, sans payer pour des outils d'équipe qu'il n'utilisera pas.
 
 - Devis et factures illimités
-- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, mention TVA réduite (5,5 %/10 %) automatique, mention décennale
 - Signature électronique native
 - Suivi des paiements
 - Web responsive
@@ -245,7 +245,7 @@ Pour mettre Obat en perspective, voici comment il se positionne face aux 4 autre
 
 Face à [Tolteck](/blog/tolteck-avis). Tolteck est moins cher (19-25€ vs 25-39€), avec une bibliothèque d'ouvrages plus puissante grâce à l'intégration Saint-Gobain (Point.P, Cedeo, La Plateforme du Bâtiment). En revanche, Tolteck a fait le choix de se concentrer sur le devis-facture, sans planning chantier ni gestion d'équipe. Si vous êtes artisan seul qui chiffre beaucoup, Tolteck est plus efficace. Si vous avez une équipe à coordonner, Obat reprend l'avantage.
 
-Face à [Henrri](/blog/henrri-avis). Henrri est gratuit, ce qui en fait le point d'entrée pour un auto-entrepreneur qui démarre. Henrri a fait le choix d'un positionnement très généraliste, sans couvrir les spécificités BTP (autoliquidation TVA, retenue de garantie, factures de situation, attestation TVA 5,5%, planning chantier). Obat est conçu pour le BTP, Henrri pour toute TPE confondue. À 0€ vs 25-39€, le choix dépend du sérieux que vous donnez à votre activité BTP à 12-24 mois.
+Face à [Henrri](/blog/henrri-avis). Henrri est gratuit, ce qui en fait le point d'entrée pour un auto-entrepreneur qui démarre. Henrri a fait le choix d'un positionnement très généraliste, sans couvrir les spécificités BTP (autoliquidation TVA, retenue de garantie, factures de situation, mention TVA réduite 5,5 %/10 %, planning chantier). Obat est conçu pour le BTP, Henrri pour toute TPE confondue. À 0€ vs 25-39€, le choix dépend du sérieux que vous donnez à votre activité BTP à 12-24 mois.
 
 Face à [Sage Batigest](/blog/batigest-avis). Sage Batigest est le concurrent historique, présent depuis les années 90. Il est plus puissant fonctionnellement (gestion analytique poussée, intégration comptable native avec Sage), mais aussi beaucoup plus cher (souvent 80-150€/mois) et plus difficile à prendre en main. Obat est plus moderne, plus rapide à installer, mais moins profond sur la partie comptable. Pour une entreprise BTP de 5-20 salariés qui valorise la profondeur analytique, Sage Batigest peut rester pertinent. Pour une TPE de 1-5 salariés, Obat est plus rationnel.
 

@@ -121,7 +121,7 @@ L'<strong>app mobile artisan</strong> de Tolteck est l'une des mieux notées du 
 
 Le logiciel gère correctement les obligations légales françaises :
 
-- <strong>TVA</strong> à 5,5% sur la rénovation énergétique avec attestation client générée automatiquement.
+- <strong>TVA</strong> à 5,5% sur la rénovation énergétique avec mention de certification TVA réduite apposée automatiquement sur le devis et la facture (l'attestation papier a été supprimée en 2025).
 - Autoliquidation TVA pour la sous-traitance BTP (article 283 du CGI).
 - Mention de l'assurance décennale obligatoire.
 - Primes CEE et MaPrimeRénov' référencées dans les devis.
@@ -267,7 +267,7 @@ Nexartis propose deux offres pensées pour deux profils d'artisans.
 Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française, sans complexité.
 
 - Devis et factures illimités
-- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, attestation TVA rénovation, mention décennale
+- Mentions légales BTP automatiques : TVA réduite 5,5 % / 10 % / 20 %, autoliquidation article 283 CGI, mention TVA réduite (5,5 %/10 %) automatique, mention décennale
 - Signature électronique native
 - Suivi des paiements
 - Web responsive (smartphone, tablette, ordinateur)

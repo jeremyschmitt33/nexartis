@@ -28,7 +28,7 @@ Cet article détaille chaque cas de figure : la durée à choisir selon vos trav
 
 La **durée de validité** est une mention obligatoire du devis en France. L'[arrêté du 24 janvier 2017](https://www.legifrance.gouv.fr/loda/id/JORFTEXT000033935513) relatif à la publicité des prix des prestations de dépannage, de réparation et d'entretien dans le bâtiment et l'équipement de la maison impose de préciser la durée pendant laquelle l'offre reste valable. Un devis sans durée de validité est donc un devis incomplet sur le plan réglementaire.
 
-Ce même cadre rend le devis lui-même obligatoire pour les prestations de dépannage, de réparation et d'entretien réalisées au domicile d'un particulier. Depuis l'arrêté de 2017, l'ancien seuil de 150 € TTC qui dispensait de devis a été supprimé : un devis détaillé doit être remis dès lors que la prestation dépasse 100 € TTC par mois, et sur simple demande du client en dessous de ce montant.
+Ce même cadre rend le devis lui-même obligatoire pour les prestations de dépannage, de réparation et d'entretien réalisées au domicile d'un particulier. Pour ces prestations, l'[arrêté du 24 janvier 2017](https://www.legifrance.gouv.fr/loda/id/JORFTEXT000033935513) impose un devis détaillé quel que soit le montant. Pour les autres travaux destinés à un particulier, le devis reste obligatoire dès 150 € TTC en application de l'arrêté du 2 mars 1990.
 
 Au-delà de l'obligation, cette mention protège votre entreprise. Les prix des matériaux, le coût de la main-d'œuvre et votre plan de charge évoluent en permanence. Sans date limite, un client pourrait théoriquement accepter dans six mois un devis chiffré aujourd'hui, en exigeant les anciens tarifs.
 

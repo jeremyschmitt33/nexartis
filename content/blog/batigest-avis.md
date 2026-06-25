@@ -67,7 +67,7 @@ Batigest gère le cycle complet d'un chantier BTP :
 - Factures d'avancement (situations de travaux mensuelles)
 - Facture de solde en fin de chantier
 - Retenue de garantie (5 % généralement)
-- Attestation TVA 10 % pour les travaux de rénovation
+- Mention de certification TVA réduite (10 %/5,5 %) pour les travaux de rénovation, apposée sur le devis et la facture
 
 Toutes les subtilités du BTP français sont gérées sans bricolage Excel. C'est un argument décisif pour les PME qui traitent des marchés publics ou des chantiers > 50 000 €.
 
@@ -126,7 +126,7 @@ Voici un tableau direct pour situer Batigest face aux SaaS modernes en juin 2026
 | Critère | Batigest Connect | Obat | Nexartis |
 |---|---|---|---|
 | Cible | PME BTP 10-50 | TPE BTP 2-10 | Artisan seul / TPE |
-| Prix entrée | 31,08 € (Essentials) | 25 € (Starter) | 15 € (Essentiel) |
+| Prix entrée | 31,08 € (Essentials) | 25 € (Micro) | 15 € (Essentiel) |
 | Prix réel équipé | 46-150 € | 39-129 € | 15-25 € |
 | Modules à acheter | Oui (empilables) | Partiel | Aucun |
 | Formation requise | 2-3 jours payants | 1-2 semaines | 15 minutes |
@@ -150,7 +150,7 @@ Nexartis propose deux offres pensées pour deux profils d'artisans.
 Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP, sans la complexité d'un Sage Batigest et sans formation initiale.
 
 - Devis et factures illimités
-- Mentions légales BTP automatiques — TVA réduite, autoliquidation, attestation rénovation, décennale
+- Mentions légales BTP automatiques — TVA réduite, autoliquidation, mention TVA réduite (5,5 %/10 %) automatique, décennale
 - Signature électronique native
 - Suivi des paiements
 - Application installable sur mobile (PWA)
@@ -216,7 +216,7 @@ Le pack Essentials démarre à 31,08 € HT/mois (3 utilisateurs max), le Standa
 
 ### Quelles alternatives à Batigest pour une TPE ?
 
-Cela dépend de votre profil. Pour un artisan seul ou micro-entrepreneur : [Nexartis Essentiel à 15 €/mois sans formation](/tarifs), [Tolteck pour artisan solo](/blog/tolteck-avis) ou [Henrri, le gratuit](/blog/henrri-avis). Pour une TPE 2-10 salariés avec équipe à piloter : [Obat, alternative moderne](/blog/obat-avis) ou Nexartis Croissance. Pour une PME 10-50 salariés sans Sage Compta : [Vertuoza pour PME](/blog/vertuoza-avis), Codial ou EBP Bâtiment.
+Cela dépend de votre profil. Pour un artisan seul ou micro-entrepreneur : [Nexartis Essentiel à 15 €/mois sans formation](/tarifs), [Tolteck pour artisan solo](/blog/tolteck-avis) ou [Henrri, le gratuit](/blog/henrri-avis). Pour une TPE 2-10 salariés avec équipe à piloter : [Obat, alternative moderne](/blog/obat-avis) ou Nexartis Complet à 25 €/mois. Pour une PME 10-50 salariés sans Sage Compta : [Vertuoza pour PME](/blog/vertuoza-avis), Codial ou EBP Bâtiment.
 
 ### Existe-t-il un essai gratuit de Batigest ?
 

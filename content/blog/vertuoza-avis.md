@@ -193,7 +193,7 @@ Nexartis propose deux offres pensées pour deux profils d'artisans.
 Pour l'auto-entrepreneur ou l'artisan solo qui veut un outil de devis-facture conforme à la loi française BTP, accessible et sans engagement annuel — à l'opposé du modèle Vertuoza.
 
 - Devis et factures illimités
-- Mentions légales BTP automatiques : TVA réduite, autoliquidation, attestation rénovation, décennale
+- Mentions légales BTP automatiques : TVA réduite, autoliquidation, mention TVA réduite (5,5 %/10 %) automatique, décennale
 - Signature électronique native
 - Suivi des paiements
 - Application installable sur mobile (PWA)

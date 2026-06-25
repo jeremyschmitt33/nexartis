@@ -38,10 +38,10 @@ Le tableau ci-dessous récapitule les tarifs d'entrée des principaux logiciels 
 | Tolteck | 19 € (annuel) à 25 € (mensuel) | Standard | Non |
 | ChantierFlow | 22,50 € | Standard | Oui |
 | ArtisanSmart | 29 € | Standard | Oui |
-| Obat | 25 € à 69 € selon la formule | Standard à Pro | Oui |
+| Obat | 25 € à 79 € selon la formule (tarifs constatés en 2026) | Micro à Premium | Oui |
 | Sage Batigest | 31 € à 102 € selon la version | Pro / ERP | Oui |
 
-Pour Obat, l'entrée se situe autour de 25 €/mois pour les plus petits profils, avec un pack Pro autour de 39 € et un pack Croissance autour de 69 € en engagement annuel. Pour Sage Batigest Connect, la version Essentials démarre autour de 31 €/mois, la version Standard autour de 53 €/mois et la version Premium autour de 102 €/mois, hors frais annexes.
+Pour Obat, l'entrée se situe autour de 25 €/mois (Micro), avec un pack Pro autour de 39 € et un pack Premium autour de 79 € (tarifs constatés en 2026). Pour Sage Batigest Connect, la version Essentials démarre autour de 31 €/mois, la version Standard autour de 53 €/mois et la version Premium autour de 102 €/mois, hors frais annexes.
 
 ## Les paliers de prix du marché en 2026
 
@@ -62,7 +62,7 @@ Le palier **micro**, autour de 7 à 15 €, regroupe les offres d'entrée de gam
 
 Le palier **standard**, de 15 à 30 €, est le cœur du marché pour un artisan du bâtiment. Tolteck s'y situe autour de 19 à 25 € selon l'engagement, ChantierFlow à 22,50 €, ArtisanSmart à 29 €, et **Nexartis y propose son offre Essentiel à 15 €/mois**. C'est à ce niveau qu'apparaissent le planning, la signature et le suivi de chantier.
 
-Le palier **pro / ERP** dépasse 30 € et grimpe au-delà de 100 €. Obat s'échelonne d'environ 25 à 69 € selon la formule, et Sage Batigest Connect part d'environ 31 € pour atteindre 102 € en version Premium. Ce sont des outils de gestion globale, pensés pour des PME avec plusieurs salariés.
+Le palier **pro / ERP** dépasse 30 € et grimpe au-delà de 100 €. Obat s'échelonne d'environ 25 à 79 € selon la formule (tarifs constatés en 2026), et Sage Batigest Connect part d'environ 31 € pour atteindre 102 € en version Premium. Ce sont des outils de gestion globale, pensés pour des PME avec plusieurs salariés.
 
 ## Ce qui fait varier le prix d'un logiciel
 
@@ -126,7 +126,7 @@ Concrètement, l'abonnement inclut la **signature électronique** des devis à d
 Pour matérialiser le vrai coût sur douze mois, comparons trois paliers à périmètre comparable. Ces montants sont **indicatifs** et hors options.
 
 - **Gratuit limité.** 0 € d'abonnement, mais un périmètre incomplet : pas de planning ni de signature, et un report sur tableur ou agenda papier. Le coût réel se paie en temps perdu et en risque de non-conformité 2027.
-- **Outil tout inclus à 15 €/mois.** Soit 180 € HT sur l'année, planning, signature et relances compris, sans frais annexes. C'est le palier où l'artisan seul couvre l'essentiel sans surprise sur la facture.
+- **Offre Essentiel à 15 €/mois.** Soit 180 € HT sur l'année, signature et relances comprises, sans frais annexes. C'est le palier où l'artisan seul couvre l'essentiel sans surprise sur la facture (le planning d'équipe et les outils premium relèvent de l'offre Complet à 25 €/mois).
 - **Solution à modules.** Un socle autour de 31 € HT/mois, soit environ 372 € HT par an, auquel s'ajoutent vite une formation et un pack de conformité. Le budget annuel réel dépasse souvent 800 à 900 € HT une fois les options intégrées.
 
 Cet écart montre qu'un tarif d'entrée bas ne garantit pas le budget le plus bas sur l'année, et qu'un abonnement tout inclus reste lisible.
