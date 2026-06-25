@@ -121,7 +121,7 @@ export function ResultRow({ label, value }: { label: string; value: React.ReactN
   return (
     <div className="flex items-baseline justify-between gap-3 py-2 border-b border-navy/10 last:border-0">
       <span className="text-[13px] text-navy/70">{label}</span>
-      <span className="font-spline-mono font-semibold text-navy text-[15px] text-right">{value}</span>
+      <span className="font-hanken font-semibold text-navy text-[15px] text-right tabular-nums">{value}</span>
     </div>
   )
 }
@@ -164,8 +164,8 @@ export function Highlight({
         {label}
       </div>
       <span ref={ref} className="flex items-baseline gap-1 flex-wrap">
-        <span className="font-spline-mono font-bold text-4xl leading-none text-orange">{value}</span>
-        {unit ? <span className="font-spline-mono text-lg font-semibold text-white/90">{unit}</span> : null}
+        <span className="font-hanken font-extrabold text-4xl leading-none text-orange tabular-nums tracking-[-0.01em]">{value}</span>
+        {unit ? <span className="font-hanken text-lg font-semibold text-white/90">{unit}</span> : null}
       </span>
     </div>
   )

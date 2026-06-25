@@ -6,11 +6,12 @@
 // ---------------------------------------------------------------------------
 
 import React from 'react'
-import { BadgePercent, Coins, BrickWall, Grid3x3, Home, PaintRoller, Cable, Flame, Sprout } from 'lucide-react'
+import { BadgePercent, Coins, BrickWall, Grid3x3, Home, PaintRoller, Cable, Flame, Sprout, Landmark } from 'lucide-react'
 import { CalcTva, CalcTauxHoraire } from './CalcUniversel'
 import { CalcBeton, CalcCarrelage, CalcToiture } from './CalcGrosOeuvre'
 import { CalcPeinture, CalcCable, CalcChauffage } from './CalcSecondOeuvre'
 import { CalcSableGazon } from './CalcPaysagiste'
+import { CalcUrssaf } from './CalcUrssaf'
 
 export interface CalcDef {
   id: string
@@ -23,6 +24,7 @@ export interface CalcDef {
 }
 
 export const CALCULATRICES: CalcDef[] = [
+  { id: 'urssaf', label: 'URSSAF (a declarer)', icon: Landmark, universal: true, metiers: [], Component: CalcUrssaf },
   { id: 'tva', label: 'TVA travaux', icon: BadgePercent, universal: true, metiers: [], Component: CalcTva },
   { id: 'taux-horaire', label: 'Taux horaire', icon: Coins, universal: true, metiers: [], Component: CalcTauxHoraire },
   { id: 'beton', label: 'Beton & ciment', icon: BrickWall, universal: false, metiers: ['macon', 'maconnerie', 'terrassier', 'paysagiste'], Component: CalcBeton },
