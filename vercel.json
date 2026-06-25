@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/superpdp-reception",
-      "schedule": "0 6,12,18 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

@@ -4,7 +4,8 @@
 // Obligation legale : reception au 01/09/2026. Pas de webhook fiable cote
 // SUPER PDP (cf. RAPPORT_SUPERPDP_RECEPTION) -> on POLL regulierement.
 //
-// Vercel cron declenche /api/cron/superpdp-reception (cf. vercel.json, 3x/jour).
+// Vercel cron declenche /api/cron/superpdp-reception (cf. vercel.json, 1x/jour
+// a 6h : le plan Vercel Hobby limite les crons a une execution par jour).
 // Pour chaque connexion SUPER PDP active (priorite aux moins recemment
 // synchronisees) :
 //   1. token valide du user (refresh auto) — saute proprement 409/401 ;
