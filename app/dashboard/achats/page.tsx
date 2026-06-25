@@ -19,12 +19,14 @@ import {
   useAchats,
   useFournisseurs,
   useChantiers,
+  useFacturesRecues,
   insertRow,
   updateRow,
   deleteRow,
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+import FacturesRecuesTab from '@/components/dashboard/FacturesRecuesTab'
 // V4 light premium : on remplace Input/Select legacy par PremiumInput/PremiumSelect/PremiumButton.
 import { PremiumInput, PremiumSelect, PremiumButton, FieldLabel } from '@/components/ui/v4'
 import { toast } from '@/lib/toast'
@@ -54,6 +56,14 @@ function AchatsPageInner() {
   const { data: achats, loading: achatsLoading, error: achatsError, refetch: refetchAchats } = useAchats()
   const { data: fournisseurs, loading: fournisseursLoading } = useFournisseurs()
   const { data: chantiers, loading: chantiersLoading } = useChantiers()
+  const { data: facturesRecues } = useFacturesRecues()
+
+  // Onglet actif : achats (saisie manuelle) ou factures recues (reception e-facture)
+  const [tab, setTab] = useState<'achats' | 'recues'>('achats')
+  const nbNouvellesRecues = useMemo(
+    () => facturesRecues.filter((f) => (f as Record<string, unknown>).statut === 'recue').length,
+    [facturesRecues],
+  )
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterPeriod>('Tous')
@@ -233,25 +243,46 @@ function AchatsPageInner() {
 
   const loading = achatsLoading || fournisseursLoading || chantiersLoading
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
-          ))}
-        </div>
-        <LoadingSkeleton rows={6} />
-      </div>
-    )
-  }
-
-  if (achatsError) {
-    return <ErrorBanner message={achatsError} onRetry={refetchAchats} />
-  }
-
   return (
     <div className="space-y-6">
+      {/* Onglets : Achats (saisie manuelle) / Factures reçues (réception e-facture) */}
+      <div className="flex items-center gap-1 border-b border-[#0f1a3a]/[0.08]">
+        <button
+          onClick={() => setTab('achats')}
+          className={`relative px-4 py-2.5 font-hanken text-[14px] font-semibold transition-colors ${tab === 'achats' ? 'text-[#0f1a3a]' : 'text-gray-500 hover:text-[#0f1a3a]'}`}
+        >
+          Achats
+          {tab === 'achats' && <span aria-hidden className="absolute left-2 right-2 -bottom-px h-[2.5px] bg-[#ff7a1a] rounded-full" />}
+        </button>
+        <button
+          onClick={() => setTab('recues')}
+          className={`relative px-4 py-2.5 font-hanken text-[14px] font-semibold transition-colors inline-flex items-center gap-2 ${tab === 'recues' ? 'text-[#0f1a3a]' : 'text-gray-500 hover:text-[#0f1a3a]'}`}
+        >
+          Factures reçues
+          {nbNouvellesRecues > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#ff7a1a] text-white font-spline-mono text-[10.5px] font-bold">
+              {nbNouvellesRecues}
+            </span>
+          )}
+          {tab === 'recues' && <span aria-hidden className="absolute left-2 right-2 -bottom-px h-[2.5px] bg-[#ff7a1a] rounded-full" />}
+        </button>
+      </div>
+
+      {tab === 'recues' ? (
+        <FacturesRecuesTab />
+      ) : loading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <LoadingSkeleton rows={6} />
+        </div>
+      ) : achatsError ? (
+        <ErrorBanner message={achatsError} onRetry={refetchAchats} />
+      ) : (
+      <>
       {/* Stats bar V4 light : 3 cartes blanches avec icône premium + accent line orange à l'état actif */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
@@ -605,6 +636,8 @@ function AchatsPageInner() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   )

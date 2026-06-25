@@ -52,10 +52,17 @@ export interface SuperPdpInvoice {
 
 export interface SuperPdpList<T> {
   data: T[]
+  /** Champs de pagination curseur renvoyes par GET /v1.beta/invoices. */
+  count?: number
+  has_after?: boolean
+  has_before?: boolean
 }
 
 /** Format de facture demande a SUPER PDP. */
 export type SuperPdpFormat = 'factur-x' | 'ubl' | 'cii'
+
+/** Formats acceptes par GET /v1.beta/invoices/{id}/download (param `format`). */
+export type SuperPdpDownloadFormat = 'en16931' | 'original' | 'cii' | 'ubl' | 'factur-x'
 
 // ---------------------------------------------------------------------------
 // Erreurs
@@ -109,6 +116,12 @@ export interface AuthorizeUrlParams {
   loginHint?: string
   companyNumber?: string
   companyScheme?: 'sandbox' | 'fr_siren' | 'be_numero_entreprise'
+  /**
+   * Ouvre la ligne d'annuaire dans le bon sens. Pour la RECEPTION (obligation
+   * 01/09/2026) il FAUT que l'entreprise soit recepteur dans l'annuaire, sinon
+   * aucune facture n'est routee. 'send_and_receive' couvre emission + reception.
+   */
+  sendAndReceive?: 'send' | 'receive' | 'send_and_receive'
 }
 
 export function buildAuthorizeUrl(p: AuthorizeUrlParams): string {
@@ -122,6 +135,9 @@ export function buildAuthorizeUrl(p: AuthorizeUrlParams): string {
     url.searchParams.set('superpdp_company_number', p.companyNumber)
     url.searchParams.set('superpdp_company_number_scheme', p.companyScheme)
   }
+  // Par defaut on demande l'annuaire en emission + reception (ne casse pas
+  // l'emission deja en place, ouvre la reception requise au 01/09/2026).
+  url.searchParams.set('superpdp_send_and_receive', p.sendAndReceive || 'send_and_receive')
   return url.toString()
 }
 
@@ -196,6 +212,51 @@ export async function getCompanyMe(accessToken: string): Promise<SuperPdpCompany
   return (await resp.json()) as SuperPdpCompany
 }
 
+// ---------------------------------------------------------------------------
+// Annuaire (RECEPTION) — pour recevoir, l'entreprise doit etre RECEPTEUR.
+// ---------------------------------------------------------------------------
+
+/** Lit les lignes d'annuaire de l'entreprise connectee (sens emission/reception). */
+export async function getDirectoryEntries(accessToken: string): Promise<unknown> {
+  const resp = await authedFetch(accessToken, '/v1.beta/directory_entries')
+  if (!resp.ok) throw new SuperPdpError('Lecture annuaire impossible', resp.status)
+  return resp.json()
+}
+
+/**
+ * Verifie dans l'annuaire FR si une entreprise (par SIREN) est routable
+ * (peut recevoir). Best effort : on renvoie la reponse brute pour diagnostic.
+ */
+export async function checkFrenchDirectoryCompany(
+  accessToken: string,
+  siren: string,
+): Promise<unknown> {
+  const resp = await authedFetch(
+    accessToken,
+    `/v1.beta/french_directory/companies?company_number=${encodeURIComponent(siren)}`,
+  )
+  if (!resp.ok) throw new SuperPdpError('Verification annuaire FR impossible', resp.status)
+  return resp.json()
+}
+
+/** Ouvre une ligne d'annuaire en RECEPTION (SIREN) si elle n'existe pas. */
+export async function createDirectoryEntryReceive(
+  accessToken: string,
+  siren: string,
+): Promise<unknown> {
+  const resp = await authedFetch(accessToken, '/v1.beta/directory_entries', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      company_number: siren,
+      company_number_scheme: 'fr_siren',
+      direction: 'receive',
+    }),
+  })
+  if (!resp.ok) throw new SuperPdpError('Ouverture ligne annuaire impossible', resp.status)
+  return resp.json()
+}
+
 /** Genere une facture de TEST prete a etre envoyee (bac a sable uniquement). */
 export async function generateTestInvoice(
   accessToken: string,
@@ -243,6 +304,40 @@ export async function getInvoice(
   const resp = await authedFetch(accessToken, `/v1.beta/invoices/${id}`)
   if (!resp.ok) throw new SuperPdpError('Lecture de la facture impossible', resp.status)
   return (await resp.json()) as SuperPdpInvoice
+}
+
+/**
+ * Telecharge le fichier brut d'une facture (RECEPTION).
+ * `format` choisit la representation : 'original' (le fichier recu tel quel),
+ * 'factur-x' (PDF/A-3 lisible genere par la PA, ideal pour l'affichage), ou
+ * 'ubl'/'cii'/'en16931' (XML). Renvoie les octets + le content-type + une
+ * extension normalisee (whitelist stricte : pdf|xml, anti path-traversal).
+ */
+export interface SuperPdpFileResult {
+  bytes: Uint8Array
+  contentType: string
+  ext: 'pdf' | 'xml'
+}
+
+export async function downloadInvoiceFile(
+  accessToken: string,
+  id: number | string,
+  format: SuperPdpDownloadFormat = 'original',
+): Promise<SuperPdpFileResult> {
+  const resp = await authedFetch(
+    accessToken,
+    `/v1.beta/invoices/${id}/download?format=${encodeURIComponent(format)}`,
+  )
+  if (!resp.ok) throw new SuperPdpError('Telechargement du fichier impossible', resp.status)
+  const contentType = (resp.headers.get('content-type') || '').toLowerCase()
+  const buf = new Uint8Array(await resp.arrayBuffer())
+  // Whitelist d'extension : on ne fait JAMAIS confiance a une valeur brute pour
+  // construire un chemin Storage. PDF si content-type pdf OU magic bytes %PDF.
+  const looksPdf =
+    contentType.includes('pdf') ||
+    (buf.length >= 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46)
+  const ext: 'pdf' | 'xml' = looksPdf ? 'pdf' : 'xml'
+  return { bytes: buf, contentType: contentType || (looksPdf ? 'application/pdf' : 'application/xml'), ext }
 }
 
 /** Envoie un evenement de cycle de vie (ex. "Encaissee" = status_code "fr:212"). */

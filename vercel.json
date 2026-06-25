@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/relances-auto-factures",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/superpdp-reception",
+      "schedule": "0 6,12,18 * * *"
     }
   ]
 }

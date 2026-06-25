@@ -53,7 +53,7 @@ function useSupabaseQuery<T>(
 
     // Corbeille : par défaut on exclut les éléments supprimés
     // Les tables avec deleted_at : devis, factures, intervenants (D3 - 2026-06-08)
-    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants']
+    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants', 'factures_recues']
     if (SOFT_DELETE_TABLES.includes(table)) {
       if (options?.includeDeleted) {
         // Mode corbeille : uniquement les supprimés
@@ -603,6 +603,8 @@ function useFactures() { return useSupabaseQuery<Row>('factures', { orderBy: 'cr
 function useDeletedDevis() { return useSupabaseQuery<Row>('devis', { orderBy: 'created_at', includeDeleted: true }) }
 function useDeletedFactures() { return useSupabaseQuery<Row>('factures', { orderBy: 'created_at', includeDeleted: true }) }
 function useAchats() { return useSupabaseQuery<Row>('achats', { orderBy: 'date_achat' }) }
+// Factures RECUES (reception e-facture). Tri par date d'emission decroissante.
+function useFacturesRecues() { return useSupabaseQuery<Row>('factures_recues', { orderBy: 'date_emission' }) }
 function usePaiements() { return useSupabaseQuery<Row>('paiements', { orderBy: 'date_paiement' }) }
 function usePlanning() { return useSupabaseQuery<Row>('planning_interventions', { orderBy: 'date_debut', ascending: true }) }
 // Session 8 (28/05/2026) — table jonction multi-intervenants par intervention.
@@ -719,6 +721,7 @@ export {
   useDeletedDevis,
   useDeletedFactures,
   useAchats,
+  useFacturesRecues,
   usePaiements,
   usePlanning,
   useInterventionIntervenants,
