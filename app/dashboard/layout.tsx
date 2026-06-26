@@ -53,6 +53,7 @@ import {
   ChevronDown,
   ChevronLeft,
   FileText,
+  ScrollText,
   Receipt,
   Calendar,
   Shield,
@@ -88,6 +89,7 @@ const NAV_GROUPS: NavItem[][] = [
     { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
     { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
     { label: 'Factures', href: '/dashboard/factures', icon: Banknote },
+    { label: 'Documents', href: '/dashboard/documents', icon: ScrollText },
     { label: 'Achats', href: '/dashboard/achats', icon: ShoppingBag },
   ],
   [
@@ -119,6 +121,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/devis/nouveau': 'Nouveau devis',
   '/dashboard/factures': 'Factures',
   '/dashboard/factures/nouveau': 'Nouvelle facture',
+  '/dashboard/documents': 'Documents types',
   '/dashboard/achats': 'Achats',
   '/dashboard/planning': 'Planning',
   '/dashboard/clients': 'Clients',

@@ -137,6 +137,8 @@ const ROUTE_RULES: RouteRule[] = [
   // Devis vocal et création : commercial + dirigeant
   { prefix: '/dashboard/devis', roles: ['dirigeant', 'commercial'] },
   { prefix: '/dashboard/factures', roles: ['dirigeant'] },
+  // Documents types (CGV, PV de réception) : dirigeant + commercial.
+  { prefix: '/dashboard/documents', roles: ['dirigeant', 'commercial'] },
   { prefix: '/dashboard/achats', roles: ['dirigeant'] },
   { prefix: '/dashboard/fournisseurs', roles: ['dirigeant'] },
   { prefix: '/dashboard/statistiques', roles: ['dirigeant'] },
