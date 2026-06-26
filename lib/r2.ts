@@ -54,8 +54,16 @@ function amzNow(): { amzDate: string; dateStamp: string } {
 /**
  * URL signee (presigned, query string) pour le navigateur.
  * @param method GET (lecture) ou PUT (upload)
+ * @param opts.responseContentDisposition surcharge l'en-tete Content-Disposition
+ *   renvoye par R2 (ex: forcer un nom de fichier au telechargement). Doit etre
+ *   inclus DANS la signature, sinon R2 rejette la requete.
  */
-export function presignR2Url(method: 'GET' | 'PUT', key: string, expiresSec = 900): string {
+export function presignR2Url(
+  method: 'GET' | 'PUT',
+  key: string,
+  expiresSec = 900,
+  opts?: { responseContentDisposition?: string },
+): string {
   const { accessKeyId, secretAccessKey, bucket, host } = getConf()
   const { amzDate, dateStamp } = amzNow()
   const credentialScope = `${dateStamp}/${REGION}/${SERVICE}/aws4_request`
@@ -67,6 +75,9 @@ export function presignR2Url(method: 'GET' | 'PUT', key: string, expiresSec = 90
     'X-Amz-Date': amzDate,
     'X-Amz-Expires': String(expiresSec),
     'X-Amz-SignedHeaders': 'host',
+  }
+  if (opts?.responseContentDisposition) {
+    params['response-content-disposition'] = opts.responseContentDisposition
   }
   const canonicalQuerystring = Object.keys(params).sort().map((k) => `${enc(k)}=${enc(params[k])}`).join('&')
   const canonicalRequest = [method, canonicalUri, canonicalQuerystring, `host:${host}\n`, 'host', 'UNSIGNED-PAYLOAD'].join('\n')
