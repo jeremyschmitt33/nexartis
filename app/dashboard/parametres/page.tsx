@@ -980,7 +980,6 @@ function DocumentsSection({
   const [conditionsPaiement, setConditionsPaiement] = useState('')
   const [mentionsLegales, setMentionsLegales] = useState('')
   const [docColor, setDocColor] = useState('#5ab4e0')
-  const [logoOnDocs, setLogoOnDocs] = useState(true)
   // PDF chantier V2 : modalites d'intervention + engagements par defaut
   const [modalitesDefault, setModalitesDefault] = useState('')
   const [engagementsDefault, setEngagementsDefault] = useState('')
@@ -1129,27 +1128,6 @@ function DocumentsSection({
                        transition-all duration-200"
           />
         </div>
-      </div>
-
-      {/* ============ APPARENCE ============ */}
-      <GroupTitle>Apparence</GroupTitle>
-      <div className="space-y-5">
-        {/* Couleur principale */}
-        <div>
-          <FieldLabel>Couleur principale documents</FieldLabel>
-          <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 w-fit">
-            <input
-              type="color"
-              value={docColor}
-              onChange={(e) => setDocColor(e.target.value)}
-              className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white"
-              aria-label="Choisir la couleur principale"
-            />
-            <span className="font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] tracking-[0.5px]">{docColor}</span>
-          </div>
-        </div>
-
-        <PremiumToggle label="Logo sur les documents" checked={logoOnDocs} onChange={setLogoOnDocs} />
       </div>
 
       {/* ============ PDF CHANTIER V2 ============ */}
