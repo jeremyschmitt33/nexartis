@@ -746,4 +746,22 @@ function StatCard({
   color,
 }: {
   icon: React.ReactNode
-  label: str
+  label: string
+  value: string
+  color: string
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-4 sm:p-5 flex items-center gap-3 shadow-[0_2px_6px_rgba(15,26,58,0.04)]">
+      <div
+        className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-[#fafbfc] border border-[#0f1a3a]/[0.06]"
+        style={{ color }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-hanken text-[10.5px] font-semibold uppercase tracking-wider text-gray-700">{label}</p>
+        <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] mt-0.5 tracking-[0.5px] truncate">{value}</p>
+      </div>
+    </div>
+  )
+}
