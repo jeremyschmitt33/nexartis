@@ -15,9 +15,10 @@
  * séparé en bas).
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOnboarding } from '@/lib/hooks'
+import { sectionMatchesQuery } from '@/lib/aide-search'
 import {
   Building2,
   FileText,
@@ -50,6 +51,8 @@ import {
   NotebookPen,
   Scale,
   FileCheck2,
+  Search,
+  SearchX,
 } from 'lucide-react'
 import ContactModal from '@/components/dashboard/ContactModal'
 
@@ -69,6 +72,7 @@ type Section = {
 
 export default function AidePage() {
   const [openId, setOpenId] = useState<string | null>('profil-entreprise')
+  const [query, setQuery] = useState('')
   const [showContactModal, setShowContactModal] = useState(false)
   const router = useRouter()
   const { replayStep, loading } = useOnboarding()
@@ -141,6 +145,50 @@ export default function AidePage() {
               conformes à la loi</strong> tant que ton profil est incomplet.
             </p>
           </div>
+        </>
+      ),
+    },
+    {
+      id: 'rcs-assurance',
+      icon: Scale,
+      title: 'Où trouver mon numéro RCS (ou RM) et mon numéro de police d\'assurance ?',
+      subtitle: 'Retrouver ses identifiants légaux pour compléter son profil entreprise',
+      content: (
+        <>
+          <p className="mb-4">
+            Ton identifiant principal est ton <strong>numéro SIREN/SIRET</strong> (reçu à ton
+            immatriculation). Les autres numéros se trouvent facilement, on t&apos;explique où.
+          </p>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">
+            Numéro RCS / RM
+          </h4>
+          <p className="mb-3">
+            C&apos;est ton SIREN précédé de «&nbsp;<strong>RCS + ville</strong>&nbsp;» si tu es
+            commerçant(e), ou «&nbsp;<strong>RM + département</strong>&nbsp;» si tu es artisan(e).
+          </p>
+          <ul className="space-y-1.5 mb-4 pl-1">
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-sky-600 flex-shrink-0 mt-0.5" /><span>Sur ton <strong>extrait d&apos;immatriculation</strong>, téléchargeable gratuitement sur <strong>data.inpi.fr</strong> ou <strong>monidenum.fr</strong> (en recherchant ton entreprise).</span></li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-sky-600 flex-shrink-0 mt-0.5" /><span>Ou sur ton <strong>avis de situation SIRENE</strong>, sur le site de l&apos;INSEE.</span></li>
+          </ul>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3 mb-2">
+            <p className="text-[13px] font-hanken text-amber-900">
+              <strong>Auto-entrepreneur en prestation de services :</strong> il se peut que tu
+              n&apos;aies pas de numéro RCS. Dans ce cas, seul le SIRET est indiqué, c&apos;est normal.
+            </p>
+          </div>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">
+            Numéro de police d&apos;assurance
+          </h4>
+          <p className="mb-3">
+            C&apos;est le numéro de ton contrat d&apos;assurance (décennale et/ou responsabilité
+            civile professionnelle).
+          </p>
+          <ul className="space-y-1.5 mb-4 pl-1">
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-600 flex-shrink-0 mt-0.5" /><span>Sur ton <strong>attestation d&apos;assurance</strong> (envoyée chaque année par ton assureur) ou sur ton contrat, à la ligne «&nbsp;<strong>N° de contrat</strong>&nbsp;» ou «&nbsp;<strong>N° de police</strong>&nbsp;».</span></li>
+            <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-600 flex-shrink-0 mt-0.5" /><span>Si tu ne le retrouves pas, un simple <strong>appel ou e-mail à ton assureur</strong> suffit à l&apos;obtenir.</span></li>
+          </ul>
         </>
       ),
     },
@@ -1206,6 +1254,33 @@ export default function AidePage() {
     },
   ]
 
+  // ── Recherche : filtrage des fiches + recalcul des titres de groupe ──
+  // Chaque section appartient au groupe défini par le dernier
+  // `groupHeading` rencontré dans l'ordre du tableau. Après filtrage,
+  // on réaffiche le titre de groupe sur le 1er item visible du groupe.
+  const visibleSections = useMemo(() => {
+    let currentGroup: string | undefined
+    const seenGroups = new Set<string>()
+
+    return sections
+      .map((section) => {
+        if (section.groupHeading) currentGroup = section.groupHeading
+        return { section, group: currentGroup }
+      })
+      .filter(({ section }) => sectionMatchesQuery(section, query))
+      .map(({ section, group }) => {
+        // Premier item visible de son groupe → on lui pose le titre de groupe.
+        let displayGroupHeading: string | undefined
+        if (group && !seenGroups.has(group)) {
+          seenGroups.add(group)
+          displayGroupHeading = group
+        }
+        return { section, displayGroupHeading }
+      })
+  }, [sections, query])
+
+  const hasResults = visibleSections.length > 0
+
   return (
     <div className="min-h-screen" style={{background: '#f6f8fb'}}>
       <div className="max-w-[960px] mx-auto px-4 py-6 sm:px-6 sm:py-10">
@@ -1252,21 +1327,64 @@ export default function AidePage() {
           </div>
         </section>
 
+        {/* ============ BARRE DE RECHERCHE ============ */}
+        <div className="mb-6">
+          <label htmlFor="aide-search" className="sr-only">
+            Rechercher dans l&apos;aide
+          </label>
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none"
+              aria-hidden="true"
+            />
+            <input
+              id="aide-search"
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher une réponse (ex. RCS, acompte, planning…)"
+              aria-label="Rechercher dans l'aide"
+              className="w-full py-3 pl-10 pr-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc]
+                         font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4]
+                         placeholder:text-gray-400
+                         focus:outline-none focus:border-[#ff7a1a] focus:bg-white
+                         focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)]
+                         transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        {/* ============ ÉTAT VIDE (aucun résultat) ============ */}
+        {!hasResults && (
+          <div className="p-8 rounded-2xl border border-gray-200 bg-white text-center">
+            <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <SearchX size={22} className="text-gray-400" aria-hidden="true" />
+            </div>
+            <p className="font-hanken font-bold text-[15px] mb-1" style={{color: '#0f1a3a'}}>
+              Aucune réponse trouvée pour «&nbsp;{query.trim()}&nbsp;»
+            </p>
+            <p className="font-hanken text-sm text-gray-500">
+              Essaie un autre mot-clé, ou écris-nous directement plus bas.
+            </p>
+          </div>
+        )}
+
         {/* ============ ACCORDIONS GROUPÉS ============ */}
         <div className="space-y-3">
-          {sections.map((section) => {
+          {visibleSections.map(({ section, displayGroupHeading }) => {
             const Icon = section.icon
             const isOpen = openId === section.id
 
             return (
               <div key={section.id}>
-                {/* Titre de groupe au-dessus du premier item de chaque groupe */}
-                {section.groupHeading && (
+                {/* Titre de groupe au-dessus du premier item visible de chaque groupe */}
+                {displayGroupHeading && (
                   <h3
                     className="font-hanken font-semibold text-[11px] uppercase tracking-[0.12em] text-gray-500 mt-7 mb-3 first:mt-0 pl-1"
                     style={{letterSpacing: '0.12em'}}
                   >
-                    {section.groupHeading}
+                    {displayGroupHeading}
                   </h3>
                 )}
 
