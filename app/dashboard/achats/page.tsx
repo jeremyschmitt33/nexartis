@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Search,
@@ -15,6 +15,8 @@ import {
   Pencil,
   Trash2,
   Download,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react'
 import {
   useAchats,
@@ -29,6 +31,7 @@ import {
 } from '@/lib/hooks'
 import FacturesRecuesTab from '@/components/dashboard/FacturesRecuesTab'
 import ExportComptableModal from '@/components/dashboard/ExportComptableModal'
+import { downloadAchatsPdf } from '@/lib/export/pdf-achats'
 // V4 light premium : on remplace Input/Select legacy par PremiumInput/PremiumSelect/PremiumButton.
 import { PremiumInput, PremiumSelect, PremiumButton, FieldLabel } from '@/components/ui/v4'
 import { toast } from '@/lib/toast'
@@ -71,7 +74,12 @@ function AchatsPageInner() {
   const [filter, setFilter] = useState<FilterPeriod>('Tous')
   const [showModal, setShowModal] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  // Menu déroulant "Exporter" : choix entre CSV (modal comptable) et PDF (client-side).
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const [openActionId, setOpenActionId] = useState<string | null>(null)
+  // Position du menu d'actions "..." : rendu en position:fixed (jamais clippé par
+  // l'overflow-x-auto du wrapper de table). Calculée au clic via getBoundingClientRect.
+  const [actionMenuPos, setActionMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -91,6 +99,43 @@ function AchatsPageInner() {
     setModalDescription('')
     setModalChantier('')
     setEditingId(null)
+  }
+
+  // ─── Menu d'actions "..." en position:fixed (anti-clipping overflow-x-auto) ───
+  const closeActionMenu = useCallback(() => {
+    setOpenActionId(null)
+    setActionMenuPos(null)
+  }, [])
+
+  // Fermer le menu au scroll / resize / clic extérieur (pattern aligné sur factures).
+  useEffect(() => {
+    if (!openActionId) return
+    const handleClose = () => closeActionMenu()
+    document.addEventListener('click', handleClose)
+    window.addEventListener('scroll', handleClose, true)
+    window.addEventListener('resize', handleClose)
+    return () => {
+      document.removeEventListener('click', handleClose)
+      window.removeEventListener('scroll', handleClose, true)
+      window.removeEventListener('resize', handleClose)
+    }
+  }, [openActionId, closeActionMenu])
+
+  // Ouvre/ferme le menu d'actions et calcule sa position (fixed, ancré sous le bouton).
+  const openActionMenu = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+    e.stopPropagation()
+    e.nativeEvent.stopImmediatePropagation()
+    if (openActionId === id) {
+      closeActionMenu()
+      return
+    }
+    const r = e.currentTarget.getBoundingClientRect()
+    const menuHeight = 110
+    const spaceBelow = window.innerHeight - r.bottom
+    const top = spaceBelow < menuHeight ? r.top - menuHeight : r.bottom + 6
+    const left = Math.max(8, r.right - 160)
+    setActionMenuPos({ top, left })
+    setOpenActionId(id)
   }
 
   // Auto-ouverture de la modal si on arrive depuis ?new=1 (bouton "Ajouter un achat"
@@ -229,7 +274,7 @@ function AchatsPageInner() {
     setModalTva(String(achat.taux_tva ?? '20'))
     setModalDescription((achat.description ?? '') as string)
     setModalChantier((achat.chantier_id ?? '') as string)
-    setOpenActionId(null)
+    closeActionMenu()
     setShowModal(true)
   }
 
@@ -241,8 +286,33 @@ function AchatsPageInner() {
     } catch (err) {
       toast.error((err as Error).message)
     }
-    setOpenActionId(null)
+    closeActionMenu()
   }
+
+  // Téléchargement PDF des achats (client-side, données déjà chargées via useAchats).
+  // On exporte la liste FILTRÉE (mêmes lignes que celles affichées à l'écran).
+  const handleDownloadPdf = () => {
+    setShowExportMenu(false)
+    try {
+      const res = downloadAchatsPdf({
+        achats: filtered as Parameters<typeof downloadAchatsPdf>[0]['achats'],
+        fournisseurMap,
+        chantierMap,
+        periodeLabel: filter,
+      })
+      if (res.openedInNewTab && res.helpMessage) {
+        toast.success(res.helpMessage)
+      }
+    } catch (err) {
+      toast.error((err as Error).message || 'Erreur lors de la génération du PDF')
+    }
+  }
+
+  // Référence à l'achat actuellement ciblé par le menu "..." (pour le menu fixe partagé).
+  const activeAchat = useMemo(
+    () => (openActionId ? (achats.find((a) => (a as Record<string, unknown>).id === openActionId) as Record<string, unknown> | undefined) : undefined),
+    [openActionId, achats],
+  )
 
   const loading = achatsLoading || fournisseursLoading || chantiersLoading
 
@@ -331,13 +401,38 @@ function AchatsPageInner() {
           <option value="Ce trimestre">Ce trimestre</option>
         </PremiumSelect>
 
-        <button
-          onClick={() => setShowExport(true)}
-          className="shrink-0 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
-        >
-          <Download size={16} />
-          Exporter
-        </button>
+        {/* Bouton "Exporter" → menu déroulant : CSV (modal comptable) ou PDF (client-side). */}
+        <div className="relative shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowExportMenu((v) => !v) }}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
+            aria-haspopup="menu"
+            aria-expanded={showExportMenu}
+          >
+            <Download size={16} />
+            Exporter
+          </button>
+          {showExportMenu && (
+            <>
+              {/* Backdrop transparent : ferme le menu au clic extérieur. */}
+              <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} aria-hidden />
+              <div className="absolute right-0 top-full mt-1.5 z-50 w-48 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl py-1.5">
+                <button
+                  onClick={() => { setShowExportMenu(false); setShowExport(true) }}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
+                >
+                  <FileSpreadsheet size={15} className="text-[#ff7a1a]" /> Export CSV (comptable)
+                </button>
+                <button
+                  onClick={handleDownloadPdf}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
+                >
+                  <FileText size={15} className="text-[#ff7a1a]" /> Télécharger en PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         <PremiumButton
           variant="primary"
@@ -396,33 +491,14 @@ function AchatsPageInner() {
                       </span>
                     )}
                   </div>
-                  <div className="relative">
+                  <div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenActionId(openActionId === id ? null : id)
-                      }}
+                      onClick={(e) => openActionMenu(e, id)}
                       className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                       aria-label="Actions"
                     >
                       <MoreHorizontal size={16} />
                     </button>
-                    {openActionId === id && (
-                      <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl z-10 py-1.5 w-40">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEdit(achat) }}
-                          className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
-                        >
-                          <Pencil size={14} /> Modifier
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(id) }}
-                          className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 size={14} /> Supprimer
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -431,7 +507,7 @@ function AchatsPageInner() {
         )}
       </div>
 
-      {/* Table desktop V4 light \u2014 fond blanc, ombre douce, hover ligne #fafbfc, chiffres Spline Sans Mono. */}
+      {/* Table desktop V4 light — fond blanc, ombre douce, hover ligne #fafbfc, chiffres Spline Sans Mono. */}
       <div className="hidden md:block bg-white rounded-2xl border border-[#0f1a3a]/[0.06] overflow-x-auto shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
         <table className="w-full min-w-[1100px]">
           <thead>
@@ -455,8 +531,8 @@ function AchatsPageInner() {
               const montantTTC = Number(achat.montant_ttc ?? montantHT * (1 + tauxTva / 100))
               const dateStr = achat.date_achat as string | undefined
               const dateFormatted = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : ''
-              const fournisseurNom = fournisseurMap[achat.fournisseur_id as string] ?? '\u2014'
-              const chantierNom = chantierMap[achat.chantier_id as string] ?? '\u2014'
+              const fournisseurNom = fournisseurMap[achat.fournisseur_id as string] ?? '—'
+              const chantierNom = chantierMap[achat.chantier_id as string] ?? '—'
 
               return (
                 <tr
@@ -466,13 +542,13 @@ function AchatsPageInner() {
                   <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{dateFormatted}</td>
                   <td className="px-4 py-3 font-hanken text-[14px] font-semibold text-[#0f1a3a]">{fournisseurNom}</td>
                   <td className="px-4 py-3 font-hanken text-sm text-gray-600">{String(achat.description ?? '')}</td>
-                  <td className="px-4 py-3 font-spline-mono font-medium text-[13.5px] text-[#0f1a3a]">{montantHT.toLocaleString('fr-FR')}&nbsp;\u20ac</td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-[13.5px] text-[#0f1a3a]">{montantHT.toLocaleString('fr-FR')}&nbsp;€</td>
                   <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{tauxTva}%</td>
                   <td className="px-4 py-3 font-spline-mono font-medium text-[14px] text-[#0f1a3a]">
-                    {montantTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&nbsp;\u20ac
+                    {montantTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&nbsp;€
                   </td>
                   <td className="px-4 py-3">
-                    {/* Badge chantier : couleur s\u00e9mantique pastel */}
+                    {/* Badge chantier : couleur sémantique pastel */}
                     <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-semibold bg-[#fafbfc] border border-gray-200 text-[#0f1a3a]">
                       {chantierNom}
                     </span>
@@ -483,35 +559,17 @@ function AchatsPageInner() {
                         <Paperclip size={14} />
                       </span>
                     ) : (
-                      <span className="font-spline-mono text-sm text-gray-300">\u2014</span>
+                      <span className="font-spline-mono text-sm text-gray-300">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="relative">
-                      <button
-                        onClick={() => setOpenActionId(openActionId === id ? null : id)}
-                        className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-500"
-                        aria-label="Actions"
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-                      {openActionId === id && (
-                        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl z-10 py-1.5 w-40">
-                          <button
-                            onClick={() => handleEdit(achat)}
-                            className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
-                          >
-                            <Pencil size={14} /> Modifier
-                          </button>
-                          <button
-                            onClick={() => handleDelete(id)}
-                            className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 size={14} /> Supprimer
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      onClick={(e) => openActionMenu(e, id)}
+                      className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-500"
+                      aria-label="Actions"
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
                   </td>
                 </tr>
               )
@@ -522,7 +580,7 @@ function AchatsPageInner() {
         {filtered.length === 0 && (
           <div className="py-16 text-center">
             <ShoppingCart size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="font-hanken text-sm text-gray-500">Aucun achat trouv\u00e9</p>
+            <p className="font-hanken text-sm text-gray-500">Aucun achat trouvé</p>
           </div>
         )}
       </div>
@@ -651,6 +709,29 @@ function AchatsPageInner() {
       </>
       )}
 
+      {/* Menu d'actions "..." partagé, rendu en position:fixed (jamais clippé par
+          l'overflow-x-auto de la table). Ancré sous le bouton via actionMenuPos. */}
+      {openActionId && actionMenuPos && activeAchat && (
+        <div
+          className="fixed z-[9999] w-40 bg-white rounded-xl border border-[#0f1a3a]/[0.08] shadow-2xl py-1.5"
+          style={{ top: actionMenuPos.top, left: actionMenuPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => handleEdit(activeAchat)}
+            className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"
+          >
+            <Pencil size={14} /> Modifier
+          </button>
+          <button
+            onClick={() => handleDelete(activeAchat.id as string)}
+            className="flex items-center gap-2 w-full px-3.5 py-2.5 font-hanken text-[13.5px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 size={14} /> Supprimer
+          </button>
+        </div>
+      )}
+
       {/* Export comptable CSV des achats (lecture seule, flux dedie) */}
       <ExportComptableModal open={showExport} onClose={() => setShowExport(false)} type="achats" />
     </div>
@@ -665,22 +746,4 @@ function StatCard({
   color,
 }: {
   icon: React.ReactNode
-  label: string
-  value: string
-  color: string
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-4 sm:p-5 flex items-center gap-3 shadow-[0_2px_6px_rgba(15,26,58,0.04)]">
-      <div
-        className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-[#fafbfc] border border-[#0f1a3a]/[0.06]"
-        style={{ color }}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-hanken text-[10.5px] font-semibold uppercase tracking-wider text-gray-700">{label}</p>
-        <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] mt-0.5 tracking-[0.5px] truncate">{value}</p>
-      </div>
-    </div>
-  )
-}
+  label: str
