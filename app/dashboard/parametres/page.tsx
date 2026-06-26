@@ -25,6 +25,7 @@ import ThemeSelector from '@/components/ThemeSelector'
 import DocumentThemePicker from '@/components/parametres/DocumentThemePicker'
 import LogoThemeProposals from '@/components/parametres/LogoThemeProposals'
 import LogoCustomization from '@/components/parametres/LogoCustomization'
+import PasswordChangeButton from '@/components/parametres/PasswordChangeButton'
 import InstallPrompt from '@/components/InstallPrompt'
 import { QRCodeSVG } from 'qrcode.react'
 import { Input } from '@/components/ui/Input'
@@ -1956,15 +1957,7 @@ function CompteSection({ userEmail }: { userEmail: string }) {
           <FieldHint>L&apos;email de connexion ne peut pas être modifié ici.</FieldHint>
         </div>
         <div>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 h-11 px-5 rounded-xl font-hanken font-semibold text-sm text-[#0f1a3a]
-                       bg-white border-[1.5px] border-gray-200
-                       hover:border-[#ff7a1a] hover:bg-[#fafbfc]
-                       transition-all duration-200"
-          >
-            Modifier le mot de passe
-          </button>
+          <PasswordChangeButton />
         </div>
       </div>
 
