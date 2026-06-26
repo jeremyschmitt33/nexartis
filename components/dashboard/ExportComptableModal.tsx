@@ -19,7 +19,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { X, Download, FileSpreadsheet } from 'lucide-react'
 import { PremiumInput, PremiumSelect, PremiumButton } from '@/components/ui/v4'
 
-type ExportType = 'factures' | 'devis'
+type ExportType = 'factures' | 'devis' | 'achats'
 type Periode = 'mois' | 'trimestre' | 'annee' | 'personnalise'
 type Format = 'csv-simple'
 
@@ -92,8 +92,8 @@ export default function ExportComptableModal({ open, onClose, type }: ExportComp
 
   if (!open) return null
 
-  const label = type === 'factures' ? 'factures' : 'devis'
-  const labelCap = type === 'factures' ? 'Factures' : 'Devis'
+  const label = type === 'factures' ? 'factures' : type === 'devis' ? 'devis' : 'achats'
+  const labelCap = type === 'factures' ? 'Factures' : type === 'devis' ? 'Devis' : 'Achats / dépenses'
 
   const handleDownload = async () => {
     setError(null)
@@ -244,9 +244,19 @@ export default function ExportComptableModal({ open, onClose, type }: ExportComp
           </PremiumSelect>
 
           <p className="font-hanken text-[12px] text-gray-500 leading-relaxed">
-            Le fichier contient le numéro, la date, le client, le SIRET, l&apos;objet,
-            les montants HT/TVA/TTC, le statut et la date de paiement. Compatible
-            Excel français (UTF-8 + BOM, séparateur point-virgule).
+            {type === 'achats' ? (
+              <>
+                Le fichier contient la date, le fournisseur, le SIRET, la description,
+                le chantier et les montants HT/TVA/TTC. Compatible Excel français
+                (UTF-8 + BOM, séparateur point-virgule).
+              </>
+            ) : (
+              <>
+                Le fichier contient le numéro, la date, le client, le SIRET, l&apos;objet,
+                les montants HT/TVA/TTC, le statut et la date de paiement. Compatible
+                Excel français (UTF-8 + BOM, séparateur point-virgule).
+              </>
+            )}
           </p>
 
           {/* V3.1 — P5 : option détaillée multi-taux (factures uniquement). */}

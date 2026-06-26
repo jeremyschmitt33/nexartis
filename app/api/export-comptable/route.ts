@@ -35,12 +35,13 @@ import {
   secureError,
   unauthorizedError,
 } from '@/lib/api-security'
+import { buildCsvAchats, type AchatRow, type FournisseurLite } from '@/lib/export/csv-achats'
 
 // ────────────────────────────────────────────────────────────
 // Types
 // ────────────────────────────────────────────────────────────
 
-type ExportType = 'factures' | 'devis'
+type ExportType = 'factures' | 'devis' | 'achats'
 type ExportFormat = 'csv-simple' | 'fec'
 
 interface ExportBody {
@@ -365,8 +366,8 @@ function parseBody(raw: unknown): ExportBody | { error: string } {
   const b = raw as Record<string, unknown>
 
   const type = b.type
-  if (type !== 'factures' && type !== 'devis') {
-    return { error: 'Type invalide (attendu : "factures" ou "devis")' }
+  if (type !== 'factures' && type !== 'devis' && type !== 'achats') {
+    return { error: 'Type invalide (attendu : "factures", "devis" ou "achats")' }
   }
 
   const format = b.format
@@ -442,6 +443,50 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
+
+    // ── Cas ACHATS (depenses fournisseurs) : flux distinct, pas de client/numero.
+    if (type === 'achats') {
+      let aQuery = supabase
+        .from('achats')
+        .select('id, date_achat, description, montant_ht, taux_tva, montant_ttc, fournisseur_id, chantier_id, notes')
+        .eq('user_id', user.id)
+        .order('date_achat', { ascending: true })
+      if (dateDebut) aQuery = aQuery.gte('date_achat', dateDebut)
+      if (dateFin) aQuery = aQuery.lte('date_achat', dateFin)
+
+      const { data: achatsRaw, error: achatsErr } = await aQuery
+      if (achatsErr) {
+        console.error('[export-comptable] erreur lecture achats:', achatsErr.message)
+        return secureError('Erreur lors de la lecture des achats', 500)
+      }
+      const achats = (achatsRaw || []) as unknown as AchatRow[]
+
+      const { data: fournRaw } = await supabase
+        .from('fournisseurs').select('id, nom, siret').eq('user_id', user.id)
+      const fournisseursById = new Map<string, FournisseurLite>()
+      for (const f of (fournRaw || []) as Array<{ id: string; nom: string | null; siret: string | null }>) {
+        fournisseursById.set(f.id, { nom: f.nom, siret: f.siret })
+      }
+
+      const { data: chRaw } = await supabase
+        .from('chantiers').select('id, titre').eq('user_id', user.id)
+      const chantiersById = new Map<string, string>()
+      for (const c of (chRaw || []) as Array<{ id: string; titre: string | null }>) {
+        chantiersById.set(c.id, c.titre || '')
+      }
+
+      const csvAchats = buildCsvAchats(achats, fournisseursById, chantiersById)
+      const todayAchats = new Date().toISOString().slice(0, 10)
+      return new NextResponse(csvAchats, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="export-achats-${todayAchats}.csv"`,
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      })
+    }
 
     // 1) Documents : on construit la requête en filtrant strictement par user
     //    et en respectant la fenêtre de dates (sur date_emission).

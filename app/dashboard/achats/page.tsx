@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  Download,
 } from 'lucide-react'
 import {
   useAchats,
@@ -27,6 +28,7 @@ import {
   ErrorBanner,
 } from '@/lib/hooks'
 import FacturesRecuesTab from '@/components/dashboard/FacturesRecuesTab'
+import ExportComptableModal from '@/components/dashboard/ExportComptableModal'
 // V4 light premium : on remplace Input/Select legacy par PremiumInput/PremiumSelect/PremiumButton.
 import { PremiumInput, PremiumSelect, PremiumButton, FieldLabel } from '@/components/ui/v4'
 import { toast } from '@/lib/toast'
@@ -68,6 +70,7 @@ function AchatsPageInner() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterPeriod>('Tous')
   const [showModal, setShowModal] = useState(false)
+  const [showExport, setShowExport] = useState(false)
   const [openActionId, setOpenActionId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -327,6 +330,14 @@ function AchatsPageInner() {
           <option value="Ce mois">Ce mois</option>
           <option value="Ce trimestre">Ce trimestre</option>
         </PremiumSelect>
+
+        <button
+          onClick={() => setShowExport(true)}
+          className="shrink-0 inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken font-semibold text-sm text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
+        >
+          <Download size={16} />
+          Exporter
+        </button>
 
         <PremiumButton
           variant="primary"
@@ -639,6 +650,9 @@ function AchatsPageInner() {
       )}
       </>
       )}
+
+      {/* Export comptable CSV des achats (lecture seule, flux dedie) */}
+      <ExportComptableModal open={showExport} onClose={() => setShowExport(false)} type="achats" />
     </div>
   )
 }
