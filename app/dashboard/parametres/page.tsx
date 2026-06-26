@@ -14,6 +14,7 @@ import {
   PlayCircle,
   Smartphone,
   Gift,
+  ShieldCheck,
 } from 'lucide-react'
 import {
   useEntreprise,
@@ -32,6 +33,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
 import ParrainageSection from '@/components/dashboard/ParrainageSection'
+import CertificationsSection from '@/components/parametres/CertificationsSection'
 
 // -------------------------------------------------------------------
 // Types & constants
@@ -47,6 +49,7 @@ type Section =
   | 'apparence'
   | 'application'
   | 'parrainage'
+  | 'certifications'
 
 interface NavItem {
   id: Section
@@ -108,6 +111,13 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Compte',
     icon: User,
     description: 'Votre email de connexion et la gestion de votre compte.',
+  },
+  {
+    id: 'certifications',
+    label: 'Certifications & assurances',
+    icon: ShieldCheck,
+    description:
+      'Vos assurances (decennale, RC pro, vigilance URSSAF) et certifications (RGE, Qualibat, Qualifelec...). On vous previent par email 30 et 15 jours avant chaque expiration.',
   },
   {
     id: 'parrainage',
@@ -2978,6 +2988,7 @@ export default function ParametresPage() {
         {activeSection === 'notifications' && entreprise && <NotificationsSection entreprise={entreprise} update={update} />}
         {activeSection === 'compte' && <CompteSection userEmail={user?.email || ''} />}
         {activeSection === 'parrainage' && <ParrainageSection />}
+        {activeSection === 'certifications' && <CertificationsSection />}
       </div>
     </div>
   )

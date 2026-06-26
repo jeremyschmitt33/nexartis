@@ -962,3 +962,85 @@ export async function sendNewSignupAlert(params: NewSignupAlertParams) {
     html: layout(body, { entrepriseNom: 'Nexartis' }),
   })
 }
+
+// -------------------------------------------------------------------
+// 9. Rappel d'expiration d'une certification / assurance (J-30 / J-15)
+// -------------------------------------------------------------------
+// Envoye par /api/cron/certifications-rappels a l'ARTISAN (email de
+// l'entreprise). Un seul email par palier et par certification.
+// -------------------------------------------------------------------
+
+export interface RappelCertificationParams {
+  to: { email: string; name?: string }
+  intitule: string
+  organisme?: string | null
+  numero?: string | null
+  dateExpiration: string // ISO date (YYYY-MM-DD)
+  joursRestants: number
+  entrepriseNom?: string
+  logoUrl?: string
+}
+
+export async function sendRappelCertification(params: RappelCertificationParams): Promise<boolean> {
+  try {
+    const entNom = params.entrepriseNom || 'Nexartis'
+    const expFmt = new Date(`${params.dateExpiration.slice(0, 10)}T00:00:00Z`).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC',
+    })
+    const j = params.joursRestants
+    const urgent = j <= 15
+    const cardTone = urgent ? '#fef2f2' : '#fff7ed'
+    const cardBorder = urgent ? '#fecaca' : '#fdba74'
+    const cardAccent = urgent ? '#b91c1c' : '#c2410c'
+    const delaiTxt = j <= 0
+      ? "expire aujourd'hui"
+      : `expire dans ${j} jour${j > 1 ? 's' : ''}`
+
+    const lignes: string[] = []
+    if (params.organisme) {
+      lignes.push(`<tr><td style="font-size:14px;color:#64748b;padding:6px 0;">Organisme</td><td style="font-size:14px;color:#1e293b;font-weight:600;text-align:right;padding:6px 0;">${params.organisme}</td></tr>`)
+    }
+    if (params.numero) {
+      lignes.push(`<tr><td style="font-size:14px;color:#64748b;padding:6px 0;">Numero</td><td style="font-size:14px;color:#1e293b;font-weight:600;text-align:right;padding:6px 0;">${params.numero}</td></tr>`)
+    }
+    lignes.push(`<tr><td style="font-size:14px;color:#64748b;padding:6px 0;">Date d'expiration</td><td style="font-size:14px;color:${cardAccent};font-weight:700;text-align:right;padding:6px 0;">${expFmt}</td></tr>`)
+
+    const body = `
+    <h2 style="margin:0 0 12px;font-size:22px;color:#0f1a3a;font-weight:800;">Votre certification expire bientot</h2>
+    <p style="font-size:15px;color:#475569;line-height:1.7;">Bonjour,</p>
+    <p style="font-size:15px;color:#475569;line-height:1.7;">
+      Votre certification / assurance <strong>${params.intitule}</strong> ${delaiTxt}.
+      Pensez a la renouveler pour rester couvert et conforme sur vos chantiers.
+    </p>
+
+    <div style="background:${cardTone};border:1px solid ${cardBorder};border-radius:8px;padding:16px 20px;margin:22px 0;">
+      <p style="margin:0 0 10px;font-size:12px;color:${cardAccent};font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">${params.intitule}</p>
+      <table style="width:100%;border-collapse:collapse;">
+        ${lignes.join('')}
+      </table>
+    </div>
+
+    <p style="font-size:15px;color:#475569;line-height:1.7;">
+      Une fois renouvelee, pensez a mettre a jour la date dans Nexartis pour reactiver les rappels automatiques.
+    </p>
+
+    ${btn('Voir mes certifications', 'https://nexartis.fr/dashboard/parametres#certifications')}
+
+    <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6;">
+        Cet email a ete envoye automatiquement par Nexartis pour le compte de ${entNom}.
+      </p>
+    </div>`
+
+    await sendEmail({
+      to: { email: params.to.email, name: params.to.name || entNom },
+      subject: `Votre certification ${params.intitule} expire bientot`,
+      html: layout(body, { logoUrl: params.logoUrl, entrepriseNom: entNom }),
+      senderName: 'Nexartis',
+    })
+    return true
+  } catch (err) {
+    console.error('[sendRappelCertification] error', err)
+    return false
+  }
+}
