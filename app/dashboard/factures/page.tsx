@@ -560,7 +560,7 @@ export default function FacturesListPage() {
                   <FactureTypeBadge facture={facture} />
                   {/* V2 SUIVI REMBOURSEMENT — etat du remboursement sur la ligne avoir.
                       "A rembourser" seulement si l'avoir est emis (verrouille). */}
-                  {(facture.type as string | null) === 'avoir' && facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
+                  {(facture.type as string | null) === 'avoir' && !!facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
                     <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-200/70">À rembourser</span>
                   )}
                   {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'rembourse' && (
@@ -641,7 +641,7 @@ export default function FacturesListPage() {
                       <span className="font-spline-mono font-medium text-[13px] tracking-[0.5px] text-[#0f1a3a]">{(facture.numero as string) ?? '\u2014'}</span>
                       <FactureTypeBadge facture={facture} />
                       {/* V2 SUIVI REMBOURSEMENT \u2014 etat du remboursement (vue desktop, parite mobile). */}
-                      {(facture.type as string | null) === 'avoir' && facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
+                      {(facture.type as string | null) === 'avoir' && !!facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
                         <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-200/70">\u00c0 rembourser</span>
                       )}
                       {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'rembourse' && (
