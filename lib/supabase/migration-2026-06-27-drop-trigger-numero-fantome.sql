@@ -1,0 +1,27 @@
+-- =====================================================================
+-- Menage : suppression du trigger fantome de numerotation des factures
+-- Date : 2026-06-27  ·  project skuqfqnfitrovzeexwsr
+-- DEJA APPLIQUEE EN BASE via MCP. Fichier de trace versionnee.
+-- =====================================================================
+-- Contexte : la table factures avait DEUX triggers BEFORE INSERT de numerotation
+--   - auto_numero_facture  -> generate_facture_numero() : produit "F202600001"
+--     (SANS tirets, calcul par MAX, aucun compteur). FANTOME.
+--   - trg_set_facture_numero -> set_facture_numero()    : produit "F-AAAA-NNNN"
+--     ou "AV-AAAA-NNNN" via les compteurs dedies. EFFECTIF (correct).
+--
+-- Les BEFORE triggers s'executent par ordre alphabetique de nom :
+--   auto_numero_facture  (a...)  PUIS  trg_set_facture_numero  (t...)
+-- => le bon trigger s'execute EN DERNIER et ECRASE toujours le numero du fantome.
+--
+-- Preuve (test rollback en base, 2026-06-27) :
+--   facture AVEC fantome    -> F-2026-0005   (format correct)
+--   facture SANS fantome    -> F-2026-0006   (format correct, suite continue)
+--   avoir   SANS fantome    -> AV-2026-0001  (numerotation avoir intacte)
+-- => suppression sans aucun impact sur la numerotation legale.
+--
+-- On retire le trigger pour eliminer le piege (si le bon trigger sautait un jour,
+-- le fantome produirait un mauvais format). On conserve la fonction
+-- generate_facture_numero (orpheline, inoffensive) par prudence.
+-- =====================================================================
+
+DROP TRIGGER IF EXISTS auto_numero_facture ON public.factures;
