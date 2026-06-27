@@ -76,7 +76,12 @@ export function mapFactureToFacturX(facture: FactureData): MappingResult {
   const lineTotalHt = round2(vatGroups.reduce((sum, g) => sum + g.basis, 0))
   const taxTotal = round2(vatGroups.reduce((sum, g) => sum + g.tax, 0))
   const grandTotalTtc = round2(lineTotalHt + taxTotal)
-  const paidAmount = round2(facture.acompte_montant_ttc || 0)
+  // V2 imputation : un avoir d'un autre dossier impute en reglement est un montant
+  // DEJA REGLE (par compensation) -> on le compte comme "prepaye" (BT-113), au meme
+  // titre que l'acompte. Ainsi le montant DU structure (XML) = ce que le client doit
+  // vraiment payer, coherent avec le PDF visuel. Le total HT/TVA/TTC reste PLEIN.
+  const avoirImpute = round2((facture.type !== 'avoir' ? (facture.avoir_impute_montant || 0) : 0))
+  const paidAmount = round2((facture.acompte_montant_ttc || 0) + avoirImpute)
   const duePayable = round2(grandTotalTtc - paidAmount)
 
   const sellerVat = ent.tva_intracommunautaire && !isFranchise ? ent.tva_intracommunautaire : undefined

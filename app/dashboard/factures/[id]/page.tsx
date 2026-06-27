@@ -633,6 +633,9 @@ export default function FactureDetailPage() {
       // V-AVOIR — reference de la facture d'origine (pour le rendu de l'avoir).
       facture_origine_numero: (facture.facture_origine_numero as string | null | undefined) ?? null,
       facture_origine_date: (facture.facture_origine_date as string | null | undefined) ?? null,
+      // V2 imputation — avoir d'un autre dossier impute en reglement de cette facture.
+      avoir_impute_numero: facture.avoir_impute_numero ?? null,
+      avoir_impute_montant: facture.avoir_impute_montant ?? null,
       numero_situation: (facture.numero_situation as number | null | undefined) ?? null,
       pourcentage_situation: (facture.pourcentage_situation as number | null | undefined) ?? null,
       devis_ref: (facture.devis_ref as string | null | undefined) ?? null,

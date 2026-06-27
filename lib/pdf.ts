@@ -163,6 +163,9 @@ export interface FactureData {
   // V-AVOIR — reference de la facture d'origine (pour le rendu de l'avoir).
   facture_origine_numero?: string
   facture_origine_date?: string
+  // V2 imputation — avoir d'un autre dossier impute EN reglement de cette facture.
+  avoir_impute_numero?: string
+  avoir_impute_montant?: number
   // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
   // Quand true : pousse hasSousTraitanceBTP=true dans le LegalContext → la mention
   // d'autoliquidation est ajoutee automatiquement en pied de doc (cf. legal-mentions.ts).
@@ -398,6 +401,14 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
       entreprise: ent,
       netLabel: isAvoir ? 'Net à créditer' : 'Net à payer',
       isAvoir,
+      // V2 imputation — avoir d'un autre dossier impute en reglement (TTC reste plein).
+      // Arrondi 2 decimales identique au rendu HTML (lib/document-data.ts) -> parite.
+      deductions: (!isAvoir && (data.avoir_impute_montant ?? 0) > 0.01)
+        ? [{ label: `Avoir${data.avoir_impute_numero ? ` ${data.avoir_impute_numero}` : ''} imputé`, montant: Math.round(((data.avoir_impute_montant as number) + Number.EPSILON) * 100) / 100 }]
+        : undefined,
+      netAPayer: (!isAvoir && (data.avoir_impute_montant ?? 0) > 0.01)
+        ? Math.round((Math.max(0, (data.montant_ttc || 0) - (data.avoir_impute_montant as number)) + Number.EPSILON) * 100) / 100
+        : undefined,
     },
     lignes,
     true, // bloc IBAN actif pour facture
@@ -407,7 +418,8 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
 
   // 6.bis QR de paiement SEPA (virement pre-rempli) — si IBAN renseigne
   {
-    const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0)
+    // V2 imputation : le QR demande le NET reel (apres acompte ET avoir impute).
+    const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0) - (data.avoir_impute_montant || 0)
     const entInfo = ent as { nom?: string; iban?: string }
     // V-AVOIR : pas de QR de virement SEPA sur un avoir (somme a crediter, pas a payer).
     if (!isAvoir && canDrawSepaQr(entInfo?.iban, netAPayer)) {

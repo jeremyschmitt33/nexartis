@@ -78,6 +78,13 @@ export interface DocumentTotals {
   acomptePct: number
   acompteMontant: number
   resteDu: number
+  // V2 imputation — Deductions de REGLEMENT affichees sous le Total TTC (le TTC
+  // et la TVA restent PLEINS). Canal generique partage par les 3 rendus pour
+  // eviter toute divergence (ex. avoir d'un autre dossier impute en paiement).
+  deductions?: { label: string; montant: number }[]
+  // Net reel a payer apres deductions (= totalTtc - somme deductions). Si absent,
+  // le rendu utilise totalTtc (comportement inchange).
+  netAPayer?: number
 }
 
 export interface DocumentMeta {
@@ -182,6 +189,9 @@ export interface RawFacture {
   // V-AVOIR — reference de la facture d'origine (pour le rendu de l'avoir).
   facture_origine_numero?: string | null
   facture_origine_date?: string | null
+  // V2 imputation — avoir d'un autre dossier impute EN reglement de CETTE facture.
+  avoir_impute_numero?: string | null
+  avoir_impute_montant?: number | null
   numero_situation?: number | null
   pourcentage_situation?: number | null
   devis_ref?: string | null
@@ -616,6 +626,17 @@ export function buildFactureDocument(opts: {
       factureOrigineNumero: opts.doc.facture_origine_numero ?? undefined,
       factureOrigineDate: opts.doc.facture_origine_date ? fmtDate(opts.doc.facture_origine_date) : undefined,
     }
+  }
+
+  // V2 imputation — Si un avoir d'un autre dossier a ete impute EN reglement de
+  // cette facture, on l'affiche comme DEDUCTION sous le Total TTC (le TTC + la TVA
+  // restent PLEINS = CA juste). Canal partage -> rendu identique dans les 3 sorties.
+  const avoirImpute = Number(opts.doc.avoir_impute_montant ?? 0)
+  if (opts.doc.type !== 'avoir' && avoirImpute > 0.01) {
+    const numAv = opts.doc.avoir_impute_numero ? ` ${opts.doc.avoir_impute_numero}` : ''
+    const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
+    totals.deductions = [{ label: `Avoir${numAv} imputé`, montant: r2(avoirImpute) }]
+    totals.netAPayer = r2(Math.max(0, totals.totalTtc - avoirImpute))
   }
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'

@@ -42,6 +42,10 @@ interface TotalsData {
   netLabel?: string
   /** V-AVOIR : true => remplace conditions de paiement par un encart "Avoir" et masque l'IBAN. */
   isAvoir?: boolean
+  /** V2 imputation : deductions de reglement affichees sous le Total TTC (TTC plein). */
+  deductions?: { label: string; montant: number }[]
+  /** V2 imputation : net reel a payer apres deductions (sinon = montant_ttc). */
+  netAPayer?: number
 }
 
 const DEFAULT_CONDITIONS_PAIEMENT =
@@ -228,10 +232,12 @@ function drawRecap(
     .map(Number)
     .filter((r) => Number.isFinite(r) && r > 0 && (tvaGroupsPre[r] ?? 0) > 0.005).length
   const echelonH = acompteTTCpre > 0 ? 13 + GAP_AFTER_ECHELON : 0
+  // V2 imputation : reserver la hauteur des lignes de deduction (ex. avoir impute).
+  const nbDeductionsPre = (!data.isAvoir && data.deductions) ? data.deductions.length : 0
   // V3.0c.15 : estimation hauteur recap corrigee (le +1 pour Total TTC etait double-compte
   // avec GAP_BEFORE_NET). Sous-total + N lignes TVA = 6 * (1 + nbTva), Total TTC bascule
   // directement sur GAP_BEFORE_NET sans GAP_RECAP_ROW supplementaire.
-  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre) + 2 + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
+  const recapH = GAP_RECAP_ROW * (1 + nbTvaPre + nbDeductionsPre) + 2 + GAP_BEFORE_NET + 13 + GAP_AFTER_NET + echelonH
   // V3.0c.15 : marges symetriques top=bottom=5mm pour cadre "pile-poil" sur le contenu.
   const recapPadTop = 0
   const recapPadInternalTop = 5
@@ -295,6 +301,17 @@ function drawRecap(
   }, P)
   y += GAP_BEFORE_NET
 
+  // V2 imputation — Deductions de reglement (ex. avoir d'un autre dossier impute
+  // en paiement). Affichees APRES le Total TTC (qui reste plein = CA/TVA justes),
+  // AVANT le bloc Net a payer. Jamais sur un avoir.
+  const deductions = (!data.isAvoir && data.deductions) ? data.deductions : []
+  for (const d of deductions) {
+    drawRecapRow(doc, d.label, `- ${fmt(d.montant)}`, y, {}, P)
+    y += GAP_RECAP_ROW
+  }
+  // Net reel a afficher dans le bloc orange : net apres deductions si fourni.
+  const netToShow = (!data.isAvoir && data.netAPayer != null) ? data.netAPayer : data.montant_ttc
+
   // Bloc NET A PAYER orange plein (montant = Total TTC complet, jamais l'acompte)
   // V3.0d : fond = P.netPayer (configurable), texte = P.netPayerInk (auto contraste).
   // Note : en mode default Nexartis (P.netPayer = #e87a2a orange clair), l'ink calcule
@@ -309,7 +326,7 @@ function drawRecap(
   doc.text(netLabel, RIGHT_X + 4, y + netH / 2 + 1.2)
 
   font(doc, 'Hanken Grotesk', 'extrabold', 15, P.netPayerInk)
-  textRight(doc, fmt(data.montant_ttc), RIGHT_VALUE_X - 4, y + netH / 2 + 2.2)
+  textRight(doc, fmt(netToShow), RIGHT_VALUE_X - 4, y + netH / 2 + 2.2)
   y += netH + GAP_AFTER_NET
 
   // Fix 8 : encadre commun pour les 2 lignes echelonnement (parite HTML dashboard)

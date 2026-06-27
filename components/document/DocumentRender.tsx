@@ -273,10 +273,19 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
         </div>
       ))}
       <div className="dv-recap-line dv-recap-line--ttc"><span>Total TTC</span><span>{eur(totals.totalTtc)}</span></div>
-      {/* V3.0b.6 — Net a payer = Total TTC (engagement du devis, pas l'acompte) */}
+      {/* V2 imputation — deductions de REGLEMENT (ex. avoir d'un autre dossier
+          impute en paiement). Le Total TTC ci-dessus reste PLEIN (CA + TVA justes) ;
+          la deduction n'apparait qu'avant le Net a payer. Jamais sur un avoir. */}
+      {!isAvoir && totals.deductions && totals.deductions.map((d, i) => (
+        <div className="dv-recap-line dv-recap-line--mute" key={`ded-${i}`}>
+          <span>{d.label}</span><span>− {eur(d.montant)}</span>
+        </div>
+      ))}
+      {/* V3.0b.6 — Net a payer = Total TTC (engagement du devis, pas l'acompte),
+          ou net apres deductions (imputation d'avoir) si present. */}
       <div className="dv-recap-net">
         <span>{netLabel}</span>
-        <strong>{eur(totals.totalTtc)}</strong>
+        <strong>{eur(!isAvoir && totals.netAPayer != null ? totals.netAPayer : totals.totalTtc)}</strong>
       </div>
       {/* V3.0b.6 — Mini-bloc : a verser maintenant + reste a la livraison */}
       {hasAcompte && (

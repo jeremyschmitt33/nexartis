@@ -134,6 +134,9 @@ export async function buildFactureDataFromDb(
     // V-AVOIR — reference de la facture d'origine (rendu PDF de l'avoir).
     facture_origine_numero: facture.facture_origine_numero || undefined,
     facture_origine_date: facture.facture_origine_date || undefined,
+    // V2 imputation — avoir d'un autre dossier impute en reglement de cette facture.
+    avoir_impute_numero: facture.avoir_impute_numero || undefined,
+    avoir_impute_montant: facture.avoir_impute_montant ?? undefined,
     autoliquidation_btp: facture.autoliquidation_btp === true,
     notes: facture.notes || undefined,
   }

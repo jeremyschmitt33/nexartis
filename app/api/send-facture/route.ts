@@ -162,6 +162,9 @@ export async function POST(req: NextRequest) {
       // V-AVOIR — reference facture d'origine (parite PDF avoir).
       facture_origine_numero: facture.facture_origine_numero || undefined,
       facture_origine_date: facture.facture_origine_date || undefined,
+      // V2 imputation — avoir d'un autre dossier impute en reglement (parite PDF).
+      avoir_impute_numero: facture.avoir_impute_numero || undefined,
+      avoir_impute_montant: facture.avoir_impute_montant ?? undefined,
       // 2026-06-10 — Autoliquidation BTP (parite avec /api/download-facture).
       autoliquidation_btp: facture.autoliquidation_btp === true,
       // Legacy : ancien champ notes conservé pour rétrocompat
