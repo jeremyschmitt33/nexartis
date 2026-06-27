@@ -319,8 +319,17 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     palette,
   )
 
-  // 2. Filet securite mentions incompletes
+  // 2. V-AVOIR : reference de la facture d'origine, placee juste sous l'en-tete
+  // (parite HTML qui l'affiche sous le titre AVOIR). Remplace l'ancien bandeau
+  // du corps (doublon) -> une seule mention, discrete, sous le bandeau navy.
   let y = headerBottomY + 6
+  if (isAvoir && data.facture_origine_numero) {
+    const refTxt = `Sur facture n° ${data.facture_origine_numero}${data.facture_origine_date ? ` du ${fmtDate(data.facture_origine_date)}` : ''}`
+    font(doc, 'Hanken Grotesk', 'bold', 8.5, palette.navy)
+    doc.text(refTxt, 14, y)
+    y += 6
+  }
+
   const champsManquants = getChampsLegauxManquants(ent as LegalEntreprise)
   if (champsManquants.length > 0) {
     y = drawIncompletProfileBanner(doc, champsManquants, y)
@@ -343,14 +352,6 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   // 4. Objet + adresse chantier
   if (data.objet || data.chantier_adresse) {
     y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
-  }
-
-  // 4.av V-AVOIR — bandeau reference de la facture d'origine.
-  if (isAvoir && data.facture_origine_numero) {
-    const refTxt = `Avoir sur la facture n° ${data.facture_origine_numero}${data.facture_origine_date ? ` du ${fmtDate(data.facture_origine_date)}` : ''}`
-    font(doc, 'Hanken Grotesk', 'bold', 8.5, palette.navy)
-    doc.text(refTxt, 14, y)
-    y += 6
   }
 
   // 4.bis V3.0c.18 — Bandeau AVANCEMENT pour factures de situation
@@ -396,6 +397,7 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
       montant_ttc: data.montant_ttc,
       entreprise: ent,
       netLabel: isAvoir ? 'Net à créditer' : 'Net à payer',
+      isAvoir,
     },
     lignes,
     true, // bloc IBAN actif pour facture
@@ -438,7 +440,7 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
 
   // 8. Mini-header pages 2+ + footer toutes pages
   drawMiniHeaderPages2Plus(doc, ent, title, data.numero, data.date_emission)
-  drawFooterAllPages(doc, ent, data.numero, 'Facture', palette)
+  drawFooterAllPages(doc, ent, data.numero, isAvoir ? 'Avoir' : 'Facture', palette)
 
   return doc.output('datauristring').split(',')[1]
 }

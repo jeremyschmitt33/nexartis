@@ -387,8 +387,10 @@ export function getMentionDevisGratuit(_entreprise: LegalEntreprise | null | und
  * Mention "émise conformément aux articles L441-3 et suivants du Code de
  * commerce". Présente sur les factures (parité PDF lib/pdf.ts).
  */
-export function getMentionL441_3(): string {
-  return 'Facture émise conformément aux articles L441-3 et suivants du Code de commerce.'
+export function getMentionL441_3(factureType?: 'standard' | 'avoir' | 'acompte' | 'situation'): string {
+  // V-AVOIR : un avoir n'est pas une facture -> sujet adapte pour la parite PDF/HTML.
+  const sujet = factureType === 'avoir' ? 'Avoir émis' : 'Facture émise'
+  return `${sujet} conformément aux articles L441-3 et suivants du Code de commerce.`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -541,7 +543,7 @@ export function getLegalMentionsFacture(ctx: LegalContext): LegalMention[] {
   }
 
   // 11. Mention L441-3 (italique, parité PDF)
-  out.push({ key: 'l441-3', text: getMentionL441_3(), italique: true, niveau: 'obligatoire' })
+  out.push({ key: 'l441-3', text: getMentionL441_3(factureType), italique: true, niveau: 'obligatoire' })
 
   // 12. Mentions personnalisées
   const custom = getMentionsCustomText(entreprise)

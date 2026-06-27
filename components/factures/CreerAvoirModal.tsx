@@ -30,6 +30,10 @@ function fmtEur(n: number): string {
   return (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
+
 export default function CreerAvoirModal({
   open,
   onClose,
@@ -49,6 +53,9 @@ export default function CreerAvoirModal({
   // sera reellement emis (meme calcul que lib/avoir.ts -> ventilerAvoir).
   const [baseParTaux, setBaseParTaux] = useState<Map<number, number> | null>(null)
   const [entete, setEntete] = useState<{ ht: number; tva: number }>({ ht: 0, tva: 0 })
+  // V-AVOIR (reste a crediter) : somme des avoirs deja emis sur cette facture.
+  const [dejaCredite, setDejaCredite] = useState(0)
+  const [resteLoaded, setResteLoaded] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -56,7 +63,7 @@ export default function CreerAvoirModal({
     ;(async () => {
       try {
         const supabase = createClient()
-        const [{ data: lignesRaw }, { data: fac }] = await Promise.all([
+        const [{ data: lignesRaw }, { data: fac }, { data: avoirsExistants }] = await Promise.all([
           supabase
             .from('facture_lignes')
             .select('quantite, prix_unitaire_ht, montant_ht, taux_tva, type, designation')
@@ -66,16 +73,35 @@ export default function CreerAvoirModal({
             .select('montant_ht, montant_tva')
             .eq('id', factureId)
             .maybeSingle(),
+          // Avoirs deja emis sur CETTE facture (factureId = facture d'origine).
+          supabase
+            .from('factures')
+            .select('montant_ttc')
+            .eq('facture_origine_id', factureId)
+            .eq('type', 'avoir')
+            .is('deleted_at', null),
         ])
         if (cancelled) return
         setBaseParTaux(baseParTauxDepuisLignes((lignesRaw ?? []) as never[]))
         setEntete({ ht: Number(fac?.montant_ht ?? 0), tva: Number(fac?.montant_tva ?? 0) })
+        const sommeAvoirs = round2(
+          (avoirsExistants ?? []).reduce((acc: number, a: { montant_ttc: number | null }) => acc + Number(a.montant_ttc ?? 0), 0),
+        )
+        setDejaCredite(sommeAvoirs)
+        // Defaut intelligent : si rien n'a ete credite -> 100%. Sinon, on pre-remplit
+        // le champ EUR avec le RESTE a crediter et on bascule sur l'unite EUR.
+        const reste = round2(montantTtc - sommeAvoirs)
+        if (sommeAvoirs > 0.01) {
+          setUnite('eur')
+          setValeur(reste > 0 ? String(reste) : '0')
+        }
+        setResteLoaded(true)
       } catch {
-        if (!cancelled) setBaseParTaux(new Map())
+        if (!cancelled) { setBaseParTaux(new Map()); setResteLoaded(true) }
       }
     })()
     return () => { cancelled = true }
-  }, [open, factureId])
+  }, [open, factureId, montantTtc])
 
   // Apercu live du montant de l'avoir (TTC, positif) = montant TTC FINAL emis.
   const montantAvoir = useMemo(() => {
@@ -94,6 +120,11 @@ export default function CreerAvoirModal({
     const { totaux } = ventilerAvoir(baseParTaux, demande, montantTtc, entete)
     return totaux.ttc
   }, [valeur, unite, montantTtc, baseParTaux, entete])
+
+  // V-AVOIR : reste reellement creditable = TTC origine - avoirs deja emis.
+  const resteACrediter = useMemo(() => Math.max(0, round2(montantTtc - dejaCredite)), [montantTtc, dejaCredite])
+  // Depassement : l'avoir calcule depasse-t-il le reste (tolerance 1 centime) ?
+  const depasse = montantAvoir > resteACrediter + 0.01
 
   if (!open) return null
 
@@ -120,6 +151,11 @@ export default function CreerAvoirModal({
     const v = parseFloat(valeur.replace(',', '.'))
     if (isNaN(v) || v <= 0) {
       toast.error('Saisissez un montant superieur a 0.')
+      return
+    }
+    // V-AVOIR : ne JAMAIS depasser le reste a crediter (evite l'erreur plafond DB).
+    if (montantAvoir > resteACrediter + 0.01) {
+      toast.error(`Maximum ${fmtEur(resteACrediter)} à créditer sur cette facture.`)
       return
     }
     setSubmitting(true)
@@ -172,9 +208,23 @@ export default function CreerAvoirModal({
 
         {/* Corps */}
         <div className="px-5 py-4 space-y-4">
-          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#fafbfc] border border-gray-100">
-            <span className="font-hanken text-[13px] text-gray-600">Montant de la facture</span>
-            <span className="font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{fmtEur(montantTtc)} TTC</span>
+          <div className="rounded-xl bg-[#fafbfc] border border-gray-100 divide-y divide-gray-100">
+            <div className="flex items-center justify-between px-3 py-2.5">
+              <span className="font-hanken text-[13px] text-gray-600">Montant de la facture</span>
+              <span className="font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{fmtEur(montantTtc)} TTC</span>
+            </div>
+            {dejaCredite > 0.01 && (
+              <>
+                <div className="flex items-center justify-between px-3 py-2.5">
+                  <span className="font-hanken text-[13px] text-gray-600">Déjà crédité</span>
+                  <span className="font-spline-mono font-medium text-[14px] text-gray-500">− {fmtEur(dejaCredite)}</span>
+                </div>
+                <div className="flex items-center justify-between px-3 py-2.5 bg-orange-50/60 rounded-b-xl">
+                  <span className="font-hanken text-[13px] font-bold text-[#0f1a3a]">Reste à créditer</span>
+                  <span className="font-spline-mono font-bold text-[15px] text-[#ff7a1a]">{fmtEur(resteACrediter)}</span>
+                </div>
+              </>
+            )}
           </div>
 
           <div>
@@ -213,9 +263,17 @@ export default function CreerAvoirModal({
                 </button>
               </div>
             </div>
-            <p className="font-hanken text-[11.5px] text-gray-400 mt-1.5">
-              100 % = avoir total. Une valeur inferieure = avoir partiel.
-            </p>
+            {depasse ? (
+              <p className="font-hanken text-[12px] font-semibold text-red-600 mt-1.5">
+                Maximum {fmtEur(resteACrediter)} à créditer.
+              </p>
+            ) : (
+              <p className="font-hanken text-[11.5px] text-gray-400 mt-1.5">
+                {dejaCredite > 0.01
+                  ? `Maximum ${fmtEur(resteACrediter)} (reste à créditer).`
+                  : '100 % = avoir total. Une valeur inferieure = avoir partiel.'}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between px-3 py-3 rounded-xl bg-red-50/60 border border-red-100">
@@ -241,7 +299,7 @@ export default function CreerAvoirModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || montantAvoir <= 0}
+            disabled={submitting || montantAvoir <= 0 || depasse || !resteLoaded}
             className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30)] hover:brightness-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}

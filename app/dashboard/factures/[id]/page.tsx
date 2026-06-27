@@ -983,10 +983,10 @@ export default function FactureDetailPage() {
               <AlertTriangle size={22} className="flex-shrink-0 mt-0.5 text-amber-600" />
               <div className="min-w-0">
                 <h3 className="font-hanken font-extrabold text-[15px] text-amber-900">
-                  ⚠️ Cette facture ne sera plus modifiable
+                  ⚠️ {facture.type === 'avoir' ? 'Cet avoir ne sera plus modifiable' : 'Cette facture ne sera plus modifiable'}
                 </h3>
                 <p className="font-hanken text-sm text-amber-800 leading-relaxed mt-1.5">
-                  Après cette action ({lockConfirm.titre}), la facture sera définitivement verrouillée. Vérifiez qu&apos;elle est correcte.
+                  Après cette action ({lockConfirm.titre}), {facture.type === 'avoir' ? 'l’avoir' : 'la facture'} sera définitivement verrouillé{facture.type === 'avoir' ? '' : 'e'}. Vérifiez qu&apos;{facture.type === 'avoir' ? 'il' : 'elle'} est correct{facture.type === 'avoir' ? '' : 'e'}.
                 </p>
               </div>
             </div>

@@ -40,6 +40,8 @@ interface TotalsData {
   notes_personnalisees?: string
   /** "Net à payer à la commande" pour devis avec acompte, sinon "Net à payer". */
   netLabel?: string
+  /** V-AVOIR : true => remplace conditions de paiement par un encart "Avoir" et masque l'IBAN. */
+  isAvoir?: boolean
 }
 
 const DEFAULT_CONDITIONS_PAIEMENT =
@@ -77,14 +79,17 @@ export function drawTotals(
   const leftStartY = yStart
   const rightStartY = yStart
 
-  // --- Colonne gauche : CONDITIONS DE PAIEMENT + mentions TVA + IBAN (si facture) ---
-  let leftY = drawConditions(doc, data, leftStartY, P)
+  // --- Colonne gauche : CONDITIONS DE PAIEMENT (ou encart AVOIR) + mentions TVA + IBAN (si facture, hors avoir) ---
+  let leftY = data.isAvoir
+    ? drawAvoirEncart(doc, leftStartY, P)
+    : drawConditions(doc, data, leftStartY, P)
   // Fix 10 : mentions TVA legales (Je certifie...) sous les conditions de paiement
   leftY = drawTvaCertifications(doc, lignes, leftY, P)
   if (data.notes_personnalisees && data.notes_personnalisees.trim()) {
     leftY = drawNotes(doc, data.notes_personnalisees.trim(), leftY, P)
   }
-  if (isFacture) {
+  // V-AVOIR : pas d'IBAN "a regler" sur un avoir (somme a crediter, pas a payer).
+  if (isFacture && !data.isAvoir) {
     leftY = drawIbanBlock(doc, data.entreprise, LEFT_X, leftY, COL_W, P)
   }
 
@@ -92,6 +97,20 @@ export function drawTotals(
   const rightY = drawRecap(doc, data, lignes, rightStartY, P)
 
   return Math.max(leftY, rightY) + 4
+}
+
+// ===========================================================================
+// V-AVOIR : encart "Avoir" (remplace CONDITIONS DE PAIEMENT) — parite HTML.
+// ===========================================================================
+function drawAvoirEncart(doc: jsPDF, yStart: number, P: Palette): number {
+  font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
+  doc.text('AVOIR', LEFT_X, yStart, { charSpace: 0.6 })
+  font(doc, 'Hanken Grotesk', 'normal', 8.5, P.navy)
+  const txt =
+    "Cet avoir vient en déduction des sommes dues. Si la facture d'origine a déjà été réglée, le montant est à rembourser au client."
+  const split = doc.splitTextToSize(txt, COL_W)
+  doc.text(split, LEFT_X, yStart + 5)
+  return yStart + 5 + split.length * 3.6 + 4
 }
 
 // ===========================================================================

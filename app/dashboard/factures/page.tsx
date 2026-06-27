@@ -499,6 +499,11 @@ export default function FacturesListPage() {
             const id = facture.id as string
             const restant = facture.montantTtc - facture.montantPaye
             const retardLabel = facture.category === 'En retard' && facture.overdue > 0 ? `En retard ${facture.overdue}j` : undefined
+            // V-AVOIR (net du) : facture d'origine avec avoirs -> net = TTC - regle - avoirs.
+            const avInfoM = avoirsByOrigine.get(id)
+            const totalAvoirM = avInfoM?.totalAvoir ?? 0
+            const aDesAvoirsM = (facture.type as string | null) !== 'avoir' && totalAvoirM > 0.01
+            const netDuM = Math.max(0, facture.montantTtc - facture.montantPaye - totalAvoirM)
             // Couleur de la barre de paiement (sémantique) : vert payé, rouge en retard, orange partiel.
             const paidColor = facture.paidPercent === 100 ? '#15803d' : facture.category === 'En retard' ? '#dc2626' : '#ff7a1a'
             return (
@@ -513,7 +518,14 @@ export default function FacturesListPage() {
                     <p className="font-hanken text-xs text-gray-500 mt-0.5 truncate">{(facture.objet as string) || (facture.numero as string)}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] tracking-[0.5px]">{formatCurrency(facture.montantTtc)}</p>
+                    {aDesAvoirsM ? (
+                      <>
+                        <p className="font-spline-mono text-[11px] text-gray-400 line-through tracking-[0.5px]">{formatCurrency(facture.montantTtc)}</p>
+                        <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] tracking-[0.5px]">{formatCurrency(netDuM)}</p>
+                      </>
+                    ) : (
+                      <p className="font-spline-mono font-medium text-[15px] text-[#0f1a3a] tracking-[0.5px]">{formatCurrency(facture.montantTtc)}</p>
+                    )}
                     {retardLabel && <p className="font-hanken text-xs text-red-600 font-semibold mt-0.5">{retardLabel}</p>}
                     {!retardLabel && facture.paidPercent < 100 && facture.paidPercent > 0 && (
                       <p className="font-spline-mono text-[11px] text-[#ff7a1a] mt-0.5">{formatCurrency(restant)} restants</p>
@@ -592,6 +604,12 @@ export default function FacturesListPage() {
               const restant = facture.montantTtc - facture.montantPaye
               const restantLabel = facture.paidPercent > 0 && facture.paidPercent < 100 ? `${formatCurrency(restant)} restants` : undefined
               const retardLabel = facture.category === 'En retard' && facture.overdue > 0 ? `En retard ${facture.overdue}j` : undefined
+              // V-AVOIR (net du) : pour une facture d'ORIGINE qui a des avoirs, le
+              // "Net a payer" reel = TTC - regle - avoirs emis (jamais negatif).
+              const avInfoD = avoirsByOrigine.get(id)
+              const totalAvoirD = avInfoD?.totalAvoir ?? 0
+              const aDesAvoirsD = (facture.type as string | null) !== 'avoir' && totalAvoirD > 0.01
+              const netDuD = Math.max(0, facture.montantTtc - facture.montantPaye - totalAvoirD)
               return (
                 <tr
                   key={id}
@@ -620,7 +638,16 @@ export default function FacturesListPage() {
                   </td>
                   <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{formatDate(facture.updated_at as string | null)}</td>
                   <td className="px-4 py-3 font-spline-mono text-[12.5px] text-gray-600">{formatDate((facture.date_emission || facture.created_at) as string | null)}</td>
-                  <td className="px-4 py-3 font-spline-mono font-medium text-[14px] text-[#0f1a3a]">{formatCurrency(facture.montantTtc)}</td>
+                  <td className="px-4 py-3 font-spline-mono font-medium text-[14px] text-[#0f1a3a]">
+                    {aDesAvoirsD ? (
+                      <span className="flex flex-col leading-tight">
+                        <span className="text-[11px] text-gray-400 line-through">{formatCurrency(facture.montantTtc)}</span>
+                        <span className="text-[#0f1a3a]">{formatCurrency(netDuD)}</span>
+                      </span>
+                    ) : (
+                      formatCurrency(facture.montantTtc)
+                    )}
+                  </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <button onClick={(e) => openMenu(e, id)} className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all" aria-label="Actions">
                       <MoreHorizontal size={16} className="text-gray-500" />

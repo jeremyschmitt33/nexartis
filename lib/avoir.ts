@@ -255,7 +255,10 @@ export async function creerAvoir(
     montant_ttc: avoirTtc,
     montant_paye: 0,
     remboursement_statut: remboursementStatut,
-    objet: `Avoir sur facture ${(o.numero as string | null) ?? ''}`.trim(),
+    // V-AVOIR : pas d'objet redondant. La reference d'origine est portee par
+    // l'en-tete (sous le titre AVOIR) et par la designation de ligne. Un objet
+    // "Avoir sur facture X" ferait doublon -> on laisse vide.
+    objet: null,
   }
 
   const { data: { user } } = await supabase.auth.getUser()

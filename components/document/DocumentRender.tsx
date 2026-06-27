@@ -351,7 +351,7 @@ function RecapFacture({ data }: { data: DocumentData }) {
             <p>{penalites}</p>
           </>
         )}
-        {(artisan.iban || artisan.bic) && (
+        {!isAvoir && (artisan.iban || artisan.bic) && (
           <div className="dv-pay">
             <div className="dv-pay-k">Pour régler par virement</div>
             {artisan.iban && (<div className="dv-pay-row"><span>IBAN</span><strong>{artisan.iban}</strong></div>)}
