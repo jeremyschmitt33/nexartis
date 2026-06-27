@@ -59,6 +59,12 @@ export async function POST(req: NextRequest) {
       .single()
     if (factureErr || !facture) return secureError('Facture introuvable', 404)
 
+    // B3 : les avoirs (type='avoir') ne sont pas encore supportes en facture
+    // electronique. Garde-fou serveur meme si le bouton est masque cote UI.
+    if (facture.type === 'avoir') {
+      return secureError('Les avoirs ne sont pas encore supportes en facture electronique.', 400)
+    }
+
     // Anti double-envoi : une facture deja deposee chez SUPER PDP ne doit JAMAIS
     // etre renvoyee (cela creerait une 2e facture electronique legale en doublon).
     if (facture.superpdp_invoice_id) {

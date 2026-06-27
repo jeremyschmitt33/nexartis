@@ -51,7 +51,7 @@ function getFactureCategory(f: Record<string, unknown>): FactureFilter {
   // les compteurs en lui donnant une categorie qui ne correspond a aucune StatCard.
   if ((f.type as string | null) === 'avoir') return 'Avoirs' as FactureFilter
   if (statut === 'payee' || statut === 'Encaissée') return 'Encaissées'
-  if (statut === 'partielle') return 'Partielles'
+  if (statut === 'partielle' || statut === 'partiellement_payee') return 'Partielles'
   if (statut === 'en_retard') return 'En retard'
   if (statut === 'archivee') return 'Archivées'
   return 'En attente'
@@ -276,6 +276,10 @@ export default function FacturesListPage() {
         'id', 'created_at', 'updated_at', 'numero', 'statut',
         'date_emission', 'date_echeance', 'date_envoi', 'sent_at', 'paid_at',
         'montant_paye', 'archivee', 'deleted_at',
+        // V-AVOIR : ne jamais dupliquer les marqueurs d'avoir. Une copie
+        // doit redevenir une facture standard propre (jamais un avoir AV- malforme).
+        'type', 'facture_origine_id', 'facture_origine_numero',
+        'facture_origine_date', 'remboursement_statut', 'rembourse_at',
       ])
       const newFacture: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(source)) {

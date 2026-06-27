@@ -184,7 +184,9 @@ export async function GET(req: NextRequest) {
         'id, user_id, numero, client_id, client_email, client_nom, date_echeance, montant_ttc, montant_paye, statut, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30',
       )
       .is('deleted_at', null)
-      .in('statut', ['envoyee', 'en_retard'])
+      .in('statut', ['envoyee', 'en_retard', 'partiellement_payee'])
+      // V-AVOIR : un avoir n'est jamais une creance -> jamais relance lui-meme.
+      .neq('type', 'avoir')
       .in('user_id', userIds)
       .lt('date_echeance', nowIso)
       .limit(200)

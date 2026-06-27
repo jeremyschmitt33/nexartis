@@ -639,6 +639,43 @@ export default function ModifierFacturePage() {
   if (loadingFacture || loadingLignes) return <div className="p-6"><LoadingSkeleton rows={8} /></div>
   if (!facture) return <div className="p-6"><p className="text-sm text-gray-500">Facture introuvable.</p></div>
 
+  // ── B2 : un AVOIR ne se modifie jamais (montants figes, serie AV dediee). ──
+  // Le trigger DB bloque deja l'UPDATE en securite ; ici on l'empeche cote UI
+  // pour eviter d'afficher un formulaire d'edition trompeur. Message + retour.
+  if (facture.type === 'avoir') {
+    return (
+      <div className="min-h-screen flex items-start justify-center px-4 py-12">
+        <div className="relative w-full max-w-2xl bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-8 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+          <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-red-500 via-red-400 to-red-500 opacity-90" />
+          <div className="flex items-start gap-4 mb-6">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-400 flex items-center justify-center text-white shadow-[0_8px_20px_rgba(239,68,68,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)]">
+              <Lock size={22} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-hanken font-extrabold text-xl sm:text-2xl text-[#0f1a3a] tracking-[-0.025em]">
+                Avoir <span className="font-spline-mono font-medium tracking-[0.5px]">{facture.numero}</span>
+              </h1>
+              <p className="font-hanken text-sm text-gray-500 mt-1.5">Document non modifiable</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-red-50/80 border border-red-200/70 px-4 py-3.5 mb-6">
+            <p className="font-hanken text-sm text-red-800 leading-relaxed">
+              Un <strong>avoir ne se modifie pas</strong>. Si son montant est erroné, supprimez-le et recréez-en un depuis la facture d&apos;origine.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              href={'/dashboard/factures/' + id}
+              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken text-[13.5px] font-semibold text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all"
+            >
+              <ArrowLeft size={16} /> Retour à l&apos;avoir
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ── BLOCAGE LÉGAL : une facture transmise est figée (art. L441-9 C. comm. + art. 242 nonies A CGI) ──
   // Modifiable SSI verrouillee_at est NULL (peu importe le statut). Le verrou est pose
   // a la premiere action de transmission (telechargement / envoi). Pour corriger, emettre un avoir.

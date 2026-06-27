@@ -83,6 +83,8 @@ interface DocumentRow {
   montant_tva: number | null
   montant_ttc: number | null
   statut: string | null
+  // B1 : type de document. 'avoir' => credit (montants en negatif au CSV).
+  type?: string | null
 }
 
 // ────────────────────────────────────────────────────────────
@@ -199,6 +201,7 @@ const STATUS_FACTURE: Record<string, string> = {
   payee: 'Encaissée',
   payée: 'Encaissée',
   partielle: 'Partielle',
+  partiellement_payee: 'Partielle',
   en_attente: 'En attente',
   en_retard: 'En retard',
   archivee: 'Archivée',
@@ -281,6 +284,14 @@ function buildCsvSimple(
     const datePaiement = type === 'factures' ? formatDateFr(doc.date_paiement) : ''
     const aggregate = taxAggregateByDocId.get(doc.id) || []
 
+    // B1 — Avoir : un avoir reduit le CA. On l'identifie, on l'affiche comme
+    // "Avoir" (colonne Type) et on inscrit ses montants HT/TVA/TTC en NEGATIF
+    // pour que le total de l'export baisse du montant de l'avoir. Les avoirs
+    // restent visibles par le comptable (jamais exclus).
+    const isAvoir = type === 'factures' && doc.type === 'avoir'
+    const docTypeLabel = isAvoir ? 'Avoir' : typeLabel
+    const sign = isAvoir ? -1 : 1
+
     // ── Cas multi-taux ── : >1 taux distinct sur les lignes prestation.
     if (aggregate.length > 1) {
       if (detail) {
@@ -292,15 +303,15 @@ function buildCsvSimple(
             csvRow([
               date,
               doc.numero || '',
-              typeLabel,
+              docTypeLabel,
               client.nom,
               client.siret,
               client.adresse,
               doc.objet || '',
-              formatMoney(agg.ht),
+              formatMoney(sign * agg.ht),
               agg.taux <= 0 ? '0%' : `${String(agg.taux).replace('.', ',')}%`,
-              formatMoney(agg.tva),
-              formatMoney(ttcPart),
+              formatMoney(sign * agg.tva),
+              formatMoney(sign * ttcPart),
               humanStatus(type, doc.statut),
               datePaiement,
             ]),
@@ -316,15 +327,15 @@ function buildCsvSimple(
         csvRow([
           date,
           doc.numero || '',
-          typeLabel,
+          docTypeLabel,
           client.nom,
           client.siret,
           client.adresse,
           doc.objet || '',
-          formatMoney(doc.montant_ht),
+          formatMoney(sign * (doc.montant_ht ?? 0)),
           `Multi-taux (${tauxList})`,
-          formatMoney(doc.montant_tva),
-          formatMoney(doc.montant_ttc),
+          formatMoney(sign * (doc.montant_tva ?? 0)),
+          formatMoney(sign * (doc.montant_ttc ?? 0)),
           humanStatus(type, doc.statut),
           datePaiement,
         ]),
@@ -337,15 +348,15 @@ function buildCsvSimple(
       csvRow([
         date,
         doc.numero || '',
-        typeLabel,
+        docTypeLabel,
         client.nom,
         client.siret,
         client.adresse,
         doc.objet || '',
-        formatMoney(doc.montant_ht),
+        formatMoney(sign * (doc.montant_ht ?? 0)),
         computeTauxTva(doc.montant_ht, doc.montant_tva),
-        formatMoney(doc.montant_tva),
-        formatMoney(doc.montant_ttc),
+        formatMoney(sign * (doc.montant_tva ?? 0)),
+        formatMoney(sign * (doc.montant_ttc ?? 0)),
         humanStatus(type, doc.statut),
         datePaiement,
       ]),
@@ -492,7 +503,7 @@ export async function POST(req: NextRequest) {
     //    et en respectant la fenêtre de dates (sur date_emission).
     const baseSelect =
       type === 'factures'
-        ? 'id, numero, date_emission, created_at, date_paiement, objet, client_id, client_nom, notes_client, montant_ht, montant_tva, montant_ttc, statut'
+        ? 'id, numero, date_emission, created_at, date_paiement, objet, client_id, client_nom, notes_client, montant_ht, montant_tva, montant_ttc, statut, type'
         : 'id, numero, date_emission, created_at, date_validite, objet, client_id, client_nom, notes_client, montant_ht, montant_tva, montant_ttc, statut'
 
     let query = supabase

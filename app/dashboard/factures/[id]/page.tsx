@@ -233,7 +233,7 @@ export default function FactureDetailPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ factureId: facture.id }),
         },
-        `Facture-${facture.numero}.pdf`,
+        facture.type === 'avoir' ? `Avoir-${facture.numero}.pdf` : `Facture-${facture.numero}.pdf`,
       )
       setToastMsg(result.helpMessage)
       setTimeout(() => setToastMsg(null), result.openedInNewTab ? 6000 : 2500)
@@ -260,7 +260,7 @@ export default function FactureDetailPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ factureId: facture.id }),
         },
-        `Facture-${facture.numero}-facturx.pdf`,
+        facture.type === 'avoir' ? `Avoir-${facture.numero}-facturx.pdf` : `Facture-${facture.numero}-facturx.pdf`,
       )
       setToastMsg(result.helpMessage)
       setTimeout(() => setToastMsg(null), result.openedInNewTab ? 6000 : 2500)
@@ -423,6 +423,11 @@ export default function FactureDetailPage() {
   const totalPaye = facture.montant_paye ?? 0
   const resteAPayer = totalTTC - totalPaye
   const paymentPercent = totalTTC > 0 ? Math.round((totalPaye / totalTTC) * 100) : 0
+  // V-AVOIR (B5/Jerem) : NET restant credit-able = TTC - paye - somme des avoirs lies.
+  // Permet plusieurs avoirs partiels. Le bouton "Creer un avoir" disparait quand
+  // le net <= 0 (facture entierement creditee) -> on affiche alors "Soldee par avoir".
+  const totalAvoirsLies = avoirsLies.reduce((acc, a) => acc + a.montant_ttc, 0)
+  const netAvoir = totalTTC - totalPaye - totalAvoirsLies
   // Acompte versé (style Obat : sous-total brut, acompte, net à payer)
   const acompteTTC =
     facture.acompte_montant_ttc !== undefined && facture.acompte_montant_ttc !== null
@@ -607,7 +612,7 @@ export default function FactureDetailPage() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-hanken font-extrabold text-xl sm:text-2xl text-[#0f1a3a] tracking-[-0.025em]">
-                Facture <span className="font-spline-mono font-medium tracking-[0.5px]">{facture.numero}</span>
+                {facture.type === 'avoir' ? 'Avoir' : 'Facture'} <span className="font-spline-mono font-medium tracking-[0.5px]">{facture.numero}</span>
               </h1>
               <span className={`inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border ${statutStyle}`}>
                 {statutLabel}
@@ -652,6 +657,7 @@ export default function FactureDetailPage() {
               (les artisans ne connaissent pas "Factur-X"), icone distincte FileCheck2
               (conformite, pas un 2e "Download"), aria-label + infobulle rassurante,
               focus visible. Le bouton "Telecharger PDF" reste inchange. */}
+          {facture.type !== 'avoir' && (
           <button
             onClick={() => runWithLock('télécharger la facture électronique', handleDownloadFacturX)}
             disabled={downloadingFx}
@@ -663,10 +669,11 @@ export default function FactureDetailPage() {
             {downloadingFx ? <Loader2 size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
             {downloadingFx ? 'Génération...' : 'Facture électronique'}
           </button>
+          )}
           {/* E-facture : envoi electronique vers SUPER PDP. Ouvert a tous les
               artisans connectes. Desactive (avec explication) si le client de la
               facture n'est pas professionnel + SIRET (facturation electronique B2B). */}
-          {(
+          {facture.type !== 'avoir' && (
             facture.superpdp_invoice_id ? (
               <span
                 title={`Déjà envoyée en électronique (id ${facture.superpdp_invoice_id})`}
@@ -706,7 +713,7 @@ export default function FactureDetailPage() {
           >
             <Send size={14} /> Envoyer par email
           </button>
-          {!estVerrouillee ? (
+          {facture.type !== 'avoir' && (!estVerrouillee ? (
             <Link
               href={`/dashboard/factures/${facture.id}/modifier`}
               className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all"
@@ -722,8 +729,9 @@ export default function FactureDetailPage() {
             >
               <Pencil size={14} /> Modifier (verrouillée)
             </button>
-          )}
-          {facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+          ))}
+          {/* B4 : "Marquer payee" masque sur un avoir (un avoir ne s'encaisse pas). */}
+          {facture.type !== 'avoir' && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
             <button
               onClick={handleMarkPaid}
               disabled={updating}
@@ -732,8 +740,9 @@ export default function FactureDetailPage() {
               <CreditCard size={14} /> Marquer payée
             </button>
           )}
-          {/* V-AVOIR : creer un avoir (uniquement sur une facture emise non-avoir). */}
-          {facture.type !== 'avoir' && ['envoyee', 'partiellement_payee', 'payee', 'en_retard', 'En attente', 'Encaissée'].includes(facture.statut) && (
+          {/* V-AVOIR (Jerem) : creer un avoir possible TANT QUE le net > 0 (plusieurs
+              avoirs partiels enchainables). Quand net <= 0 : badge "Soldee par avoir". */}
+          {facture.type !== 'avoir' && ['envoyee', 'partiellement_payee', 'payee', 'en_retard', 'En attente', 'Encaissée'].includes(facture.statut) && netAvoir > 0.01 && (
             <button
               onClick={() => setAvoirModalOpen(true)}
               className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-red-200 bg-red-50 hover:bg-red-100 font-hanken text-[13.5px] font-semibold text-red-700 transition-colors"
@@ -742,7 +751,15 @@ export default function FactureDetailPage() {
               <RotateCcw size={14} /> Créer un avoir
             </button>
           )}
-          {(facture.statut === 'payee' || facture.statut === 'Encaissée') && (
+          {facture.type !== 'avoir' && avoirsLies.length > 0 && netAvoir <= 0.01 && (
+            <span
+              title="Cette facture est entierement creditee par un ou plusieurs avoirs."
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-purple-200 bg-purple-50 font-hanken text-[13.5px] font-semibold text-purple-700"
+            >
+              <RotateCcw size={14} /> Soldée par avoir
+            </span>
+          )}
+          {facture.type !== 'avoir' && (facture.statut === 'payee' || facture.statut === 'Encaissée') && (
             <button
               onClick={handleArchive}
               disabled={updating}
@@ -760,7 +777,7 @@ export default function FactureDetailPage() {
               <RotateCcw size={14} /> Désarchiver
             </button>
           )}
-          {facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+          {facture.type !== 'avoir' && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
             <button
               onClick={handleRelancerMaintenant}
               disabled={updating}
@@ -771,7 +788,7 @@ export default function FactureDetailPage() {
               <AlertTriangle size={14} /> {updating ? 'Envoi…' : 'Relancer maintenant'}
             </button>
           )}
-          {client && client.telephone && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+          {facture.type !== 'avoir' && client && client.telephone && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
             <RelanceSmsButton
               telephone={client.telephone}
               clientNom={[client.civilite, client.nom].filter(Boolean).join(' ')}
@@ -890,7 +907,8 @@ export default function FactureDetailPage() {
             </div>
           </div>
 
-          {/* Carte Paiements — barre de progression + récap + CTA orange */}
+          {/* Carte Paiements — barre de progression + récap + CTA orange. B4 : masquee sur un avoir. */}
+          {facture.type !== 'avoir' && (
           <div className="relative bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5 space-y-4 overflow-hidden shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
             <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
             <h3 className="font-hanken font-extrabold text-[13px] text-[#0f1a3a] uppercase tracking-wider">
@@ -940,6 +958,7 @@ export default function FactureDetailPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* V2.3 10/06/2026 — Timeline des relances envoyees pour cette facture.
               Lit la table `relances` (RLS user_id) et affiche un historique
@@ -1015,6 +1034,10 @@ export default function FactureDetailPage() {
             if (!estVerrouillee) {
               updateRow('factures', facture.id, { verrouillee_at: new Date().toISOString() }).catch(() => {})
             }
+            // I2 : un envoi email fait passer une facture/avoir 'brouillon' a 'envoyee'.
+            if (facture.statut === 'brouillon') {
+              updateRow('factures', facture.id, { statut: 'envoyee' }).catch(() => {})
+            }
             setTimeout(() => { setToastMsg(null); router.refresh() }, 2000)
           }}
         />
@@ -1072,7 +1095,7 @@ function PaymentModal({
     setSaving(true); setError(null)
     try {
       const newPaye = currentPaye + amount
-      const newStatut = newPaye >= totalTTC ? 'payee' : 'partielle'
+      const newStatut = newPaye >= totalTTC ? 'payee' : 'partiellement_payee'
       await updateRow('factures', factureId, {
         montant_paye: Math.min(newPaye, totalTTC),
         date_paiement: datePaiement,
