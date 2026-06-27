@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useClients, useEntreprise, useChantiers, usePrestations, insertRow } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
+import { creditDisponibleAvoir } from '@/lib/facture-net'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
 import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
@@ -138,6 +139,12 @@ export default function NouvelleFacturePage() {
   // sa premiere ligne / section via les boutons "+ Ligne" / "+ Section". Parite devis.
   const [lines, setLines] = useState<LineItem[]>([])
   const [globalTvaRate, setGlobalTvaRate] = useState(10)
+
+  // V2 imputation avoir — quand on choisit un client existant, on detecte ses
+  // avoirs "a valoir" avec credit dispo et on propose de les deduire.
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [avoirsDispo, setAvoirsDispo] = useState<Array<{ id: string; numero: string; creditDispo: number }>>([])
+  const [avoirChoisi, setAvoirChoisi] = useState<{ id: string; numero: string; creditDispo: number } | null>(null)
 
   // V3.1 : indique si la facture provient de la commande vocale (force brouillon)
   const [fromVoice, setFromVoice] = useState(false)
@@ -465,6 +472,9 @@ export default function NouvelleFacturePage() {
   // ── Client autocomplete ──
   const handleClientNomChange = (value: string) => {
     setClientNom(value)
+    // V2 imputation : si l'artisan retape le nom (donc s'eloigne du client choisi),
+    // on annule la detection d'avoir pour ne pas imputer le credit du mauvais client.
+    if (selectedClientId) { setSelectedClientId(null); setAvoirsDispo([]); setAvoirChoisi(null) }
     if (value.length >= 1 && clients && clients.length > 0) {
       const q = value.toLowerCase().trim()
       const filtered = clients.filter(c => {
@@ -498,6 +508,40 @@ export default function NouvelleFacturePage() {
     setClientEmail(c.email || '')
     setClientSuggestions([])
     setClientDropdownOpen(false)
+    // V2 imputation : on memorise l'id du client choisi et on detecte ses avoirs
+    // "a valoir" avec credit dispo (pour proposer une deduction).
+    setSelectedClientId(c.id)
+    detecterAvoirsAValoir(c.id)
+  }
+
+  // V2 imputation — detecte les avoirs "a valoir" du client avec credit restant.
+  // Filtrage STRICT par client_id (jamais par nom -> pas d'homonyme). FIFO (le plus
+  // ancien d'abord). Defensif : si la colonne n'existe pas, on n'affiche rien.
+  async function detecterAvoirsAValoir(clientId: string) {
+    setAvoirChoisi(null)
+    setAvoirsDispo([])
+    if (!clientId) return
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('factures')
+        .select('id, numero, montant_ttc, avoir_montant_impute, date_emission')
+        .eq('client_id', clientId)
+        .eq('type', 'avoir')
+        .eq('remboursement_statut', 'a_valoir')
+        .is('deleted_at', null)
+        .order('date_emission', { ascending: true })
+      const dispo = ((data as Array<Record<string, unknown>>) ?? [])
+        .map((a) => ({
+          id: a.id as string,
+          numero: (a.numero as string | null) ?? '',
+          creditDispo: creditDisponibleAvoir(Number(a.montant_ttc ?? 0), Number(a.avoir_montant_impute ?? 0)),
+        }))
+        .filter((a) => a.creditDispo > 0.01)
+      setAvoirsDispo(dispo)
+    } catch {
+      setAvoirsDispo([])
+    }
   }
 
   // ── Line operations ──
@@ -551,7 +595,12 @@ export default function NouvelleFacturePage() {
     ? (acompteMontantTTC > 0 ? acompteMontantTTC : totalTTC * (acomptePourcent / 100))
     : 0
   const acompteHTcalc = acompteActive && totalTTC > 0 ? totalHT * (acompteTTCcalc / totalTTC) : 0
-  const netAPayer = Math.max(totalTTC - acompteTTCcalc, 0)
+  // V2 imputation : montant reellement deductible = min(credit dispo de l'avoir,
+  // ce qui reste a payer apres acompte). On ne deduit jamais plus que le net.
+  const avoirImputeEffectif = avoirChoisi
+    ? Math.max(0, Math.min(avoirChoisi.creditDispo, Math.max(0, totalTTC - acompteTTCcalc)))
+    : 0
+  const netAPayer = Math.max(totalTTC - acompteTTCcalc - avoirImputeEffectif, 0)
 
   // ── Save ──
   const handleSave = useCallback(async (statut: 'brouillon' | 'envoyee') => {
@@ -585,9 +634,43 @@ export default function NouvelleFacturePage() {
         ? Math.max(devisTotalTTC - cumulPrecedentTTC - totalTTC, 0)
         : null
 
+      // V2 imputation — REVALIDATION au moment d'enregistrer (anti double-usage) :
+      // on relit le credit REELLEMENT dispo de l'avoir et on plafonne au net a payer.
+      // Si l'avoir a ete consomme/rembourse entre-temps, on n'impute rien (pas d'erreur).
+      let imputeId: string | null = null
+      let imputeNumero: string | null = null
+      let imputeMontant = 0
+      if (avoirChoisi && factureType !== 'avoir') {
+        try {
+          const sb = createClient()
+          // Plafond = ce qui reste a payer apres acompte. On ne debite jamais plus.
+          const cap = Math.max(0, totalTTC - acompteTTCcalc)
+          const demande = Math.round((Math.min(avoirChoisi.creditDispo, cap) + Number.EPSILON) * 100) / 100
+          if (demande > 0.01) {
+            // Debit ATOMIQUE cote base (garde anti double-usage + plafond dans le
+            // WHERE). Retourne le montant reellement debite (0 si avoir indisponible).
+            const { data: debite } = await sb.rpc('debiter_avoir_impute', { p_avoir_id: avoirChoisi.id, p_montant: demande })
+            const m = Number(debite ?? 0)
+            if (m > 0.01) {
+              imputeMontant = m
+              imputeId = avoirChoisi.id
+              imputeNumero = avoirChoisi.numero || null
+            }
+          }
+        } catch { imputeMontant = 0 }
+      }
+
+      // V2 imputation : si l'avoir couvre TOUT le net (et pas d'acompte), la facture
+      // est soldee sans cash -> on l'emet directement "payee" (sinon elle resterait
+      // "envoyee" non soldee a vie). montant_paye reste 0 (aucun cash encaisse).
+      const netApresImpute = Math.max(0, totalTTC - acompteTTCcalc - imputeMontant)
+      const statutFinal = (statut === 'envoyee' && !acompteActive && imputeMontant > 0.01 && netApresImpute <= 0.01)
+        ? 'payee'
+        : statut
+
       const factureData: Record<string, unknown> = {
         numero,
-        statut,
+        statut: statutFinal,
         // V3.0c.17 — Type de facture + champs specifiques situation
         type: factureType,
         // 2026-06-10 — Autoliquidation BTP (boolean, default false en DB).
@@ -616,11 +699,17 @@ export default function NouvelleFacturePage() {
         acompte_montant_ht: acompteActive ? acompteHTcalc || null : null,
         acompte_montant_ttc: acompteActive ? acompteTTCcalc || null : null,
         acompte_label: acompteActive ? (acompteLabel || null) : null,
+        // V2 imputation : avoir d'un autre dossier impute EN reglement (TTC reste plein).
+        avoir_impute_id: imputeId,
+        avoir_impute_numero: imputeNumero,
+        avoir_impute_montant: imputeMontant > 0.01 ? imputeMontant : null,
         notes_client: clientDisplay
           ? `${clientDisplay}${clientAdresse ? ` | ${clientAdresse}` : ''}${clientCodePostal || clientVille ? ` | ${clientCodePostal} ${clientVille}`.trim() : ''}${clientTelephone ? ` | ${clientTelephone}` : ''}${clientEmail ? ` | ${clientEmail}` : ''}`
           : null,
         client_nom: clientNom || null,
-        client_id: null,
+        // V2 imputation : on prefere l'id du client REELLEMENT choisi (anti-homonyme),
+        // sinon il sera resolu par nom plus bas.
+        client_id: selectedClientId ?? null,
         client_adresse: clientAdresse || null,
         montant_ht: totalHT,
         montant_tva: totalTVA,
@@ -658,15 +747,17 @@ export default function NouvelleFacturePage() {
             if (isPro) clientData.siret = clientSiret.trim() || null
 
             if (existingClient) {
-              factureData.client_id = existingClient.id
-              await supabase.from('clients').update(clientData).eq('id', existingClient.id)
+              // On garde l'id deja choisi (selectedClientId) s'il existe (anti-homonyme),
+              // sinon on prend celui resolu par nom. Dans les deux cas on met a jour la fiche.
+              if (!selectedClientId) factureData.client_id = existingClient.id
+              await supabase.from('clients').update(clientData).eq('id', (selectedClientId ?? existingClient.id) as string)
             } else {
               const { data: newClient } = await supabase
                 .from('clients')
                 .insert({ ...clientData, actif: true })
                 .select('id')
                 .single()
-              if (newClient) factureData.client_id = newClient.id
+              if (newClient && !selectedClientId) factureData.client_id = newClient.id
             }
           }
         } catch (err) { console.error('Erreur sauvegarde client:', err) }
@@ -675,6 +766,18 @@ export default function NouvelleFacturePage() {
       // 2026-06-10 — Code defensif : la colonne autoliquidation_btp peut etre
       // absente de la DB si la migration SQL n'a pas tourne (erreur Postgres 42703).
       // Dans ce cas on retire le champ et on retente, pour ne pas bloquer la creation.
+      // V2 imputation : le credit de l'avoir a deja ete DEBITE (atomiquement) plus
+      // haut. Si la creation de la facture echoue, on RE-CREDITE l'avoir pour ne
+      // jamais perdre le credit du client.
+      const rollbackImpute = async () => {
+        if (imputeId && imputeMontant > 0.01) {
+          try {
+            const sb = createClient()
+            await sb.rpc('recrediter_avoir_impute', { p_avoir_id: imputeId, p_montant: imputeMontant })
+          } catch (e) { console.error('Imputation avoir: rollback echoue', e) }
+        }
+      }
+
       let facture: unknown
       try {
         facture = await insertRow('factures', factureData)
@@ -684,8 +787,14 @@ export default function NouvelleFacturePage() {
         if (msg.includes('autoliquidation_btp') || code === '42703' || msg.includes('42703')) {
           const fallback = { ...factureData }
           delete fallback.autoliquidation_btp
-          facture = await insertRow('factures', fallback)
+          try {
+            facture = await insertRow('factures', fallback)
+          } catch (e2) {
+            await rollbackImpute()
+            throw e2
+          }
         } else {
+          await rollbackImpute()
           throw e
         }
       }
@@ -728,7 +837,7 @@ export default function NouvelleFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee, autoliquidationBtp])
+  }, [clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee, autoliquidationBtp, avoirChoisi, selectedClientId])
 
   return (
     <div className="min-h-screen">
@@ -1149,6 +1258,38 @@ export default function NouvelleFacturePage() {
                 />
                 <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="Email" className={inputCls} />
               </div>
+              {/* V2 imputation — bandeau : ce client a un avoir "a valoir" a deduire. */}
+              {avoirsDispo.length > 0 && (
+                <div className="mt-1 rounded-2xl border-[1.5px] border-[#bfe3f4] bg-[#eef8fd] p-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#d7eefa] text-[#1a6fb5] flex items-center justify-center font-extrabold flex-shrink-0">€</div>
+                    <div className="flex-1 min-w-0">
+                      {avoirChoisi ? (
+                        <>
+                          <p className="font-hanken text-sm font-bold text-[#0f1a3a]">Avoir {avoirChoisi.numero} déduit — {formatCurrency(avoirImputeEffectif)}</p>
+                          <p className="font-hanken text-[12.5px] text-gray-500 mt-0.5">La facture reste émise à son montant complet ; l&apos;avoir vient en déduction du montant à régler.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-hanken text-sm font-bold text-[#0f1a3a]">{clientPrenom ? `${clientPrenom} ` : ''}{clientNom} dispose d&apos;un avoir de {formatCurrency(avoirsDispo[0].creditDispo)} à valoir</p>
+                          <p className="font-hanken text-[12.5px] text-gray-500 mt-0.5">Le déduire de cette facture ? La facture reste à son montant complet, l&apos;avoir réduit le net à payer.{avoirsDispo.length > 1 ? ` (+${avoirsDispo.length - 1} autre${avoirsDispo.length - 1 > 1 ? 's' : ''})` : ''}</p>
+                        </>
+                      )}
+                    </div>
+                    {avoirChoisi ? (
+                      <button type="button" onClick={() => setAvoirChoisi(null)} className="text-[12.5px] text-gray-500 underline flex-shrink-0 mt-1">Annuler</button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setAvoirChoisi(avoirsDispo[0])}
+                        disabled={(totalTTC - acompteTTCcalc) <= 0.01}
+                        title={(totalTTC - acompteTTCcalc) <= 0.01 ? 'Ajoutez d’abord des lignes a la facture' : undefined}
+                        className="inline-flex items-center h-9 px-4 rounded-xl bg-gradient-to-br from-[#5ab4e0] to-[#7cc6e8] text-white font-hanken text-[13px] font-bold flex-shrink-0 shadow-[0_5px_14px_rgba(90,180,224,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >Déduire</button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1458,6 +1599,12 @@ export default function NouvelleFacturePage() {
               <div className="flex justify-between py-1.5 border-t border-gray-100 mt-0.5 pt-2">
                 <span className="font-hanken font-bold text-sm text-emerald-700">Acompte versé</span>
                 <span className="font-spline-mono font-medium text-[14px] text-emerald-700">- {formatCurrency(acompteTTCcalc)}</span>
+              </div>
+            )}
+            {avoirImputeEffectif > 0.01 && (
+              <div className="flex justify-between py-1.5 border-t border-gray-100 mt-0.5 pt-2">
+                <span className="font-hanken font-bold text-sm text-[#1a6fb5]">Avoir{avoirChoisi?.numero ? ` ${avoirChoisi.numero}` : ''} déduit</span>
+                <span className="font-spline-mono font-medium text-[14px] text-[#1a6fb5]">- {formatCurrency(avoirImputeEffectif)}</span>
               </div>
             )}
             <div className="bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-xl p-3.5 mt-3 flex justify-between items-center shadow-[0_8px_20px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)]">

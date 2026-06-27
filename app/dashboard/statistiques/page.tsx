@@ -156,18 +156,21 @@ export default function StatistiquesPage() {
 
     const impayees = facs.filter((f) => {
       const s = (f.statut as string) ?? "";
-      return (s === "en_retard" || s === "en_attente" || s === "partielle") && !estAvoir(f);
+      return (s === "en_retard" || s === "en_attente" || s === "partielle" || s === "partiellement_payee") && !estAvoir(f);
     });
     const montantImpaye = impayees.reduce((s, f) => {
       const ttc = (f.montant_ttc as number) ?? 0;
       const paye = (f.montant_paye as number) ?? 0;
-      return s + (ttc - paye);
+      // V2 imputation : la part reglee par un avoir impute n'est plus due.
+      const impute = (f.avoir_impute_montant as number) ?? 0;
+      return s + Math.max(0, ttc - paye - impute);
     }, 0);
     const facturesEnRetard = facs.filter((f) => (f.statut as string) === "en_retard").length;
 
     // V-AVOIR : le taux d'encaissement ne porte que sur les vraies factures.
+    // V2 imputation : un avoir impute solde la facture (sans cash) -> compte comme regle.
     const totalFacturesTTC = facs.filter((f) => !estAvoir(f)).reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0);
-    const totalPaye = facs.filter((f) => !estAvoir(f)).reduce((s, f) => s + ((f.montant_paye as number) ?? 0), 0);
+    const totalPaye = facs.filter((f) => !estAvoir(f)).reduce((s, f) => s + ((f.montant_paye as number) ?? 0) + ((f.avoir_impute_montant as number) ?? 0), 0);
     const tauxEncaissement = totalFacturesTTC > 0
       ? Math.round((totalPaye / totalFacturesTTC) * 100)
       : 0;

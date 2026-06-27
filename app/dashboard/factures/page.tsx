@@ -225,10 +225,25 @@ export default function FacturesListPage() {
   const retardList = facturesReelles.filter((f) => f.category === 'En retard')
   const retardHT = retardList.reduce((s, f) => s + (f.montantTtc - f.montantPaye - f.avoirImputeMontant), 0)
 
+  // V2 imputation — si la facture consommait un avoir, on REND le credit a l'avoir
+  // avant suppression (sinon le credit du client serait perdu). Best-effort.
+  async function rouvrirCreditAvoirSiImpute(factureId: string) {
+    const f = factures.find((x) => (x.id as string) === factureId) as Record<string, unknown> | undefined
+    const avId = (f?.avoir_impute_id as string | null | undefined) ?? null
+    const montant = Number(f?.avoir_impute_montant ?? 0)
+    if (avId && montant > 0.01) {
+      try {
+        const supabase = createClient()
+        await supabase.rpc('recrediter_avoir_impute', { p_avoir_id: avId, p_montant: montant })
+      } catch (e) { console.error('Reouverture credit avoir echouee', e) }
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!(await askConfirm({ title: 'Envoyer cette facture a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
     setDeleting(id)
     try {
+      await rouvrirCreditAvoirSiImpute(id)
       await softDeleteRow('factures', id)
       refetchF()
     } catch (err) {
@@ -261,6 +276,7 @@ export default function FacturesListPage() {
     setBulkDeleting(true)
     try {
       for (const id of Array.from(selected)) {
+        await rouvrirCreditAvoirSiImpute(id)
         await softDeleteRow('factures', id)
       }
       setSelected(new Set())
@@ -294,6 +310,8 @@ export default function FacturesListPage() {
         'type', 'facture_origine_id', 'facture_origine_numero',
         'facture_origine_date', 'remboursement_statut', 'rembourse_at',
         'rembourse_montant', 'rembourse_mode',
+        // V2 imputation : une copie ne doit jamais heriter d'une imputation d'avoir.
+        'avoir_impute_id', 'avoir_impute_numero', 'avoir_impute_montant', 'avoir_montant_impute',
       ])
       const newFacture: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(source)) {

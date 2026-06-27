@@ -177,7 +177,10 @@ export default function DashboardPage() {
   const totalAvoirsTTC = factures.filter(isAvoirF).reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0);
   const facturesPayees = facturesReelles.filter((f: Record<string, unknown>) => f.statut === 'payee');
   const caFacture = facturesReelles.reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0) - totalAvoirsTTC;
-  const caEncaisse = facturesPayees.reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0);
+  // V2 imputation : l'encaisse = CASH reel. Pour une facture soldee par un avoir
+  // impute, la part avoir n'est PAS du cash -> on la retire (sans regression : 0
+  // pour les factures normales). Rend aussi "reste a encaisser" juste.
+  const caEncaisse = facturesPayees.reduce((sum: number, f: Record<string, unknown>) => sum + (Number(f.montant_ttc || 0) - Number(f.avoir_impute_montant || 0)), 0);
   const resteAEncaisser = caFacture - caEncaisse;
   const facturesImpayees = facturesReelles.filter((f: Record<string, unknown>) => f.statut === 'en_retard' || f.statut === 'envoyee');
   const devisEnCours = devis.filter((d: Record<string, unknown>) => d.statut === 'envoye' || d.statut === 'brouillon');
