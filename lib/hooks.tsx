@@ -53,7 +53,7 @@ function useSupabaseQuery<T>(
 
     // Corbeille : par défaut on exclut les éléments supprimés
     // Les tables avec deleted_at : devis, factures, intervenants (D3 - 2026-06-08)
-    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants', 'factures_recues', 'documents_types', 'documents_stockes']
+    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants', 'factures_recues', 'documents_types', 'documents_stockes', 'certifications']
     if (SOFT_DELETE_TABLES.includes(table)) {
       if (options?.includeDeleted) {
         // Mode corbeille : uniquement les supprimés
@@ -609,6 +609,9 @@ function useDeletedDocumentsTypes() { return useSupabaseQuery<Row>('documents_ty
 // Coffre-fort (Vague 2b) — fichiers televerses par l'artisan (RIB, decennale, Kbis...).
 function useDocumentsStockes() { return useSupabaseQuery<Row>('documents_stockes', { orderBy: 'created_at' }) }
 function useDeletedDocumentsStockes() { return useSupabaseQuery<Row>('documents_stockes', { orderBy: 'created_at', includeDeleted: true }) }
+// Certifications & assurances (Vague 3a) — RGE, Qualibat, decennale, RC pro... Soft delete via deleted_at.
+function useCertifications() { return useSupabaseQuery<Row>('certifications', { orderBy: 'created_at' }) }
+function useDeletedCertifications() { return useSupabaseQuery<Row>('certifications', { orderBy: 'created_at', includeDeleted: true }) }
 // Factures RECUES (reception e-facture). Tri par date d'emission decroissante.
 function useFacturesRecues() { return useSupabaseQuery<Row>('factures_recues', { orderBy: 'date_emission' }) }
 function usePaiements() { return useSupabaseQuery<Row>('paiements', { orderBy: 'date_paiement' }) }
@@ -731,6 +734,8 @@ export {
   useDeletedDocumentsTypes,
   useDocumentsStockes,
   useDeletedDocumentsStockes,
+  useCertifications,
+  useDeletedCertifications,
   useFacturesRecues,
   usePaiements,
   usePlanning,
