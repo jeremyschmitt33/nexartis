@@ -28,6 +28,43 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }
 
+// =====================================================================
+// V2 SUIVI REMBOURSEMENT — SOURCE UNIQUE du calcul "montant a rembourser".
+// =====================================================================
+// Utilisee a 4 endroits (creation d'avoir, page detail, accueil, liste) pour
+// garantir EXACTEMENT le meme chiffre partout. Ne jamais redupliquer ce calcul.
+//
+// Idee : quand un client a deja paye sa facture et qu'on emet un avoir, on lui
+// doit le trop-percu. Au niveau de la facture d'ORIGINE :
+//   trop-percu (pool) = max(0, montant_paye + total des avoirs emis - TTC origine)
+// Exemples (TTC origine = 1000) :
+//   paye 1000, avoir 480           -> pool = max(0, 1000+480-1000) = 480 (tout du)
+//   paye    0, avoir 480           -> pool = max(0,    0+480-1000) = 0   (rien : l'avoir reduit juste le solde du)
+//   paye  600, avoir 480           -> pool = max(0,  600+480-1000) = 80  (seul le trop-percu est du)
+// Pour UN avoir donne, on n'affiche jamais plus que son propre montant TTC :
+//   a rembourser pour cet avoir = min(montant TTC de l'avoir, pool)
+// NB : dans le cas rare [paiement partiel ET plusieurs avoirs], la somme des
+//   "a rembourser" affiches par avoir peut depasser le pool reel (chaque avoir
+//   est plafonne a son propre TTC, pas a une part du pool). On accepte ce leger
+//   sur-affichage (jamais de sous-estimation = on ne cache jamais une dette).
+export function poolRemboursementOrigine(
+  montantPaye: number,
+  totalAvoirsTtc: number,
+  origineTtc: number,
+): number {
+  return round2(Math.max(0, round2(montantPaye) + round2(totalAvoirsTtc) - round2(origineTtc)))
+}
+
+export function montantRemboursementAvoir(
+  avoirTtc: number,
+  montantPayeOrigine: number,
+  totalAvoirsTtc: number,
+  origineTtc: number,
+): number {
+  const pool = poolRemboursementOrigine(montantPayeOrigine, totalAvoirsTtc, origineTtc)
+  return round2(Math.min(round2(Math.max(0, avoirTtc)), pool))
+}
+
 function fmtEur(n: number): string {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
@@ -235,7 +272,20 @@ export async function creerAvoir(
   // 4) INSERT facture d'avoir (numero AV genere par le trigger).
   const dateOrigineFr = fmtDateFr(o.date_emission as string | null)
   const today = new Date().toISOString().slice(0, 10)
-  const remboursementStatut = statut === 'payee' || statut === 'Encaissee' ? 'a_rembourser' : 'non_du'
+  // V2 SUIVI REMBOURSEMENT — un avoir est "a rembourser" si le client a deja paye
+  // PLUS que ce qu'il doit reellement une fois l'avoir applique. Regle au centime :
+  //   montant a rembourser = max(0, montant_paye + total avoirs - TTC origine).
+  // Avantages vs l'ancienne version (statut === 'payee' || 'Encaissee') :
+  //   - robuste : ne depend plus de la chaine de statut (l'ancien 'Encaissee' sans
+  //     accent ne matchait jamais ; seul 'payee' est stocke en base) ;
+  //   - gere le paiement PARTIEL (un acompte superieur au net du genere un avoir
+  //     a rembourser des la creation) ;
+  //   - coherent avec le trigger SQL propagate_avoir_remboursement qui prend le
+  //     relais si la facture d'origine est payee APRES la creation de l'avoir.
+  const montantPayeOrigine = round2(Number(o.montant_paye ?? 0))
+  const totalAvoirsApres = round2(dejaAvoirise + montantTtcDemande)
+  const refundDu = poolRemboursementOrigine(montantPayeOrigine, totalAvoirsApres, origineTtc)
+  const remboursementStatut = refundDu > 0.01 ? 'a_rembourser' : 'non_du'
 
   const insertPayload: Record<string, unknown> = {
     type: 'avoir',

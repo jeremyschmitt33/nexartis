@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useDevis, useFactures, usePlanning, useChantiers, useClients, useIntervenants, useEntreprise, useChantierNotes, LoadingSkeleton } from "@/lib/hooks";
 import { createClient } from "@/lib/supabase/client";
+import { montantRemboursementAvoir } from "@/lib/avoir";
 import { InfoBanner, HelpTooltip } from "@/components/ui/v4";
 import RappelsSection from "@/components/dashboard/RappelsSection";
 import DecennaleBanner from "@/components/dashboard/DecennaleBanner";
@@ -349,6 +350,46 @@ export default function DashboardPage() {
       tag: 'Voir', tagBg: '#fef2f2', tagColor: '#ef4444',
       href: `/dashboard/factures/${f.id}`,
       actionHref: `/dashboard/factures/${f.id}`,
+    });
+  }
+
+  // V2 SUIVI REMBOURSEMENT — avoirs a rembourser au client (facture deja payee).
+  // On ne remonte QUE les avoirs EMIS (verrouillee_at non nul) et non encore soldes
+  // (remboursement_statut = 'a_rembourser'). Le montant exact est calcule avec le
+  // helper unique montantRemboursementAvoir : il depend de la facture d'origine
+  // (un paiement partiel reduit le trop-percu) et de tous les avoirs lies.
+  const facturesById = new Map<string, Record<string, unknown>>();
+  for (const f of factures) facturesById.set(f.id as string, f as Record<string, unknown>);
+  const totalAvoirsParOrigine = new Map<string, number>();
+  for (const f of factures) {
+    if ((f.type as string | null) === 'avoir' && f.facture_origine_id) {
+      const k = f.facture_origine_id as string;
+      totalAvoirsParOrigine.set(k, (totalAvoirsParOrigine.get(k) ?? 0) + Number(f.montant_ttc ?? 0));
+    }
+  }
+  const avoirsARembourser = factures.filter((f: Record<string, unknown>) =>
+    (f.type as string | null) === 'avoir' &&
+    f.remboursement_statut === 'a_rembourser' &&
+    !!f.verrouillee_at
+  );
+  for (const a of avoirsARembourser) {
+    const origineId = a.facture_origine_id as string | null;
+    const origine = origineId ? facturesById.get(origineId) : undefined;
+    const origTtc = Number(origine?.montant_ttc ?? 0);
+    const origPaye = Number(origine?.montant_paye ?? 0);
+    const totalAv = origineId
+      ? (totalAvoirsParOrigine.get(origineId) ?? Number(a.montant_ttc ?? 0))
+      : Number(a.montant_ttc ?? 0);
+    const montant = montantRemboursementAvoir(Number(a.montant_ttc ?? 0), origPaye, totalAv, origTtc);
+    const cName = clientName(a.client_id) || (a.client_nom as string) || '';
+    todoItems.push({
+      title: `Avoir ${a.numero} — à rembourser`,
+      desc: `${cName}${a.facture_origine_numero ? ` · sur ${a.facture_origine_numero}` : ''}`,
+      amount: montant > 0 ? formatEuro(montant) : '',
+      dotColor: '#b45309', amountColor: '#b45309',
+      tag: 'Rembourser', tagBg: '#fffbeb', tagColor: '#b45309',
+      href: `/dashboard/factures/${a.id}`,
+      actionHref: `/dashboard/factures/${a.id}`,
     });
   }
 

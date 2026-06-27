@@ -280,6 +280,7 @@ export default function FacturesListPage() {
         // doit redevenir une facture standard propre (jamais un avoir AV- malforme).
         'type', 'facture_origine_id', 'facture_origine_numero',
         'facture_origine_date', 'remboursement_statut', 'rembourse_at',
+        'rembourse_montant', 'rembourse_mode',
       ])
       const newFacture: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(source)) {
@@ -557,6 +558,17 @@ export default function FacturesListPage() {
                     {String(facture.numero || '')}
                   </span>
                   <FactureTypeBadge facture={facture} />
+                  {/* V2 SUIVI REMBOURSEMENT — etat du remboursement sur la ligne avoir.
+                      "A rembourser" seulement si l'avoir est emis (verrouille). */}
+                  {(facture.type as string | null) === 'avoir' && facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
+                    <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-200/70">À rembourser</span>
+                  )}
+                  {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'rembourse' && (
+                    <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-700 border-emerald-200/70">Remboursé</span>
+                  )}
+                  {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'a_valoir' && (
+                    <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200/70">À valoir</span>
+                  )}
                   <OrigineAvoirBadge facture={facture} avoirInfo={avoirsByOrigine.get(facture.id as string)} />
                   <span className="font-spline-mono text-[11px] text-gray-400">
                     {formatDate((facture.date_emission || facture.created_at) as string | null)}
@@ -628,6 +640,16 @@ export default function FacturesListPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-spline-mono font-medium text-[13px] tracking-[0.5px] text-[#0f1a3a]">{(facture.numero as string) ?? '\u2014'}</span>
                       <FactureTypeBadge facture={facture} />
+                      {/* V2 SUIVI REMBOURSEMENT \u2014 etat du remboursement (vue desktop, parite mobile). */}
+                      {(facture.type as string | null) === 'avoir' && facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
+                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-200/70">\u00c0 rembourser</span>
+                      )}
+                      {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'rembourse' && (
+                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-700 border-emerald-200/70">Rembours\u00e9</span>
+                      )}
+                      {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'a_valoir' && (
+                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200/70">\u00c0 valoir</span>
+                      )}
                       <OrigineAvoirBadge facture={facture} avoirInfo={avoirsByOrigine.get(facture.id as string)} />
                     </div>
                   </td>

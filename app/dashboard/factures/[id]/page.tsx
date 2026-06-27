@@ -44,6 +44,17 @@ import {
   updateRow,
   LoadingSkeleton,
 } from '@/lib/hooks'
+import { montantRemboursementAvoir } from '@/lib/avoir'
+
+// V2 SUIVI REMBOURSEMENT — libelles humains des modes de solde d'un avoir.
+const REMB_MODE_LABEL: Record<string, string> = {
+  virement: 'Virement',
+  cheque: 'Chèque',
+  especes: 'Espèces',
+  cb: 'Carte bancaire',
+  a_valoir: 'À valoir',
+  autre: 'Autre',
+}
 
 interface FactureRecord {
   id: string
@@ -89,6 +100,10 @@ interface FactureRecord {
   facture_origine_numero?: string | null
   facture_origine_date?: string | null
   remboursement_statut?: string | null
+  // V2 suivi remboursement avoir : trace date + montant + mode du solde.
+  rembourse_at?: string | null
+  rembourse_montant?: number | null
+  rembourse_mode?: string | null
   // 2026-06-10 — Autoliquidation BTP (sous-traitance). Nullable car la migration
   // SQL peut ne pas etre encore executee en BDD (colonne absente → undefined).
   autoliquidation_btp?: boolean | null
@@ -172,8 +187,12 @@ export default function FactureDetailPage() {
   const [sendModalOpen, setSendModalOpen] = useState(false)
   // V-AVOIR : ouverture de la modale "Creer un avoir".
   const [avoirModalOpen, setAvoirModalOpen] = useState(false)
+  // V2 SUIVI REMBOURSEMENT — modale de solde + montant exact a rembourser (calcule
+  // depuis la facture d'origine, car un paiement partiel reduit le trop-percu).
+  const [solderModalOpen, setSolderModalOpen] = useState(false)
+  const [montantARembourser, setMontantARembourser] = useState<number | null>(null)
   // V-AVOIR : avoirs lies a cette facture (pour le badge "Avoir AV-...").
-  const [avoirsLies, setAvoirsLies] = useState<Array<{ id: string; numero: string | null; montant_ttc: number }>>([])
+  const [avoirsLies, setAvoirsLies] = useState<Array<{ id: string; numero: string | null; montant_ttc: number; remboursement_statut?: string | null; verrouillee_at?: string | null }>>([])
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   // Verrouillage : confirmation (cadre jaune) avant toute action de transmission.
   // poseVerrouAuConfirm = true pour download/electronique (verrou pose au "Continuer"),
@@ -197,7 +216,7 @@ export default function FactureDetailPage() {
         const supabase = createClient()
         const { data } = await supabase
           .from('factures')
-          .select('id, numero, montant_ttc')
+          .select('id, numero, montant_ttc, remboursement_statut, verrouillee_at')
           .eq('facture_origine_id', id)
           .eq('type', 'avoir')
           .is('deleted_at', null)
@@ -207,6 +226,8 @@ export default function FactureDetailPage() {
               id: a.id as string,
               numero: (a.numero as string | null) ?? null,
               montant_ttc: Number(a.montant_ttc ?? 0),
+              remboursement_statut: (a.remboursement_statut as string | null) ?? null,
+              verrouillee_at: (a.verrouillee_at as string | null) ?? null,
             })),
           )
         }
@@ -217,6 +238,53 @@ export default function FactureDetailPage() {
     load()
     return () => { active = false }
   }, [id])
+
+  // V2 SUIVI REMBOURSEMENT — si on regarde un AVOIR, calcule le montant EXACT a
+  // rembourser au client. Il depend de la facture d'ORIGINE (montant paye) et de
+  // TOUS les avoirs lies : on charge donc l'origine + ses avoirs, puis on applique
+  // le helper unique montantRemboursementAvoir (cf. lib/avoir.ts).
+  useEffect(() => {
+    let active = true
+    async function load() {
+      const f = facture
+      if (!f || f.type !== 'avoir' || !f.facture_origine_id) {
+        if (active) setMontantARembourser(null)
+        return
+      }
+      try {
+        const supabase = createClient()
+        const [{ data: orig }, { data: freres }] = await Promise.all([
+          supabase
+            .from('factures')
+            .select('montant_ttc, montant_paye')
+            .eq('id', f.facture_origine_id)
+            .is('deleted_at', null)
+            .maybeSingle(),
+          supabase
+            .from('factures')
+            .select('montant_ttc')
+            .eq('facture_origine_id', f.facture_origine_id)
+            .eq('type', 'avoir')
+            .is('deleted_at', null),
+        ])
+        const origTtc = Number((orig as Record<string, unknown> | null)?.montant_ttc ?? 0)
+        const origPaye = Number((orig as Record<string, unknown> | null)?.montant_paye ?? 0)
+        const totalAvoirs = ((freres as Array<Record<string, unknown>>) ?? []).reduce(
+          (s, a) => s + Number(a.montant_ttc ?? 0),
+          0,
+        )
+        const montant = montantRemboursementAvoir(Number(f.montant_ttc ?? 0), origPaye, totalAvoirs, origTtc)
+        if (active) setMontantARembourser(montant)
+      } catch {
+        if (active) setMontantARembourser(null)
+      }
+    }
+    load()
+    return () => { active = false }
+    // Deps primitives (pas l'objet facture) pour eviter toute boucle de re-render
+    // si le hook renvoie une nouvelle reference a chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facture?.id, facture?.type, facture?.facture_origine_id, facture?.montant_ttc])
 
   // V3.0d : telechargement PDF cross-platform via helper lib/download-pdf.ts.
   //   - iOS Safari : ouvre dans nouvel onglet + toast d'aide (Partager -> Fichiers).
@@ -341,6 +409,28 @@ export default function FactureDetailPage() {
     try {
       await updateRow('factures', facture.id, { statut: 'archivee', archivee: true })
       setToastMsg('Facture archivée !')
+      setTimeout(() => setToastMsg(null), 3000)
+      router.refresh()
+    } catch (err) {
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
+    } finally { setUpdating(false) }
+  }
+
+  // V2 SUIVI REMBOURSEMENT — annule un solde enregistre par erreur : l'avoir
+  // repasse "a rembourser" et les champs de trace sont vides. Action reversible,
+  // protegee par une simple confirmation.
+  async function handleAnnulerRemboursement() {
+    if (!facture || updating) return
+    if (!window.confirm("Annuler le solde de cet avoir ? Il repassera en « à rembourser ».")) return
+    setUpdating(true)
+    try {
+      await updateRow('factures', facture.id, {
+        remboursement_statut: 'a_rembourser',
+        rembourse_at: null,
+        rembourse_montant: null,
+        rembourse_mode: null,
+      })
+      setToastMsg('Solde annulé : avoir de nouveau à rembourser.')
       setTimeout(() => setToastMsg(null), 3000)
       router.refresh()
     } catch (err) {
@@ -623,6 +713,25 @@ export default function FactureDetailPage() {
                   Avoir{facture.facture_origine_numero ? ` · sur ${facture.facture_origine_numero}` : ''}
                 </span>
               )}
+              {/* V2 SUIVI REMBOURSEMENT — etat du remboursement. Le badge "a rembourser"
+                  n'apparait que sur un avoir EMIS (verrouille) : un brouillon n'est pas
+                  encore une obligation. Les etats "rembourse"/"a valoir" s'affichent
+                  toujours (memoire de ce qui a ete fait). */}
+              {facture.type === 'avoir' && facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
+                <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-200/70">
+                  À rembourser{montantARembourser != null && montantARembourser > 0 ? ` · ${fmt(montantARembourser)}` : ''}
+                </span>
+              )}
+              {facture.type === 'avoir' && facture.remboursement_statut === 'rembourse' && (
+                <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200/70">
+                  Remboursé{facture.rembourse_at ? ` le ${formatDate(facture.rembourse_at)}` : ''}{facture.rembourse_mode && facture.rembourse_mode !== 'a_valoir' ? ` · ${REMB_MODE_LABEL[facture.rembourse_mode] ?? facture.rembourse_mode}` : ''}
+                </span>
+              )}
+              {facture.type === 'avoir' && facture.remboursement_statut === 'a_valoir' && (
+                <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-blue-50 text-blue-700 border-blue-200/70">
+                  À valoir · déduit d&apos;une prochaine facture
+                </span>
+              )}
               {/* V-AVOIR : si la facture a des avoirs lies, badge "Avoir AV-...". */}
               {facture.type !== 'avoir' && avoirsLies.length > 0 && (() => {
                 const totalAvoir = avoirsLies.reduce((s2, a) => s2 + a.montant_ttc, 0)
@@ -636,6 +745,22 @@ export default function FactureDetailPage() {
                     className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200/70 hover:bg-purple-100 transition-colors"
                   >
                     {soldee ? 'Soldée par avoir' : `Avoir ${first.numero ?? ''}`}
+                  </Link>
+                )
+              })()}
+              {/* V2 SUIVI REMBOURSEMENT — rappel sur la facture d'ORIGINE : un ou
+                  plusieurs avoirs emis restent a rembourser au client. */}
+              {facture.type !== 'avoir' && (() => {
+                const aRembourser = avoirsLies.filter((a) => a.remboursement_statut === 'a_rembourser' && a.verrouillee_at)
+                if (aRembourser.length === 0) return null
+                const first = aRembourser[0]
+                return (
+                  <Link
+                    href={`/dashboard/factures/${first.id}`}
+                    title={aRembourser.map((a) => a.numero).filter(Boolean).join(', ')}
+                    className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-amber-50 text-amber-800 border-amber-200/70 hover:bg-amber-100 transition-colors"
+                  >
+                    {aRembourser.length > 1 ? `${aRembourser.length} avoirs à rembourser` : 'Avoir à rembourser'}
                   </Link>
                 )
               })()}
@@ -738,6 +863,29 @@ export default function FactureDetailPage() {
               className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 hover:bg-emerald-100 font-hanken text-[13.5px] font-semibold text-emerald-700 transition-colors disabled:opacity-50"
             >
               <CreditCard size={14} /> Marquer payée
+            </button>
+          )}
+          {/* V2 SUIVI REMBOURSEMENT — "Solder l'avoir" : enregistre le remboursement
+              (ou la mise a valoir). Visible UNIQUEMENT sur un avoir EMIS encore a
+              rembourser. Occupe la place du "Marquer payee" (masque sur un avoir). */}
+          {facture.type === 'avoir' && facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
+            <button
+              onClick={() => setSolderModalOpen(true)}
+              disabled={updating}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 hover:bg-emerald-100 font-hanken text-[13.5px] font-semibold text-emerald-700 transition-colors disabled:opacity-50"
+              aria-label="Solder l'avoir : enregistrer le remboursement au client"
+            >
+              <CreditCard size={14} /> Solder l&apos;avoir
+            </button>
+          )}
+          {facture.type === 'avoir' && (facture.remboursement_statut === 'rembourse' || facture.remboursement_statut === 'a_valoir') && (
+            <button
+              onClick={handleAnnulerRemboursement}
+              disabled={updating}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-gray-600 transition-colors disabled:opacity-50"
+              aria-label="Annuler le solde enregistre pour cet avoir"
+            >
+              <RotateCcw size={14} /> Annuler le solde
             </button>
           )}
           {/* V-AVOIR (Jerem) : creer un avoir possible TANT QUE le net > 0 (plusieurs
@@ -1074,6 +1222,21 @@ export default function FactureDetailPage() {
           }}
         />
       )}
+
+      {solderModalOpen && facture && (
+        <SolderAvoirModal
+          numero={facture.numero}
+          montantDefaut={montantARembourser != null && montantARembourser > 0 ? montantARembourser : (facture.montant_ttc ?? 0)}
+          factureId={facture.id}
+          onClose={() => setSolderModalOpen(false)}
+          onSuccess={() => {
+            setSolderModalOpen(false)
+            setToastMsg('Avoir soldé !')
+            setTimeout(() => setToastMsg(null), 3000)
+            router.refresh()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -1193,6 +1356,138 @@ function PaymentModal({
             className="h-10 px-6 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 transition-all"
           >
             {saving ? 'Enregistrement...' : 'Confirmer le paiement'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// V2 SUIVI REMBOURSEMENT — modale "Solder l'avoir". Clone de PaymentModal (meme
+// look, meme ergonomie connue de l'artisan). Enregistre date + montant + mode du
+// remboursement. Le mode "a_valoir" = avoir deduit d'une prochaine facture (aucun
+// argent rendu) -> statut 'a_valoir' ; tous les autres modes -> statut 'rembourse'.
+function SolderAvoirModal({
+  numero, montantDefaut, factureId, onClose, onSuccess,
+}: {
+  numero: string; montantDefaut: number; factureId: string; onClose: () => void; onSuccess: () => void
+}) {
+  const [montant, setMontant] = useState((montantDefaut || 0).toFixed(2))
+  const [dateRemb, setDateRemb] = useState(new Date().toISOString().split('T')[0])
+  const [mode, setMode] = useState('virement')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const aValoir = mode === 'a_valoir'
+
+  const handleConfirm = async () => {
+    const amount = parseFloat(montant)
+    if (isNaN(amount) || amount <= 0) { setError('Montant invalide'); return }
+    setSaving(true); setError(null)
+    try {
+      await updateRow('factures', factureId, {
+        remboursement_statut: aValoir ? 'a_valoir' : 'rembourse',
+        rembourse_at: new Date(dateRemb).toISOString(),
+        rembourse_montant: amount,
+        rembourse_mode: mode,
+      })
+      onSuccess()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur')
+      setSaving(false)
+    }
+  }
+
+  const fmtLocal = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="relative bg-white rounded-3xl w-full max-w-md mx-4 p-8 overflow-hidden shadow-2xl border border-[#0f1a3a]/[0.06]">
+        <div aria-hidden className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#ff7a1a] via-[#ff9d4d] to-[#ff7a1a] opacity-90" />
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-hanken font-extrabold text-xl text-[#0f1a3a] tracking-[-0.025em]">
+            Solder l&apos;avoir {numero}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-[#fafbfc] rounded-lg transition-colors"
+            aria-label="Fermer"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+        {/* Rappel du montant a rembourser */}
+        <div className="mb-5 p-3.5 bg-[#fafbfc] rounded-xl border border-gray-200">
+          <div className="flex justify-between items-center">
+            <span className="font-hanken text-sm text-gray-500">Montant à rembourser</span>
+            <span className="font-spline-mono font-medium text-[15px] text-[#0f1a3a]">{fmtLocal(montantDefaut || 0)}</span>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Montant remboursé
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={montant}
+              onChange={(e) => setMontant(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200"
+            />
+          </div>
+          <div>
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Date du remboursement
+            </label>
+            <input
+              type="date"
+              value={dateRemb}
+              onChange={(e) => setDateRemb(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-spline-mono font-medium text-[14.5px] text-[#0f1a3a] focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200"
+            />
+          </div>
+          <div>
+            <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">
+              Mode de remboursement
+            </label>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] cursor-pointer focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200"
+            >
+              <option value="virement">Virement</option>
+              <option value="cheque">Chèque</option>
+              <option value="especes">Espèces</option>
+              <option value="cb">Carte bancaire</option>
+              <option value="a_valoir">À valoir sur une prochaine facture</option>
+              <option value="autre">Autre</option>
+            </select>
+            {aValoir && (
+              <p className="mt-2 font-hanken text-[12.5px] leading-snug text-blue-700 bg-blue-50 border border-blue-200/70 rounded-lg px-3 py-2">
+                « À valoir » : aucun argent rendu maintenant. Vous déduirez ce montant d&apos;une prochaine facture du client.
+              </p>
+            )}
+          </div>
+        </div>
+        {error && (
+          <div className="mt-4 bg-red-50/80 border border-red-200/70 rounded-xl px-4 py-3">
+            <p className="font-hanken text-sm text-red-700">{error}</p>
+          </div>
+        )}
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="h-10 px-6 rounded-xl border-[1.5px] border-gray-200 bg-white hover:border-[#ff7a1a] hover:bg-[#fafbfc] font-hanken text-[13.5px] font-semibold text-[#0f1a3a] transition-all"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving}
+            className="h-10 px-6 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 transition-all"
+          >
+            {saving ? 'Enregistrement...' : (aValoir ? 'Marquer à valoir' : 'Confirmer le remboursement')}
           </button>
         </div>
       </div>
