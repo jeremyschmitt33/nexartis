@@ -778,6 +778,13 @@ export default function FactureDetailPage() {
                   </Link>
                 )
               })()}
+              {/* V2 IMPUTATION — cette facture est (en partie) reglee par un avoir
+                  client impute. Badge indigo distinct (different d'un avoir emis SUR elle). */}
+              {facture.type !== 'avoir' && (facture.avoir_impute_montant ?? 0) > 0.01 && (
+                <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-indigo-50 text-indigo-700 border-indigo-200/70">
+                  Réglé avec avoir{facture.avoir_impute_numero ? ` ${facture.avoir_impute_numero}` : ''} · {fmt(avoirImpute)}
+                </span>
+              )}
             </div>
             <p className="font-hanken text-sm text-gray-500 mt-1">{resolvedClientName}</p>
           </div>

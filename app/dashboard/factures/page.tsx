@@ -150,7 +150,7 @@ export default function FacturesListPage() {
     return m
   }, [factures])
 
-  type EnrichedFacture = Record<string, unknown> & { paidPercent: number; avoirPct: number; avoirImputeMontant: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
+  type EnrichedFacture = Record<string, unknown> & { paidPercent: number; avoirPct: number; imputePct: number; avoirImputeMontant: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
   // enriched m\u00e9mo\u00efs\u00e9 : map co\u00fbteuse sur toutes les factures, recalcul\u00e9e
   // uniquement quand `factures`, `clientMap` ou `avoirsByOrigine` changent.
   const enriched: EnrichedFacture[] = useMemo(() => factures.map((f) => {
@@ -179,10 +179,18 @@ export default function FacturesListPage() {
     }
     // V2 imputation : avoir d'un AUTRE dossier impute EN reglement de cette
     // facture (distinct des avoirs emis SUR elle). Reduit le net du, pas le TTC.
+    // Segment de barre INDIGO distinct du violet (avoir emis), empile apres paye
+    // et avoir emis, plafonne pour ne pas depasser 100%.
     const avoirImputeMontant = (f.avoir_impute_montant as number) ?? 0
+    let imputePct = 0
+    if ((f.type as string | null) !== 'avoir' && avoirImputeMontant > 0) {
+      const restant = Math.max(0, montantTtc - montantPaye - (montantTtc * avoirPct) / 100)
+      const imputeEffectif = Math.min(avoirImputeMontant, restant)
+      imputePct = montantTtc > 0 ? Math.round((imputeEffectif / montantTtc) * 100) : 0
+    }
     const typeF = getFactureTypeFilter(f)
     const clientName = clientMap.get(f.client_id as string) || (f.client_nom as string) || (f.notes_client as string)?.split(' | ')[0]?.trim() || '\u2014'
-    return { ...f, paidPercent, avoirPct, avoirImputeMontant, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
+    return { ...f, paidPercent, avoirPct, imputePct, avoirImputeMontant, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
   }), [factures, clientMap, avoirsByOrigine])
 
   // filtered m\u00e9mo\u00efs\u00e9 : ne refiltre que si enriched/recherche/filtres changent.
@@ -569,16 +577,18 @@ export default function FacturesListPage() {
                   {(facture.type as string | null) === 'avoir' ? (
                     <span className="flex-1 font-spline-mono text-[11px] text-gray-400">Avoir (NET A CREDITER)</span>
                   ) : (() => {
-                    // V2 BARRE CUMULEE — vert/orange "paye" + violet "regle par avoir".
+                    // V2 BARRE CUMULEE — vert/orange "paye" + violet "avoir emis" + indigo "avoir client impute".
                     const paidPct = Math.max(0, Math.min(100, facture.paidPercent))
                     const avPct = Math.max(0, Math.min(100 - paidPct, facture.avoirPct))
+                    const impPct = Math.max(0, Math.min(100 - paidPct - avPct, facture.imputePct))
                     return (
                       <>
                         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
                           {paidPct > 0 && <div className="h-full transition-all" style={{ width: `${paidPct}%`, background: paidColor }} title="Payé" />}
-                          {avPct > 0 && <div className="h-full bg-purple-400 transition-all" style={{ width: `${avPct}%` }} title="Réglé par avoir" />}
+                          {avPct > 0 && <div className="h-full bg-purple-400 transition-all" style={{ width: `${avPct}%` }} title="Réglé par avoir émis" />}
+                          {impPct > 0 && <div className="h-full bg-indigo-400 transition-all" style={{ width: `${impPct}%` }} title="Réglé avec un avoir client" />}
                         </div>
-                        <span className="font-spline-mono text-[11px] text-gray-500">{Math.min(100, paidPct + avPct)}%</span>
+                        <span className="font-spline-mono text-[11px] text-gray-500">{Math.min(100, paidPct + avPct + impPct)}%</span>
                       </>
                     )
                   })()}
@@ -690,7 +700,7 @@ export default function FacturesListPage() {
                       <OrigineAvoirBadge facture={facture} avoirInfo={avoirsByOrigine.get(facture.id as string)} />
                     </div>
                   </td>
-                  <td className="px-4 py-3">{(facture.type as string | null) === 'avoir' ? (<span className="font-spline-mono text-[12px] text-gray-400">{'\u2014'}</span>) : (<PaymentBar percent={facture.paidPercent} avoirPercent={facture.avoirPct} restant={restantLabel} retard={retardLabel} />)}</td>
+                  <td className="px-4 py-3">{(facture.type as string | null) === 'avoir' ? (<span className="font-spline-mono text-[12px] text-gray-400">{'\u2014'}</span>) : (<PaymentBar percent={facture.paidPercent} avoirPercent={facture.avoirPct} imputePercent={facture.imputePct} restant={restantLabel} retard={retardLabel} />)}</td>
                   <td className="px-4 py-3">
                     <div className="font-hanken text-[14px] font-semibold text-[#0f1a3a]">{facture.clientName}</div>
                     <div className="font-hanken text-xs text-gray-500">{(facture.objet as string) ?? ''}</div>
@@ -926,17 +936,19 @@ function OrigineAvoirBadge({ facture, avoirInfo }: { facture: Record<string, unk
 // V2 BARRE CUMULEE — segment vert/orange "paye" + segment violet "regle par
 // avoir". Le % affiche = total regle (paye + avoir). Les avoirs ne sont JAMAIS
 // comptes comme un encaissement : la couleur violette les distingue du paiement.
-function PaymentBar({ percent, avoirPercent = 0, restant, retard }: { percent: number; avoirPercent?: number; restant?: string; retard?: string }) {
+function PaymentBar({ percent, avoirPercent = 0, imputePercent = 0, restant, retard }: { percent: number; avoirPercent?: number; imputePercent?: number; restant?: string; retard?: string }) {
   const paidPct = Math.max(0, Math.min(100, percent))
   const avPct = Math.max(0, Math.min(100 - paidPct, avoirPercent))
-  const settled = Math.min(100, paidPct + avPct)
+  const impPct = Math.max(0, Math.min(100 - paidPct - avPct, imputePercent))
+  const settled = Math.min(100, paidPct + avPct + impPct)
   const paidColor = paidPct === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#ff7a1a] to-[#ff9d4d]'
   return (
     <div className="min-w-[120px]">
       <div className="flex items-center gap-2 mb-1">
         <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden flex">
           {paidPct > 0 && <div className={`h-full transition-all ${paidColor}`} style={{ width: `${paidPct}%` }} title="Payé" />}
-          {avPct > 0 && <div className="h-full bg-purple-400 transition-all" style={{ width: `${avPct}%` }} title="Réglé par avoir" />}
+          {avPct > 0 && <div className="h-full bg-purple-400 transition-all" style={{ width: `${avPct}%` }} title="Réglé par avoir émis" />}
+          {impPct > 0 && <div className="h-full bg-indigo-400 transition-all" style={{ width: `${impPct}%` }} title="Réglé avec un avoir client" />}
         </div>
         <span className="font-spline-mono text-[11px] text-gray-500 whitespace-nowrap">{settled}%</span>
       </div>
