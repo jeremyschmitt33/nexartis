@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useDevis, useFactures, usePlanning, useChantiers, useClients, useIntervenants, useEntreprise, useChantierNotes, LoadingSkeleton } from "@/lib/hooks";
 import { createClient } from "@/lib/supabase/client";
 import { montantRemboursementAvoir } from "@/lib/avoir";
+import { netAPayerFacture } from "@/lib/facture-net";
 import { InfoBanner, HelpTooltip } from "@/components/ui/v4";
 import RappelsSection from "@/components/dashboard/RappelsSection";
 import DecennaleBanner from "@/components/dashboard/DecennaleBanner";
@@ -177,11 +178,29 @@ export default function DashboardPage() {
   const totalAvoirsTTC = factures.filter(isAvoirF).reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0);
   const facturesPayees = facturesReelles.filter((f: Record<string, unknown>) => f.statut === 'payee');
   const caFacture = facturesReelles.reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0) - totalAvoirsTTC;
-  // V2 imputation : l'encaisse = CASH reel. Pour une facture soldee par un avoir
-  // impute, la part avoir n'est PAS du cash -> on la retire (sans regression : 0
-  // pour les factures normales). Rend aussi "reste a encaisser" juste.
-  const caEncaisse = facturesPayees.reduce((sum: number, f: Record<string, unknown>) => sum + (Number(f.montant_ttc || 0) - Number(f.avoir_impute_montant || 0)), 0);
-  const resteAEncaisser = caFacture - caEncaisse;
+  // V2 : somme des avoirs EMIS sur chaque facture d'origine (note de credit creee
+  // depuis elle). Sert au net du et a corriger l'encaisse.
+  const avoirsEmisParOrigine = new Map<string, number>();
+  for (const f of factures) {
+    if ((f.type as string | null) === 'avoir' && f.facture_origine_id) {
+      const k = f.facture_origine_id as string;
+      avoirsEmisParOrigine.set(k, (avoirsEmisParOrigine.get(k) ?? 0) + Number(f.montant_ttc ?? 0));
+    }
+  }
+  // Reste a payer reel = TTC - paye - avoirs emis - avoir impute (jamais negatif).
+  const netDuFacture = (f: Record<string, unknown>) => netAPayerFacture({
+    montantTtc: Number(f.montant_ttc ?? 0),
+    montantPaye: Number(f.montant_paye ?? 0),
+    totalAvoirsEmis: avoirsEmisParOrigine.get(f.id as string) ?? 0,
+    avoirImputeMontant: Number(f.avoir_impute_montant ?? 0),
+  });
+  // V2 imputation/avoir : l'encaisse = CASH reellement encaisse. On retire la part
+  // reglee par un avoir IMPUTE et la part annulee/remboursee par un avoir EMIS,
+  // sinon une facture payee puis avoiree gonflerait l'encaisse et rendrait le
+  // "reste a encaisser" negatif. Sans regression : 0 pour les factures normales.
+  const caEncaisse = facturesPayees.reduce((sum: number, f: Record<string, unknown>) =>
+    sum + Math.max(0, Number(f.montant_ttc || 0) - Number(f.avoir_impute_montant || 0) - (avoirsEmisParOrigine.get(f.id as string) ?? 0)), 0);
+  const resteAEncaisser = Math.max(0, caFacture - caEncaisse);
   const facturesImpayees = facturesReelles.filter((f: Record<string, unknown>) => f.statut === 'en_retard' || f.statut === 'envoyee');
   const devisEnCours = devis.filter((d: Record<string, unknown>) => d.statut === 'envoye' || d.statut === 'brouillon');
   const devisEnCoursMontant = devisEnCours.reduce((sum: number, d: Record<string, unknown>) => sum + Number(d.montant_ht || 0), 0);
@@ -339,8 +358,9 @@ export default function DashboardPage() {
     })
   }
 
-  // Factures en retard
-  const facturesEnRetard = factures.filter((f: Record<string, unknown>) => f.statut === 'en_retard');
+  // Factures en retard (uniquement celles qui restent reellement dues — net > 0,
+  // donc PAS celles entierement soldees par avoir). netDuFacture defini plus haut.
+  const facturesEnRetard = factures.filter((f: Record<string, unknown>) => f.statut === 'en_retard' && netDuFacture(f) > 0.01);
   for (const f of facturesEnRetard) {
     const cName = clientName(f.client_id) || (f.client_nom as string) || '';
     const echeance = f.date_echeance ? new Date(f.date_echeance as string) : null;
@@ -348,7 +368,7 @@ export default function DashboardPage() {
     todoItems.push({
       title: `Facture ${f.numero} — en retard`,
       desc: `${cName}${joursRetard > 0 ? ` · échue depuis ${joursRetard}j` : ''}`,
-      amount: f.montant_ttc ? formatEuro(Number(f.montant_ttc)) : '',
+      amount: formatEuro(netDuFacture(f)),
       dotColor: '#ef4444', amountColor: '#ef4444',
       tag: 'Voir', tagBg: '#fef2f2', tagColor: '#ef4444',
       href: `/dashboard/factures/${f.id}`,
@@ -396,8 +416,8 @@ export default function DashboardPage() {
     });
   }
 
-  // Factures envoyées (bientôt dues)
-  const facturesEnvoyees = factures.filter((f: Record<string, unknown>) => f.statut === 'envoyee');
+  // Factures envoyées (bientôt dues) — seulement celles qui restent dues (net > 0).
+  const facturesEnvoyees = factures.filter((f: Record<string, unknown>) => f.statut === 'envoyee' && netDuFacture(f) > 0.01);
   for (const f of facturesEnvoyees) {
     const cName = clientName(f.client_id) || (f.client_nom as string) || '';
     const echeance = f.date_echeance ? new Date(f.date_echeance as string) : null;
@@ -405,7 +425,7 @@ export default function DashboardPage() {
     todoItems.push({
       title: `Facture ${f.numero} — bientôt due`,
       desc: `${cName}${joursRestants > 0 ? ` · échéance dans ${joursRestants}j` : ''}`,
-      amount: f.montant_ttc ? formatEuro(Number(f.montant_ttc)) : '',
+      amount: formatEuro(netDuFacture(f)),
       dotColor: '#e87a2a', amountColor: '#e87a2a',
       tag: 'À relancer', tagBg: '#fff7ed', tagColor: '#e87a2a',
       href: `/dashboard/factures/${f.id}`,

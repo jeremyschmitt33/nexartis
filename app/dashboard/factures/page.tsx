@@ -689,13 +689,13 @@ export default function FacturesListPage() {
                       <FactureTypeBadge facture={facture} />
                       {/* V2 SUIVI REMBOURSEMENT \u2014 etat du remboursement (vue desktop, parite mobile). */}
                       {(facture.type as string | null) === 'avoir' && !!facture.verrouillee_at && facture.remboursement_statut === 'a_rembourser' && (
-                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-200/70">\u00c0 rembourser</span>
+                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-amber-50 text-amber-800 border-amber-200/70">{'\u00c0 rembourser'}</span>
                       )}
                       {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'rembourse' && (
-                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-700 border-emerald-200/70">Rembours\u00e9</span>
+                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-700 border-emerald-200/70">{'Rembours\u00e9'}</span>
                       )}
                       {(facture.type as string | null) === 'avoir' && facture.remboursement_statut === 'a_valoir' && (
-                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200/70">\u00c0 valoir</span>
+                        <span className="font-hanken text-[10.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200/70">{'\u00c0 valoir'}</span>
                       )}
                       <OrigineAvoirBadge facture={facture} avoirInfo={avoirsByOrigine.get(facture.id as string)} />
                     </div>

@@ -522,12 +522,12 @@ export default function FactureDetailPage() {
   // V2 imputation : un avoir d'un autre dossier impute en reglement reduit ce que
   // le client doit encore, comme un paiement (mais ce n'est NI du cash NI du CA).
   const avoirImpute = facture.avoir_impute_montant ?? 0
-  const resteAPayer = Math.max(0, totalTTC - totalPaye - avoirImpute)
-  const paymentPercent = totalTTC > 0 ? Math.min(100, Math.round(((totalPaye + avoirImpute) / totalTTC) * 100)) : 0
-  // V-AVOIR (B5/Jerem) : NET restant credit-able = TTC - paye - somme des avoirs lies.
-  // Permet plusieurs avoirs partiels. Le bouton "Creer un avoir" disparait quand
-  // le net <= 0 (facture entierement creditee) -> on affiche alors "Soldee par avoir".
+  // V-AVOIR : avoirs EMIS sur cette facture (notes de credit creees depuis elle).
+  // Ils reduisent aussi le reste du -> une facture entierement creditee = reste 0.
   const totalAvoirsLies = avoirsLies.reduce((acc, a) => acc + a.montant_ttc, 0)
+  const resteAPayer = Math.max(0, totalTTC - totalPaye - avoirImpute - totalAvoirsLies)
+  const paymentPercent = totalTTC > 0 ? Math.min(100, Math.round(((totalPaye + avoirImpute + totalAvoirsLies) / totalTTC) * 100)) : 0
+  // NET restant credit-able = TTC - paye - somme des avoirs lies (gating "Creer un avoir").
   const netAvoir = totalTTC - totalPaye - totalAvoirsLies
   // Acompte versé (style Obat : sous-total brut, acompte, net à payer)
   const acompteTTC =
@@ -876,8 +876,9 @@ export default function FactureDetailPage() {
               <Pencil size={14} /> Modifier (verrouillée)
             </button>
           ))}
-          {/* B4 : "Marquer payee" masque sur un avoir (un avoir ne s'encaisse pas). */}
-          {facture.type !== 'avoir' && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+          {/* B4 : "Marquer payee" masque sur un avoir (un avoir ne s'encaisse pas)
+              ET quand il ne reste rien a payer (facture soldee par avoir). */}
+          {facture.type !== 'avoir' && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && resteAPayer > 0.01 && (
             <button
               onClick={handleMarkPaid}
               disabled={updating}
@@ -946,7 +947,7 @@ export default function FactureDetailPage() {
               <RotateCcw size={14} /> Désarchiver
             </button>
           )}
-          {facture.type !== 'avoir' && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+          {facture.type !== 'avoir' && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && resteAPayer > 0.01 && (
             <button
               onClick={handleRelancerMaintenant}
               disabled={updating}
@@ -957,7 +958,7 @@ export default function FactureDetailPage() {
               <AlertTriangle size={14} /> {updating ? 'Envoi…' : 'Relancer maintenant'}
             </button>
           )}
-          {facture.type !== 'avoir' && client && client.telephone && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && (
+          {facture.type !== 'avoir' && client && client.telephone && facture.statut !== 'payee' && facture.statut !== 'Encaissée' && facture.statut !== 'archivee' && resteAPayer > 0.01 && (
             <RelanceSmsButton
               telephone={client.telephone}
               clientNom={[client.civilite, client.nom].filter(Boolean).join(' ')}
