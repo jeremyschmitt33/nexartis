@@ -26,6 +26,7 @@ import {
   secureJson, secureError, rateLimitError, unauthorizedError,
 } from '@/lib/api-security'
 import { sendRelanceJ7, sendRelanceJ15, sendRelanceJ30 } from '@/lib/email'
+import { netAPayerFacture } from '@/lib/facture-net'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -76,7 +77,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
   const { data: facture, error: factureErr } = await supabase
     .from('factures')
     .select(
-      'id, user_id, numero, client_id, client_email, client_nom, date_echeance, montant_ttc, montant_paye, statut, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30',
+      'id, type, user_id, numero, client_id, client_email, client_nom, date_echeance, montant_ttc, montant_paye, statut, avoir_impute_montant, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30',
     )
     .eq('id', factureId)
     .eq('user_id', user.id)
@@ -93,8 +94,27 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
   }
   const paye = facture.montant_paye ?? 0
   const total = facture.montant_ttc ?? 0
-  if (total > 0 && paye >= total) {
-    return secureError('Cette facture est deja soldee, pas besoin de relancer')
+  // V-AVOIR : on ne relance jamais un avoir lui-meme.
+  if ((facture as { type?: string | null }).type === 'avoir') {
+    return secureError("Un avoir ne se relance pas (ce n'est pas une creance)")
+  }
+  // NET = TTC - paye - avoirs EMIS sur la facture - avoir IMPUTE en reglement.
+  // (deux notions distinctes : avoirs crees SUR la facture vs avoir d'un autre
+  // dossier impute pour la payer). Pas de relance si net <= 0.
+  let avoirsEmis = 0
+  try {
+    const { data: avs } = await supabase
+      .from('factures')
+      .select('montant_ttc')
+      .eq('facture_origine_id', facture.id)
+      .eq('type', 'avoir')
+      .is('deleted_at', null)
+    avoirsEmis = (avs || []).reduce((sm: number, a: Record<string, unknown>) => sm + Number(a.montant_ttc ?? 0), 0)
+  } catch { /* colonnes avoir absentes : net sans avoirs */ }
+  const avoirImputeReglement = Number((facture as { avoir_impute_montant?: number | null }).avoir_impute_montant ?? 0)
+  const net = netAPayerFacture({ montantTtc: total, montantPaye: paye, totalAvoirsEmis: avoirsEmis, avoirImputeMontant: avoirImputeReglement })
+  if (total > 0 && net <= 0.01) {
+    return secureError('Cette facture est deja soldee (ou totalement avoirisee), pas besoin de relancer')
   }
 
   const delta = diffDaysFromEcheance(facture.date_echeance)
@@ -145,7 +165,8 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
   const factureForMail = {
     id: facture.id,
     numero: facture.numero,
-    montant_ttc: total,
+    // V-AVOIR : on rappelle le NET restant du (avoirs deduits), pas le TTC brut.
+    montant_ttc: net,
     date_echeance: facture.date_echeance,
   }
   const entrepriseForMail = {

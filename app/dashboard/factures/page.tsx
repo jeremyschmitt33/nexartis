@@ -150,7 +150,7 @@ export default function FacturesListPage() {
     return m
   }, [factures])
 
-  type EnrichedFacture = Record<string, unknown> & { paidPercent: number; avoirPct: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
+  type EnrichedFacture = Record<string, unknown> & { paidPercent: number; avoirPct: number; avoirImputeMontant: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
   // enriched m\u00e9mo\u00efs\u00e9 : map co\u00fbteuse sur toutes les factures, recalcul\u00e9e
   // uniquement quand `factures`, `clientMap` ou `avoirsByOrigine` changent.
   const enriched: EnrichedFacture[] = useMemo(() => factures.map((f) => {
@@ -177,9 +177,12 @@ export default function FacturesListPage() {
         avoirPct = montantTtc > 0 ? Math.round((avoirEffective / montantTtc) * 100) : 0
       }
     }
+    // V2 imputation : avoir d'un AUTRE dossier impute EN reglement de cette
+    // facture (distinct des avoirs emis SUR elle). Reduit le net du, pas le TTC.
+    const avoirImputeMontant = (f.avoir_impute_montant as number) ?? 0
     const typeF = getFactureTypeFilter(f)
     const clientName = clientMap.get(f.client_id as string) || (f.client_nom as string) || (f.notes_client as string)?.split(' | ')[0]?.trim() || '\u2014'
-    return { ...f, paidPercent, avoirPct, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
+    return { ...f, paidPercent, avoirPct, avoirImputeMontant, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
   }), [factures, clientMap, avoirsByOrigine])
 
   // filtered m\u00e9mo\u00efs\u00e9 : ne refiltre que si enriched/recherche/filtres changent.
@@ -216,9 +219,11 @@ export default function FacturesListPage() {
   const encaissees = facturesReelles.filter((f) => f.category === 'Encaissées' || f.category === 'Archivées')
   const encaisseesHT = encaissees.reduce((s, f) => s + (f.montantTtc), 0)
   const resteList = facturesReelles.filter((f) => f.category === 'Partielles' || f.category === 'En attente')
-  const resteHT = resteList.reduce((s, f) => s + (f.montantTtc - f.montantPaye), 0)
+  // V2 imputation : on retire la part deja reglee par un avoir impute (le client
+  // ne la doit plus), sans toucher au CA (montantTtc reste plein ailleurs).
+  const resteHT = resteList.reduce((s, f) => s + (f.montantTtc - f.montantPaye - f.avoirImputeMontant), 0)
   const retardList = facturesReelles.filter((f) => f.category === 'En retard')
-  const retardHT = retardList.reduce((s, f) => s + (f.montantTtc - f.montantPaye), 0)
+  const retardHT = retardList.reduce((s, f) => s + (f.montantTtc - f.montantPaye - f.avoirImputeMontant), 0)
 
   const handleDelete = async (id: string) => {
     if (!(await askConfirm({ title: 'Envoyer cette facture a la corbeille ?', variant: 'danger', confirmLabel: 'Envoyer' }))) return
@@ -511,8 +516,8 @@ export default function FacturesListPage() {
             // V-AVOIR (net du) : facture d'origine avec avoirs -> net = TTC - regle - avoirs.
             const avInfoM = avoirsByOrigine.get(id)
             const totalAvoirM = avInfoM?.totalAvoir ?? 0
-            const aDesAvoirsM = (facture.type as string | null) !== 'avoir' && totalAvoirM > 0.01
-            const netDuM = Math.max(0, facture.montantTtc - facture.montantPaye - totalAvoirM)
+            const aDesAvoirsM = (facture.type as string | null) !== 'avoir' && (totalAvoirM > 0.01 || facture.avoirImputeMontant > 0.01)
+            const netDuM = Math.max(0, facture.montantTtc - facture.montantPaye - totalAvoirM - facture.avoirImputeMontant)
             // Couleur de la barre de paiement (sémantique) : vert payé, rouge en retard, orange partiel.
             const paidColor = facture.paidPercent === 100 ? '#15803d' : facture.category === 'En retard' ? '#dc2626' : '#ff7a1a'
             return (
@@ -634,8 +639,8 @@ export default function FacturesListPage() {
               // "Net a payer" reel = TTC - regle - avoirs emis (jamais negatif).
               const avInfoD = avoirsByOrigine.get(id)
               const totalAvoirD = avInfoD?.totalAvoir ?? 0
-              const aDesAvoirsD = (facture.type as string | null) !== 'avoir' && totalAvoirD > 0.01
-              const netDuD = Math.max(0, facture.montantTtc - facture.montantPaye - totalAvoirD)
+              const aDesAvoirsD = (facture.type as string | null) !== 'avoir' && (totalAvoirD > 0.01 || facture.avoirImputeMontant > 0.01)
+              const netDuD = Math.max(0, facture.montantTtc - facture.montantPaye - totalAvoirD - facture.avoirImputeMontant)
               return (
                 <tr
                   key={id}

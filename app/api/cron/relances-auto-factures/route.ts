@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isValidEmail } from '@/lib/api-security'
 import { sendRelanceJ7, sendRelanceJ15, sendRelanceJ30 } from '@/lib/email'
+import { netAPayerFacture } from '@/lib/facture-net'
 
 // Pas d'edge : on a besoin du Node runtime pour Brevo fetch + Supabase.
 export const runtime = 'nodejs'
@@ -181,7 +182,7 @@ export async function GET(req: NextRequest) {
     const { data: facturesRaw, error: facturesErr } = await supabase
       .from('factures')
       .select(
-        'id, user_id, numero, client_id, client_email, client_nom, date_echeance, montant_ttc, montant_paye, statut, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30',
+        'id, user_id, numero, client_id, client_email, client_nom, date_echeance, montant_ttc, montant_paye, statut, avoir_impute_montant, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30',
       )
       .is('deleted_at', null)
       .in('statut', ['envoyee', 'en_retard', 'partiellement_payee'])
@@ -279,11 +280,13 @@ export async function GET(req: NextRequest) {
       // Defense : echeance manquante = on skip
       if (!f.date_echeance) { skipped += 1; continue }
 
-      // Defense : facture deja soldee (NET = TTC - paye - avoirs imputes).
+      // Defense : facture deja soldee. NET = TTC - paye - avoirs EMIS sur la
+      // facture - avoir IMPUTE en reglement (avoir d'un autre dossier).
       const paye = f.montant_paye ?? 0
       const total = f.montant_ttc ?? 0
-      const avoirImpute = avoirParFacture.get(f.id) ?? 0
-      const net = total - paye - avoirImpute
+      const avoirsEmis = avoirParFacture.get(f.id) ?? 0
+      const avoirImputeReglement = Number((f as { avoir_impute_montant?: number | null }).avoir_impute_montant ?? 0)
+      const net = netAPayerFacture({ montantTtc: total, montantPaye: paye, totalAvoirsEmis: avoirsEmis, avoirImputeMontant: avoirImputeReglement })
       // Si le net est <= 0, la facture est entierement soldee/avoirisee : on ne
       // relance pas. On NE change PLUS le statut (pas de 'annulee') : le net <= 0
       // suffit a bloquer la relance, et on evite l'irreversibilite + la facture

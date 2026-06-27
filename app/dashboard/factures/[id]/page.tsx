@@ -104,6 +104,10 @@ interface FactureRecord {
   rembourse_at?: string | null
   rembourse_montant?: number | null
   rembourse_mode?: string | null
+  // V2 imputation : avoir d'un autre dossier impute EN reglement de cette facture.
+  avoir_impute_id?: string | null
+  avoir_impute_numero?: string | null
+  avoir_impute_montant?: number | null
   // 2026-06-10 — Autoliquidation BTP (sous-traitance). Nullable car la migration
   // SQL peut ne pas etre encore executee en BDD (colonne absente → undefined).
   autoliquidation_btp?: boolean | null
@@ -390,9 +394,13 @@ export default function FactureDetailPage() {
     if (!facture || updating) return
     setUpdating(true)
     try {
+      // V2 imputation : "Marquer payee" enregistre le CASH reellement recu, sans
+      // jamais compter la part deja reglee par un avoir impute (sinon on gonflerait
+      // l'encaisse). montant_paye = TTC - avoir impute (le complement cash).
+      const cashAVerser = Math.max(0, (facture.montant_ttc || 0) - (facture.avoir_impute_montant ?? 0))
       await updateRow('factures', facture.id, {
         statut: 'payee',
-        montant_paye: facture.montant_ttc || 0,
+        montant_paye: cashAVerser,
         date_paiement: new Date().toISOString(),
       })
       setToastMsg('Facture marquée comme payée !')
@@ -511,8 +519,11 @@ export default function FactureDetailPage() {
   const totalTVA = facture.montant_tva ?? 0
   const totalTTC = facture.montant_ttc ?? totalHT + totalTVA
   const totalPaye = facture.montant_paye ?? 0
-  const resteAPayer = totalTTC - totalPaye
-  const paymentPercent = totalTTC > 0 ? Math.round((totalPaye / totalTTC) * 100) : 0
+  // V2 imputation : un avoir d'un autre dossier impute en reglement reduit ce que
+  // le client doit encore, comme un paiement (mais ce n'est NI du cash NI du CA).
+  const avoirImpute = facture.avoir_impute_montant ?? 0
+  const resteAPayer = Math.max(0, totalTTC - totalPaye - avoirImpute)
+  const paymentPercent = totalTTC > 0 ? Math.min(100, Math.round(((totalPaye + avoirImpute) / totalTTC) * 100)) : 0
   // V-AVOIR (B5/Jerem) : NET restant credit-able = TTC - paye - somme des avoirs lies.
   // Permet plusieurs avoirs partiels. Le bouton "Creer un avoir" disparait quand
   // le net <= 0 (facture entierement creditee) -> on affiche alors "Soldee par avoir".
@@ -941,7 +952,7 @@ export default function FactureDetailPage() {
               telephone={client.telephone}
               clientNom={[client.civilite, client.nom].filter(Boolean).join(' ')}
               numero={facture.numero}
-              resteAPayer={(facture.montant_ttc || 0) - ((facture as { montant_paye?: number }).montant_paye || 0)}
+              resteAPayer={resteAPayer}
               entrepriseNom={(entreprise?.nom as string | undefined) || undefined}
             />
           )}
@@ -1214,6 +1225,7 @@ export default function FactureDetailPage() {
           factureId={facture.id}
           currentPaye={totalPaye}
           totalTTC={totalTTC}
+          avoirImpute={avoirImpute}
           onClose={() => setPaymentModalOpen(false)}
           onSuccess={() => {
             setToastMsg('Paiement enregistré !')
@@ -1242,9 +1254,9 @@ export default function FactureDetailPage() {
 }
 
 function PaymentModal({
-  resteAPayer, factureId, currentPaye, totalTTC, onClose, onSuccess,
+  resteAPayer, factureId, currentPaye, totalTTC, avoirImpute = 0, onClose, onSuccess,
 }: {
-  resteAPayer: number; factureId: string; currentPaye: number; totalTTC: number; onClose: () => void; onSuccess: () => void
+  resteAPayer: number; factureId: string; currentPaye: number; totalTTC: number; avoirImpute?: number; onClose: () => void; onSuccess: () => void
 }) {
   const [montant, setMontant] = useState(resteAPayer.toFixed(2))
   const [datePaiement, setDatePaiement] = useState(new Date().toISOString().split('T')[0])
@@ -1257,10 +1269,14 @@ function PaymentModal({
     if (isNaN(amount) || amount <= 0) { setError('Montant invalide'); return }
     setSaving(true); setError(null)
     try {
-      const newPaye = currentPaye + amount
-      const newStatut = newPaye >= totalTTC ? 'payee' : 'partiellement_payee'
+      // V2 imputation : le CASH ne doit jamais "manger" la part deja reglee par
+      // un avoir impute. Plafond cash = TTC - avoir impute. La facture est soldee
+      // quand cash + avoir impute >= TTC.
+      const cashMax = Math.max(0, totalTTC - avoirImpute)
+      const newPaye = Math.min(currentPaye + amount, cashMax)
+      const newStatut = (newPaye + avoirImpute) >= totalTTC - 0.01 ? 'payee' : 'partiellement_payee'
       await updateRow('factures', factureId, {
-        montant_paye: Math.min(newPaye, totalTTC),
+        montant_paye: newPaye,
         date_paiement: datePaiement,
         mode_paiement: mode,
         statut: newStatut,
