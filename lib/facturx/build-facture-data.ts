@@ -131,6 +131,9 @@ export async function buildFactureDataFromDb(
     montant_situation_precedent_ttc: facture.montant_situation_precedent_ttc ?? undefined,
     reste_a_facturer_ht: facture.reste_a_facturer_ht ?? undefined,
     reste_a_facturer_ttc: facture.reste_a_facturer_ttc ?? undefined,
+    // V-AVOIR — reference de la facture d'origine (rendu PDF de l'avoir).
+    facture_origine_numero: facture.facture_origine_numero || undefined,
+    facture_origine_date: facture.facture_origine_date || undefined,
     autoliquidation_btp: facture.autoliquidation_btp === true,
     notes: facture.notes || undefined,
   }

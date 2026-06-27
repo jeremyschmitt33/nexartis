@@ -485,8 +485,11 @@ export function getLegalMentionsDevis(ctx: LegalContext): LegalMention[] {
  * Note : pas de rétractation L221-18 sur facture (déjà actée sur le devis).
  */
 export function getLegalMentionsFacture(ctx: LegalContext): LegalMention[] {
-  const { entreprise, client, clientType, lignes, hasSousTraitanceBTP } = ctx
+  const { entreprise, client, clientType, lignes, hasSousTraitanceBTP, factureType } = ctx
   const ct = resolveClientType(client, clientType)
+  // V-AVOIR : un avoir n'est pas une creance. On RETIRE penalites de retard,
+  // indemnite forfaitaire 40 EUR et escompte (sans objet pour un avoir).
+  const estAvoir = factureType === 'avoir'
   const out: LegalMention[] = []
 
   // 1. Décennale
@@ -525,15 +528,17 @@ export function getLegalMentionsFacture(ctx: LegalContext): LegalMention[] {
     if (med) out.push({ key: 'mediateur', text: med, niveau: 'obligatoire' })
   }
 
-  // 8. Pénalités de retard (L441-10)
-  out.push({ key: 'penalites', text: getPenalitesText(ct), niveau: 'obligatoire' })
+  // 8. Pénalités de retard (L441-10) — retirees pour un avoir.
+  if (!estAvoir) {
+    out.push({ key: 'penalites', text: getPenalitesText(ct), niveau: 'obligatoire' })
 
-  // 9. Indemnité forfaitaire 40 € (B2B)
-  const ind = getIndemniteForfaitaireText(ct)
-  if (ind) out.push({ key: 'indemnite-40', text: ind, niveau: 'obligatoire' })
+    // 9. Indemnité forfaitaire 40 € (B2B)
+    const ind = getIndemniteForfaitaireText(ct)
+    if (ind) out.push({ key: 'indemnite-40', text: ind, niveau: 'obligatoire' })
 
-  // 10. Pas d'escompte
-  out.push({ key: 'escompte', text: getEscompteText(), niveau: 'obligatoire' })
+    // 10. Pas d'escompte
+    out.push({ key: 'escompte', text: getEscompteText(), niveau: 'obligatoire' })
+  }
 
   // 11. Mention L441-3 (italique, parité PDF)
   out.push({ key: 'l441-3', text: getMentionL441_3(), italique: true, niveau: 'obligatoire' })

@@ -86,17 +86,23 @@ export default function StatistiquesPage() {
     const devs = devis.map((d) => d as Record<string, unknown>);
     const chants = chantiers.map((c) => c as Record<string, unknown>);
 
-    // CA facturé = toutes les factures émises (hors brouillon)
+    // V-AVOIR : un avoir (type='avoir') n'est ni une creance ni un encaissement.
+    // CA facture = Somme(factures emises) - Somme(avoirs emis).
+    const estAvoir = (f: Record<string, unknown>) => (f.type as string | null) === "avoir";
+    const avoirsEmis = facs.filter((f) => estAvoir(f) && ((f.statut as string) ?? "") !== "brouillon");
+    const totalAvoirsTTC = avoirsEmis.reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0);
+
+    // CA facturé = toutes les factures émises (hors brouillon, hors avoirs) - avoirs.
     const emittedFactures = facs.filter((f) => {
       const s = (f.statut as string) ?? "";
-      return s !== "brouillon";
+      return s !== "brouillon" && !estAvoir(f);
     });
-    const totalCAFacture = emittedFactures.reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0);
+    const totalCAFacture = emittedFactures.reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0) - totalAvoirsTTC;
 
-    // CA encaissé = factures payées ou archivées
+    // CA encaissé = factures payées ou archivées (hors avoirs)
     const paidFactures = facs.filter((f) => {
       const s = (f.statut as string) ?? "";
-      return s === "payee" || s === "archivee" || s === "Encaissée";
+      return (s === "payee" || s === "archivee" || s === "Encaissée") && !estAvoir(f);
     });
     const totalCA = paidFactures.reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0);
 
@@ -113,6 +119,11 @@ export default function StatistiquesPage() {
       const d = new Date(dateStr);
       if (d.getFullYear() !== chartYear) continue;
       const month = d.getMonth();
+      // V-AVOIR : les avoirs viennent en deduction du CA facture mensuel.
+      if (estAvoir(f)) {
+        monthlyFacture[month] -= (f.montant_ttc as number) ?? 0;
+        continue;
+      }
       monthlyFacture[month] += (f.montant_ttc as number) ?? 0;
       if (statut === "payee" || statut === "archivee" || statut === "Encaissée") {
         monthlyEncaisse[month] += (f.montant_ttc as number) ?? 0;
@@ -145,7 +156,7 @@ export default function StatistiquesPage() {
 
     const impayees = facs.filter((f) => {
       const s = (f.statut as string) ?? "";
-      return s === "en_retard" || s === "en_attente" || s === "partielle";
+      return (s === "en_retard" || s === "en_attente" || s === "partielle") && !estAvoir(f);
     });
     const montantImpaye = impayees.reduce((s, f) => {
       const ttc = (f.montant_ttc as number) ?? 0;
@@ -154,8 +165,9 @@ export default function StatistiquesPage() {
     }, 0);
     const facturesEnRetard = facs.filter((f) => (f.statut as string) === "en_retard").length;
 
-    const totalFacturesTTC = facs.reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0);
-    const totalPaye = facs.reduce((s, f) => s + ((f.montant_paye as number) ?? 0), 0);
+    // V-AVOIR : le taux d'encaissement ne porte que sur les vraies factures.
+    const totalFacturesTTC = facs.filter((f) => !estAvoir(f)).reduce((s, f) => s + ((f.montant_ttc as number) ?? 0), 0);
+    const totalPaye = facs.filter((f) => !estAvoir(f)).reduce((s, f) => s + ((f.montant_paye as number) ?? 0), 0);
     const tauxEncaissement = totalFacturesTTC > 0
       ? Math.round((totalPaye / totalFacturesTTC) * 100)
       : 0;

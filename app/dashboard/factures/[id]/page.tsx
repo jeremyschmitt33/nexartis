@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
@@ -22,6 +22,8 @@ import {
   Zap,
 } from 'lucide-react'
 import EnvoyerFactureModal from '@/components/dashboard/EnvoyerFactureModal'
+import CreerAvoirModal from '@/components/factures/CreerAvoirModal'
+import { createClient } from '@/lib/supabase/client'
 import RelanceSmsButton from '@/components/factures/RelanceSmsButton'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
@@ -82,6 +84,11 @@ interface FactureRecord {
   montant_situation_precedent_ttc?: number | null
   reste_a_facturer_ht?: number | null
   reste_a_facturer_ttc?: number | null
+  // V-AVOIR — liaison facture d'origine + remboursement
+  facture_origine_id?: string | null
+  facture_origine_numero?: string | null
+  facture_origine_date?: string | null
+  remboursement_statut?: string | null
   // 2026-06-10 — Autoliquidation BTP (sous-traitance). Nullable car la migration
   // SQL peut ne pas etre encore executee en BDD (colonne absente → undefined).
   autoliquidation_btp?: boolean | null
@@ -163,6 +170,10 @@ export default function FactureDetailPage() {
   const { user } = useUser()
 
   const [sendModalOpen, setSendModalOpen] = useState(false)
+  // V-AVOIR : ouverture de la modale "Creer un avoir".
+  const [avoirModalOpen, setAvoirModalOpen] = useState(false)
+  // V-AVOIR : avoirs lies a cette facture (pour le badge "Avoir AV-...").
+  const [avoirsLies, setAvoirsLies] = useState<Array<{ id: string; numero: string | null; montant_ttc: number }>>([])
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   // Verrouillage : confirmation (cadre jaune) avant toute action de transmission.
   // poseVerrouAuConfirm = true pour download/electronique (verrou pose au "Continuer"),
@@ -176,6 +187,36 @@ export default function FactureDetailPage() {
   const [downloadingFx, setDownloadingFx] = useState(false)
   // Etape 3 e-facture (admin only) : envoi electronique vers SUPER PDP.
   const [sendingEfacture, setSendingEfacture] = useState(false)
+
+  // V-AVOIR : charge les avoirs lies a cette facture (badge "Avoir AV-...").
+  useEffect(() => {
+    let active = true
+    async function load() {
+      if (!id) return
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('factures')
+          .select('id, numero, montant_ttc')
+          .eq('facture_origine_id', id)
+          .eq('type', 'avoir')
+          .is('deleted_at', null)
+        if (active) {
+          setAvoirsLies(
+            ((data as Array<Record<string, unknown>>) ?? []).map((a) => ({
+              id: a.id as string,
+              numero: (a.numero as string | null) ?? null,
+              montant_ttc: Number(a.montant_ttc ?? 0),
+            })),
+          )
+        }
+      } catch {
+        // Silencieux : le badge est purement informatif.
+      }
+    }
+    load()
+    return () => { active = false }
+  }, [id])
 
   // V3.0d : telechargement PDF cross-platform via helper lib/download-pdf.ts.
   //   - iOS Safari : ouvre dans nouvel onglet + toast d'aide (Partager -> Fichiers).
@@ -483,6 +524,9 @@ export default function FactureDetailPage() {
       // Si type !== 'situation', buildFactureDocument n'injecte pas meta.situation
       // donc DocumentRender garde son rendu standard (backward-compat).
       type: (facture.type as string | null | undefined) ?? null,
+      // V-AVOIR — reference de la facture d'origine (pour le rendu de l'avoir).
+      facture_origine_numero: (facture.facture_origine_numero as string | null | undefined) ?? null,
+      facture_origine_date: (facture.facture_origine_date as string | null | undefined) ?? null,
       numero_situation: (facture.numero_situation as number | null | undefined) ?? null,
       pourcentage_situation: (facture.pourcentage_situation as number | null | undefined) ?? null,
       devis_ref: (facture.devis_ref as string | null | undefined) ?? null,
@@ -568,6 +612,28 @@ export default function FactureDetailPage() {
               <span className={`inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border ${statutStyle}`}>
                 {statutLabel}
               </span>
+              {/* V-AVOIR : si la facture EST un avoir, badge dedie + lien origine. */}
+              {facture.type === 'avoir' && (
+                <span className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-red-50 text-red-700 border-red-200/70">
+                  Avoir{facture.facture_origine_numero ? ` · sur ${facture.facture_origine_numero}` : ''}
+                </span>
+              )}
+              {/* V-AVOIR : si la facture a des avoirs lies, badge "Avoir AV-...". */}
+              {facture.type !== 'avoir' && avoirsLies.length > 0 && (() => {
+                const totalAvoir = avoirsLies.reduce((s2, a) => s2 + a.montant_ttc, 0)
+                const net = (facture.montant_ttc ?? 0) - (facture.montant_paye ?? 0) - totalAvoir
+                const soldee = net <= 0.01
+                const first = avoirsLies[0]
+                return (
+                  <Link
+                    href={`/dashboard/factures/${first.id}`}
+                    title={avoirsLies.map((a) => a.numero).filter(Boolean).join(', ')}
+                    className="inline-block px-2.5 py-1 rounded-full font-hanken text-[11.5px] font-bold uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200/70 hover:bg-purple-100 transition-colors"
+                  >
+                    {soldee ? 'Soldée par avoir' : `Avoir ${first.numero ?? ''}`}
+                  </Link>
+                )
+              })()}
             </div>
             <p className="font-hanken text-sm text-gray-500 mt-1">{resolvedClientName}</p>
           </div>
@@ -664,6 +730,16 @@ export default function FactureDetailPage() {
               className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 hover:bg-emerald-100 font-hanken text-[13.5px] font-semibold text-emerald-700 transition-colors disabled:opacity-50"
             >
               <CreditCard size={14} /> Marquer payée
+            </button>
+          )}
+          {/* V-AVOIR : creer un avoir (uniquement sur une facture emise non-avoir). */}
+          {facture.type !== 'avoir' && ['envoyee', 'partiellement_payee', 'payee', 'en_retard', 'En attente', 'Encaissée'].includes(facture.statut) && (
+            <button
+              onClick={() => setAvoirModalOpen(true)}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-red-200 bg-red-50 hover:bg-red-100 font-hanken text-[13.5px] font-semibold text-red-700 transition-colors"
+              aria-label="Creer un avoir pour cette facture"
+            >
+              <RotateCcw size={14} /> Créer un avoir
             </button>
           )}
           {(facture.statut === 'payee' || facture.statut === 'Encaissée') && (
@@ -940,6 +1016,23 @@ export default function FactureDetailPage() {
               updateRow('factures', facture.id, { verrouillee_at: new Date().toISOString() }).catch(() => {})
             }
             setTimeout(() => { setToastMsg(null); router.refresh() }, 2000)
+          }}
+        />
+      )}
+
+      {/* V-AVOIR : modale "Creer un avoir" depuis la page detail facture. */}
+      {facture && avoirModalOpen && (
+        <CreerAvoirModal
+          open={avoirModalOpen}
+          onClose={() => setAvoirModalOpen(false)}
+          factureId={facture.id}
+          numero={facture.numero}
+          clientNom={resolvedClientName}
+          montantTtc={facture.montant_ttc ?? totalTTC}
+          originePayee={facture.statut === 'payee' || facture.statut === 'Encaissée'}
+          onCreated={(avoirId) => {
+            setAvoirModalOpen(false)
+            router.push(`/dashboard/factures/${avoirId}`)
           }}
         />
       )}

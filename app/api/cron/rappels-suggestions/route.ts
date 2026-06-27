@@ -36,6 +36,7 @@ type FactureRow = {
   user_id: string
   numero: string | null
   montant_ttc: number | null
+  montant_paye?: number | null
   date_emission: string | null
   client_id: string | null
 }
@@ -242,7 +243,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabase
       .from('factures')
-      .select('id, user_id, numero, montant_ttc, date_emission, client_id')
+      .select('id, user_id, numero, montant_ttc, montant_paye, date_emission, client_id')
       .in('statut', ['envoyee', 'en_retard', 'partiellement_payee'])
       .lt('date_emission', thirtyDaysAgoIso)
       .is('deleted_at', null)
@@ -251,11 +252,31 @@ export async function GET(req: NextRequest) {
       errors.push(`factures: ${error.message}`)
     } else if (data) {
       const factures = data as FactureRow[]
+      // V-AVOIR : avoirs imputes a ces factures (pour calculer le NET restant du).
+      const avoirParFac = new Map<string, number>()
+      if (factures.length > 0) {
+        try {
+          const ids = factures.map((f) => f.id)
+          const { data: av } = await supabase
+            .from('factures')
+            .select('facture_origine_id, montant_ttc')
+            .eq('type', 'avoir')
+            .is('deleted_at', null)
+            .in('facture_origine_id', ids)
+          ;(av || []).forEach((a: Record<string, unknown>) => {
+            const oid = a.facture_origine_id as string | null
+            if (oid) avoirParFac.set(oid, (avoirParFac.get(oid) ?? 0) + Number(a.montant_ttc ?? 0))
+          })
+        } catch { /* colonnes avoir absentes : net sans avoirs */ }
+      }
       for (const f of factures) {
-        const montantStr =
-          typeof f.montant_ttc === 'number'
-            ? `${f.montant_ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € TTC`
-            : '?'
+        // V-AVOIR : NET = TTC - paye - avoirs. Pas de rappel si net <= 0.
+        const totalF = Number(f.montant_ttc ?? 0)
+        const payeF = Number(f.montant_paye ?? 0)
+        const avF = avoirParFac.get(f.id) ?? 0
+        const netF = totalF - payeF - avF
+        if (totalF > 0 && netF <= 0.01) continue
+        const montantStr = `${netF.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € TTC`
         const inserted = await insertIfMissing(
           supabase,
           {
@@ -399,12 +420,32 @@ export async function GET(req: NextRequest) {
             }
           }
 
+          // V-AVOIR : avoirs imputes a ces factures (NET = TTC - paye - avoirs).
+          const avoirMapJ1 = new Map<string, number>()
+          if (facs.length > 0) {
+            try {
+              const fIds = facs.map((f) => f.id)
+              const { data: avJ1 } = await supabase
+                .from('factures')
+                .select('facture_origine_id, montant_ttc')
+                .eq('type', 'avoir')
+                .is('deleted_at', null)
+                .in('facture_origine_id', fIds)
+              ;(avJ1 || []).forEach((a: Record<string, unknown>) => {
+                const oid = a.facture_origine_id as string | null
+                if (oid) avoirMapJ1.set(oid, (avoirMapJ1.get(oid) ?? 0) + Number(a.montant_ttc ?? 0))
+              })
+            } catch { /* colonnes avoir absentes : net sans avoirs */ }
+          }
+
           const todayUtcMs = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
           for (const f of facs) {
             if (f.client_id && exclusSet.has(f.client_id)) continue
             const paye = f.montant_paye ?? 0
             const total = f.montant_ttc ?? 0
-            if (total > 0 && paye >= total) continue
+            // V-AVOIR : pas de notif J-1 si le net (avoirs deduits) est <= 0.
+            const avJ1 = avoirMapJ1.get(f.id) ?? 0
+            if (total > 0 && (paye + avJ1) >= total - 0.01) continue
 
             const ech = new Date(f.date_echeance)
             const echMs = Date.UTC(ech.getUTCFullYear(), ech.getUTCMonth(), ech.getUTCDate())
@@ -418,10 +459,10 @@ export async function GET(req: NextRequest) {
             if (!palier) continue
 
             const palierLabel = palier === 'j7' ? 'courtoise (J+7)' : palier === 'j15' ? 'ferme (J+15)' : 'stricte (J+30)'
-            const montantStr =
-              typeof f.montant_ttc === 'number'
-                ? `${f.montant_ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
-                : '—'
+            // V-AVOIR : on affiche le NET restant du (avoirs + acomptes deduits),
+            // pas le TTC brut, pour ne pas relancer sur un montant deja credite.
+            const netDu = Math.max(0, total - paye - avJ1)
+            const montantStr = `${netDu.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
             const clientLabel = f.client_nom || '(client sans nom)'
 
             const inserted = await insertIfMissing(

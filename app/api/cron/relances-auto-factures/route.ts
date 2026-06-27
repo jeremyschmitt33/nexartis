@@ -204,6 +204,31 @@ export async function GET(req: NextRequest) {
 
     const factures = (facturesRaw || []) as FactureRow[]
 
+    // V-AVOIR : pour chaque facture candidate, on calcule le NET restant du en
+    // tenant compte des avoirs imputes (somme des avoirs lies a cette facture).
+    // Un avoir n'est PAS une creance : on ne relance jamais sur un avoir, et on
+    // ne relance pas une facture dont le net (TTC - paye - avoirs) est <= 0.
+    const avoirParFacture = new Map<string, number>()
+    if (factures.length > 0) {
+      const candidateIds = factures.map((f) => f.id)
+      try {
+        const { data: avoirsData } = await supabase
+          .from('factures')
+          .select('facture_origine_id, montant_ttc')
+          .eq('type', 'avoir')
+          .is('deleted_at', null)
+          .in('facture_origine_id', candidateIds)
+        ;(avoirsData || []).forEach((a: Record<string, unknown>) => {
+          const oid = a.facture_origine_id as string | null
+          if (!oid) return
+          avoirParFacture.set(oid, (avoirParFacture.get(oid) ?? 0) + Number(a.montant_ttc ?? 0))
+        })
+      } catch (e) {
+        // Colonnes avoir absentes (migration non appliquee) : on ignore (net = sans avoir).
+        console.warn('[cron relances] lecture avoirs impossible, net sans avoirs', e)
+      }
+    }
+
     // 3) Pre-charger les clients (1 requete pour tous)
     //    V2 10/06/2026 : on lit aussi exclu_relances_auto pour pouvoir
     //    skipper proprement les clients exclus dans la boucle 4).
@@ -252,10 +277,19 @@ export async function GET(req: NextRequest) {
       // Defense : echeance manquante = on skip
       if (!f.date_echeance) { skipped += 1; continue }
 
-      // Defense : facture deja soldee
+      // Defense : facture deja soldee (NET = TTC - paye - avoirs imputes).
       const paye = f.montant_paye ?? 0
       const total = f.montant_ttc ?? 0
-      if (total > 0 && paye >= total) { skipped += 1; continue }
+      const avoirImpute = avoirParFacture.get(f.id) ?? 0
+      const net = total - paye - avoirImpute
+      // Si le net est <= 0, la facture est entierement soldee/avoirisee : on ne
+      // relance pas. On NE change PLUS le statut (pas de 'annulee') : le net <= 0
+      // suffit a bloquer la relance, et on evite l'irreversibilite + la facture
+      // fantome qu'un statut 'annulee' provoquait.
+      if (total > 0 && net <= 0.01) {
+        skipped += 1
+        continue
+      }
 
       const delta = diffDaysFromEcheance(f.date_echeance)
       if (delta < 7) { skipped += 1; continue }
@@ -290,7 +324,8 @@ export async function GET(req: NextRequest) {
       const factureForMail = {
         id: f.id,
         numero: f.numero,
-        montant_ttc: total,
+        // V-AVOIR : on rappelle le NET restant du (TTC - paye - avoirs), pas le TTC brut.
+        montant_ttc: net,
         date_echeance: f.date_echeance,
       }
       const entrepriseForMail = {

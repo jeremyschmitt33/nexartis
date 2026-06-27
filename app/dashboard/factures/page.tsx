@@ -19,6 +19,7 @@ import {
   BadgeCheck,
   Hourglass,
   Download,
+  RotateCcw,
 } from 'lucide-react'
 import { useFactures, useClients, softDeleteRow, insertRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
@@ -27,6 +28,7 @@ import { createClient } from '@/lib/supabase/client'
 // de la liste — gain perceptible sur ordinateurs anciens.
 const EnvoyerFactureModal = dynamic(() => import('@/components/dashboard/EnvoyerFactureModal'), { ssr: false })
 const ExportComptableModal = dynamic(() => import('@/components/dashboard/ExportComptableModal'), { ssr: false })
+const CreerAvoirModal = dynamic(() => import('@/components/factures/CreerAvoirModal'), { ssr: false })
 // V4 light premium : on remplace l'Input legacy par PremiumInput pour le champ recherche
 // et on utilise PremiumButton pour les actions principales.
 import { PremiumInput, PremiumButton } from '@/components/ui/v4'
@@ -44,6 +46,10 @@ type FactureTypeFilter = 'Toutes' | 'Standards' | 'Acomptes' | 'Situations' | 'A
 
 function getFactureCategory(f: Record<string, unknown>): FactureFilter {
   const statut = (f.statut as string) ?? ''
+  // Avoir = categorie neutre : jamais "En attente"/"En retard"/"Encaissées"
+  // (un avoir n'est pas une creance ni un encaissement). On le sort de tous
+  // les compteurs en lui donnant une categorie qui ne correspond a aucune StatCard.
+  if ((f.type as string | null) === 'avoir') return 'Avoirs' as FactureFilter
   if (statut === 'payee' || statut === 'Encaissée') return 'Encaissées'
   if (statut === 'partielle') return 'Partielles'
   if (statut === 'en_retard') return 'En retard'
@@ -92,6 +98,8 @@ export default function FacturesListPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [duplicating, setDuplicating] = useState<string | null>(null)
+  // V-AVOIR : cible de la modale "Creer un avoir" (facture d'origine).
+  const [avoirTarget, setAvoirTarget] = useState<{ id: string; numero: string; clientNom: string; montantTtc: number; originePayee: boolean } | null>(null)
   const [sendTarget, setSendTarget] = useState<{ id: string; numero: string; email: string; clientNom: string; montantTtcLabel: string } | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
@@ -125,19 +133,46 @@ export default function FacturesListPage() {
     return map
   }, [clients])
 
+  // V-AVOIR : index des avoirs par facture d'origine, pour afficher un badge
+  // "Avoir AV-..." (ou "Soldee par avoir") sur la facture d'origine, ET pour
+  // calculer le NET (TTC - paye - avoirs imputes) qui pilote la categorisation.
+  const avoirsByOrigine = useMemo(() => {
+    const m = new Map<string, { numeros: string[]; totalAvoir: number }>()
+    for (const f of factures) {
+      if ((f.type as string | null) !== 'avoir') continue
+      const oid = f.facture_origine_id as string | null
+      if (!oid) continue
+      const cur = m.get(oid) ?? { numeros: [], totalAvoir: 0 }
+      if (f.numero) cur.numeros.push(f.numero as string)
+      cur.totalAvoir += Number(f.montant_ttc ?? 0)
+      m.set(oid, cur)
+    }
+    return m
+  }, [factures])
+
   type EnrichedFacture = Record<string, unknown> & { paidPercent: number; overdue: number; category: FactureFilter; typeFilter: FactureTypeFilter; clientName: string; montantTtc: number; montantPaye: number }
   // enriched m\u00e9mo\u00efs\u00e9 : map co\u00fbteuse sur toutes les factures, recalcul\u00e9e
-  // uniquement quand `factures` ou `clientMap` changent (et plus \u00e0 chaque render).
+  // uniquement quand `factures`, `clientMap` ou `avoirsByOrigine` changent.
   const enriched: EnrichedFacture[] = useMemo(() => factures.map((f) => {
     const montantTtc = (f.montant_ttc as number) ?? 0
     const montantPaye = (f.montant_paye as number) ?? 0
     const paidPercent = montantTtc > 0 ? Math.round((montantPaye / montantTtc) * 100) : 0
     const overdue = daysOverdue(f.date_echeance as string | null)
-    const category = getFactureCategory(f)
+    let category = getFactureCategory(f)
+    // V-AVOIR : une facture d'origine dont le NET (TTC - paye - avoirs imputes)
+    // est <= 0 est entierement soldee par avoir. On la sort des compteurs/montants
+    // "En attente"/"En retard" en lui donnant la categorie neutre 'Avoirs'.
+    if ((f.type as string | null) !== 'avoir') {
+      const av = avoirsByOrigine.get(f.id as string)
+      if (av && av.totalAvoir > 0) {
+        const net = montantTtc - montantPaye - av.totalAvoir
+        if (montantTtc > 0 && net <= 0.01) category = 'Avoirs' as FactureFilter
+      }
+    }
     const typeF = getFactureTypeFilter(f)
     const clientName = clientMap.get(f.client_id as string) || (f.client_nom as string) || (f.notes_client as string)?.split(' | ')[0]?.trim() || '\u2014'
     return { ...f, paidPercent, overdue, category, typeFilter: typeF, clientName, montantTtc, montantPaye } as EnrichedFacture
-  }), [factures, clientMap])
+  }), [factures, clientMap, avoirsByOrigine])
 
   // filtered m\u00e9mo\u00efs\u00e9 : ne refiltre que si enriched/recherche/filtres changent.
   const filtered = useMemo(() => enriched.filter((f) => {
@@ -160,13 +195,21 @@ export default function FacturesListPage() {
   // \u00c0 chaque changement de recherche/filtre, on revient au haut des r\u00e9sultats.
   useEffect(() => { setVisibleCount(30) }, [search, filter, typeFilter])
 
-  const totalCount = enriched.length
-  const totalHT = enriched.reduce((s, f) => s + ((f.montant_ht as number) ?? 0), 0)
-  const encaissees = enriched.filter((f) => f.category === 'Encaissées' || f.category === 'Archivées')
+  // V-AVOIR : on separe les avoirs (type='avoir') des vraies factures. Les
+  // avoirs ne comptent PAS comme une creance/un encaissement ; ils viennent en
+  // DEDUCTION du CA facture (CA = Somme factures - Somme avoirs).
+  const isAvoir = (f: EnrichedFacture) => (f.type as string | null) === 'avoir'
+  const facturesReelles = enriched.filter((f) => !isAvoir(f))
+  const avoirsList = enriched.filter((f) => isAvoir(f))
+  const avoirsHT = avoirsList.reduce((s, f) => s + ((f.montant_ht as number) ?? 0), 0)
+  const totalCount = facturesReelles.length
+  // CA HT net = HT des factures reelles - HT des avoirs.
+  const totalHT = facturesReelles.reduce((s, f) => s + ((f.montant_ht as number) ?? 0), 0) - avoirsHT
+  const encaissees = facturesReelles.filter((f) => f.category === 'Encaissées' || f.category === 'Archivées')
   const encaisseesHT = encaissees.reduce((s, f) => s + (f.montantTtc), 0)
-  const resteList = enriched.filter((f) => f.category === 'Partielles' || f.category === 'En attente')
+  const resteList = facturesReelles.filter((f) => f.category === 'Partielles' || f.category === 'En attente')
   const resteHT = resteList.reduce((s, f) => s + (f.montantTtc - f.montantPaye), 0)
-  const retardList = enriched.filter((f) => f.category === 'En retard')
+  const retardList = facturesReelles.filter((f) => f.category === 'En retard')
   const retardHT = retardList.reduce((s, f) => s + (f.montantTtc - f.montantPaye), 0)
 
   const handleDelete = async (id: string) => {
@@ -287,6 +330,19 @@ export default function FacturesListPage() {
     }
     const montantTtcLabel = formatCurrency(facture.montantTtc)
     setSendTarget({ id, numero, email, clientNom: facture.clientName, montantTtcLabel })
+  }
+
+  // V-AVOIR : ouvre la modale "Creer un avoir" pour la facture donnee.
+  function openAvoirModal(facture: EnrichedFacture) {
+    closeMenu()
+    const statut = (facture.statut as string) ?? ''
+    setAvoirTarget({
+      id: facture.id as string,
+      numero: (facture.numero as string) ?? '',
+      clientNom: facture.clientName,
+      montantTtc: facture.montantTtc,
+      originePayee: statut === 'payee' || statut === 'Encaissée',
+    })
   }
 
   function openMenu(e: React.MouseEvent<HTMLButtonElement>, factureId: string) {
@@ -460,12 +516,18 @@ export default function FacturesListPage() {
                     )}
                   </div>
                 </div>
-                {/* Barre de paiement (couleur sémantique) */}
+                {/* Barre de paiement (couleur sémantique) — masquee pour un avoir */}
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${facture.paidPercent}%`, background: paidColor }} />
-                  </div>
-                  <span className="font-spline-mono text-[11px] text-gray-500">{facture.paidPercent}%</span>
+                  {(facture.type as string | null) === 'avoir' ? (
+                    <span className="flex-1 font-spline-mono text-[11px] text-gray-400">Avoir (NET A CREDITER)</span>
+                  ) : (
+                    <>
+                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${facture.paidPercent}%`, background: paidColor }} />
+                      </div>
+                      <span className="font-spline-mono text-[11px] text-gray-500">{facture.paidPercent}%</span>
+                    </>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); openMenu(e, id) }}
                     className="p-1.5 rounded-lg hover:bg-gray-100 ml-1 transition-colors"
@@ -479,6 +541,7 @@ export default function FacturesListPage() {
                     {String(facture.numero || '')}
                   </span>
                   <FactureTypeBadge facture={facture} />
+                  <OrigineAvoirBadge facture={facture} avoirInfo={avoirsByOrigine.get(facture.id as string)} />
                   <span className="font-spline-mono text-[11px] text-gray-400">
                     {formatDate((facture.date_emission || facture.created_at) as string | null)}
                   </span>
@@ -543,9 +606,10 @@ export default function FacturesListPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-spline-mono font-medium text-[13px] tracking-[0.5px] text-[#0f1a3a]">{(facture.numero as string) ?? '\u2014'}</span>
                       <FactureTypeBadge facture={facture} />
+                      <OrigineAvoirBadge facture={facture} avoirInfo={avoirsByOrigine.get(facture.id as string)} />
                     </div>
                   </td>
-                  <td className="px-4 py-3"><PaymentBar percent={facture.paidPercent} restant={restantLabel} retard={retardLabel} /></td>
+                  <td className="px-4 py-3">{(facture.type as string | null) === 'avoir' ? (<span className="font-spline-mono text-[12px] text-gray-400">{'\u2014'}</span>) : (<PaymentBar percent={facture.paidPercent} restant={restantLabel} retard={retardLabel} />)}</td>
                   <td className="px-4 py-3">
                     <div className="font-hanken text-[14px] font-semibold text-[#0f1a3a]">{facture.clientName}</div>
                     <div className="font-hanken text-xs text-gray-500">{(facture.objet as string) ?? ''}</div>
@@ -617,6 +681,22 @@ export default function FacturesListPage() {
           >
             <Copy size={14} /> Dupliquer
           </button>
+          {(() => {
+            // Avoir possible UNIQUEMENT sur une facture emise (pas brouillon,
+            // pas annulee) et qui n'est pas elle-meme un avoir.
+            const t = (activeFacture.type as string | null) ?? null
+            const st = (activeFacture.statut as string) ?? ''
+            const eligible = t !== 'avoir' && ['envoyee', 'partiellement_payee', 'payee', 'en_retard', 'En attente', 'Encaissée'].includes(st)
+            if (!eligible) return null
+            return (
+              <button
+                onClick={() => { openAvoirModal(activeFacture) }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"
+              >
+                <RotateCcw size={14} /> Creer un avoir
+              </button>
+            )
+          })()}
           <button
             onClick={() => { handleSend(activeFacture) }}
             className="w-full flex items-center gap-2.5 px-3.5 py-2.5 font-hanken text-[13.5px] font-medium hover:bg-[#fafbfc] transition-colors text-[#0f1a3a]"
@@ -659,6 +739,24 @@ export default function FacturesListPage() {
             setTimeout(() => setToastMsg(null), 3000)
             setSendTarget(null)
             refetchF()
+          }}
+        />
+      )}
+
+      {/* V-AVOIR : modale "Creer un avoir" (montee a l'ouverture seulement). */}
+      {avoirTarget && (
+        <CreerAvoirModal
+          open={!!avoirTarget}
+          onClose={() => setAvoirTarget(null)}
+          factureId={avoirTarget.id}
+          numero={avoirTarget.numero}
+          clientNom={avoirTarget.clientNom}
+          montantTtc={avoirTarget.montantTtc}
+          originePayee={avoirTarget.originePayee}
+          onCreated={(avoirId) => {
+            setAvoirTarget(null)
+            refetchF()
+            router.push(`/dashboard/factures/${avoirId}`)
           }}
         />
       )}
@@ -710,6 +808,27 @@ function FactureTypeBadge({ facture }: { facture: Record<string, unknown> }) {
     )
   }
   return null
+}
+
+// V-AVOIR : badge affiche sur une facture d'ORIGINE qui possede un ou plusieurs
+// avoirs. "Soldee par avoir" si la somme des avoirs couvre tout le TTC, sinon
+// "Avoir AV-...".
+function OrigineAvoirBadge({ facture, avoirInfo }: { facture: Record<string, unknown>; avoirInfo?: { numeros: string[]; totalAvoir: number } }) {
+  if (!avoirInfo || avoirInfo.numeros.length === 0) return null
+  if ((facture.type as string | null) === 'avoir') return null
+  const ttc = Number(facture.montant_ttc ?? 0)
+  const paye = Number(facture.montant_paye ?? 0)
+  const net = ttc - paye - avoirInfo.totalAvoir
+  const soldee = net <= 0.01
+  const label = soldee ? 'Soldee par avoir' : `Avoir ${avoirInfo.numeros[0]}`
+  return (
+    <span
+      title={avoirInfo.numeros.join(', ')}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/60 font-hanken text-[10.5px] font-bold uppercase tracking-wider whitespace-nowrap"
+    >
+      {label}
+    </span>
+  )
 }
 
 // PaymentBar V4 light — barre de progression de paiement avec couleur sémantique

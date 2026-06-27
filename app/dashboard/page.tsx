@@ -168,11 +168,17 @@ export default function DashboardPage() {
   const loading = fLoading || dLoading || pLoading;
 
   /* ── Computed metrics ── */
-  const facturesPayees = factures.filter((f: Record<string, unknown>) => f.statut === 'payee');
-  const caFacture = factures.reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0);
+  // V-AVOIR : un avoir (type='avoir') n'est ni une creance ni un encaissement.
+  // CA facture = Somme(factures) - Somme(avoirs). On exclut les avoirs des
+  // listes de creances/encaissements et on les soustrait du CA.
+  const isAvoirF = (f: Record<string, unknown>) => (f.type as string | null) === 'avoir';
+  const facturesReelles = factures.filter((f: Record<string, unknown>) => !isAvoirF(f));
+  const totalAvoirsTTC = factures.filter(isAvoirF).reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0);
+  const facturesPayees = facturesReelles.filter((f: Record<string, unknown>) => f.statut === 'payee');
+  const caFacture = facturesReelles.reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0) - totalAvoirsTTC;
   const caEncaisse = facturesPayees.reduce((sum: number, f: Record<string, unknown>) => sum + Number(f.montant_ttc || 0), 0);
   const resteAEncaisser = caFacture - caEncaisse;
-  const facturesImpayees = factures.filter((f: Record<string, unknown>) => f.statut === 'en_retard' || f.statut === 'envoyee');
+  const facturesImpayees = facturesReelles.filter((f: Record<string, unknown>) => f.statut === 'en_retard' || f.statut === 'envoyee');
   const devisEnCours = devis.filter((d: Record<string, unknown>) => d.statut === 'envoye' || d.statut === 'brouillon');
   const devisEnCoursMontant = devisEnCours.reduce((sum: number, d: Record<string, unknown>) => sum + Number(d.montant_ht || 0), 0);
   // Devis acceptés (statut 'signe') — utilisés pour la stat "Conversion" et "À planifier"
@@ -250,8 +256,12 @@ export default function DashboardPage() {
       const d = new Date(f.date_emission as string);
       return d.getFullYear() === currentYear && d.getMonth() === monthIdx;
     });
-    const facture = monthFactures.reduce((s: number, f: Record<string, unknown>) => s + Number(f.montant_ttc || 0), 0);
-    const encaisse = monthFactures.filter((f: Record<string, unknown>) => f.statut === 'payee')
+    // V-AVOIR : CA mensuel = factures du mois - avoirs du mois.
+    const monthAvoirs = monthFactures.filter((f: Record<string, unknown>) => (f.type as string | null) === 'avoir')
+      .reduce((s: number, f: Record<string, unknown>) => s + Number(f.montant_ttc || 0), 0);
+    const facture = monthFactures.filter((f: Record<string, unknown>) => (f.type as string | null) !== 'avoir')
+      .reduce((s: number, f: Record<string, unknown>) => s + Number(f.montant_ttc || 0), 0) - monthAvoirs;
+    const encaisse = monthFactures.filter((f: Record<string, unknown>) => f.statut === 'payee' && (f.type as string | null) !== 'avoir')
       .reduce((s: number, f: Record<string, unknown>) => s + Number(f.montant_ttc || 0), 0);
     return { month: label, facture, encaisse };
   });

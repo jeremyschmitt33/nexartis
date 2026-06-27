@@ -160,6 +160,9 @@ export interface FactureData {
   montant_situation_precedent_ttc?: number
   reste_a_facturer_ht?: number
   reste_a_facturer_ttc?: number
+  // V-AVOIR — reference de la facture d'origine (pour le rendu de l'avoir).
+  facture_origine_numero?: string
+  facture_origine_date?: string
   // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
   // Quand true : pousse hasSousTraitanceBTP=true dans le LegalContext → la mention
   // d'autoliquidation est ajoutee automatiquement en pied de doc (cf. legal-mentions.ts).
@@ -296,11 +299,14 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     : (data.lignes as PdfLigne[])
   const lignes = normalizeLignes(rawLignes)
   const isSituation = data.type === 'situation'
+  const isAvoir = data.type === 'avoir'
   const palette = buildPalette(theme ?? null)
 
-  const title = isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
+  const title = isAvoir ? 'AVOIR' : isSituation ? 'FACTURE DE SITUATION' : 'FACTURE'
 
   // 1. HEADER
+  // V-AVOIR : pas d'echeance de reglement sur un avoir (on passe '' -> drawHeader
+  // n'affiche alors pas le bloc date droite).
   const headerBottomY = drawHeader(
     doc,
     ent,
@@ -308,8 +314,8 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     data.numero,
     fmtDate(data.date_emission),
     'Émis le',
-    fmtDate(data.date_echeance),
-    'Échéance',
+    isAvoir ? '' : fmtDate(data.date_echeance),
+    isAvoir ? '' : 'Échéance',
     palette,
   )
 
@@ -337,6 +343,14 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   // 4. Objet + adresse chantier
   if (data.objet || data.chantier_adresse) {
     y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
+  }
+
+  // 4.av V-AVOIR — bandeau reference de la facture d'origine.
+  if (isAvoir && data.facture_origine_numero) {
+    const refTxt = `Avoir sur la facture n° ${data.facture_origine_numero}${data.facture_origine_date ? ` du ${fmtDate(data.facture_origine_date)}` : ''}`
+    font(doc, 'Hanken Grotesk', 'bold', 8.5, palette.navy)
+    doc.text(refTxt, 14, y)
+    y += 6
   }
 
   // 4.bis V3.0c.18 — Bandeau AVANCEMENT pour factures de situation
@@ -381,7 +395,7 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
       montant_tva: data.montant_tva,
       montant_ttc: data.montant_ttc,
       entreprise: ent,
-      netLabel: 'Net à payer',
+      netLabel: isAvoir ? 'Net à créditer' : 'Net à payer',
     },
     lignes,
     true, // bloc IBAN actif pour facture
@@ -393,7 +407,8 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   {
     const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0)
     const entInfo = ent as { nom?: string; iban?: string }
-    if (canDrawSepaQr(entInfo?.iban, netAPayer)) {
+    // V-AVOIR : pas de QR de virement SEPA sur un avoir (somme a crediter, pas a payer).
+    if (!isAvoir && canDrawSepaQr(entInfo?.iban, netAPayer)) {
       y = drawSepaPaymentBlock(
         doc,
         {

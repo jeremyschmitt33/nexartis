@@ -113,6 +113,14 @@ export interface DocumentMeta {
   // Si true : forcer la TVA a 0% partout + afficher la mention obligatoire en pied de doc.
   // Quand undefined / false → rendu standard inchange (backward-compat).
   autoliquidationBtp?: boolean
+  // V-AVOIR — Facture d'avoir. Si present, DocumentRender affiche le titre
+  // "AVOIR", le libelle "NET A CREDITER", la reference d'origine, et MASQUE
+  // l'echeance + la zone de signature.
+  avoir?: {
+    factureOrigineNumero?: string
+    factureOrigineDate?: string // deja formatee fr-FR
+    pourcentage?: number
+  }
 }
 
 export interface DocumentData {
@@ -171,6 +179,9 @@ export interface RawFacture {
   // V3.0c.18 — Facture de situation : exposés à buildFactureDocument pour
   // alimenter meta.situation (et permettre l'affichage du bandeau d'avancement).
   type?: string | null
+  // V-AVOIR — reference de la facture d'origine (pour le rendu de l'avoir).
+  facture_origine_numero?: string | null
+  facture_origine_date?: string | null
   numero_situation?: number | null
   pourcentage_situation?: number | null
   devis_ref?: string | null
@@ -595,6 +606,15 @@ export function buildFactureDocument(opts: {
       montantPrecedentTtc: opts.doc.montant_situation_precedent_ttc ?? undefined,
       resteAFacturerHt: opts.doc.reste_a_facturer_ht ?? undefined,
       resteAFacturerTtc: opts.doc.reste_a_facturer_ttc ?? undefined,
+    }
+  }
+
+  // V-AVOIR — Snapshot avoir (uniquement si type === 'avoir').
+  if (opts.doc.type === 'avoir') {
+    // Pourcentage = TTC avoir / TTC origine (si exploitable). Sinon non affiche.
+    meta.avoir = {
+      factureOrigineNumero: opts.doc.facture_origine_numero ?? undefined,
+      factureOrigineDate: opts.doc.facture_origine_date ? fmtDate(opts.doc.facture_origine_date) : undefined,
     }
   }
 

@@ -49,15 +49,22 @@ function HeaderD({ data }: { data: DocumentData }) {
   //   - DEVIS pour les devis
   //   - FACTURE DE SITUATION pour les factures avec meta.situation
   //   - FACTURE pour les factures standard
+  const isAvoir = docType === 'facture' && Boolean(meta.avoir)
   const isSituation = docType === 'facture' && Boolean(meta.situation)
   const titre = docType === 'devis'
     ? 'DEVIS'
-    : isSituation
-      ? 'FACTURE DE SITUATION'
-      : 'FACTURE'
+    : isAvoir
+      ? 'AVOIR'
+      : isSituation
+        ? 'FACTURE DE SITUATION'
+        : 'FACTURE'
   // Sous-titre situation : affiché sous le numéro en petit (parité avec le PDF)
   const situationSubtitle = isSituation && meta.situation
     ? `Situation N°${meta.situation.numero} · ${meta.situation.pourcentage}% d'avancement`
+    : null
+  // V-AVOIR : reference de la facture d'origine (sous le numero).
+  const avoirSubtitle = isAvoir && meta.avoir?.factureOrigineNumero
+    ? `Sur facture n° ${meta.avoir.factureOrigineNumero}${meta.avoir.factureOrigineDate ? ` du ${meta.avoir.factureOrigineDate}` : ''}`
     : null
   return (
     <header className="dv-head dv-headD">
@@ -88,9 +95,15 @@ function HeaderD({ data }: { data: DocumentData }) {
               <div><strong>{situationSubtitle}</strong></div>
             </div>
           )}
+          {avoirSubtitle && (
+            <div className="dv-d-metaline" style={{ marginTop: 4 }}>
+              <div><strong>{avoirSubtitle}</strong></div>
+            </div>
+          )}
           <div className="dv-d-metaline">
             {meta.dateEmission && (<div>Émis le <strong>{meta.dateEmission}</strong></div>)}
-            {meta.dateRight && (<div>{meta.dateRightLabel} <strong>{meta.dateRight}</strong></div>)}
+            {/* V-AVOIR : pas d'echeance de reglement sur un avoir. */}
+            {!isAvoir && meta.dateRight && (<div>{meta.dateRightLabel} <strong>{meta.dateRight}</strong></div>)}
           </div>
         </div>
       </div>
@@ -242,6 +255,9 @@ function GroupRows({ group }: { group: DocumentGroup }) {
 
 function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType: 'devis' | 'facture'; meta: DocumentMeta }) {
   const hasAcompte = docType === 'devis' && totals.acomptePct > 0
+  // V-AVOIR : libelle "Net a crediter" (et pas "Net a payer") + pas d'echeance.
+  const isAvoir = docType === 'facture' && Boolean(meta.avoir)
+  const netLabel = isAvoir ? 'Net à créditer' : 'Net à payer'
   // 2026-06-10 — Autoliquidation BTP : libelle TVA dedie (au lieu du generique
   // "TVA non applicable" qui evoque la franchise 293 B).
   const tvaLabel = meta.autoliquidationBtp
@@ -259,7 +275,7 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
       <div className="dv-recap-line dv-recap-line--ttc"><span>Total TTC</span><span>{eur(totals.totalTtc)}</span></div>
       {/* V3.0b.6 — Net a payer = Total TTC (engagement du devis, pas l'acompte) */}
       <div className="dv-recap-net">
-        <span>Net à payer</span>
+        <span>{netLabel}</span>
         <strong>{eur(totals.totalTtc)}</strong>
       </div>
       {/* V3.0b.6 — Mini-bloc : a verser maintenant + reste a la livraison */}
@@ -269,7 +285,7 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
           <div className="dv-recap-foot-line"><span>Reste dû à la livraison</span><strong>{eur(totals.resteDu)}</strong></div>
         </div>
       )}
-      {docType === 'facture' && meta.dateRight && (
+      {docType === 'facture' && !isAvoir && meta.dateRight && (
         <div className="dv-recap-foot">
           <div className="dv-recap-foot-line"><span>Échéance de règlement</span><strong>{meta.dateRight}</strong></div>
         </div>
@@ -319,13 +335,22 @@ function RecapDevis({ data }: { data: DocumentData }) {
 
 function RecapFacture({ data }: { data: DocumentData }) {
   const { artisan, totals, meta } = data
+  // V-AVOIR : un avoir n'a ni penalites de retard, ni echeance de reglement,
+  // ni escompte. On affiche un libelle remboursement a la place.
+  const isAvoir = Boolean(meta.avoir)
   const penalites = meta.penalitesCustom?.trim() || "En cas de retard : pénalités au taux de 3× l'intérêt légal + indemnité forfaitaire de 40 € (art. L.441-10 C. com.). Pas d'escompte pour paiement anticipé."
   return (
     <div className="dv-recap">
       <div className="dv-recap-notes">
-        <div className="dv-recap-notes-title">Conditions de paiement</div>
-        <p>Méthodes acceptées : <strong>Virement bancaire, chèque</strong>.{meta.dateRight && <> Règlement attendu au plus tard le <strong>{meta.dateRight}</strong>.</>}</p>
-        <p>{penalites}</p>
+        <div className="dv-recap-notes-title">{isAvoir ? 'Avoir' : 'Conditions de paiement'}</div>
+        {isAvoir ? (
+          <p>Cet avoir vient en déduction des sommes dues. Si la facture d&apos;origine a déjà été réglée, le montant est à rembourser au client.</p>
+        ) : (
+          <>
+            <p>Méthodes acceptées : <strong>Virement bancaire, chèque</strong>.{meta.dateRight && <> Règlement attendu au plus tard le <strong>{meta.dateRight}</strong>.</>}</p>
+            <p>{penalites}</p>
+          </>
+        )}
         {(artisan.iban || artisan.bic) && (
           <div className="dv-pay">
             <div className="dv-pay-k">Pour régler par virement</div>
@@ -382,6 +407,8 @@ function LegalDevis({ data }: { data: DocumentData }) {
 
 function LegalFacture({ data }: { data: DocumentData }) {
   const { artisan, clientType } = data
+  // V-AVOIR : pas de penalites de retard sur un avoir (ce n'est pas une creance).
+  const isAvoir = Boolean(data.meta.avoir)
   const mediation = artisan.mediateurAdresse || 'Médiateur de la consommation : mediation-conso.fr — recours gratuit.'
   const hasTvaReduite = data.totals.tvaLignes.some(l => l.taux === 5.5 || l.taux === 10)
   const statutJuridique = [artisan.formeJuridique, artisan.rcs].filter(Boolean).join(' · ')
@@ -395,7 +422,7 @@ function LegalFacture({ data }: { data: DocumentData }) {
           <div><span className="dv-legal-k">Statut juridique</span>{artisan.nom}{artisan.formeJuridique ? ` — ${artisan.formeJuridique}` : ''}{artisan.rcs && <><br />{artisan.rcs}</>}</div>
         )}
         <div><span className="dv-legal-k">Médiation</span>{mediation}</div>
-        {clientType === 'particulier' && (<div><span className="dv-legal-k">Pénalités</span>En cas de retard : pénalités au taux de 3× l&apos;intérêt légal. Pas d&apos;escompte pour paiement anticipé.</div>)}
+        {clientType === 'particulier' && !isAvoir && (<div><span className="dv-legal-k">Pénalités</span>En cas de retard : pénalités au taux de 3× l&apos;intérêt légal. Pas d&apos;escompte pour paiement anticipé.</div>)}
       </div>
     </div>
   )

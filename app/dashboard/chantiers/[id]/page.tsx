@@ -160,7 +160,25 @@ export default function ChantierDetailPage() {
   [allDevis, id])
 
   const chantierFactures = useMemo(() =>
-    allFactures.filter(f => (f as R).chantier_id === id) as R[],
+    // V-AVOIR : on exclut les avoirs (type='avoir') des factures du chantier
+    // (ils ne sont ni une creance ni un encaissement). Ils viennent en deduction
+    // du CA facture plus bas (chantierAvoirsTtc).
+    allFactures.filter(f => (f as R).chantier_id === id && (f as R).type !== 'avoir') as R[],
+  [allFactures, id])
+
+  // V-AVOIR : somme TTC des avoirs lies a ce chantier (deduits du facture total).
+  const chantierAvoirsTtc = useMemo(() =>
+    allFactures
+      .filter(f => (f as R).chantier_id === id && (f as R).type === 'avoir')
+      .reduce((s, f) => s + Number((f as R).montant_ttc ?? 0), 0),
+  [allFactures, id])
+
+  // V-AVOIR : somme HT des avoirs lies a ce chantier (deduite du facture HT,
+  // symetriquement a chantierAvoirsTtc deduit du facture total TTC).
+  const chantierAvoirsHt = useMemo(() =>
+    allFactures
+      .filter(f => (f as R).chantier_id === id && (f as R).type === 'avoir')
+      .reduce((s, f) => s + Number((f as R).montant_ht ?? 0), 0),
   [allFactures, id])
 
   const chantierInterventions = useMemo(() =>
@@ -248,7 +266,8 @@ export default function ChantierDetailPage() {
       if (!existing || fDate > eDate) facturesParDevis.set(devisId, f)
     })
     const facturesUtiles = [...Array.from(facturesParDevis.values()), ...facturesSansDevis]
-    const factureTotal = facturesUtiles.reduce((sum, f) => sum + Number(f.montant_ttc ?? 0), 0)
+    // V-AVOIR : facture total NET = somme factures - somme avoirs du chantier.
+    const factureTotal = facturesUtiles.reduce((sum, f) => sum + Number(f.montant_ttc ?? 0), 0) - chantierAvoirsTtc
 
     // ── ENCAISSÉ ──
     // Somme des factures dont statut === 'payee' (parmi les facturesUtiles dédupliquées)
@@ -285,7 +304,7 @@ export default function ChantierDetailPage() {
     const margePct = factureTotal > 0 ? Math.round((marge / factureTotal) * 100) : 0
 
     return { deviseTotal, factureTotal, encaisse, reste, devisCount, devisFactures, pctDevis, pctValeur, pctEncaissement, totalST, totalAchats, depenses, marge, margePct }
-  }, [chantierDevis, chantierFactures, stPaiements, chantierAchats])
+  }, [chantierDevis, chantierFactures, chantierAvoirsTtc, stPaiements, chantierAchats])
 
   // ── Gantt data ── (affiche 10 jours pour des cases plus larges et lisibles)
   const ganttDays = useMemo(() => {
@@ -1240,7 +1259,8 @@ export default function ChantierDetailPage() {
               const nb = Number((b as R).numero_situation ?? 0)
               return na - nb
             })
-          const factHT = chantierFactures.reduce((sum, f) => sum + Number((f as R).montant_ht ?? 0), 0)
+          // V-AVOIR : factHT NET = somme HT factures du chantier - somme HT des avoirs.
+          const factHT = chantierFactures.reduce((sum, f) => sum + Number((f as R).montant_ht ?? 0), 0) - chantierAvoirsHt
           // Devisé HT = depuis les devis liés (même logique que finances.deviseTotal mais HT)
           const devisHT = chantierDevis.reduce((sum, d) => sum + Number((d as R).montant_ht ?? 0), 0)
           const resteHT = Math.max(0, devisHT - factHT)
