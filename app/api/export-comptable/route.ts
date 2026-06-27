@@ -85,6 +85,11 @@ interface DocumentRow {
   statut: string | null
   // B1 : type de document. 'avoir' => credit (montants en negatif au CSV).
   type?: string | null
+  // V2 SUIVI REMBOURSEMENT : pour un avoir, date/mode du remboursement reel au
+  // client (sortie de tresorerie). Permet au comptable de rapprocher la banque.
+  remboursement_statut?: string | null
+  rembourse_at?: string | null
+  rembourse_mode?: string | null
 }
 
 // ────────────────────────────────────────────────────────────
@@ -281,7 +286,6 @@ function buildCsvSimple(
   for (const doc of docs) {
     const client = resolveClient(doc, clientsById)
     const date = formatDateFr(doc.date_emission || doc.created_at)
-    const datePaiement = type === 'factures' ? formatDateFr(doc.date_paiement) : ''
     const aggregate = taxAggregateByDocId.get(doc.id) || []
 
     // B1 — Avoir : un avoir reduit le CA. On l'identifie, on l'affiche comme
@@ -291,6 +295,19 @@ function buildCsvSimple(
     const isAvoir = type === 'factures' && doc.type === 'avoir'
     const docTypeLabel = isAvoir ? 'Avoir' : typeLabel
     const sign = isAvoir ? -1 : 1
+
+    // V2 SUIVI REMBOURSEMENT — colonne "Date paiement" :
+    //   - facture standard : date d'encaissement (date_paiement) ;
+    //   - avoir REMBOURSE : date du remboursement reel (rembourse_at) = sortie de
+    //     tresorerie, pour rapprochement bancaire par le comptable ;
+    //   - avoir 'a_valoir' (impute sur une facture future, aucun cash) ou pas
+    //     encore solde : vide (rien n'est sorti de la banque).
+    const datePaiement =
+      type !== 'factures'
+        ? ''
+        : isAvoir
+          ? (doc.remboursement_statut === 'rembourse' ? formatDateFr(doc.rembourse_at) : '')
+          : formatDateFr(doc.date_paiement)
 
     // ── Cas multi-taux ── : >1 taux distinct sur les lignes prestation.
     if (aggregate.length > 1) {
@@ -503,7 +520,7 @@ export async function POST(req: NextRequest) {
     //    et en respectant la fenêtre de dates (sur date_emission).
     const baseSelect =
       type === 'factures'
-        ? 'id, numero, date_emission, created_at, date_paiement, objet, client_id, client_nom, notes_client, montant_ht, montant_tva, montant_ttc, statut, type'
+        ? 'id, numero, date_emission, created_at, date_paiement, objet, client_id, client_nom, notes_client, montant_ht, montant_tva, montant_ttc, statut, type, remboursement_statut, rembourse_at, rembourse_mode'
         : 'id, numero, date_emission, created_at, date_validite, objet, client_id, client_nom, notes_client, montant_ht, montant_tva, montant_ttc, statut'
 
     let query = supabase
