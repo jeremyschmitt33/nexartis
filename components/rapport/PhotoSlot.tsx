@@ -34,14 +34,19 @@ export default function PhotoSlot({ refData, label, jobs, getPreview, photosById
     // meme apres suppression du blob local en fin d'upload -> pas de clignotement).
     if (src) return
     let cancelled = false
-    ;(async () => {
+    let attempts = 0
+    const tryResolve = async () => {
+      if (cancelled) return
       if (lid) {
         const u = await getPreview(lid)
         if (cancelled) { if (u) URL.revokeObjectURL(u); return }
         if (u) { urlRef.current = u; setSrc(u); return }
       }
-      if (!cancelled && pid && photosById[pid]) setSrc(photosById[pid].thumb_url || photosById[pid].url)
-    })()
+      if (pid && photosById[pid]) { setSrc(photosById[pid].thumb_url || photosById[pid].url); return }
+      // Le binaire local n'est pas encore stocke (traitement en cours) -> on retente.
+      if (lid && attempts < 20) { attempts++; setTimeout(tryResolve, 350) }
+    }
+    void tryResolve()
     return () => { cancelled = true }
   }, [refData.localId, refData.photoId, getPreview, photosById, src])
 
@@ -55,10 +60,10 @@ export default function PhotoSlot({ refData, label, jobs, getPreview, photosById
   return (
     <div>
       {label && <p className={`font-hanken text-[10px] font-extrabold uppercase tracking-wide text-center mb-1 ${label === 'Avant' ? 'text-gray-400' : 'text-emerald-600'}`}>{label}</p>}
-      <div className={`relative rounded-xl border border-gray-200 bg-gray-100 overflow-hidden ${big ? 'h-44' : 'h-32'}`}>
+      <div className={`relative rounded-xl border border-gray-200 bg-gray-50 overflow-hidden ${big ? 'h-44' : 'h-32'}`}>
         {hasPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src as string} alt={refData.legende || 'Photo du rapport'} className="w-full h-full object-cover" />
+          <img src={src as string} alt={refData.legende || 'Photo du rapport'} className="w-full h-full object-contain" />
         ) : (
           <button type="button" onClick={() => fileRef.current?.click()}
             className="w-full h-full flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-sky-dark hover:bg-sky/5 transition">

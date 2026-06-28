@@ -105,10 +105,16 @@ export async function POST(req: NextRequest) {
   let clientNom: string | null = null
   if (clientId) {
     const { data: client } = await db
-      .from('clients').select('id, raison_sociale, prenom, nom')
+      .from('clients').select('id, raison_sociale, prenom, nom, adresse, code_postal, ville')
       .eq('id', clientId).eq('user_id', user.id).single()
     if (!client) { clientId = null }
-    else clientNom = clientDisplayName(client)
+    else {
+      clientNom = clientDisplayName(client)
+      // Pas d'adresse chantier -> on prend l'adresse du client.
+      if (!adresseSnapshot) {
+        adresseSnapshot = [client.adresse, [client.code_postal, client.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null
+      }
+    }
   }
 
   const dateInter = (typeof b.date_intervention === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.date_intervention)) ? b.date_intervention : null

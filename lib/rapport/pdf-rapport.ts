@@ -1,20 +1,18 @@
 /**
  * Generateur PDF du rapport d'intervention (cote NAVIGATEUR, jsPDF).
- * SOURCE UNIQUE DE RENDU : l'apercu affiche ce meme PDF -> zero divergence.
- * Reutilise la charte (couleurs du theme entreprise) + les polices embarquees.
- * Photos passees en dataURL (binaires embarques) pour un PDF autonome.
+ * SOURCE UNIQUE DE RENDU. Photos jamais rognees ni deformees (ajustees a leurs
+ * vraies proportions). Mise en page auto selon le nombre de photos.
  */
 import { jsPDF } from 'jspdf'
 import { registerPdfFonts } from '@/lib/pdf-fonts'
-import { buildPalette } from '@/lib/pdf/palette'
+import { buildPalette, type RGB } from '@/lib/pdf/palette'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { font, setFill, fmtDate } from '@/lib/pdf/utils'
-import type { RGB } from '@/lib/pdf/palette'
-import type {
-  RapportPageData, PhotoRef,
-  ConstatContent, PosteContent, Photo1Content, Photo2Content, AvapContent, FinContent,
+import {
+  type RapportPageData, type PhotoRef,
+  type PhotosContent, type AvapContent, type TexteContent, type ConstatContent, type FinContent,
+  photoRefsOf,
 } from './page-content'
-import { photoRefsOf } from './page-content'
 
 export interface PdfImage { dataUrl: string; w: number; h: number }
 export interface RapportPdfMeta {
@@ -36,6 +34,7 @@ const GRAY: RGB = [120, 130, 150]
 const DARK: RGB = [40, 55, 80]
 const LIGHT: RGB = [228, 234, 242]
 const CREAM: RGB = [247, 243, 236]
+const GREEN: RGB = [22, 163, 74]
 
 export function imageKeyOf(ref: PhotoRef): string { return ref.photoId || ref.localId || '' }
 
@@ -49,67 +48,57 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   registerPdfFonts(doc)
   const pal = buildPalette(themeFromEntreprise(opts.entreprise))
-  const F = (fam: 'Hanken Grotesk', st: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold', size: number, c?: RGB) => font(doc, fam, st, size, c)
+  const F = (st: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold', size: number, c?: RGB) => font(doc, 'Hanken Grotesk', st, size, c)
 
   let y = 0
-  let firstOfPage = true
 
   function header(first: boolean) {
     const h = first ? 24 : 13
     setFill(doc, pal.navy); doc.rect(0, 0, A4.w, h, 'F')
-    F('Hanken Grotesk', 'extrabold', first ? 15 : 10, pal.white)
+    F('extrabold', first ? 15 : 10, pal.white)
     doc.text(opts.entrepriseNom || 'Rapport', M, first ? 14 : 8.5)
-    F('Hanken Grotesk', 'medium', first ? 9 : 8, pal.white)
+    F('medium', first ? 9 : 8, pal.white)
     const right = [opts.meta.numero, first && opts.meta.date ? fmtDate(opts.meta.date) : null].filter(Boolean).join('   ·   ')
     if (right) doc.text(right, A4.w - M, first ? 14 : 8.5, { align: 'right' })
     setFill(doc, pal.orange); doc.rect(0, h, A4.w, 1.4, 'F')
     y = h + (first ? 9 : 7)
-    firstOfPage = true
   }
-
   function footer() {
     const fy = A4.h - 8
-    F('Hanken Grotesk', 'normal', 8, GRAY)
+    F('normal', 8, GRAY)
     doc.text(opts.entrepriseNom || '', M, fy)
     doc.text('Rapport d’intervention', A4.w - M, fy, { align: 'right' })
   }
-
   function newPage() { footer(); doc.addPage(); header(false) }
   function ensure(need: number) { if (y + need > A4.h - 14) newPage() }
 
-  // Bloc titre (page 1)
   function intro() {
-    F('Hanken Grotesk', 'extrabold', 9.5, pal.orange)
-    doc.text('RAPPORT D’INTERVENTION', M, y); y += 6
-    F('Hanken Grotesk', 'extrabold', 19, pal.navy)
+    F('extrabold', 9.5, pal.orange); doc.text('RAPPORT D’INTERVENTION', M, y); y += 6
+    F('extrabold', 19, pal.navy)
     const titre = doc.splitTextToSize(opts.meta.objet || 'Sans objet', CW)
     doc.text(titre, M, y); y += titre.length * 8.5 + 3
-    F('Hanken Grotesk', 'normal', 11.5, DARK)
+    F('normal', 11, DARK)
     const info: string[] = []
     if (opts.meta.clientNom) info.push('Client : ' + opts.meta.clientNom)
     if (opts.meta.adresse) info.push(opts.meta.adresse)
     if (opts.meta.date) info.push('Date d’intervention : ' + fmtDate(opts.meta.date))
-    for (const line of info) { doc.text(line, M, y); y += 6 }
+    for (const line of info) { const ls = doc.splitTextToSize(line, CW); doc.text(ls, M, y); y += ls.length * 6 }
     y += 4
   }
-
   function sectionTitle(t: string) {
-    ensure(12)
-    F('Hanken Grotesk', 'extrabold', 13, pal.navy)
-    doc.text(t, M, y); y += 2.5
+    ensure(14)
+    F('extrabold', 13, pal.navy); doc.text(t, M, y); y += 2.5
     setFill(doc, LIGHT); doc.rect(M, y, CW, 0.4, 'F'); y += 5
   }
-
-  function paragraph(t: string, size = 11.5, color = DARK) {
+  function paragraph(t: string, size = 11.5) {
     if (!t) return
-    F('Hanken Grotesk', 'normal', size, color)
+    F('normal', size, DARK)
     const lines = doc.splitTextToSize(t, CW)
-    for (const ln of lines) { ensure(6); doc.text(ln, M, y); y += size * 0.62 }
+    for (const ln of lines) { ensure(7); doc.text(ln, M, y); y += size * 0.62 }
     y += 2
   }
-
   function bullets(items: string[]) {
-    F('Hanken Grotesk', 'normal', 11.5, DARK)
+    F('normal', 11.5, DARK)
     for (const it of items.filter((x) => x && x.trim())) {
       const lines = doc.splitTextToSize(it, CW - 5)
       ensure(lines.length * 5.8 + 1)
@@ -118,13 +107,11 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     }
     y += 2
   }
-
   function drawImage(ref: PhotoRef, x: number, boxW: number, boxH: number): number {
     const img = opts.images.get(imageKeyOf(ref))
     if (!img) {
       setFill(doc, LIGHT); doc.roundedRect(x, y, boxW, boxH, 2, 2, 'F')
-      F('Hanken Grotesk', 'normal', 8, GRAY)
-      doc.text('Photo indisponible', x + boxW / 2, y + boxH / 2, { align: 'center' })
+      F('normal', 8, GRAY); doc.text('Photo indisponible', x + boxW / 2, y + boxH / 2, { align: 'center' })
       return boxH
     }
     const ratio = img.w > 0 ? img.h / img.w : 0.72
@@ -135,63 +122,65 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     return h
   }
 
-  function legende(t: string | undefined, x: number, w: number) {
-    if (!t || !t.trim()) return
-    F('Hanken Grotesk', 'medium', 10, GRAY)
-    const lines = doc.splitTextToSize(t, w)
-    doc.text(lines, x, y + 3.5); y += lines.length * 4.6 + 1
-  }
-
-  // ----- Rendu -----
+  // ----- Pages -----
   header(true)
   intro()
 
   for (const p of opts.pages) {
-    if (p.type === 'constat') {
-      const c = p.contenu as ConstatContent
-      if ((c.items ?? []).some((x) => x && x.trim())) { sectionTitle('Constatations'); bullets(c.items ?? []) }
-    } else if (p.type === 'poste') {
-      const c = p.contenu as PosteContent
-      sectionTitle(c.titre || 'Travaux réalisés'); paragraph(c.texte || '')
-    } else if (p.type === 'photo1') {
-      const c = p.contenu as Photo1Content
+    if (p.type === 'photos') {
+      const c = p.contenu as PhotosContent
+      const list = (c.photos ?? []).filter((r) => r && (r.photoId || r.localId))
+      if (list.length === 0 && !(c.commentaire && c.commentaire.trim())) continue
       sectionTitle('Travaux réalisés')
-      ensure(95); const hh = drawImage(c.photo ?? {}, M, CW, 90); y += hh; legende(c.photo?.legende, M, CW); y += 4
-    } else if (p.type === 'photo2') {
-      const c = p.contenu as Photo2Content
-      sectionTitle('Travaux réalisés')
-      for (const ref of (c.photos ?? [])) {
-        ensure(78); const hh = drawImage(ref ?? {}, M, CW, 72); y += hh; legende(ref?.legende, M, CW); y += 3
+      if (list.length <= 2) {
+        const boxH = list.length === 1 ? 130 : 92
+        for (const ref of list) { ensure(boxH + 6); const h = drawImage(ref, M, CW, boxH); y += h + 4 }
+      } else {
+        const colW = (CW - 6) / 2
+        for (let i = 0; i < list.length; i += 2) {
+          ensure(62)
+          const yTop = y
+          const h1 = drawImage(list[i], M, colW, 56)
+          let h2 = 0
+          if (list[i + 1]) { y = yTop; h2 = drawImage(list[i + 1], M + colW + 6, colW, 56) }
+          y = yTop + Math.max(h1, h2) + 4
+        }
       }
+      if (c.commentaire && c.commentaire.trim()) { paragraph(c.commentaire) }
       y += 2
     } else if (p.type === 'avap') {
       const c = p.contenu as AvapContent
       sectionTitle('Avant / Après')
-      ensure(70)
-      const colW = (CW - 6) / 2
-      F('Hanken Grotesk', 'extrabold', 9.5, GRAY); doc.text('AVANT', M, y)
-      F('Hanken Grotesk', 'extrabold', 9.5, [22, 163, 74] as RGB); doc.text('APRÈS', M + colW + 6, y); y += 3
-      const yTop = y
-      const h1 = drawImage(c.avant ?? {}, M, colW, 60)
-      y = yTop; const h2 = drawImage(c.apres ?? {}, M + colW + 6, colW, 60)
-      y = yTop + Math.max(h1, h2) + 3
+      ensure(90)
+      F('extrabold', 9.5, GRAY); doc.text('AVANT', M, y); y += 4
+      y += drawImage(c.avant ?? {}, M, CW, 78) + 5
+      ensure(90)
+      F('extrabold', 9.5, GREEN); doc.text('APRÈS', M, y); y += 4
+      y += drawImage(c.apres ?? {}, M, CW, 78) + 5
       const m = c.mesure
       if (m && (m.label || m.avant || m.apres)) {
         ensure(14)
         setFill(doc, CREAM); doc.roundedRect(M, y, CW, 11, 2, 2, 'F')
-        F('Hanken Grotesk', 'bold', 11, pal.navy)
+        F('bold', 11, pal.navy)
         const txt = `${m.label || 'Mesure'} : ${m.avant || '?'} ${m.unite || ''} → ${m.apres || '?'} ${m.unite || ''}`.replace(/\s+/g, ' ').trim()
         doc.text(txt, A4.w / 2, y + 7, { align: 'center' })
         y += 14
       }
       y += 2
+    } else if (p.type === 'texte') {
+      const c = p.contenu as TexteContent
+      if (c.titre && c.titre.trim()) sectionTitle(c.titre)
+      else { ensure(4); y += 2 }
+      paragraph(c.texte || '')
+    } else if (p.type === 'constat') {
+      const c = p.contenu as ConstatContent
+      if ((c.items ?? []).some((x) => x && x.trim())) { sectionTitle('Constatations'); bullets(c.items ?? []) }
     } else if (p.type === 'fin') {
       const c = p.contenu as FinContent
       if ((c.controles ?? []).some((x) => x && x.trim())) { sectionTitle('Contrôles finaux'); bullets(c.controles ?? []) }
       if ((c.observations ?? []).some((x) => x && x.trim())) { sectionTitle('Observations'); bullets(c.observations ?? []) }
       if (c.conclusion && c.conclusion.trim()) { sectionTitle('Conclusion'); paragraph(c.conclusion) }
     }
-    void firstOfPage
   }
 
   footer()

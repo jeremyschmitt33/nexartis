@@ -1,13 +1,13 @@
 'use client'
 
-import { ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-react'
+import { ArrowUp, ArrowDown, Trash2, Plus, ImagePlus } from 'lucide-react'
 import PhotoSlot, { type PhotoMap } from './PhotoSlot'
 import type { UploadJob } from '@/lib/rapport/upload-queue'
 import type { RapportUploadPayload } from '@/lib/rapport/upload-store'
 import {
   type RapportPageData, type PageContent, type PhotoRef,
-  type ConstatContent, type PosteContent, type Photo1Content, type Photo2Content, type AvapContent, type FinContent,
-  PAGE_TYPE_LABELS,
+  type PhotosContent, type AvapContent, type TexteContent, type ConstatContent, type FinContent,
+  PAGE_TYPE_LABELS, MAX_PHOTOS_PAR_PAGE,
 } from '@/lib/rapport/page-content'
 
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 font-hanken text-sm text-navy bg-gray-50 focus:bg-white focus:border-sky outline-none'
@@ -52,54 +52,36 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
 
   function renderBody() {
     switch (page.type) {
-      case 'constat': {
-        const c = page.contenu as ConstatContent
-        return (<><label className={labelCls}>Désordres constatés</label>
-          <StringList items={c.items ?? ['']} placeholder="Ex : tableau électrique vétuste" onChange={(items) => onChange({ items })} /></>)
-      }
-      case 'poste': {
-        const c = page.contenu as PosteContent
+      case 'photos': {
+        const c = page.contenu as PhotosContent
+        const photos: PhotoRef[] = c.photos?.length ? c.photos : [{}]
+        const setPhotos = (next: PhotoRef[]) => onChange({ photos: next.length ? next : [{}], commentaire: c.commentaire ?? '' })
         return (<>
-          <label className={labelCls}>Titre du poste</label>
-          <input className={inputCls} value={c.titre ?? ''} placeholder="Ex : Tableau électrique" onChange={(e) => onChange({ ...c, titre: e.target.value })} />
-          <label className={labelCls}>Description</label>
-          <textarea className={inputCls} rows={3} value={c.texte ?? ''} placeholder="Décrivez les travaux réalisés…" onChange={(e) => onChange({ ...c, texte: e.target.value })} />
+          <div className="space-y-2">
+            {photos.map((ref, i) => (
+              <PhotoSlot key={i} {...slotProps} refData={ref} big
+                onPick={(files) => { const [lid] = pickPhoto(files); if (lid) { const n = [...photos]; n[i] = { localId: lid, photoId: null }; setPhotos(n) } }}
+                onRemove={() => setPhotos(photos.filter((_, j) => j !== i))} />
+            ))}
+          </div>
+          {photos.length < MAX_PHOTOS_PAR_PAGE && (
+            <button type="button" onClick={() => setPhotos([...photos, {}])}
+              className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-sky-dark hover:underline mt-2"><ImagePlus size={14} /> Ajouter une photo ({photos.length}/{MAX_PHOTOS_PAR_PAGE})</button>
+          )}
+          <label className={labelCls}>Commentaire</label>
+          <textarea className={inputCls} rows={2} value={c.commentaire ?? ''} placeholder="Décrivez ce que montrent ces photos…"
+            onChange={(e) => onChange({ photos, commentaire: e.target.value })} />
         </>)
-      }
-      case 'photo1': {
-        const c = page.contenu as Photo1Content
-        const ref = c.photo ?? {}
-        return (<>
-          <PhotoSlot {...slotProps} refData={ref} big
-            onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ photo: { ...ref, localId: lid, photoId: null } }) }}
-            onRemove={() => onChange({ photo: { legende: ref.legende } })} />
-          <input className={`${inputCls} mt-2`} value={ref.legende ?? ''} placeholder="Légende (ex : nouveau tableau posé)" onChange={(e) => onChange({ photo: { ...ref, legende: e.target.value } })} />
-        </>)
-      }
-      case 'photo2': {
-        const c = page.contenu as Photo2Content
-        const photos: PhotoRef[] = c.photos?.length === 2 ? c.photos : [{}, {}]
-        const setRef = (i: number, r: PhotoRef) => { const n = [...photos]; n[i] = r; onChange({ photos: n }) }
-        return (<div className="space-y-3">
-          {[0, 1].map((i) => (
-            <div key={i}>
-              <PhotoSlot {...slotProps} refData={photos[i] ?? {}} big
-                onPick={(files) => { const [lid] = pickPhoto(files); if (lid) setRef(i, { ...photos[i], localId: lid, photoId: null }) }}
-                onRemove={() => setRef(i, { legende: photos[i]?.legende })} />
-              <input className={`${inputCls} mt-2`} value={photos[i]?.legende ?? ''} placeholder={`Légende de la photo ${i + 1}`} onChange={(e) => setRef(i, { ...photos[i], legende: e.target.value })} />
-            </div>
-          ))}
-        </div>)
       }
       case 'avap': {
         const c = page.contenu as AvapContent
         const m = c.mesure ?? { label: '', avant: '', apres: '', unite: '' }
         return (<>
-          <div className="grid grid-cols-2 gap-2">
-            <PhotoSlot {...slotProps} refData={c.avant ?? {}} label="Avant"
+          <div className="space-y-2">
+            <PhotoSlot {...slotProps} refData={c.avant ?? {}} label="Avant" big
               onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ ...c, avant: { localId: lid, photoId: null } }) }}
               onRemove={() => onChange({ ...c, avant: {} })} />
-            <PhotoSlot {...slotProps} refData={c.apres ?? {}} label="Après"
+            <PhotoSlot {...slotProps} refData={c.apres ?? {}} label="Après" big
               onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ ...c, apres: { localId: lid, photoId: null } }) }}
               onRemove={() => onChange({ ...c, apres: {} })} />
           </div>
@@ -111,6 +93,20 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
             <input className={inputCls} value={m.apres} placeholder="Après (ex : 34)" onChange={(e) => onChange({ ...c, mesure: { ...m, apres: e.target.value } })} />
           </div>
         </>)
+      }
+      case 'texte': {
+        const c = page.contenu as TexteContent
+        return (<>
+          <label className={labelCls}>Titre (optionnel)</label>
+          <input className={inputCls} value={c.titre ?? ''} placeholder="Ex : Tableau électrique" onChange={(e) => onChange({ ...c, titre: e.target.value })} />
+          <label className={labelCls}>Texte</label>
+          <textarea className={inputCls} rows={4} value={c.texte ?? ''} placeholder="Écrivez ce que vous voulez…" onChange={(e) => onChange({ ...c, texte: e.target.value })} />
+        </>)
+      }
+      case 'constat': {
+        const c = page.contenu as ConstatContent
+        return (<><label className={labelCls}>Désordres constatés</label>
+          <StringList items={c.items ?? ['']} placeholder="Ex : tableau électrique vétuste" onChange={(items) => onChange({ items })} /></>)
       }
       case 'fin': {
         const c = page.contenu as FinContent

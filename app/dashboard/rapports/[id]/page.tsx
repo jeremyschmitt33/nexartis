@@ -14,8 +14,8 @@ import AddPageSheet from '@/components/rapport/AddPageSheet'
 import type { PhotoMap } from '@/components/rapport/PhotoSlot'
 import {
   type RapportPageData, type PageType, type PageContent, type PhotoRef,
-  type ConstatContent, type PosteContent, type Photo1Content, type Photo2Content, type AvapContent, type FinContent,
-  createDefaultContent, uuidv4,
+  type PhotosContent, type AvapContent, type TexteContent, type ConstatContent, type FinContent,
+  createDefaultContent, uuidv4, normalizePage,
 } from '@/lib/rapport/page-content'
 
 interface Meta {
@@ -28,14 +28,10 @@ function attachPhotoId(pages: RapportPageData[], localId: string, photoId: strin
   const fix = (r: PhotoRef | undefined): { r: PhotoRef | undefined; hit: boolean } =>
     r && r.localId === localId ? { r: { photoId, legende: r.legende }, hit: true } : { r, hit: false }
   return pages.map((p) => {
-    if (p.type === 'photo1') {
-      const c = p.contenu as Photo1Content; const f = fix(c.photo)
-      return f.hit ? { ...p, contenu: { photo: f.r as PhotoRef } } : p
-    }
-    if (p.type === 'photo2') {
-      const c = p.contenu as Photo2Content; let hit = false
+    if (p.type === 'photos') {
+      const c = p.contenu as PhotosContent; let hit = false
       const photos = (c.photos ?? []).map((r) => { const f = fix(r); if (f.hit) hit = true; return (f.r ?? {}) as PhotoRef })
-      return hit ? { ...p, contenu: { photos } } : p
+      return hit ? { ...p, contenu: { ...c, photos } } : p
     }
     if (p.type === 'avap') {
       const c = p.contenu as AvapContent; const a = fix(c.avant); const b = fix(c.apres)
@@ -46,11 +42,10 @@ function attachPhotoId(pages: RapportPageData[], localId: string, photoId: strin
 }
 
 function pageHasContent(p: RapportPageData): boolean {
-  if (p.type === 'constat') return ((p.contenu as ConstatContent).items ?? []).some((x) => !!x && x.trim() !== '')
-  if (p.type === 'poste') { const c = p.contenu as PosteContent; return !!(c.titre?.trim() || c.texte?.trim()) }
-  if (p.type === 'photo1') { const r = (p.contenu as Photo1Content).photo; return !!(r?.localId || r?.photoId || r?.legende?.trim()) }
-  if (p.type === 'photo2') return ((p.contenu as Photo2Content).photos ?? []).some((r) => !!(r?.localId || r?.photoId || r?.legende?.trim()))
+  if (p.type === 'photos') { const c = p.contenu as PhotosContent; return (c.photos ?? []).some((r) => !!(r?.localId || r?.photoId)) || !!c.commentaire?.trim() }
   if (p.type === 'avap') { const c = p.contenu as AvapContent; return !!(c.avant?.localId || c.avant?.photoId || c.apres?.localId || c.apres?.photoId || c.mesure?.label?.trim() || c.mesure?.avant?.trim() || c.mesure?.apres?.trim()) }
+  if (p.type === 'texte') { const c = p.contenu as TexteContent; return !!(c.titre?.trim() || c.texte?.trim()) }
+  if (p.type === 'constat') return ((p.contenu as ConstatContent).items ?? []).some((x) => !!x && x.trim() !== '')
   if (p.type === 'fin') { const c = p.contenu as FinContent; return ((c.controles ?? []).some((x) => x?.trim())) || ((c.observations ?? []).some((x) => x?.trim())) || !!c.conclusion?.trim() }
   return false
 }
@@ -106,9 +101,7 @@ export default function RapportEditorPage() {
         const rJson = await rRes.json()
         if (!rRes.ok) { toast.error('Rapport introuvable'); return }
         setMeta(rJson.rapport)
-        setPages((rJson.pages ?? []).map((p: { id: string; type: PageType; contenu: PageContent }) => ({
-          id: p.id, type: p.type, contenu: p.contenu && Object.keys(p.contenu).length ? p.contenu : createDefaultContent(p.type),
-        })))
+        setPages((rJson.pages ?? []).map((p: { id: string; type: string; contenu: Record<string, unknown> }) => normalizePage(p)))
         const pJson = await pRes.json().catch(() => ({ photos: [] }))
         const map: PhotoMap = {}
         for (const ph of pJson.photos ?? []) map[ph.id] = { url: ph.url, thumb_url: ph.thumb_url }
@@ -201,9 +194,17 @@ export default function RapportEditorPage() {
   }, [buildImages, meta, pages, entreprise])
 
   const onApercu = async () => {
+    // On ouvre l'onglet DANS le clic (sinon le bloqueur de pop-up le refuse),
+    // puis on y charge le PDF. Plus fiable que l'iframe (bloquee par certains
+    // bloqueurs de pub).
+    const w = window.open('', '_blank')
     setBusyPdf(true)
-    try { const doc = await makeDoc(); const url = URL.createObjectURL(doc.output('blob') as Blob); setPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return url }) }
-    catch { toast.error('Aperçu impossible') } finally { setBusyPdf(false) }
+    try {
+      const doc = await makeDoc()
+      const blob = doc.output('blob') as Blob
+      const url = URL.createObjectURL(blob)
+      if (w) { w.location.href = url } else { downloadPdfBlob(blob, `${meta?.numero || 'rapport'}.pdf`) }
+    } catch { toast.error('Aperçu impossible') } finally { setBusyPdf(false) }
   }
   const onDownload = async () => {
     setBusyPdf(true)
@@ -218,7 +219,7 @@ export default function RapportEditorPage() {
     const newPages: RapportPageData[] = arr.map((file) => {
       const pid = uuidv4()
       const [lid] = upload.addPhotos([file], { pageId: pid })
-      return { id: pid, type: 'photo1', contenu: { photo: { localId: lid ?? null, legende: '' } } as Photo1Content }
+      return { id: pid, type: 'photos', contenu: { photos: [{ localId: lid ?? null, photoId: null }], commentaire: '' } as PhotosContent }
     })
     setPages((prev) => [...prev, ...newPages])
     setTimeout(() => bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' }), 60)

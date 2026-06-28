@@ -1,13 +1,12 @@
 'use client'
 
-import { X, FileText, Image as ImageIcon, Images, ArrowLeftRight, ListChecks, CheckSquare } from 'lucide-react'
+import { X, Images, ArrowLeftRight, Pencil, ListChecks, CheckSquare } from 'lucide-react'
 import type { PageType } from '@/lib/rapport/page-content'
 
 const TILES: { type: PageType; title: string; desc: string; icon: React.ReactNode; group: 'top' | 'more' }[] = [
-  { type: 'photo1', title: 'Photo + légende', desc: '1 grande photo', icon: <ImageIcon size={20} />, group: 'top' },
-  { type: 'photo2', title: '2 photos', desc: 'en grand, empilées', icon: <Images size={20} />, group: 'top' },
-  { type: 'avap', title: 'Avant / Après', desc: 'avec mesure', icon: <ArrowLeftRight size={20} />, group: 'top' },
-  { type: 'poste', title: 'Poste', desc: 'titre + texte', icon: <FileText size={20} />, group: 'top' },
+  { type: 'photos', title: 'Photos', desc: '1 à 4 photos + commentaire', icon: <Images size={20} />, group: 'top' },
+  { type: 'avap', title: 'Avant / Après', desc: 'empilé, avec mesure', icon: <ArrowLeftRight size={20} />, group: 'top' },
+  { type: 'texte', title: 'Texte libre', desc: 'titre + paragraphe', icon: <Pencil size={20} />, group: 'more' },
   { type: 'constat', title: 'Constatations', desc: 'liste à puces', icon: <ListChecks size={20} />, group: 'more' },
   { type: 'fin', title: 'Page de fin', desc: 'contrôles · conclusion', icon: <CheckSquare size={20} />, group: 'more' },
 ]
@@ -30,7 +29,6 @@ export default function AddPageSheet({ open, onClose, onAdd }: {
         </div>
         <p className="font-hanken text-xs text-gray-500 mb-4">Choisissez le type, vous n&apos;aurez qu&apos;à remplir.</p>
 
-        <p className="font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Les plus utilisés</p>
         <div className="grid grid-cols-2 gap-2.5 mb-4">
           {top.map((t) => (
             <button key={t.type} onClick={() => { onAdd(t.type); onClose() }}
