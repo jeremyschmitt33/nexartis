@@ -11,6 +11,7 @@ import { RapportUploadStore, requestPersistentStorage, type RapportUploadPayload
 import { makeRapportUploadFn } from '@/lib/rapport/upload-photo'
 import { processRapportImage } from '@/lib/rapport/process-image'
 import { uuidv4 } from '@/lib/rapport/page-content'
+import { toast } from '@/lib/toast'
 
 export interface UploadedInfo { photoLocalId: string; pageId: string | null; photoId: string }
 export interface UseRapportUploadOptions {
@@ -141,7 +142,9 @@ export function useRapportUpload(opts: UseRapportUploadOptions): UseRapportUploa
               largeur, hauteur,
             }])
           } catch {
-            // Photo illisible : on la saute, on n'interrompt PAS le lot.
+            // Photo illisible (format non supporte, ex. HEIC) : on la saute,
+            // on n'interrompt PAS le lot, mais on previent l'utilisateur.
+            toast.error('Une photo n\u2019a pas pu \u00eatre ajout\u00e9e (format non support\u00e9 ?).')
           }
         }
       } finally { setProcessing(false) }

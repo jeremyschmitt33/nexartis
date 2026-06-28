@@ -66,9 +66,10 @@ export function makeRapportUploadFn(store: RapportUploadStore) {
       throw isDefinitive(confRes.status) ? new NonRetryableError(msg) : new Error(msg)
     }
 
-    // 4) Succes : on libere les binaires locaux (IndexedDB)
-    await store.deleteBlob(p.photoLocalId)
-    await store.deleteBlob(p.photoLocalId + '_thumb')
+    // 4) Succes. On GARDE les binaires locaux : l'apercu ecran ET le PDF les
+    // reutilisent sans re-telecharger, et ils survivent a un rechargement
+    // (IndexedDB). Nettoyage = GC ulterieur (V2). Supprimer ici creait une
+    // course (apercu vide) + un PDF sans photo.
     return { photoId: conf.id }
   }
 }

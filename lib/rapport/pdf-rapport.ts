@@ -69,7 +69,7 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
 
   function footer() {
     const fy = A4.h - 8
-    F('Hanken Grotesk', 'normal', 7, GRAY)
+    F('Hanken Grotesk', 'normal', 8, GRAY)
     doc.text(opts.entrepriseNom || '', M, fy)
     doc.text('Rapport d’intervention', A4.w - M, fy, { align: 'right' })
   }
@@ -79,42 +79,42 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
 
   // Bloc titre (page 1)
   function intro() {
-    F('Hanken Grotesk', 'extrabold', 8, pal.orange)
+    F('Hanken Grotesk', 'extrabold', 9.5, pal.orange)
     doc.text('RAPPORT D’INTERVENTION', M, y); y += 6
-    F('Hanken Grotesk', 'extrabold', 16, pal.navy)
+    F('Hanken Grotesk', 'extrabold', 19, pal.navy)
     const titre = doc.splitTextToSize(opts.meta.objet || 'Sans objet', CW)
-    doc.text(titre, M, y); y += titre.length * 7 + 2
-    F('Hanken Grotesk', 'normal', 9.5, DARK)
+    doc.text(titre, M, y); y += titre.length * 8.5 + 3
+    F('Hanken Grotesk', 'normal', 11.5, DARK)
     const info: string[] = []
     if (opts.meta.clientNom) info.push('Client : ' + opts.meta.clientNom)
     if (opts.meta.adresse) info.push(opts.meta.adresse)
     if (opts.meta.date) info.push('Date d’intervention : ' + fmtDate(opts.meta.date))
-    for (const line of info) { doc.text(line, M, y); y += 5 }
+    for (const line of info) { doc.text(line, M, y); y += 6 }
     y += 4
   }
 
   function sectionTitle(t: string) {
     ensure(12)
-    F('Hanken Grotesk', 'extrabold', 11, pal.navy)
+    F('Hanken Grotesk', 'extrabold', 13, pal.navy)
     doc.text(t, M, y); y += 2.5
     setFill(doc, LIGHT); doc.rect(M, y, CW, 0.4, 'F'); y += 5
   }
 
-  function paragraph(t: string, size = 9.5, color = DARK) {
+  function paragraph(t: string, size = 11.5, color = DARK) {
     if (!t) return
     F('Hanken Grotesk', 'normal', size, color)
     const lines = doc.splitTextToSize(t, CW)
-    for (const ln of lines) { ensure(6); doc.text(ln, M, y); y += size * 0.52 }
+    for (const ln of lines) { ensure(6); doc.text(ln, M, y); y += size * 0.62 }
     y += 2
   }
 
   function bullets(items: string[]) {
-    F('Hanken Grotesk', 'normal', 9.5, DARK)
+    F('Hanken Grotesk', 'normal', 11.5, DARK)
     for (const it of items.filter((x) => x && x.trim())) {
       const lines = doc.splitTextToSize(it, CW - 5)
-      ensure(lines.length * 5 + 1)
+      ensure(lines.length * 5.8 + 1)
       setFill(doc, pal.orange); doc.circle(M + 1, y - 1.3, 0.7, 'F')
-      doc.text(lines, M + 4, y); y += lines.length * 5
+      doc.text(lines, M + 4, y); y += lines.length * 5.8
     }
     y += 2
   }
@@ -137,9 +137,9 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
 
   function legende(t: string | undefined, x: number, w: number) {
     if (!t || !t.trim()) return
-    F('Hanken Grotesk', 'medium', 8, GRAY)
+    F('Hanken Grotesk', 'medium', 10, GRAY)
     const lines = doc.splitTextToSize(t, w)
-    doc.text(lines, x, y + 3.5); y += lines.length * 4 + 1
+    doc.text(lines, x, y + 3.5); y += lines.length * 4.6 + 1
   }
 
   // ----- Rendu -----
@@ -169,20 +169,20 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
       sectionTitle('Avant / Après')
       ensure(70)
       const colW = (CW - 6) / 2
-      F('Hanken Grotesk', 'extrabold', 8, GRAY); doc.text('AVANT', M, y)
-      F('Hanken Grotesk', 'extrabold', 8, [22, 163, 74] as RGB); doc.text('APRÈS', M + colW + 6, y); y += 3
+      F('Hanken Grotesk', 'extrabold', 9.5, GRAY); doc.text('AVANT', M, y)
+      F('Hanken Grotesk', 'extrabold', 9.5, [22, 163, 74] as RGB); doc.text('APRÈS', M + colW + 6, y); y += 3
       const yTop = y
       const h1 = drawImage(c.avant ?? {}, M, colW, 60)
       y = yTop; const h2 = drawImage(c.apres ?? {}, M + colW + 6, colW, 60)
       y = yTop + Math.max(h1, h2) + 3
       const m = c.mesure
       if (m && (m.label || m.avant || m.apres)) {
-        ensure(12)
-        setFill(doc, CREAM); doc.roundedRect(M, y, CW, 9, 2, 2, 'F')
-        F('Hanken Grotesk', 'bold', 9.5, pal.navy)
+        ensure(14)
+        setFill(doc, CREAM); doc.roundedRect(M, y, CW, 11, 2, 2, 'F')
+        F('Hanken Grotesk', 'bold', 11, pal.navy)
         const txt = `${m.label || 'Mesure'} : ${m.avant || '?'} ${m.unite || ''} → ${m.apres || '?'} ${m.unite || ''}`.replace(/\s+/g, ' ').trim()
-        doc.text(txt, A4.w / 2, y + 5.8, { align: 'center' })
-        y += 12
+        doc.text(txt, A4.w / 2, y + 7, { align: 'center' })
+        y += 14
       }
       y += 2
     } else if (p.type === 'fin') {

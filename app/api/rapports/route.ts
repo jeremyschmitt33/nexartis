@@ -70,8 +70,22 @@ export async function POST(req: NextRequest) {
 
   let clientId = b.client_id ? String(b.client_id) : null
   let chantierId = b.chantier_id ? String(b.chantier_id) : null
+  let devisId = b.devis_id ? String(b.devis_id) : null
   let objet = b.objet ? String(b.objet).slice(0, 300) : null
   let adresseSnapshot: string | null = null
+
+  // Pre-remplissage depuis le devis (verifie owner) : client / chantier / objet
+  if (devisId) {
+    const { data: devis } = await db
+      .from('devis').select('id, client_id, chantier_id, objet')
+      .eq('id', devisId).eq('user_id', user.id).single()
+    if (!devis) { devisId = null }
+    else {
+      if (!clientId && devis.client_id) clientId = devis.client_id as string
+      if (!chantierId && devis.chantier_id) chantierId = devis.chantier_id as string
+      if (!objet && devis.objet) objet = String(devis.objet).slice(0, 300)
+    }
+  }
 
   // Pre-remplissage depuis le chantier (verifie owner)
   if (chantierId) {
@@ -109,6 +123,7 @@ export async function POST(req: NextRequest) {
         numero,
         client_id: clientId,
         chantier_id: chantierId,
+        devis_id: devisId,
         objet,
         client_nom_snapshot: clientNom,
         adresse_snapshot: adresseSnapshot,
