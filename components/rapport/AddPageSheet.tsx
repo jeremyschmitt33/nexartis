@@ -1,12 +1,11 @@
 'use client'
 
-import { X, Images, ArrowLeftRight, Pencil, ListChecks, CheckSquare } from 'lucide-react'
+import { X, Images, Pencil, ListChecks, CheckSquare } from 'lucide-react'
 import type { PageType } from '@/lib/rapport/page-content'
 
 const TILES: { type: PageType; title: string; desc: string; icon: React.ReactNode; group: 'top' | 'more' }[] = [
-  { type: 'photos', title: 'Photos', desc: '1 à 4 photos + commentaire', icon: <Images size={20} />, group: 'top' },
-  { type: 'avap', title: 'Avant / Après', desc: 'empilé, avec mesure', icon: <ArrowLeftRight size={20} />, group: 'top' },
-  { type: 'texte', title: 'Texte libre', desc: 'titre + paragraphe', icon: <Pencil size={20} />, group: 'more' },
+  { type: 'photos', title: 'Photos', desc: '1 à 4 photos, légende + titre', icon: <Images size={20} />, group: 'top' },
+  { type: 'texte', title: 'Texte libre', desc: 'titre + paragraphe', icon: <Pencil size={20} />, group: 'top' },
   { type: 'constat', title: 'Constatations', desc: 'liste à puces', icon: <ListChecks size={20} />, group: 'more' },
   { type: 'fin', title: 'Page de fin', desc: 'contrôles · conclusion', icon: <CheckSquare size={20} />, group: 'more' },
 ]
@@ -40,7 +39,7 @@ export default function AddPageSheet({ open, onClose, onAdd }: {
           ))}
         </div>
 
-        <p className="font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Texte &amp; structure</p>
+        <p className="font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Structure</p>
         <div className="space-y-1.5">
           {more.map((t) => (
             <button key={t.type} onClick={() => { onAdd(t.type); onClose() }}

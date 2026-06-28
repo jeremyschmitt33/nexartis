@@ -16,7 +16,7 @@ import {
  */
 export const dynamic = 'force-dynamic'
 
-const PAGE_TYPES = ['photos', 'avap', 'texte', 'constat', 'fin', 'poste', 'photo1', 'photo2']  // + anciens types (compat)
+const PAGE_TYPES = ['photos', 'texte', 'constat', 'fin', 'avap', 'poste', 'photo1', 'photo2']  // nouveaux + anciens (compat)
 const MAX_PAGES = 200
 
 function admin() {

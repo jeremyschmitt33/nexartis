@@ -1,9 +1,8 @@
 /**
- * Types de contenu des pages d'un rapport d'intervention.
- * Modele V2 : page "Photos" unifiee (1 a 4 photos + 1 commentaire, mise en
- * page auto), Avant/Apres (empile), Texte libre, Constatations, Page de fin.
- * Photos referencees par id serveur (photoId) une fois envoyees, par id local
- * (localId) pendant l'upload.
+ * Types de contenu des pages d'un rapport d'intervention (modele V3).
+ * Pages : "Photos" (titre + 1 a 4 photos, chacune avec sa legende + rotation),
+ * "Texte libre", "Constatations", "Page de fin". (Plus d'Avant/Apres : la page
+ * Photos couvre ce cas.)
  */
 
 export function uuidv4(): string {
@@ -16,13 +15,11 @@ export function uuidv4(): string {
   return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`
 }
 
-export type PageType = 'photos' | 'avap' | 'texte' | 'constat' | 'fin'
-
-export const PAGE_TYPES: PageType[] = ['photos', 'avap', 'texte', 'constat', 'fin']
+export type PageType = 'photos' | 'texte' | 'constat' | 'fin'
+export const PAGE_TYPES: PageType[] = ['photos', 'texte', 'constat', 'fin']
 
 export const PAGE_TYPE_LABELS: Record<PageType, string> = {
   photos: 'Photos',
-  avap: 'Avant / Après',
   texte: 'Texte libre',
   constat: 'Constatations',
   fin: 'Page de fin',
@@ -34,16 +31,16 @@ export interface PhotoRef {
   photoId?: string | null
   localId?: string | null
   legende?: string
+  /** Rotation appliquee a l'affichage / au PDF : 0, 90, 180, 270. */
+  rotation?: number
 }
 
-export interface PhotosContent { photos: PhotoRef[]; commentaire: string }
-export interface Mesure { label: string; avant: string; apres: string; unite: string }
-export interface AvapContent { avant: PhotoRef; apres: PhotoRef; mesure: Mesure }
+export interface PhotosContent { titre: string; photos: PhotoRef[] }
 export interface TexteContent { titre: string; texte: string }
 export interface ConstatContent { items: string[] }
 export interface FinContent { controles: string[]; observations: string[]; conclusion: string }
 
-export type PageContent = PhotosContent | AvapContent | TexteContent | ConstatContent | FinContent
+export type PageContent = PhotosContent | TexteContent | ConstatContent | FinContent
 
 export interface RapportPageData {
   id: string
@@ -53,34 +50,32 @@ export interface RapportPageData {
 
 export function createDefaultContent(type: PageType): PageContent {
   switch (type) {
-    case 'photos': return { photos: [{}], commentaire: '' }
-    case 'avap': return { avant: {}, apres: {}, mesure: { label: '', avant: '', apres: '', unite: '' } }
+    case 'photos': return { titre: '', photos: [{}] }
     case 'texte': return { titre: '', texte: '' }
     case 'constat': return { items: [''] }
     case 'fin': return { controles: [''], observations: [''], conclusion: '' }
   }
 }
 
-/** Tous les PhotoRef d'une page (pour collecter les photos a embarquer au PDF). */
 export function photoRefsOf(type: PageType, contenu: PageContent): PhotoRef[] {
   if (type === 'photos') return (contenu as PhotosContent).photos ?? []
-  if (type === 'avap') { const c = contenu as AvapContent; return [c.avant, c.apres].filter(Boolean) }
   return []
 }
 
-/**
- * Compatibilite : convertit les anciens types de page (photo1 / photo2 / poste)
- * vers le nouveau modele, pour ne pas casser les rapports deja crees.
- */
+/** Compatibilite : convertit les anciens types (photo1 / photo2 / avap / poste). */
 export function normalizePage(p: { id: string; type: string; contenu: Record<string, unknown> }): RapportPageData {
   const c = (p.contenu ?? {}) as Record<string, unknown>
   if (p.type === 'photo1') {
     const photo = (c.photo as PhotoRef) || {}
-    return { id: p.id, type: 'photos', contenu: { photos: [photo], commentaire: (photo.legende as string) || '' } }
+    return { id: p.id, type: 'photos', contenu: { titre: '', photos: [photo] } }
   }
   if (p.type === 'photo2') {
-    const photos = (c.photos as PhotoRef[]) || [{}]
-    return { id: p.id, type: 'photos', contenu: { photos, commentaire: '' } }
+    return { id: p.id, type: 'photos', contenu: { titre: '', photos: (c.photos as PhotoRef[]) || [{}] } }
+  }
+  if (p.type === 'avap') {
+    const avant = { ...((c.avant as PhotoRef) || {}), legende: 'Avant' }
+    const apres = { ...((c.apres as PhotoRef) || {}), legende: 'Apres' }
+    return { id: p.id, type: 'photos', contenu: { titre: 'Avant / Apres', photos: [avant, apres] } }
   }
   if (p.type === 'poste') {
     return { id: p.id, type: 'texte', contenu: { titre: (c.titre as string) || '', texte: (c.texte as string) || '' } }

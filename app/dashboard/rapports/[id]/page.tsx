@@ -7,14 +7,14 @@ import { ChevronLeft, Plus, Check, Loader2, CloudOff, Eye, Download, X, Send, Pe
 import { toast } from '@/lib/toast'
 import { useEntreprise } from '@/lib/hooks'
 import { downloadPdfBlob } from '@/lib/download-pdf'
-import { generateRapportPdf, collectPhotoRefs, imageKeyOf, type PdfImage } from '@/lib/rapport/pdf-rapport'
+import { generateRapportPdf, collectPhotoRefs, imgMapKey, type PdfImage } from '@/lib/rapport/pdf-rapport'
 import { useRapportUpload } from '@/hooks/rapport/useRapportUpload'
 import PageCard from '@/components/rapport/PageCard'
 import AddPageSheet from '@/components/rapport/AddPageSheet'
 import type { PhotoMap } from '@/components/rapport/PhotoSlot'
 import {
   type RapportPageData, type PageType, type PageContent, type PhotoRef,
-  type PhotosContent, type AvapContent, type TexteContent, type ConstatContent, type FinContent,
+  type PhotosContent, type TexteContent, type ConstatContent, type FinContent,
   createDefaultContent, uuidv4, normalizePage,
 } from '@/lib/rapport/page-content'
 
@@ -26,24 +26,19 @@ interface Meta {
 /** Renseigne le photoId sur la PhotoRef qui porte ce localId (apres confirmation upload). */
 function attachPhotoId(pages: RapportPageData[], localId: string, photoId: string): RapportPageData[] {
   const fix = (r: PhotoRef | undefined): { r: PhotoRef | undefined; hit: boolean } =>
-    r && r.localId === localId ? { r: { photoId, legende: r.legende }, hit: true } : { r, hit: false }
+    r && r.localId === localId ? { r: { ...r, photoId }, hit: true } : { r, hit: false }
   return pages.map((p) => {
     if (p.type === 'photos') {
       const c = p.contenu as PhotosContent; let hit = false
       const photos = (c.photos ?? []).map((r) => { const f = fix(r); if (f.hit) hit = true; return (f.r ?? {}) as PhotoRef })
       return hit ? { ...p, contenu: { ...c, photos } } : p
     }
-    if (p.type === 'avap') {
-      const c = p.contenu as AvapContent; const a = fix(c.avant); const b = fix(c.apres)
-      return (a.hit || b.hit) ? { ...p, contenu: { ...c, avant: (a.r ?? {}) as PhotoRef, apres: (b.r ?? {}) as PhotoRef } } : p
-    }
     return p
   })
 }
 
 function pageHasContent(p: RapportPageData): boolean {
-  if (p.type === 'photos') { const c = p.contenu as PhotosContent; return (c.photos ?? []).some((r) => !!(r?.localId || r?.photoId)) || !!c.commentaire?.trim() }
-  if (p.type === 'avap') { const c = p.contenu as AvapContent; return !!(c.avant?.localId || c.avant?.photoId || c.apres?.localId || c.apres?.photoId || c.mesure?.label?.trim() || c.mesure?.avant?.trim() || c.mesure?.apres?.trim()) }
+  if (p.type === 'photos') { const c = p.contenu as PhotosContent; return !!c.titre?.trim() || (c.photos ?? []).some((r) => !!(r?.localId || r?.photoId || r?.legende?.trim())) }
   if (p.type === 'texte') { const c = p.contenu as TexteContent; return !!(c.titre?.trim() || c.texte?.trim()) }
   if (p.type === 'constat') return ((p.contenu as ConstatContent).items ?? []).some((x) => !!x && x.trim() !== '')
   if (p.type === 'fin') { const c = p.contenu as FinContent; return ((c.controles ?? []).some((x) => x?.trim())) || ((c.observations ?? []).some((x) => x?.trim())) || !!c.conclusion?.trim() }
@@ -55,6 +50,27 @@ function blobToDataURL(blob: Blob): Promise<string> {
 }
 function imageDims(dataUrl: string): Promise<{ w: number; h: number }> {
   return new Promise((res) => { const i = new Image(); i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => res({ w: 0, h: 0 }); i.src = dataUrl })
+}
+function rotateDataUrl(dataUrl: string, deg: number): Promise<{ dataUrl: string; w: number; h: number }> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const swap = deg === 90 || deg === 270
+      const w = swap ? img.naturalHeight : img.naturalWidth
+      const h = swap ? img.naturalWidth : img.naturalHeight
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h
+      const ctx = cv.getContext('2d')
+      if (!ctx) { resolve({ dataUrl, w: img.naturalWidth, h: img.naturalHeight }); return }
+      ctx.translate(w / 2, h / 2); ctx.rotate((deg * Math.PI) / 180); ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2)
+      resolve({ dataUrl: cv.toDataURL('image/jpeg', 0.85), w, h })
+    }
+    img.onerror = () => resolve({ dataUrl, w: 0, h: 0 })
+    img.src = dataUrl
+  })
+}
+async function loadLogoDataUrl(url: string): Promise<string | null> {
+  if (!url) return null
+  try { const r = await fetch(url); if (!r.ok) return null; return await blobToDataURL(await r.blob()) } catch { return null }
 }
 
 export default function RapportEditorPage() {
@@ -173,23 +189,30 @@ export default function RapportEditorPage() {
     const refs = collectPhotoRefs(pages)
     const map = new Map<string, PdfImage>()
     for (const ref of refs) {
-      const key = imageKeyOf(ref)
+      const key = imgMapKey(ref)
       if (!key || map.has(key)) continue
       let blob: Blob | null = ref.localId ? await upload.getBlobFor(ref.localId) : null
       if (!blob && ref.photoId && photosById[ref.photoId]) {
         try { const r = await fetch(photosById[ref.photoId].url); if (r.ok) blob = await r.blob() } catch { /* ignore */ }
       }
       if (!blob) continue
-      try { const dataUrl = await blobToDataURL(blob); const d = await imageDims(dataUrl); map.set(key, { dataUrl, w: d.w, h: d.h }) } catch { /* ignore */ }
+      try {
+        const dataUrl0 = await blobToDataURL(blob)
+        const d0 = await imageDims(dataUrl0)
+        const rot = (((ref.rotation || 0) % 360) + 360) % 360
+        if (rot) { const r = await rotateDataUrl(dataUrl0, rot); map.set(key, { dataUrl: r.dataUrl, w: r.w, h: r.h }) }
+        else map.set(key, { dataUrl: dataUrl0, w: d0.w, h: d0.h })
+      } catch { /* ignore */ }
     }
     return map
   }, [pages, photosById, upload])
 
   const makeDoc = useCallback(async () => {
     const images = await buildImages()
+    const logoDataUrl = await loadLogoDataUrl((entreprise?.logo_url as string) || '')
     return generateRapportPdf({
       meta: { numero: meta?.numero ?? null, objet: meta?.objet ?? null, clientNom: meta?.client_nom_snapshot ?? null, adresse: meta?.adresse_snapshot ?? null, date: meta?.date_intervention ?? null },
-      pages, images, entrepriseNom: (entreprise?.nom as string) || '', entreprise,
+      pages, images, entrepriseNom: (entreprise?.nom as string) || '', entreprise, logoDataUrl,
     })
   }, [buildImages, meta, pages, entreprise])
 
@@ -219,7 +242,7 @@ export default function RapportEditorPage() {
     const newPages: RapportPageData[] = arr.map((file) => {
       const pid = uuidv4()
       const [lid] = upload.addPhotos([file], { pageId: pid })
-      return { id: pid, type: 'photos', contenu: { photos: [{ localId: lid ?? null, photoId: null }], commentaire: '' } as PhotosContent }
+      return { id: pid, type: 'photos', contenu: { titre: '', photos: [{ localId: lid ?? null, photoId: null }] } as PhotosContent }
     })
     setPages((prev) => [...prev, ...newPages])
     setTimeout(() => bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' }), 60)

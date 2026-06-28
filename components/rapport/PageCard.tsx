@@ -6,7 +6,7 @@ import type { UploadJob } from '@/lib/rapport/upload-queue'
 import type { RapportUploadPayload } from '@/lib/rapport/upload-store'
 import {
   type RapportPageData, type PageContent, type PhotoRef,
-  type PhotosContent, type AvapContent, type TexteContent, type ConstatContent, type FinContent,
+  type PhotosContent, type TexteContent, type ConstatContent, type FinContent,
   PAGE_TYPE_LABELS, MAX_PHOTOS_PAR_PAGE,
 } from '@/lib/rapport/page-content'
 
@@ -55,43 +55,27 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
       case 'photos': {
         const c = page.contenu as PhotosContent
         const photos: PhotoRef[] = c.photos?.length ? c.photos : [{}]
-        const setPhotos = (next: PhotoRef[]) => onChange({ photos: next.length ? next : [{}], commentaire: c.commentaire ?? '' })
+        const setPhotos = (next: PhotoRef[]) => onChange({ titre: c.titre ?? '', photos: next.length ? next : [{}] })
+        const setRef = (i: number, r: PhotoRef) => { const n = [...photos]; n[i] = r; setPhotos(n) }
         return (<>
-          <div className="space-y-2">
+          <label className={labelCls}>Titre (optionnel)</label>
+          <input className={inputCls} value={c.titre ?? ''} placeholder="Ex : Travaux réalisés" onChange={(e) => onChange({ titre: e.target.value, photos })} />
+          <div className="space-y-3 mt-3">
             {photos.map((ref, i) => (
-              <PhotoSlot key={i} {...slotProps} refData={ref} big
-                onPick={(files) => { const [lid] = pickPhoto(files); if (lid) { const n = [...photos]; n[i] = { localId: lid, photoId: null }; setPhotos(n) } }}
-                onRemove={() => setPhotos(photos.filter((_, j) => j !== i))} />
+              <div key={i}>
+                <PhotoSlot {...slotProps} refData={ref} big
+                  onPick={(files) => { const [lid] = pickPhoto(files); if (lid) setRef(i, { ...ref, localId: lid, photoId: null }) }}
+                  onRemove={() => setPhotos(photos.filter((_, j) => j !== i))}
+                  onRotate={() => setRef(i, { ...ref, rotation: ((ref.rotation || 0) + 90) % 360 })} />
+                <input className={`${inputCls} mt-1.5`} value={ref.legende ?? ''} placeholder="Texte sous la photo (optionnel)"
+                  onChange={(e) => setRef(i, { ...ref, legende: e.target.value })} />
+              </div>
             ))}
           </div>
           {photos.length < MAX_PHOTOS_PAR_PAGE && (
             <button type="button" onClick={() => setPhotos([...photos, {}])}
               className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-sky-dark hover:underline mt-2"><ImagePlus size={14} /> Ajouter une photo ({photos.length}/{MAX_PHOTOS_PAR_PAGE})</button>
           )}
-          <label className={labelCls}>Commentaire</label>
-          <textarea className={inputCls} rows={2} value={c.commentaire ?? ''} placeholder="Décrivez ce que montrent ces photos…"
-            onChange={(e) => onChange({ photos, commentaire: e.target.value })} />
-        </>)
-      }
-      case 'avap': {
-        const c = page.contenu as AvapContent
-        const m = c.mesure ?? { label: '', avant: '', apres: '', unite: '' }
-        return (<>
-          <div className="space-y-2">
-            <PhotoSlot {...slotProps} refData={c.avant ?? {}} label="Avant" big
-              onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ ...c, avant: { localId: lid, photoId: null } }) }}
-              onRemove={() => onChange({ ...c, avant: {} })} />
-            <PhotoSlot {...slotProps} refData={c.apres ?? {}} label="Après" big
-              onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ ...c, apres: { localId: lid, photoId: null } }) }}
-              onRemove={() => onChange({ ...c, apres: {} })} />
-          </div>
-          <label className={labelCls}>Mesure (optionnel)</label>
-          <div className="grid grid-cols-2 gap-2">
-            <input className={inputCls} value={m.label} placeholder="Ex : Résistance de terre" onChange={(e) => onChange({ ...c, mesure: { ...m, label: e.target.value } })} />
-            <input className={inputCls} value={m.unite} placeholder="Unité (Ω, bar…)" onChange={(e) => onChange({ ...c, mesure: { ...m, unite: e.target.value } })} />
-            <input className={inputCls} value={m.avant} placeholder="Avant (ex : 106)" onChange={(e) => onChange({ ...c, mesure: { ...m, avant: e.target.value } })} />
-            <input className={inputCls} value={m.apres} placeholder="Après (ex : 34)" onChange={(e) => onChange({ ...c, mesure: { ...m, apres: e.target.value } })} />
-          </div>
         </>)
       }
       case 'texte': {
