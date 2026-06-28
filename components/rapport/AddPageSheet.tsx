@@ -4,7 +4,7 @@ import { X, Images, Pencil, ListChecks, CheckSquare } from 'lucide-react'
 import type { PageType } from '@/lib/rapport/page-content'
 
 const TILES: { type: PageType; title: string; desc: string; icon: React.ReactNode; group: 'top' | 'more' }[] = [
-  { type: 'photos', title: 'Photos', desc: '1 à 4 photos, légende + titre', icon: <Images size={20} />, group: 'top' },
+  { type: 'photos', title: 'Photos', desc: 'Une ou plusieurs photos + légendes', icon: <Images size={20} />, group: 'top' },
   { type: 'texte', title: 'Texte libre', desc: 'titre + paragraphe', icon: <Pencil size={20} />, group: 'top' },
   { type: 'constat', title: 'Constatations', desc: 'liste à puces', icon: <ListChecks size={20} />, group: 'more' },
   { type: 'fin', title: 'Page de fin', desc: 'contrôles · conclusion', icon: <CheckSquare size={20} />, group: 'more' },

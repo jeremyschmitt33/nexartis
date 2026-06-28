@@ -7,14 +7,14 @@ import type { RapportUploadPayload } from '@/lib/rapport/upload-store'
 import {
   type RapportPageData, type PageContent, type PhotoRef,
   type PhotosContent, type TexteContent, type ConstatContent, type FinContent,
-  PAGE_TYPE_LABELS, MAX_PHOTOS_PAR_PAGE,
+  PAGE_TYPE_LABELS,
 } from '@/lib/rapport/page-content'
 
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 font-hanken text-sm text-navy bg-gray-50 focus:bg-white focus:border-sky outline-none'
 const labelCls = 'block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mt-3 mb-1'
 
 function StringList({ items, placeholder, onChange }: { items: string[]; placeholder: string; onChange: (items: string[]) => void }) {
-  const safe = items.length ? items : ['']
+  const safe = items
   return (
     <div className="space-y-1.5">
       {safe.map((val, i) => (
@@ -22,7 +22,7 @@ function StringList({ items, placeholder, onChange }: { items: string[]; placeho
           <span className="text-orange font-bold">•</span>
           <input className={inputCls} value={val} placeholder={placeholder}
             onChange={(e) => { const n = [...safe]; n[i] = e.target.value; onChange(n) }} />
-          {safe.length > 1 && (
+          {safe.length >= 1 && (
             <button type="button" aria-label="Retirer" onClick={() => onChange(safe.filter((_, j) => j !== i))}
               className="text-gray-300 hover:text-red-500 flex-shrink-0"><Trash2 size={15} /></button>
           )}
@@ -76,10 +76,8 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
               </div>
             ))}
           </div>
-          {photos.length < MAX_PHOTOS_PAR_PAGE && (
-            <button type="button" onClick={() => setPhotos([...photos, {}])}
-              className="inline-flex items-center gap-1.5 font-hanken text-sm font-semibold text-sky-dark hover:underline mt-3"><ImagePlus size={16} /> Ajouter une photo ({photos.length}/{MAX_PHOTOS_PAR_PAGE})</button>
-          )}
+          <button type="button" onClick={() => setPhotos([...photos, {}])}
+            className="inline-flex items-center gap-1.5 font-hanken text-sm font-semibold text-sky-dark hover:underline mt-3"><ImagePlus size={16} /> Ajouter une photo</button>
         </>)
       }
       case 'texte': {
@@ -101,9 +99,9 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
         const titleCls = 'block w-full font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mt-3 mb-1 bg-transparent outline-none border-b border-dashed border-gray-200 focus:border-sky'
         return (<>
           <input className={titleCls} value={c.titreControles ?? 'Contrôles finaux'} onChange={(e) => onChange({ ...c, titreControles: e.target.value })} />
-          <StringList items={c.controles ?? ['']} placeholder="Ex : continuité de terre vérifiée" onChange={(controles) => onChange({ ...c, controles })} />
+          <StringList items={c.controles ?? []} placeholder="Ex : continuité de terre vérifiée" onChange={(controles) => onChange({ ...c, controles })} />
           <input className={titleCls} value={c.titreObservations ?? 'Observations'} onChange={(e) => onChange({ ...c, titreObservations: e.target.value })} />
-          <StringList items={c.observations ?? ['']} placeholder="Observation…" onChange={(observations) => onChange({ ...c, observations })} />
+          <StringList items={c.observations ?? []} placeholder="Observation…" onChange={(observations) => onChange({ ...c, observations })} />
           <input className={titleCls} value={c.titreConclusion ?? 'Conclusion'} onChange={(e) => onChange({ ...c, titreConclusion: e.target.value })} />
           <textarea className={inputCls} rows={3} value={c.conclusion ?? ''} placeholder="Mot de conclusion…" onChange={(e) => onChange({ ...c, conclusion: e.target.value })} />
         </>)

@@ -41,14 +41,18 @@ const LIGHT: RGB = [228, 234, 242]
 const CREAM: RGB = [250, 246, 239]
 const NUMCOL: RGB = [216, 225, 240]
 
-// Cadres FIXES (mm). cover -> meme empreinte quelle que soit la photo source.
-const FULL_W = CW, FULL_H = Math.round((CW * 107 / 178) * 10) / 10  // 107 mm
-const SIDE_W = 80, SIDE_H = 60
+// Cadres a HAUTEUR quasi fixe, LARGEUR selon l'orientation -> contain, jamais de recadrage.
+const PHOTO_BG: RGB = [244, 242, 236]
+const PHOTO_BORDER: RGB = [216, 210, 196]
+function frameFor(seule: boolean, paysage: boolean): { w: number; h: number } {
+  if (seule) return paysage ? { w: 120, h: 80 } : { w: 70, h: 93 }
+  return paysage ? { w: 70, h: 47 } : { w: 45, h: 60 }
+}
 
 export function imageKeyOf(ref: PhotoRef): string { return ref.photoId || ref.localId || '' }
 export function imgMapKey(ref: PhotoRef): string {
   const k = imageKeyOf(ref)
-  return k ? `${k}:${ref.rotation || 0}:${ref.layout || 'below'}` : ''
+  return k ? `${k}:${ref.rotation || 0}` : ''
 }
 
 export function collectPhotoRefs(pages: RapportPageData[]): PhotoRef[] {
@@ -137,38 +141,48 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     }
     y += 2
   }
-  // Image en CADRE FIXE : l'image est deja recadree "cover" au bon ratio cote editeur.
-  function drawFixed(ref: PhotoRef, x: number, boxW: number, boxH: number) {
+  // Contain : image entiere centree dans un cadre, fond neutre, jamais coupee.
+  function drawContain(ref: PhotoRef, fx: number, fw: number, fh: number) {
     const img = opts.images.get(imgMapKey(ref))
-    if (!img) {
-      setFill(doc, LIGHT); doc.roundedRect(x, y, boxW, boxH, 2, 2, 'F')
-      F('normal', 8, GRAY); doc.text('Photo indisponible', x + boxW / 2, y + boxH / 2, { align: 'center' })
+    setFill(doc, PHOTO_BG); doc.rect(fx, y, fw, fh, 'F')
+    if (img && img.w > 0 && img.h > 0) {
+      const sc = Math.min(fw / img.w, fh / img.h)
+      const iw = img.w * sc, ih = img.h * sc
+      try { doc.addImage(img.dataUrl, 'JPEG', fx + (fw - iw) / 2, y + (fh - ih) / 2, iw, ih) } catch { /* illisible */ }
     } else {
-      try { doc.addImage(img.dataUrl, 'JPEG', x, y, boxW, boxH) } catch { /* illisible */ }
+      F('normal', 8, GRAY); doc.text('Photo indisponible', fx + fw / 2, y + fh / 2, { align: 'center' })
     }
-    setDraw(doc, LIGHT); doc.setLineWidth(0.3); doc.rect(x, y, boxW, boxH)
+    setDraw(doc, PHOTO_BORDER); doc.setLineWidth(0.4); doc.rect(fx, y, fw, fh)
   }
-  function legendeBlock(txt: string | undefined, x: number, w: number, yPos: number, size = 9.5): number {
+  function legendeBlock(txt: string | undefined, x: number, w: number, yPos: number, size: number, center?: boolean): number {
     if (!txt || !txt.trim()) return 0
     F('medium', size, pal.navy)
     const lines = doc.splitTextToSize(txt, w)
-    doc.text(lines, x, yPos)
-    return lines.length * (size * 0.5) + 2
+    if (center) doc.text(lines, M + CW / 2, yPos, { align: 'center' })
+    else doc.text(lines, x, yPos)
+    return lines.length * (size * 0.52) + 2
   }
   function photoFull(ref: PhotoRef) {
-    ensure(FULL_H + 16)
-    drawFixed(ref, M, FULL_W, FULL_H)
-    y += FULL_H + 4
-    y += legendeBlock(ref.legende, M, FULL_W, y, 9.5)
+    const img = opts.images.get(imgMapKey(ref))
+    const paysage = img && img.h > 0 ? img.w >= img.h : true
+    const fr = frameFor(true, paysage)
+    ensure(fr.h + 18)
+    const fx = M + (CW - fr.w) / 2
+    drawContain(ref, fx, fr.w, fr.h)
+    y += fr.h + 4
+    y += legendeBlock(ref.legende, M, CW * 0.8, y, 10, true)
     y += 6
   }
   function photoSide(ref: PhotoRef) {
-    ensure(SIDE_H + 10)
-    const gut = 6, txtW = CW - SIDE_W - gut
+    const img = opts.images.get(imgMapKey(ref))
+    const paysage = img && img.h > 0 ? img.w >= img.h : true
+    const fr = frameFor(false, paysage)
+    const gut = 8, txtW = CW - fr.w - gut
+    ensure(fr.h + 10)
     const yTop = y
-    drawFixed(ref, M, SIDE_W, SIDE_H)
-    const ch = legendeBlock(ref.legende, M + SIDE_W + gut, txtW, yTop + 5, 10)
-    y = yTop + Math.max(SIDE_H, ch + 5) + 8
+    drawContain(ref, M, fr.w, fr.h)
+    const ch = legendeBlock(ref.legende, M + fr.w + gut, txtW, yTop + 5, 10.5)
+    y = yTop + Math.max(fr.h, ch + 5) + 8
   }
 
   // ===== PAGE 1 =====
@@ -176,11 +190,11 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
 
   // DATE (au-dessus du cadre client, plus grosse). Journee unique ou plage.
   if (opts.meta.date) {
-    F('extrabold', 8.5, pal.orange); doc.text('DATE D’INTERVENTION', M, y); y += 5.5
+    F('bold', 11, pal.orange); doc.text('DATE D’INTERVENTION', M, y); y += 6.8
     const d1 = fmtDate(opts.meta.date)
     const dtxt = (opts.meta.dateFin && opts.meta.dateFin !== opts.meta.date)
       ? `Du ${d1} au ${fmtDate(opts.meta.dateFin)}` : d1
-    F('bold', 15, pal.navy); doc.text(dtxt, M, y); y += 9
+    F('bold', 15, pal.navy); doc.text(dtxt, M, y); y += 10
   }
 
   // CADRE CLIENT (adresse rue + "CP ville")

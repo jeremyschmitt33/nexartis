@@ -18,8 +18,8 @@ interface RapportRow {
   chantier_id: string | null
   created_at: string
 }
-interface ChantierOpt { id: string; titre: string }
-interface DevisOpt { id: string; numero: string | null; objet: string | null }
+interface DevisOpt { id: string; label: string }
+type DevisRaw = { id: string; numero: string | null; objet: string | null; clients: { nom: string | null; prenom: string | null; raison_sociale: string | null } | { nom: string | null; prenom: string | null; raison_sociale: string | null }[] | null }
 
 const STATUT_BADGE: Record<string, { label: string; cls: string }> = {
   brouillon: { label: 'Brouillon', cls: 'bg-gray-100 text-gray-600' },
@@ -37,11 +37,9 @@ export default function RapportsPage() {
   const router = useRouter()
   const [rapports, setRapports] = useState<RapportRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [chantiers, setChantiers] = useState<ChantierOpt[]>([])
   const [devisList, setDevisList] = useState<DevisOpt[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [chantierId, setChantierId] = useState('')
   const [devisId, setDevisId] = useState('')
   const [objet, setObjet] = useState('')
   const [dateInter, setDateInter] = useState('')
@@ -61,13 +59,17 @@ export default function RapportsPage() {
     (async () => {
       try {
         const supabase = createClient()
-        const [ch, dv] = await Promise.all([
-          supabase.from('chantiers').select('id, titre').order('created_at', { ascending: false }),
-          supabase.from('devis').select('id, numero, objet').order('created_at', { ascending: false }),
-        ])
-        setChantiers((ch.data as ChantierOpt[]) ?? [])
-        setDevisList((dv.data as DevisOpt[]) ?? [])
-      } catch { /* listes optionnelles */ }
+        const dv = await supabase.from('devis')
+          .select('id, numero, objet, clients(nom, prenom, raison_sociale)')
+          .order('created_at', { ascending: false })
+        const rows = (dv.data ?? []) as unknown as DevisRaw[]
+        setDevisList(rows.map((d) => {
+          const cl = Array.isArray(d.clients) ? d.clients[0] : d.clients
+          const nom = cl ? (cl.raison_sociale || [cl.prenom, cl.nom].filter(Boolean).join(' ').trim()) : ''
+          const base = nom || d.numero || 'Devis'
+          return { id: d.id, label: d.objet ? `${base} — ${d.objet}` : base }
+        }))
+      } catch { /* liste optionnelle */ }
     })()
   }, [])
 
@@ -86,7 +88,7 @@ export default function RapportsPage() {
     try {
       const res = await fetch('/api/rapports', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chantier_id: chantierId || null, devis_id: devisId || null, objet: objet || null, date_intervention: dateInter || null, date_fin: dateFin || null }),
+        body: JSON.stringify({ devis_id: devisId || null, objet: objet || null, date_intervention: dateInter || null, date_fin: dateFin || null }),
       })
       const json = await res.json()
       if (!res.ok || !json.id) { toast.error(json.message || 'Creation impossible'); return }
@@ -155,23 +157,15 @@ export default function RapportsPage() {
               <button aria-label="Fermer" onClick={() => !creating && setShowCreate(false)} className="text-gray-400 hover:text-navy"><X size={20} /></button>
             </div>
 
-            <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Chantier (optionnel)</label>
-            <select value={chantierId} onChange={(e) => setChantierId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-1">
-              <option value="">- Sans chantier -</option>
-              {chantiers.map((c) => <option key={c.id} value={c.id}>{c.titre}</option>)}
-            </select>
-            <p className="font-hanken text-xs text-gray-400 mb-4">Le client, l&apos;adresse et l&apos;objet seront pre-remplis depuis le chantier.</p>
-
-            <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Devis lie (optionnel)</label>
+<label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Devis lie (optionnel)</label>
             <select value={devisId} onChange={(e) => setDevisId(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-1">
-              <option value="">- Aucun devis -</option>
-              {devisList.map((d) => <option key={d.id} value={d.id}>{[d.numero, d.objet].filter(Boolean).join(' - ')}</option>)}
+              <option value="">- Aucun (saisie libre) -</option>
+              {devisList.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
             </select>
-            <p className="font-hanken text-xs text-gray-400 mb-4">Reprend le client et l&apos;objet du devis.</p>
+            <p className="font-hanken text-xs text-gray-400 mb-4">Reprend le client, l&apos;adresse et l&apos;objet. Sinon, vous remplissez l&apos;en-tete a la main.</p>
 
-            <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Objet (optionnel)</label>
+            <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Objet</label>
             <input value={objet} onChange={(e) => setObjet(e.target.value)} placeholder="Ex : Mise aux normes tableau electrique"
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" />
 

@@ -55,7 +55,7 @@ export function createDefaultContent(type: PageType): PageContent {
     case 'photos': return { titre: '', photos: [{}] }
     case 'texte': return { titre: '', texte: '' }
     case 'constat': return { items: [''] }
-    case 'fin': return { controles: [''], observations: [''], conclusion: '', titreControles: 'Contrôles finaux', titreObservations: 'Observations', titreConclusion: 'Conclusion' }
+    case 'fin': return { controles: [], observations: [], conclusion: '', titreControles: 'Contrôles finaux', titreObservations: 'Observations', titreConclusion: 'Conclusion' }
   }
 }
 
