@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const db = admin()
   const { data: rapport } = await db
     .from('rapports_intervention')
-    .select('id, numero, objet, statut, date_intervention, client_id, chantier_id, devis_id, facture_id, client_nom_snapshot, adresse_snapshot, created_at, updated_at')
+    .select('id, numero, objet, statut, date_intervention, date_fin, client_id, chantier_id, devis_id, facture_id, client_nom_snapshot, adresse_snapshot, adresse_rue, adresse_cp, adresse_ville, created_at, updated_at')
     .eq('id', id).eq('user_id', user.id).is('deleted_at', null).single()
   if (!rapport) return secureError('Rapport introuvable', 404)
 
@@ -79,6 +79,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (typeof b.client_nom_snapshot === 'string') patch.client_nom_snapshot = b.client_nom_snapshot.slice(0, 200)
   if (typeof b.statut === 'string' && STATUTS.includes(b.statut)) patch.statut = b.statut
   if (typeof b.date_intervention === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.date_intervention)) patch.date_intervention = b.date_intervention
+  if (typeof b.adresse_rue === 'string') patch.adresse_rue = b.adresse_rue.slice(0, 200)
+  if (typeof b.adresse_cp === 'string') patch.adresse_cp = b.adresse_cp.slice(0, 20)
+  if (typeof b.adresse_ville === 'string') patch.adresse_ville = b.adresse_ville.slice(0, 120)
+  if (b.date_fin === null) patch.date_fin = null
+  else if (typeof b.date_fin === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.date_fin)) patch.date_fin = b.date_fin
 
   const { error } = await db
     .from('rapports_intervention').update(patch)

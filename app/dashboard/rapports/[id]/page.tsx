@@ -20,7 +20,8 @@ import {
 
 interface Meta {
   numero: string | null; objet: string | null; statut: string
-  client_nom_snapshot: string | null; date_intervention: string | null; client_id: string | null; adresse_snapshot: string | null; client_email: string | null
+  client_nom_snapshot: string | null; date_intervention: string | null; date_fin: string | null; client_id: string | null; client_email: string | null
+  adresse_rue: string | null; adresse_cp: string | null; adresse_ville: string | null
 }
 
 /** Renseigne le photoId sur la PhotoRef qui porte ce localId (apres confirmation upload). */
@@ -48,8 +49,23 @@ function pageHasContent(p: RapportPageData): boolean {
 function blobToDataURL(blob: Blob): Promise<string> {
   return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = () => rej(r.error); r.readAsDataURL(blob) })
 }
-function imageDims(dataUrl: string): Promise<{ w: number; h: number }> {
-  return new Promise((res) => { const i = new Image(); i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => res({ w: 0, h: 0 }); i.src = dataUrl })
+function coverToFrame(dataUrl: string, fwMm: number, fhMm: number): Promise<{ dataUrl: string; w: number; h: number }> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const dpi = 200
+      const pxW = Math.round((fwMm / 25.4) * dpi), pxH = Math.round((fhMm / 25.4) * dpi)
+      const cv = document.createElement('canvas'); cv.width = pxW; cv.height = pxH
+      const ctx = cv.getContext('2d')
+      if (!ctx) { resolve({ dataUrl, w: pxW, h: pxH }); return }
+      const scale = Math.max(pxW / (img.naturalWidth || 1), pxH / (img.naturalHeight || 1))
+      const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale
+      ctx.drawImage(img, (pxW - dw) / 2, (pxH - dh) / 2, dw, dh)
+      resolve({ dataUrl: cv.toDataURL('image/jpeg', 0.82), w: pxW, h: pxH })
+    }
+    img.onerror = () => resolve({ dataUrl, w: 0, h: 0 })
+    img.src = dataUrl
+  })
 }
 function rotateDataUrl(dataUrl: string, deg: number): Promise<{ dataUrl: string; w: number; h: number }> {
   return new Promise((resolve) => {
@@ -81,7 +97,7 @@ export default function RapportEditorPage() {
   const [emailMsg, setEmailMsg] = useState('')
   const [showHeaderEdit, setShowHeaderEdit] = useState(false)
   const [savingHeader, setSavingHeader] = useState(false)
-  const [headerForm, setHeaderForm] = useState({ objet: '', client_nom_snapshot: '', adresse_snapshot: '', date_intervention: '' })
+  const [headerForm, setHeaderForm] = useState({ objet: '', client_nom_snapshot: '', adresse_rue: '', adresse_cp: '', adresse_ville: '', date_intervention: '', date_fin: '' })
   const multiRef = useRef<HTMLInputElement>(null)
 
   const [meta, setMeta] = useState<Meta | null>(null)
@@ -193,11 +209,12 @@ export default function RapportEditorPage() {
       }
       if (!blob) continue
       try {
-        const dataUrl0 = await blobToDataURL(blob)
-        const d0 = await imageDims(dataUrl0)
+        let upright = await blobToDataURL(blob)
         const rot = (((ref.rotation || 0) % 360) + 360) % 360
-        if (rot) { const r = await rotateDataUrl(dataUrl0, rot); map.set(key, { dataUrl: r.dataUrl, w: r.w, h: r.h }) }
-        else map.set(key, { dataUrl: dataUrl0, w: d0.w, h: d0.h })
+        if (rot) { const r = await rotateDataUrl(upright, rot); upright = r.dataUrl }
+        const frame = ref.layout === 'side' ? { w: 80, h: 60 } : { w: 178, h: 107 }
+        const framed = await coverToFrame(upright, frame.w, frame.h)
+        map.set(key, { dataUrl: framed.dataUrl, w: framed.w, h: framed.h })
       } catch { /* ignore */ }
     }
     return map
@@ -206,7 +223,7 @@ export default function RapportEditorPage() {
   const makeDoc = useCallback(async () => {
     const images = await buildImages()
     return generateRapportPdf({
-      meta: { numero: meta?.numero ?? null, objet: meta?.objet ?? null, clientNom: meta?.client_nom_snapshot ?? null, adresse: meta?.adresse_snapshot ?? null, date: meta?.date_intervention ?? null },
+      meta: { numero: meta?.numero ?? null, objet: meta?.objet ?? null, clientNom: meta?.client_nom_snapshot ?? null, adresseRue: meta?.adresse_rue ?? null, adresseCp: meta?.adresse_cp ?? null, adresseVille: meta?.adresse_ville ?? null, date: meta?.date_intervention ?? null, dateFin: meta?.date_fin ?? null },
       pages, images, entrepriseNom: (entreprise?.nom as string) || '', entreprise,
     })
   }, [buildImages, meta, pages, entreprise])
@@ -261,14 +278,15 @@ export default function RapportEditorPage() {
   }
 
   const openHeaderEdit = () => {
-    setHeaderForm({ objet: meta?.objet || '', client_nom_snapshot: meta?.client_nom_snapshot || '', adresse_snapshot: meta?.adresse_snapshot || '', date_intervention: meta?.date_intervention || '' })
+    setHeaderForm({ objet: meta?.objet || '', client_nom_snapshot: meta?.client_nom_snapshot || '', adresse_rue: meta?.adresse_rue || '', adresse_cp: meta?.adresse_cp || '', adresse_ville: meta?.adresse_ville || '', date_intervention: meta?.date_intervention || '', date_fin: meta?.date_fin || '' })
     setShowHeaderEdit(true)
   }
   const saveHeader = async () => {
     setSavingHeader(true)
     try {
-      const res = await fetch(`/api/rapports/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(headerForm) })
-      if (res.ok) { setMeta((m) => (m ? { ...m, ...headerForm } : m)); setShowHeaderEdit(false); toast.success('En-tête mis à jour') }
+      const body = { ...headerForm, date_fin: headerForm.date_fin || null }
+      const res = await fetch(`/api/rapports/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) { setMeta((m) => (m ? { ...m, ...headerForm, date_fin: headerForm.date_fin || null } : m)); setShowHeaderEdit(false); toast.success('En-tête mis à jour') }
       else toast.error('Mise à jour impossible')
     } catch { toast.error('Mise à jour impossible') } finally { setSavingHeader(false) }
   }
@@ -368,9 +386,15 @@ export default function RapportEditorPage() {
             <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Client</label>
             <input value={headerForm.client_nom_snapshot} onChange={(e) => setHeaderForm((h) => ({ ...h, client_nom_snapshot: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" placeholder="Nom du client" />
             <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Adresse</label>
-            <textarea value={headerForm.adresse_snapshot} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_snapshot: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" placeholder="Rue (1re ligne), puis code postal + ville (2e ligne)" />
+            <input value={headerForm.adresse_rue} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_rue: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-2" placeholder="Rue (ex : 12 rue des Lilas)" />
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <input value={headerForm.adresse_cp} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_cp: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 col-span-1" placeholder="Code postal" />
+              <input value={headerForm.adresse_ville} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_ville: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 col-span-2" placeholder="Ville" />
+            </div>
             <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Date d&apos;intervention</label>
-            <input type="date" value={headerForm.date_intervention} onChange={(e) => setHeaderForm((h) => ({ ...h, date_intervention: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-5" />
+            <input type="date" value={headerForm.date_intervention} onChange={(e) => setHeaderForm((h) => ({ ...h, date_intervention: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-2" />
+            <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Fin (si plusieurs jours)</label>
+            <input type="date" value={headerForm.date_fin} onChange={(e) => setHeaderForm((h) => ({ ...h, date_fin: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-5" />
             <button onClick={saveHeader} disabled={savingHeader} className="w-full py-2.5 rounded-xl bg-navy text-white font-hanken font-bold text-sm disabled:opacity-50">{savingHeader ? 'Enregistrement…' : 'Enregistrer'}</button>
           </div>
         </div>

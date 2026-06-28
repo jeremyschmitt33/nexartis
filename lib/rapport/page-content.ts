@@ -40,7 +40,7 @@ export interface PhotoRef {
 export interface PhotosContent { titre: string; photos: PhotoRef[] }
 export interface TexteContent { titre: string; texte: string }
 export interface ConstatContent { items: string[] }
-export interface FinContent { controles: string[]; observations: string[]; conclusion: string }
+export interface FinContent { controles: string[]; observations: string[]; conclusion: string; titreControles?: string; titreObservations?: string; titreConclusion?: string }
 
 export type PageContent = PhotosContent | TexteContent | ConstatContent | FinContent
 
@@ -55,7 +55,7 @@ export function createDefaultContent(type: PageType): PageContent {
     case 'photos': return { titre: '', photos: [{}] }
     case 'texte': return { titre: '', texte: '' }
     case 'constat': return { items: [''] }
-    case 'fin': return { controles: [''], observations: [''], conclusion: '' }
+    case 'fin': return { controles: [''], observations: [''], conclusion: '', titreControles: 'Contrôles finaux', titreObservations: 'Observations', titreConclusion: 'Conclusion' }
   }
 }
 

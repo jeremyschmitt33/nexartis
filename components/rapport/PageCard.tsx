@@ -98,12 +98,13 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
       }
       case 'fin': {
         const c = page.contenu as FinContent
+        const titleCls = 'block w-full font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mt-3 mb-1 bg-transparent outline-none border-b border-dashed border-gray-200 focus:border-sky'
         return (<>
-          <label className={labelCls}>Contrôles finaux</label>
+          <input className={titleCls} value={c.titreControles ?? 'Contrôles finaux'} onChange={(e) => onChange({ ...c, titreControles: e.target.value })} />
           <StringList items={c.controles ?? ['']} placeholder="Ex : continuité de terre vérifiée" onChange={(controles) => onChange({ ...c, controles })} />
-          <label className={labelCls}>Observations</label>
+          <input className={titleCls} value={c.titreObservations ?? 'Observations'} onChange={(e) => onChange({ ...c, titreObservations: e.target.value })} />
           <StringList items={c.observations ?? ['']} placeholder="Observation…" onChange={(observations) => onChange({ ...c, observations })} />
-          <label className={labelCls}>Conclusion</label>
+          <input className={titleCls} value={c.titreConclusion ?? 'Conclusion'} onChange={(e) => onChange({ ...c, titreConclusion: e.target.value })} />
           <textarea className={inputCls} rows={3} value={c.conclusion ?? ''} placeholder="Mot de conclusion…" onChange={(e) => onChange({ ...c, conclusion: e.target.value })} />
         </>)
       }

@@ -1,8 +1,8 @@
 /**
  * Generateur PDF du rapport d'intervention (cote NAVIGATEUR, jsPDF).
- * Page 1 : bandeau aux COULEURS SOCIETE (2 tons + diagonale orange) avec logo a
- * gauche et "RAPPORT / D'INTERVENTION" + numero a droite ; puis CADRE CLIENT,
- * puis Date + OBJET. Photos jamais rognees, legendes mises en valeur (gras navy).
+ * Page 1 : bandeau COULEURS SOCIETE (2 tons + diagonale orange), logo a gauche,
+ * "RAPPORT / D'INTERVENTION" + numero a droite. Puis DATE (grosse) > CADRE CLIENT
+ * (adresse rue + CP ville) > OBJET. Photos en CADRE FIXE (cover), legendes navy.
  */
 import { jsPDF } from 'jspdf'
 import { registerPdfFonts } from '@/lib/pdf-fonts'
@@ -18,7 +18,9 @@ import {
 export interface PdfImage { dataUrl: string; w: number; h: number }
 export interface RapportPdfMeta {
   numero: string | null; objet: string | null
-  clientNom: string | null; adresse: string | null; date: string | null
+  clientNom: string | null
+  adresseRue: string | null; adresseCp: string | null; adresseVille: string | null
+  date: string | null; dateFin: string | null
 }
 export interface GenerateOpts {
   meta: RapportPdfMeta
@@ -39,8 +41,15 @@ const LIGHT: RGB = [228, 234, 242]
 const CREAM: RGB = [250, 246, 239]
 const NUMCOL: RGB = [216, 225, 240]
 
+// Cadres FIXES (mm). cover -> meme empreinte quelle que soit la photo source.
+const FULL_W = CW, FULL_H = Math.round((CW * 107 / 178) * 10) / 10  // 107 mm
+const SIDE_W = 80, SIDE_H = 60
+
 export function imageKeyOf(ref: PhotoRef): string { return ref.photoId || ref.localId || '' }
-export function imgMapKey(ref: PhotoRef): string { const k = imageKeyOf(ref); return k ? `${k}:${ref.rotation || 0}` : '' }
+export function imgMapKey(ref: PhotoRef): string {
+  const k = imageKeyOf(ref)
+  return k ? `${k}:${ref.rotation || 0}:${ref.layout || 'below'}` : ''
+}
 
 export function collectPhotoRefs(pages: RapportPageData[]): PhotoRef[] {
   const out: PhotoRef[] = []
@@ -60,7 +69,6 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
   let y = 0
 
   function bandeauPage1() {
-    // 2 tons + diagonale orange (meme geometrie que le header devis/facture)
     setFill(doc, pal.navy)
     doc.lines([[125, 0], [-20, HEADER_H], [-105, 0], [0, -HEADER_H]], 0, 0, [1, 1], 'F', true)
     setFill(doc, pal.navyDroite)
@@ -68,7 +76,6 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     setFill(doc, pal.orange)
     doc.lines([[4, 0], [-20, HEADER_H], [-4, 0], [20, -HEADER_H]], 123, 0, [1, 1], 'F', true)
 
-    // Logo (carte blanche) a gauche, taille reduite
     let drew = false
     if (logo && logo.startsWith('data:image')) {
       try {
@@ -86,12 +93,11 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     }
     if (!drew) { F('extrabold', 15, pal.white); doc.text(opts.entrepriseNom || 'Rapport', 14, HEADER_H / 2 + 2) }
 
-    // Titre empile + numero a droite (dans le bleu)
     F('extrabold', 22, pal.white)
     doc.text('RAPPORT', 194, 14, { align: 'right' })
     doc.text('D’INTERVENTION', 194, 23.5, { align: 'right' })
     if (numero) { F('medium', 12, NUMCOL); doc.text(numero, 194, 32, { align: 'right' }) }
-    y = HEADER_H + 7
+    y = HEADER_H + 8
   }
 
   function miniHeader() {
@@ -131,48 +137,58 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     }
     y += 2
   }
-  function drawImage(ref: PhotoRef, x: number, boxW: number, boxH: number): number {
+  // Image en CADRE FIXE : l'image est deja recadree "cover" au bon ratio cote editeur.
+  function drawFixed(ref: PhotoRef, x: number, boxW: number, boxH: number) {
     const img = opts.images.get(imgMapKey(ref))
     if (!img) {
       setFill(doc, LIGHT); doc.roundedRect(x, y, boxW, boxH, 2, 2, 'F')
       F('normal', 8, GRAY); doc.text('Photo indisponible', x + boxW / 2, y + boxH / 2, { align: 'center' })
-      return boxH
+    } else {
+      try { doc.addImage(img.dataUrl, 'JPEG', x, y, boxW, boxH) } catch { /* illisible */ }
     }
-    const ratio = img.w > 0 ? img.h / img.w : 0.72
-    let w = boxW, h = w * ratio
-    if (h > boxH) { h = boxH; w = h / ratio }
-    const dx = x + (boxW - w) / 2
-    try { doc.addImage(img.dataUrl, 'JPEG', dx, y, w, h) } catch { /* image illisible */ }
-    return h
+    setDraw(doc, LIGHT); doc.setLineWidth(0.3); doc.rect(x, y, boxW, boxH)
   }
-  function legendeBlock(txt: string | undefined, x: number, w: number, yPos: number): number {
+  function legendeBlock(txt: string | undefined, x: number, w: number, yPos: number, size = 9.5): number {
     if (!txt || !txt.trim()) return 0
-    F('bold', 10.5, pal.navy)
+    F('medium', size, pal.navy)
     const lines = doc.splitTextToSize(txt, w)
     doc.text(lines, x, yPos)
-    return lines.length * 5 + 2
+    return lines.length * (size * 0.5) + 2
   }
   function photoFull(ref: PhotoRef) {
-    ensure(108)
-    const ih = drawImage(ref, M, CW, 96); y += ih + 4.5
-    y += legendeBlock(ref.legende, M, CW, y)
-    y += 5
+    ensure(FULL_H + 16)
+    drawFixed(ref, M, FULL_W, FULL_H)
+    y += FULL_H + 4
+    y += legendeBlock(ref.legende, M, FULL_W, y, 9.5)
+    y += 6
   }
   function photoSide(ref: PhotoRef) {
-    ensure(80)
-    const imgW = 100, gut = 8, txtW = CW - imgW - gut
+    ensure(SIDE_H + 10)
+    const gut = 6, txtW = CW - SIDE_W - gut
     const yTop = y
-    const ih = drawImage(ref, M, imgW, 74)
-    const ch = legendeBlock(ref.legende, M + imgW + gut, txtW, yTop + 6)
-    y = yTop + Math.max(ih, ch) + 6
+    drawFixed(ref, M, SIDE_W, SIDE_H)
+    const ch = legendeBlock(ref.legende, M + SIDE_W + gut, txtW, yTop + 5, 10)
+    y = yTop + Math.max(SIDE_H, ch + 5) + 8
   }
 
   // ===== PAGE 1 =====
   bandeauPage1()
 
-  // Cadre client
-  const addr = opts.meta.adresse ? doc.splitTextToSize(opts.meta.adresse, CW - 12) : []
-  const rows = (opts.meta.clientNom ? 1 : 0) + addr.length
+  // DATE (au-dessus du cadre client, plus grosse). Journee unique ou plage.
+  if (opts.meta.date) {
+    F('extrabold', 8.5, pal.orange); doc.text('DATE D’INTERVENTION', M, y); y += 5.5
+    const d1 = fmtDate(opts.meta.date)
+    const dtxt = (opts.meta.dateFin && opts.meta.dateFin !== opts.meta.date)
+      ? `Du ${d1} au ${fmtDate(opts.meta.dateFin)}` : d1
+    F('bold', 15, pal.navy); doc.text(dtxt, M, y); y += 9
+  }
+
+  // CADRE CLIENT (adresse rue + "CP ville")
+  const addrLines: string[] = []
+  if (opts.meta.adresseRue && opts.meta.adresseRue.trim()) addrLines.push(opts.meta.adresseRue.trim())
+  const cpville = [opts.meta.adresseCp, opts.meta.adresseVille].map((x) => (x || '').trim()).filter(Boolean).join(' ')
+  if (cpville) addrLines.push(cpville)
+  const rows = (opts.meta.clientNom ? 1 : 0) + addrLines.length
   if (rows > 0) {
     const cardH = 9 + 6.8 + rows * 5.4 + 3
     setFill(doc, CREAM); setDraw(doc, LIGHT); doc.setLineWidth(0.3)
@@ -180,14 +196,11 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     let cy = y + 8.5
     F('bold', 11, pal.orange); doc.text('CLIENT', M + 6, cy); cy += 7
     if (opts.meta.clientNom) { F('bold', 13, pal.navy); doc.text(opts.meta.clientNom, M + 6, cy); cy += 5.8 }
-    F('normal', 10.5, GRAYTX); for (const l of addr) { doc.text(l, M + 6, cy); cy += 5.2 }
+    F('normal', 10.5, GRAYTX); for (const l of addrLines) { doc.text(l, M + 6, cy); cy += 5.2 }
     y += cardH + 6
   }
 
-  // Date + OBJET (hors cadre)
-  if (opts.meta.date) {
-    F('semibold', 12, pal.navy); doc.text('Date d’intervention : ' + fmtDate(opts.meta.date), M, y); y += 8.5
-  }
+  // OBJET (hors cadre, souligne)
   if (opts.meta.objet && opts.meta.objet.trim()) {
     F('extrabold', 11, pal.navy)
     const lab = 'OBJET :'; doc.text(lab, M, y)
@@ -218,9 +231,9 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
       if ((c.items ?? []).some((x) => x && x.trim())) { sectionTitle('Constatations'); bullets(c.items ?? []) }
     } else if (p.type === 'fin') {
       const c = p.contenu as FinContent
-      if ((c.controles ?? []).some((x) => x && x.trim())) { sectionTitle('Contrôles finaux'); bullets(c.controles ?? []) }
-      if ((c.observations ?? []).some((x) => x && x.trim())) { sectionTitle('Observations'); bullets(c.observations ?? []) }
-      if (c.conclusion && c.conclusion.trim()) { sectionTitle('Conclusion'); paragraph(c.conclusion) }
+      if ((c.controles ?? []).some((x) => x && x.trim())) { sectionTitle(c.titreControles || 'Contrôles finaux'); bullets(c.controles ?? []) }
+      if ((c.observations ?? []).some((x) => x && x.trim())) { sectionTitle(c.titreObservations || 'Observations'); bullets(c.observations ?? []) }
+      if (c.conclusion && c.conclusion.trim()) { sectionTitle(c.titreConclusion || 'Conclusion'); paragraph(c.conclusion) }
     }
   }
 

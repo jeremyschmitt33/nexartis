@@ -44,6 +44,8 @@ export default function RapportsPage() {
   const [chantierId, setChantierId] = useState('')
   const [devisId, setDevisId] = useState('')
   const [objet, setObjet] = useState('')
+  const [dateInter, setDateInter] = useState('')
+  const [dateFin, setDateFin] = useState('')
 
   const charger = useCallback(async () => {
     setLoading(true)
@@ -84,7 +86,7 @@ export default function RapportsPage() {
     try {
       const res = await fetch('/api/rapports', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chantier_id: chantierId || null, devis_id: devisId || null, objet: objet || null }),
+        body: JSON.stringify({ chantier_id: chantierId || null, devis_id: devisId || null, objet: objet || null, date_intervention: dateInter || null, date_fin: dateFin || null }),
       })
       const json = await res.json()
       if (!res.ok || !json.id) { toast.error(json.message || 'Creation impossible'); return }
@@ -171,7 +173,18 @@ export default function RapportsPage() {
 
             <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Objet (optionnel)</label>
             <input value={objet} onChange={(e) => setObjet(e.target.value)} placeholder="Ex : Mise aux normes tableau electrique"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-5" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" />
+
+            <div className="grid grid-cols-2 gap-2 mb-5">
+              <div>
+                <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date d&apos;intervention</label>
+                <input type="date" value={dateInter} onChange={(e) => setDateInter(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50" />
+              </div>
+              <div>
+                <label className="block font-hanken text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fin (plusieurs jours)</label>
+                <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50" />
+              </div>
+            </div>
 
             <PremiumButton variant="primary" loading={creating} onClick={creer} className="w-full justify-center">
               Creer le rapport
