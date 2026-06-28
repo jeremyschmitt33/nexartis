@@ -33,6 +33,8 @@ export interface PhotoRef {
   legende?: string
   /** Rotation appliquee a l'affichage / au PDF : 0, 90, 180, 270. */
   rotation?: number
+  /** Disposition dans le PDF : 'below' (texte dessous) ou 'side' (texte a cote). */
+  layout?: 'below' | 'side'
 }
 
 export interface PhotosContent { titre: string; photos: PhotoRef[] }

@@ -1,14 +1,16 @@
 /**
  * Generateur PDF du rapport d'intervention (cote NAVIGATEUR, jsPDF).
- * SOURCE UNIQUE DE RENDU. 1re page soignee (logo + grand titre + cadre client).
- * Photos jamais rognees/deformees (ajustees a leurs proportions), rotation deja
- * appliquee dans l'image fournie. Mise en page auto selon le nombre de photos.
+ * 1re page = MEME bandeau que devis/facture (couleurs societe + logo) via
+ * drawHeader, puis grand titre "RAPPORT D'INTERVENTION" + cadre client.
+ * Photos jamais rognees/deformees ; rotation deja appliquee ; chaque photo a
+ * sa disposition (texte dessous ou texte a cote).
  */
 import { jsPDF } from 'jspdf'
 import { registerPdfFonts } from '@/lib/pdf-fonts'
 import { buildPalette, type RGB } from '@/lib/pdf/palette'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { font, setFill, setDraw, fmtDate } from '@/lib/pdf/utils'
+import { drawHeader } from '@/lib/pdf/header'
 import {
   type RapportPageData, type PhotoRef,
   type PhotosContent, type TexteContent, type ConstatContent, type FinContent,
@@ -26,7 +28,6 @@ export interface GenerateOpts {
   images: Map<string, PdfImage>
   entrepriseNom: string
   entreprise: unknown
-  logoDataUrl?: string | null
 }
 
 const A4 = { w: 210, h: 297 }
@@ -51,62 +52,34 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
   registerPdfFonts(doc)
   const pal = buildPalette(themeFromEntreprise(opts.entreprise))
   const F = (st: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold', size: number, c?: RGB) => font(doc, 'Hanken Grotesk', st, size, c)
-  const logo = opts.logoDataUrl || null
+
+  const e = (opts.entreprise || {}) as Record<string, unknown>
+  const ent = {
+    nom: opts.entrepriseNom,
+    logo_url: (e.logo_url as string | undefined) ?? undefined,
+    doc_logo_style: e.doc_logo_style as 'carte-classique' | 'carte-minimaliste' | 'sans-carte' | null | undefined,
+    doc_logo_size: (e.doc_logo_size as number | null | undefined) ?? null,
+    doc_nom_size: (e.doc_nom_size as number | null | undefined) ?? null,
+    document_show_company_name: (e.document_show_company_name as boolean | null | undefined) ?? null,
+  }
 
   let y = 0
 
-  function header(first: boolean) {
-    const h = first ? (logo ? 34 : 28) : 13
+  function miniHeader() {
+    const h = 12
     setFill(doc, pal.navy); doc.rect(0, 0, A4.w, h, 'F')
-    let drew = false
-    if (logo) {
-      try {
-        const pr = (doc as unknown as { getImageProperties: (d: string) => { width: number; height: number; fileType: string } }).getImageProperties(logo)
-        const lh = first ? 18 : 9
-        const lw = pr.height > 0 ? lh * (pr.width / pr.height) : lh
-        doc.addImage(logo, pr.fileType || 'PNG', M, (h - lh) / 2, Math.min(lw, 70), lh)
-        drew = true
-      } catch { drew = false }
-    }
-    if (!drew) {
-      F('extrabold', first ? 16 : 10, pal.white)
-      doc.text(opts.entrepriseNom || 'Rapport', M, first ? h / 2 + 2 : 8.5)
-    }
-    F('medium', first ? 9 : 8, pal.white)
-    const right = [opts.meta.numero, first && opts.meta.date ? fmtDate(opts.meta.date) : null].filter(Boolean).join('   ·   ')
-    if (right) doc.text(right, A4.w - M, first ? h / 2 + 2 : 8.5, { align: 'right' })
-    setFill(doc, pal.orange); doc.rect(0, h, A4.w, 1.6, 'F')
-    y = h + (first ? 12 : 7)
+    F('extrabold', 9, pal.white); doc.text(opts.entrepriseNom || 'Rapport', M, 8)
+    F('medium', 8, pal.white); doc.text(opts.meta.numero || '', A4.w - M, 8, { align: 'right' })
+    setFill(doc, pal.orange); doc.rect(0, h, A4.w, 1.2, 'F')
+    y = h + 8
   }
   function footer() {
-    const fy = A4.h - 8
     F('normal', 8, GRAY)
-    doc.text(opts.entrepriseNom || '', M, fy)
-    doc.text('Rapport d’intervention', A4.w - M, fy, { align: 'right' })
+    doc.text(opts.entrepriseNom || '', M, A4.h - 8)
+    doc.text('Rapport d’intervention', A4.w - M, A4.h - 8, { align: 'right' })
   }
-  function newPage() { footer(); doc.addPage(); header(false) }
+  function newPage() { footer(); doc.addPage(); miniHeader() }
   function ensure(need: number) { if (y + need > A4.h - 14) newPage() }
-
-  function cover() {
-    F('extrabold', 11, pal.orange); doc.text('RAPPORT D’INTERVENTION', M, y); y += 9
-    F('extrabold', 23, pal.navy)
-    const titre = doc.splitTextToSize(opts.meta.objet || 'Sans objet', CW)
-    doc.text(titre, M, y); y += titre.length * 9.5 + 6
-
-    // Cadre client
-    const lines: string[] = []
-    if (opts.meta.clientNom) lines.push(opts.meta.clientNom)
-    if (opts.meta.adresse) { for (const l of doc.splitTextToSize(opts.meta.adresse, CW - 16)) lines.push(l) }
-    if (opts.meta.date) lines.push('Date d’intervention : ' + fmtDate(opts.meta.date))
-    const cardH = 12 + lines.length * 5.6 + 4
-    setFill(doc, CREAM); setDraw(doc, LIGHT); doc.setLineWidth(0.3)
-    doc.roundedRect(M, y, CW, cardH, 3, 3, 'FD')
-    let cy = y + 8
-    F('extrabold', 8, pal.orange); doc.text('CLIENT', M + 6, cy); cy += 6
-    F('normal', 11, DARK)
-    for (const l of lines) { doc.text(l, M + 6, cy); cy += 5.6 }
-    y += cardH + 8
-  }
 
   function sectionTitle(t: string) {
     ensure(14)
@@ -143,26 +116,61 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
     try { doc.addImage(img.dataUrl, 'JPEG', dx, y, w, h) } catch { /* image illisible */ }
     return h
   }
-  // Dessine une photo + sa legende a une position donnee ; renvoie la hauteur totale.
-  function photoCell(ref: PhotoRef, x: number, yStart: number, colW: number, imgBoxH: number): number {
-    const saved = y; y = yStart
-    const ih = drawImage(ref, x, colW, imgBoxH)
-    let total = ih
-    const leg = ref.legende
-    if (leg && leg.trim()) {
-      F('medium', 9, GRAY)
-      const lines = doc.splitTextToSize(leg, colW)
-      doc.text(lines, x, yStart + ih + 4)
-      total = ih + 4 + lines.length * 4
+  function photoFull(ref: PhotoRef) {
+    ensure(125)
+    const ih = drawImage(ref, M, CW, 115); y += ih
+    if (ref.legende && ref.legende.trim()) {
+      F('medium', 10, GRAY)
+      const lines = doc.splitTextToSize(ref.legende, CW)
+      doc.text(lines, M, y + 4.5); y += lines.length * 4.6 + 2
     }
-    y = saved
-    return total
+    y += 5
+  }
+  function photoSide(ref: PhotoRef) {
+    ensure(64)
+    const imgW = Math.round(CW * 0.52)
+    const yTop = y
+    const ih = drawImage(ref, M, imgW, 58)
+    let ch = 0
+    if (ref.legende && ref.legende.trim()) {
+      F('normal', 11, DARK)
+      const tw = CW - imgW - 8
+      const lines = doc.splitTextToSize(ref.legende, tw)
+      doc.text(lines, M + imgW + 8, yTop + 6)
+      ch = lines.length * 5.6 + 6
+    }
+    y = yTop + Math.max(ih, ch) + 5
+  }
+
+  // ----- Page 1 : bandeau societe (drawHeader) + titre + cadre client -----
+  y = drawHeader(doc, ent, 'RAPPORT', opts.meta.numero || '', opts.meta.date ? fmtDate(opts.meta.date) : '', 'Intervention le', '', '', pal) + 12
+
+  F('extrabold', 30, pal.navy)
+  for (const ln of doc.splitTextToSize('RAPPORT D’INTERVENTION', CW)) { doc.text(ln, M, y); y += 12 }
+  y += 1
+  if (opts.meta.objet && opts.meta.objet.trim()) {
+    F('semibold', 15, DARK)
+    for (const ln of doc.splitTextToSize(opts.meta.objet, CW)) { doc.text(ln, M, y); y += 7 }
+  }
+  y += 4
+  {
+    const lines: string[] = []
+    if (opts.meta.clientNom) lines.push(opts.meta.clientNom)
+    if (opts.meta.adresse) for (const l of doc.splitTextToSize(opts.meta.adresse, CW - 16)) lines.push(l)
+    if (opts.meta.date) lines.push('Date d’intervention : ' + fmtDate(opts.meta.date))
+    if (lines.length) {
+      const cardH = 12 + lines.length * 5.6 + 3
+      setFill(doc, CREAM); setDraw(doc, LIGHT); doc.setLineWidth(0.3)
+      doc.roundedRect(M, y, CW, cardH, 3, 3, 'FD')
+      let cy = y + 8
+      F('extrabold', 8, pal.orange); doc.text('CLIENT', M + 6, cy); cy += 6
+      F('normal', 11, DARK)
+      for (const l of lines) { doc.text(l, M + 6, cy); cy += 5.6 }
+      y += cardH + 8
+    }
   }
 
   // ----- Pages -----
-  header(true)
-  cover()
-
   for (const p of opts.pages) {
     if (p.type === 'photos') {
       const c = p.contenu as PhotosContent
@@ -170,19 +178,7 @@ export function generateRapportPdf(opts: GenerateOpts): jsPDF {
       if (list.length === 0 && !(c.titre && c.titre.trim())) continue
       if (c.titre && c.titre.trim()) sectionTitle(c.titre)
       else { ensure(4); y += 1 }
-      if (list.length <= 2) {
-        const imgBoxH = list.length === 1 ? 125 : 90
-        for (const ref of list) { ensure(imgBoxH + 16); const hh = photoCell(ref, M, y, CW, imgBoxH); y += hh + 5 }
-      } else {
-        const colW = (CW - 6) / 2
-        for (let i = 0; i < list.length; i += 2) {
-          ensure(70)
-          const yTop = y
-          const h1 = photoCell(list[i], M, yTop, colW, 52)
-          const h2 = list[i + 1] ? photoCell(list[i + 1], M + colW + 6, yTop, colW, 52) : 0
-          y = yTop + Math.max(h1, h2) + 5
-        }
-      }
+      for (const ref of list) { if (ref.layout === 'side') photoSide(ref); else photoFull(ref) }
       y += 1
     } else if (p.type === 'texte') {
       const c = p.contenu as TexteContent

@@ -67,8 +67,12 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
                   onPick={(files) => { const [lid] = pickPhoto(files); if (lid) setRef(i, { ...ref, localId: lid, photoId: null }) }}
                   onRemove={() => setPhotos(photos.filter((_, j) => j !== i))}
                   onRotate={() => setRef(i, { ...ref, rotation: ((ref.rotation || 0) + 90) % 360 })} />
-                <input className={`${inputCls} mt-1.5`} value={ref.legende ?? ''} placeholder="Texte sous la photo (optionnel)"
+                <input className={`${inputCls} mt-1.5`} value={ref.legende ?? ''} placeholder="Texte de la photo (optionnel)"
                   onChange={(e) => setRef(i, { ...ref, legende: e.target.value })} />
+                <button type="button" onClick={() => setRef(i, { ...ref, layout: ref.layout === 'side' ? 'below' : 'side' })}
+                  className="mt-1 font-hanken text-[11px] text-sky-dark hover:underline">
+                  Disposition : {ref.layout === 'side' ? 'texte à côté' : 'texte dessous'} — changer
+                </button>
               </div>
             ))}
           </div>

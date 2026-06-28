@@ -68,10 +68,6 @@ function rotateDataUrl(dataUrl: string, deg: number): Promise<{ dataUrl: string;
     img.src = dataUrl
   })
 }
-async function loadLogoDataUrl(url: string): Promise<string | null> {
-  if (!url) return null
-  try { const r = await fetch(url); if (!r.ok) return null; return await blobToDataURL(await r.blob()) } catch { return null }
-}
 
 export default function RapportEditorPage() {
   const params = useParams<{ id: string }>()
@@ -209,10 +205,9 @@ export default function RapportEditorPage() {
 
   const makeDoc = useCallback(async () => {
     const images = await buildImages()
-    const logoDataUrl = await loadLogoDataUrl((entreprise?.logo_url as string) || '')
     return generateRapportPdf({
       meta: { numero: meta?.numero ?? null, objet: meta?.objet ?? null, clientNom: meta?.client_nom_snapshot ?? null, adresse: meta?.adresse_snapshot ?? null, date: meta?.date_intervention ?? null },
-      pages, images, entrepriseNom: (entreprise?.nom as string) || '', entreprise, logoDataUrl,
+      pages, images, entrepriseNom: (entreprise?.nom as string) || '', entreprise,
     })
   }, [buildImages, meta, pages, entreprise])
 
