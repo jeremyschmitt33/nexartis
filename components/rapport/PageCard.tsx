@@ -29,7 +29,7 @@ function StringList({ items, placeholder, onChange }: { items: string[]; placeho
         </div>
       ))}
       <button type="button" onClick={() => onChange([...safe, ''])}
-        className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-sky-dark hover:underline mt-1"><Plus size={13} /> Ajouter</button>
+        className="inline-flex items-center gap-1.5 font-hanken text-sm font-semibold text-sky-dark hover:underline mt-1.5"><Plus size={15} /> Ajouter</button>
     </div>
   )
 }
@@ -67,18 +67,18 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
                   onPick={(files) => { const [lid] = pickPhoto(files); if (lid) setRef(i, { ...ref, localId: lid, photoId: null }) }}
                   onRemove={() => setPhotos(photos.filter((_, j) => j !== i))}
                   onRotate={() => setRef(i, { ...ref, rotation: ((ref.rotation || 0) + 90) % 360 })} />
-                <input className={`${inputCls} mt-1.5`} value={ref.legende ?? ''} placeholder="Texte de la photo (optionnel)"
+                <textarea className={`${inputCls} mt-1.5`} rows={2} value={ref.legende ?? ''} placeholder="Texte de la photo (Entrée = nouvelle ligne)"
                   onChange={(e) => setRef(i, { ...ref, legende: e.target.value })} />
                 <button type="button" onClick={() => setRef(i, { ...ref, layout: ref.layout === 'side' ? 'below' : 'side' })}
-                  className="mt-1 font-hanken text-[11px] text-sky-dark hover:underline">
-                  Disposition : {ref.layout === 'side' ? 'texte à côté' : 'texte dessous'} — changer
+                  className="mt-1.5 inline-flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1 font-hanken text-xs font-semibold text-navy hover:border-sky hover:bg-sky/5">
+                  Disposition : {ref.layout === 'side' ? 'texte à côté' : 'texte dessous'} · changer
                 </button>
               </div>
             ))}
           </div>
           {photos.length < MAX_PHOTOS_PAR_PAGE && (
             <button type="button" onClick={() => setPhotos([...photos, {}])}
-              className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-sky-dark hover:underline mt-2"><ImagePlus size={14} /> Ajouter une photo ({photos.length}/{MAX_PHOTOS_PAR_PAGE})</button>
+              className="inline-flex items-center gap-1.5 font-hanken text-sm font-semibold text-sky-dark hover:underline mt-3"><ImagePlus size={16} /> Ajouter une photo ({photos.length}/{MAX_PHOTOS_PAR_PAGE})</button>
           )}
         </>)
       }

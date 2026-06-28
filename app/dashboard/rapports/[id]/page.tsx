@@ -278,7 +278,7 @@ export default function RapportEditorPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-40 pt-4">
+    <div className="max-w-2xl mx-auto px-4 pb-56 pt-4">
       {/* En-tete */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <Link href="/dashboard/rapports" className="inline-flex items-center gap-1 font-hanken text-sm text-gray-500 hover:text-navy"><ChevronLeft size={16} /> Rapports</Link>
@@ -368,7 +368,7 @@ export default function RapportEditorPage() {
             <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Client</label>
             <input value={headerForm.client_nom_snapshot} onChange={(e) => setHeaderForm((h) => ({ ...h, client_nom_snapshot: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" placeholder="Nom du client" />
             <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Adresse</label>
-            <input value={headerForm.adresse_snapshot} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_snapshot: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" placeholder="Adresse de l'intervention" />
+            <textarea value={headerForm.adresse_snapshot} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_snapshot: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" placeholder="Rue (1re ligne), puis code postal + ville (2e ligne)" />
             <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Date d&apos;intervention</label>
             <input type="date" value={headerForm.date_intervention} onChange={(e) => setHeaderForm((h) => ({ ...h, date_intervention: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-5" />
             <button onClick={saveHeader} disabled={savingHeader} className="w-full py-2.5 rounded-xl bg-navy text-white font-hanken font-bold text-sm disabled:opacity-50">{savingHeader ? 'Enregistrement…' : 'Enregistrer'}</button>

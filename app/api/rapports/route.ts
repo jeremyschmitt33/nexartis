@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     else {
       if (!clientId && chantier.client_id) clientId = chantier.client_id as string
       if (!objet && chantier.titre) objet = String(chantier.titre).slice(0, 300)
-      adresseSnapshot = [chantier.adresse_chantier, [chantier.code_postal_chantier, chantier.ville_chantier].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null
+      adresseSnapshot = [chantier.adresse_chantier, [chantier.code_postal_chantier, chantier.ville_chantier].filter(Boolean).join(' ')].filter(Boolean).join('\n') || null
     }
   }
 
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       clientNom = clientDisplayName(client)
       // Pas d'adresse chantier -> on prend l'adresse du client.
       if (!adresseSnapshot) {
-        adresseSnapshot = [client.adresse, [client.code_postal, client.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null
+        adresseSnapshot = [client.adresse, [client.code_postal, client.ville].filter(Boolean).join(' ')].filter(Boolean).join('\n') || null
       }
     }
   }
