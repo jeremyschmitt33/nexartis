@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ChevronLeft, Plus, Check, Loader2, CloudOff, Eye, Download, X, Send, Images } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { useEntreprise } from '@/lib/hooks'
+import { createClient } from '@/lib/supabase/client'
 import { downloadPdfBlob } from '@/lib/download-pdf'
 import { generateRapportPdf, collectPhotoRefs, imgMapKey, type PdfImage } from '@/lib/rapport/pdf-rapport'
 import { useRapportUpload } from '@/hooks/rapport/useRapportUpload'
@@ -46,6 +47,11 @@ function pageHasContent(p: RapportPageData): boolean {
   return false
 }
 
+type ClientOpt = { id: string; raison_sociale: string | null; prenom: string | null; nom: string | null; adresse: string | null; code_postal: string | null; ville: string | null }
+function clientDisplay(c: ClientOpt): string {
+  if (c.raison_sociale) return c.raison_sociale
+  return [c.prenom, c.nom].filter(Boolean).join(' ').trim()
+}
 function blobToDataURL(blob: Blob): Promise<string> {
   return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = () => rej(r.error); r.readAsDataURL(blob) })
 }
@@ -96,6 +102,8 @@ export default function RapportEditorPage() {
   const [emailTo, setEmailTo] = useState('')
   const [emailMsg, setEmailMsg] = useState('')
   const headerReady = useRef(false)
+  const [clientsList, setClientsList] = useState<ClientOpt[]>([])
+  const [showClientSug, setShowClientSug] = useState(false)
   const [headerForm, setHeaderForm] = useState({ objet: '', client_nom_snapshot: '', adresse_rue: '', adresse_cp: '', adresse_ville: '', date_intervention: '', date_fin: '' })
   const multiRef = useRef<HTMLInputElement>(null)
 
@@ -143,6 +151,17 @@ export default function RapportEditorPage() {
       }
     })()
   }, [id])
+
+  // Clients enregistres (pour l'autocompletion du champ Client)
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase.from('clients').select('id, raison_sociale, prenom, nom, adresse, code_postal, ville').order('created_at', { ascending: false })
+        setClientsList((data as ClientOpt[]) ?? [])
+      } catch { /* liste optionnelle */ }
+    })()
+  }, [])
 
   // Autosave debounce
   useEffect(() => {
@@ -209,6 +228,11 @@ export default function RapportEditorPage() {
       if (res.ok) { setMeta((m) => (m ? { ...m, statut: 'finalise' } : m)); toast.success('Rapport finalisé') }
       else toast.error('Action impossible')
     } catch { toast.error('Action impossible') } finally { setFinishing(false) }
+  }
+
+  const pickClient = (c: ClientOpt) => {
+    setHeaderForm((h) => ({ ...h, client_nom_snapshot: clientDisplay(c), adresse_rue: c.adresse || '', adresse_cp: c.code_postal || '', adresse_ville: c.ville || '' }))
+    setShowClientSug(false)
   }
 
   const buildImages = useCallback(async (): Promise<Map<string, PdfImage>> => {
@@ -295,6 +319,11 @@ export default function RapportEditorPage() {
     return <div className="flex items-center gap-2 text-gray-400 font-hanken py-20 justify-center"><Loader2 className="animate-spin" size={18} /> Chargement…</div>
   }
 
+  const clientQuery = headerForm.client_nom_snapshot.trim().toLowerCase()
+  const clientMatches = showClientSug && clientQuery.length >= 1
+    ? clientsList.filter((c) => clientDisplay(c).toLowerCase().includes(clientQuery)).slice(0, 6)
+    : []
+
   return (
     <div className="max-w-2xl mx-auto px-4 pb-56 pt-4">
       {/* En-tete */}
@@ -314,7 +343,26 @@ export default function RapportEditorPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3">
         <p className="font-hanken text-[10px] uppercase tracking-wide font-bold text-gray-400 mb-2">En-tête du rapport</p>
         <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Client</label>
-        <input value={headerForm.client_nom_snapshot} onChange={(e) => setHeaderForm((h) => ({ ...h, client_nom_snapshot: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-3" placeholder="Nom du client" />
+        <div className="relative mb-3">
+          <input value={headerForm.client_nom_snapshot} autoComplete="off"
+            onChange={(e) => { setHeaderForm((h) => ({ ...h, client_nom_snapshot: e.target.value })); setShowClientSug(true) }}
+            onFocus={() => setShowClientSug(true)}
+            onBlur={() => setTimeout(() => setShowClientSug(false), 150)}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50" placeholder="Nom du client (tapez pour rechercher)" />
+          {clientMatches.length > 0 && (
+            <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+              {clientMatches.map((c) => (
+                <button type="button" key={c.id} onMouseDown={(e) => { e.preventDefault(); pickClient(c) }}
+                  className="w-full text-left px-3 py-2 hover:bg-sky/5 border-b border-gray-100 last:border-0">
+                  <span className="block font-hanken text-sm text-navy font-semibold">{clientDisplay(c)}</span>
+                  {(c.adresse || c.ville) && (
+                    <span className="block font-hanken text-xs text-gray-400">{[c.adresse, [c.code_postal, c.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ')}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <label className="block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Adresse</label>
         <input value={headerForm.adresse_rue} onChange={(e) => setHeaderForm((h) => ({ ...h, adresse_rue: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 font-hanken text-sm text-navy bg-gray-50 mb-2" placeholder="Rue (ex : 12 rue des Lilas)" />
         <div className="grid grid-cols-3 gap-2 mb-3">

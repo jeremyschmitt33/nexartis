@@ -61,6 +61,7 @@ export default function RapportsPage() {
         const supabase = createClient()
         const dv = await supabase.from('devis')
           .select('id, numero, objet, clients(nom, prenom, raison_sociale)')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
         const rows = (dv.data ?? []) as unknown as DevisRaw[]
         setDevisList(rows.map((d) => {

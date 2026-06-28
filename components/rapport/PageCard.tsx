@@ -69,10 +69,16 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
                   onRotate={() => setRef(i, { ...ref, rotation: ((ref.rotation || 0) + 90) % 360 })} />
                 <textarea className={`${inputCls} mt-1.5`} rows={2} value={ref.legende ?? ''} placeholder="Texte de la photo (Entrée = nouvelle ligne)"
                   onChange={(e) => setRef(i, { ...ref, legende: e.target.value })} />
-                <button type="button" onClick={() => setRef(i, { ...ref, layout: ref.layout === 'side' ? 'below' : 'side' })}
-                  className="mt-1.5 inline-flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1 font-hanken text-xs font-semibold text-navy hover:border-sky hover:bg-sky/5">
-                  Disposition : {ref.layout === 'side' ? 'texte à côté' : 'texte dessous'} · changer
-                </button>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <button type="button" onClick={() => setRef(i, { ...ref, layout: ref.layout === 'side' ? 'below' : 'side' })}
+                    className="inline-flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1 font-hanken text-xs font-semibold text-navy hover:border-sky hover:bg-sky/5">
+                    Disposition : {ref.layout === 'side' ? 'texte à côté' : 'texte dessous'} · cliquer pour changer
+                  </button>
+                  <button type="button" onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
+                    className="inline-flex items-center gap-1 border border-gray-200 rounded-lg px-2.5 py-1 font-hanken text-xs font-semibold text-gray-500 hover:border-red-300 hover:text-red-600">
+                    <Trash2 size={13} /> Retirer
+                  </button>
+                </div>
               </div>
             ))}
           </div>
