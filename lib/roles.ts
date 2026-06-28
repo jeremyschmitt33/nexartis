@@ -139,6 +139,8 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: '/dashboard/factures', roles: ['dirigeant'] },
   // Documents types (CGV, PV de réception) : dirigeant + commercial.
   { prefix: '/dashboard/documents', roles: ['dirigeant', 'commercial'] },
+  // Rapports d'intervention : dirigeant + commercial (comme la RLS).
+  { prefix: '/dashboard/rapports', roles: ['dirigeant', 'commercial'] },
   { prefix: '/dashboard/achats', roles: ['dirigeant'] },
   { prefix: '/dashboard/fournisseurs', roles: ['dirigeant'] },
   { prefix: '/dashboard/statistiques', roles: ['dirigeant'] },

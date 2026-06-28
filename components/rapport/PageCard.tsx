@@ -1,0 +1,146 @@
+'use client'
+
+import { ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-react'
+import PhotoSlot, { type PhotoMap } from './PhotoSlot'
+import type { UploadJob } from '@/lib/rapport/upload-queue'
+import type { RapportUploadPayload } from '@/lib/rapport/upload-store'
+import {
+  type RapportPageData, type PageContent, type PhotoRef,
+  type ConstatContent, type PosteContent, type Photo1Content, type Photo2Content, type AvapContent, type FinContent,
+  PAGE_TYPE_LABELS,
+} from '@/lib/rapport/page-content'
+
+const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 font-hanken text-sm text-navy bg-gray-50 focus:bg-white focus:border-sky outline-none'
+const labelCls = 'block font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 mt-3 mb-1'
+
+function StringList({ items, placeholder, onChange }: { items: string[]; placeholder: string; onChange: (items: string[]) => void }) {
+  const safe = items.length ? items : ['']
+  return (
+    <div className="space-y-1.5">
+      {safe.map((val, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <span className="text-orange font-bold">•</span>
+          <input className={inputCls} value={val} placeholder={placeholder}
+            onChange={(e) => { const n = [...safe]; n[i] = e.target.value; onChange(n) }} />
+          {safe.length > 1 && (
+            <button type="button" aria-label="Retirer" onClick={() => onChange(safe.filter((_, j) => j !== i))}
+              className="text-gray-300 hover:text-red-500 flex-shrink-0"><Trash2 size={15} /></button>
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...safe, ''])}
+        className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-sky-dark hover:underline mt-1"><Plus size={13} /> Ajouter</button>
+    </div>
+  )
+}
+
+export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onDelete, onChange, jobs, getPreview, photosById, pickPhoto, onRetry }: {
+  page: RapportPageData
+  index: number
+  total: number
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onDelete: () => void
+  onChange: (contenu: PageContent) => void
+  jobs: UploadJob<RapportUploadPayload>[]
+  getPreview: (localId: string) => Promise<string | null>
+  photosById: PhotoMap
+  pickPhoto: (files: FileList) => string[]
+  onRetry: (jobId: string) => void
+}) {
+  const slotProps = { jobs, getPreview, photosById, onRetry }
+
+  function renderBody() {
+    switch (page.type) {
+      case 'constat': {
+        const c = page.contenu as ConstatContent
+        return (<><label className={labelCls}>Désordres constatés</label>
+          <StringList items={c.items ?? ['']} placeholder="Ex : tableau électrique vétuste" onChange={(items) => onChange({ items })} /></>)
+      }
+      case 'poste': {
+        const c = page.contenu as PosteContent
+        return (<>
+          <label className={labelCls}>Titre du poste</label>
+          <input className={inputCls} value={c.titre ?? ''} placeholder="Ex : Tableau électrique" onChange={(e) => onChange({ ...c, titre: e.target.value })} />
+          <label className={labelCls}>Description</label>
+          <textarea className={inputCls} rows={3} value={c.texte ?? ''} placeholder="Décrivez les travaux réalisés…" onChange={(e) => onChange({ ...c, texte: e.target.value })} />
+        </>)
+      }
+      case 'photo1': {
+        const c = page.contenu as Photo1Content
+        const ref = c.photo ?? {}
+        return (<>
+          <PhotoSlot {...slotProps} refData={ref} big
+            onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ photo: { ...ref, localId: lid, photoId: null } }) }}
+            onRemove={() => onChange({ photo: { legende: ref.legende } })} />
+          <input className={`${inputCls} mt-2`} value={ref.legende ?? ''} placeholder="Légende (ex : nouveau tableau posé)" onChange={(e) => onChange({ photo: { ...ref, legende: e.target.value } })} />
+        </>)
+      }
+      case 'photo2': {
+        const c = page.contenu as Photo2Content
+        const photos: PhotoRef[] = c.photos?.length === 2 ? c.photos : [{}, {}]
+        const setRef = (i: number, r: PhotoRef) => { const n = [...photos]; n[i] = r; onChange({ photos: n }) }
+        return (<div className="space-y-3">
+          {[0, 1].map((i) => (
+            <div key={i}>
+              <PhotoSlot {...slotProps} refData={photos[i] ?? {}} big
+                onPick={(files) => { const [lid] = pickPhoto(files); if (lid) setRef(i, { ...photos[i], localId: lid, photoId: null }) }}
+                onRemove={() => setRef(i, { legende: photos[i]?.legende })} />
+              <input className={`${inputCls} mt-2`} value={photos[i]?.legende ?? ''} placeholder={`Légende de la photo ${i + 1}`} onChange={(e) => setRef(i, { ...photos[i], legende: e.target.value })} />
+            </div>
+          ))}
+        </div>)
+      }
+      case 'avap': {
+        const c = page.contenu as AvapContent
+        const m = c.mesure ?? { label: '', avant: '', apres: '', unite: '' }
+        return (<>
+          <div className="grid grid-cols-2 gap-2">
+            <PhotoSlot {...slotProps} refData={c.avant ?? {}} label="Avant"
+              onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ ...c, avant: { localId: lid, photoId: null } }) }}
+              onRemove={() => onChange({ ...c, avant: {} })} />
+            <PhotoSlot {...slotProps} refData={c.apres ?? {}} label="Après"
+              onPick={(files) => { const [lid] = pickPhoto(files); if (lid) onChange({ ...c, apres: { localId: lid, photoId: null } }) }}
+              onRemove={() => onChange({ ...c, apres: {} })} />
+          </div>
+          <label className={labelCls}>Mesure (optionnel)</label>
+          <div className="grid grid-cols-2 gap-2">
+            <input className={inputCls} value={m.label} placeholder="Ex : Résistance de terre" onChange={(e) => onChange({ ...c, mesure: { ...m, label: e.target.value } })} />
+            <input className={inputCls} value={m.unite} placeholder="Unité (Ω, bar…)" onChange={(e) => onChange({ ...c, mesure: { ...m, unite: e.target.value } })} />
+            <input className={inputCls} value={m.avant} placeholder="Avant (ex : 106)" onChange={(e) => onChange({ ...c, mesure: { ...m, avant: e.target.value } })} />
+            <input className={inputCls} value={m.apres} placeholder="Après (ex : 34)" onChange={(e) => onChange({ ...c, mesure: { ...m, apres: e.target.value } })} />
+          </div>
+        </>)
+      }
+      case 'fin': {
+        const c = page.contenu as FinContent
+        return (<>
+          <label className={labelCls}>Contrôles finaux</label>
+          <StringList items={c.controles ?? ['']} placeholder="Ex : continuité de terre vérifiée" onChange={(controles) => onChange({ ...c, controles })} />
+          <label className={labelCls}>Observations</label>
+          <StringList items={c.observations ?? ['']} placeholder="Observation…" onChange={(observations) => onChange({ ...c, observations })} />
+          <label className={labelCls}>Conclusion</label>
+          <textarea className={inputCls} rows={3} value={c.conclusion ?? ''} placeholder="Mot de conclusion…" onChange={(e) => onChange({ ...c, conclusion: e.target.value })} />
+        </>)
+      }
+    }
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-[0_2px_10px_rgba(15,26,58,0.04)]">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-navy-mid text-white text-[10px] font-extrabold">{index + 1}</span>
+        <span className="font-hanken font-bold text-[13px] text-navy">{PAGE_TYPE_LABELS[page.type]}</span>
+        <span className="ml-auto flex gap-1">
+          <button type="button" aria-label="Monter" disabled={index === 0} onClick={onMoveUp}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-navy-mid hover:border-sky disabled:opacity-30"><ArrowUp size={15} /></button>
+          <button type="button" aria-label="Descendre" disabled={index === total - 1} onClick={onMoveDown}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-navy-mid hover:border-sky disabled:opacity-30"><ArrowDown size={15} /></button>
+          <button type="button" aria-label="Supprimer la page" onClick={onDelete}
+            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-red-500 hover:border-red-300"><Trash2 size={15} /></button>
+        </span>
+      </div>
+      {renderBody()}
+    </div>
+  )
+}
