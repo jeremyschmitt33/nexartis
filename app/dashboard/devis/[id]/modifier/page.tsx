@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, X, Send } from 'lucide-react'
 import { useClients, useEntreprise, useChantiers, usePointsCollecte, useSupabaseRecord, useDevisLignes, usePrestations, updateRow, LoadingSkeleton } from '@/lib/hooks'
 import { createClient } from '@/lib/supabase/client'
@@ -134,6 +134,7 @@ const inputCls = 'w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 b
 export default function ModifierDevisPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const id = params.id as string
 
   const { data: devis, loading: loadingDevis } = useSupabaseRecord<DevisRecord>('devis', id)
@@ -296,13 +297,17 @@ export default function ModifierDevisPage() {
   useEffect(() => {
     if (!lignesRaw || lignesRaw.length === 0 || lines.length > 0) return
     const raw = lignesRaw as unknown as LigneRecord[]
-    setLines(raw.map((l, i) => {
+    // Contre-proposition acceptée : on retire les lignes proposées par le client (param ?retirer=ordres).
+    const retirerParam = searchParams.get('retirer')
+    const retirerSet = retirerParam ? new Set(retirerParam.split(',').map(Number).filter(n => Number.isFinite(n))) : null
+    const rawKept = retirerSet ? raw.filter(l => !retirerSet.has(Number(l.ordre))) : raw
+    setLines(rawKept.map((l, i) => {
       const reactType: LineItem['type'] = l.type === 'section' ? 'section' : l.type === 'sous_section' ? 'subsection' : l.type === 'commentaire' ? 'text' : 'line'
       // V2.5 : on lit le taux_tva DB par ligne (chaque ligne peut avoir son propre taux).
       return { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, tva: l.taux_tva ?? 10, type: reactType, inclusion: dbToInclusion(l.optionnel, l.inclus_par_defaut) }
     }))
-    nextId += raw.length
-    const firstLine = raw.find(l => !l.type || l.type === 'prestation')
+    nextId += rawKept.length
+    const firstLine = rawKept.find(l => !l.type || l.type === 'prestation')
     if (firstLine && firstLine.taux_tva != null) {
       const tva = firstLine.taux_tva
       setGlobalTvaRate(tva); setTvaUserOverride(true)

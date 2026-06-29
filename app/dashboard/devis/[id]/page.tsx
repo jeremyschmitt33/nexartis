@@ -55,6 +55,7 @@ interface DevisRecord {
   acompte_pourcent?: number
   montant_ht?: number
   montant_tva?: number
+  montant_ttc?: number
   objet?: string
   description?: string
   notes_client?: string
@@ -68,6 +69,10 @@ interface DevisRecord {
   dechets_cout?: number
   dechets_inclure_cout?: boolean
   afficher_dechets?: boolean
+  contreproposition_at?: string | null
+  contreproposition_message?: string | null
+  contreproposition_retirees?: number[] | null
+  contreproposition_ttc?: number | null
   date_signature?: string
   signed_by?: string
   client_signature_base64?: string
@@ -121,6 +126,7 @@ const STATUT_LABELS: Record<string, string> = {
   brouillon: 'Brouillon',
   envoye: 'Envoyé',
   signe: 'Accepté',
+  contreproposition: 'Contre-proposition',
   refuse: 'Refusé',
   expire: 'Expiré',
   facture: 'Facturé',
@@ -131,6 +137,7 @@ const STATUT_STYLES: Record<string, string> = {
   brouillon: 'bg-gray-100 text-gray-600',
   envoye: 'bg-blue-50 text-blue-700',
   signe: 'bg-green-50 text-green-700',
+  contreproposition: 'bg-amber-100 text-amber-800',
   refuse: 'bg-red-50 text-red-700',
   expire: 'bg-orange-50 text-orange-700',
   facture: 'bg-purple-50 text-purple-700',
@@ -311,6 +318,20 @@ export default function DevisDetailPage() {
       setTimeout(() => setToastMsg(null), 3000)
       // D1 (2026-06-08) : router.refresh() au lieu de window.location.reload()
       // → conserve l'état React local (scroll, modals), revalide juste les Server Components
+      router.refresh()
+    } catch (err) {
+      toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
+    }
+  }
+
+  // Écarter une contre-proposition : le devis revient en 'envoyé' (le client peut signer l'original).
+  async function handleDismissProp() {
+    if (!devis) return
+    if (!(await askConfirm({ title: 'Écarter la contre-proposition ?', confirmLabel: 'Écarter' }))) return
+    try {
+      await updateRow('devis', devis.id, { statut: 'envoye', contreproposition_at: null })
+      setToastMsg('Contre-proposition écartée')
+      setTimeout(() => setToastMsg(null), 3000)
       router.refresh()
     } catch (err) {
       toast.error('Erreur : ' + (err instanceof Error ? err.message : 'Echec'))
@@ -586,6 +607,40 @@ export default function DevisDetailPage() {
           N'apparaît que si un champ obligatoire (Code de commerce L441-9) manque
           sur le profil entreprise. Ne s'imprime pas (classe no-print). */}
       <ProfilIncompletBanner entreprise={entreprise as Record<string, unknown> | null | undefined} className="mb-5" />
+
+      {/* Bannière contre-proposition reçue — à étudier */}
+      {devis.statut === 'contreproposition' && (
+        <div className="no-print mb-5 rounded-xl border border-amber-200 bg-amber-50/80 px-5 py-4">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center mt-0.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span className="text-sm font-hanken font-extrabold text-amber-900">Contre-proposition reçue — à étudier</span>
+                <span className="text-[11px] font-hanken font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{clientNom || 'Client'}</span>
+              </div>
+              {(() => {
+                const retirees = (devis.contreproposition_retirees ?? []) as number[]
+                const noms = lignes.filter(l => retirees.includes(Number((l as unknown as Record<string, unknown>).ordre))).map(l => l.designation)
+                return (
+                  <div className="text-[13px] font-hanken text-amber-900 space-y-2">
+                    {noms.length > 0 && (<p><strong>Prestations à retirer :</strong> {noms.join(', ')}.</p>)}
+                    {devis.contreproposition_message && (
+                      <p className="bg-white/70 border border-amber-200 rounded-lg px-3 py-2 italic">« {devis.contreproposition_message} »</p>
+                    )}
+                    <p><strong>Total proposé :</strong> {formatCurrency(Number(devis.contreproposition_ttc ?? 0))} <span className="text-amber-700">(au lieu de {formatCurrency(Number(devis.montant_ttc ?? 0))})</span></p>
+                  </div>
+                )
+              })()}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button onClick={() => router.push(`/dashboard/devis/${id}/modifier?retirer=${((devis.contreproposition_retirees ?? []) as number[]).join(',')}`)} className="px-4 py-2 rounded-lg bg-amber-600 text-white font-hanken font-bold text-sm hover:bg-amber-700 transition-colors">Accepter et ajuster le devis</button>
+                <button onClick={handleDismissProp} className="px-4 py-2 rounded-lg bg-white border border-amber-300 text-amber-800 font-hanken font-semibold text-sm hover:bg-amber-100 transition-colors">Écarter la proposition</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* V4 : Banderole "Devis accepté — à planifier" — bandeau success premium */}
       {devis.statut === 'signe' && !devis.chantier_id && (

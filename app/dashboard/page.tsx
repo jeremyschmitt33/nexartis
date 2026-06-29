@@ -361,6 +361,21 @@ export default function DashboardPage() {
     })
   }
 
+  // Contre-propositions reçues du client -- à étudier (priorité)
+  const devisContreProp = devis.filter((d: Record<string, unknown>) => d.statut === 'contreproposition')
+  for (const d of devisContreProp) {
+    const cName = clientName(d.client_id) || (d.notes_client as string)?.split(' | ')[0] || ''
+    todoItems.push({
+      title: `Devis ${d.numero} -- contre-proposition`,
+      desc: `${cName} · à étudier`,
+      amount: d.contreproposition_ttc ? formatEuro(Number(d.contreproposition_ttc)) : '',
+      dotColor: '#d97706', amountColor: '#d97706',
+      tag: 'À étudier', tagBg: '#fffbeb', tagColor: '#b45309',
+      href: `/dashboard/devis/${d.id}`,
+      actionHref: `/dashboard/devis/${d.id}`,
+    })
+  }
+
   // Factures en retard (uniquement celles qui restent reellement dues — net > 0,
   // donc PAS celles entierement soldees par avoir). netDuFacture defini plus haut.
   const facturesEnRetard = factures.filter((f: Record<string, unknown>) => f.statut === 'en_retard' && netDuFacture(f) > 0.01);

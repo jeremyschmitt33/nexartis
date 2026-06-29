@@ -264,6 +264,13 @@ export default function SignerDevisPage() {
   const [signError, setSignError] = useState<string | null>(null)
   // Devis cochable — sélection du client : { [ordre de la ligne]: retenu ? }
   const [selection, setSelection] = useState<Record<number, boolean>>({})
+  // Contre-proposition (non contractuelle) : le client peut décocher TOUTES les prestations.
+  const [propOpen, setPropOpen] = useState(false)
+  const [propSel, setPropSel] = useState<Record<number, boolean>>({})
+  const [propMessage, setPropMessage] = useState('')
+  const [propSending, setPropSending] = useState(false)
+  const [propSent, setPropSent] = useState(false)
+  const [propError, setPropError] = useState<string | null>(null)
 
   // Fetch devis data
   useEffect(() => {
@@ -282,12 +289,16 @@ export default function SignerDevisPage() {
         setClient(data.client)
         // Sélection par défaut : facultatifs cochés (inclus), options décochées.
         const initSel: Record<number, boolean> = {}
+        const initProp: Record<number, boolean> = {}
         for (const l of (data.lignes as Ligne[])) {
-          if ((l.type ?? 'prestation') === 'prestation' && l.optionnel === true) {
-            initSel[l.ordre] = l.inclus_par_defaut !== false
+          if ((l.type ?? 'prestation') === 'prestation') {
+            if (l.optionnel === true) initSel[l.ordre] = l.inclus_par_defaut !== false
+            // Contre-proposition : toutes les prestations cochées (gardées) par défaut.
+            initProp[l.ordre] = true
           }
         }
         setSelection(initSel)
+        setPropSel(initProp)
         if (data.client?.nom) setSignedBy(data.client.nom)
         // Déjà signé ?
         if (data.devis.statut === 'signe' || data.devis.statut === 'facture') {
@@ -340,6 +351,36 @@ export default function SignerDevisPage() {
       setSignError('Erreur de connexion, veuillez réessayer')
     } finally {
       setSigning(false)
+    }
+  }
+
+  // Envoi d'une contre-proposition (non contractuelle) à l'artisan
+  async function handleSendProposition() {
+    setPropSending(true)
+    setPropError(null)
+    try {
+      const prestations = lignes.filter(l => (l.type ?? 'prestation') === 'prestation')
+      const lignesRetirees = prestations.filter(l => !propSel[l.ordre]).map(l => l.ordre)
+      if (lignesRetirees.length === 0 && !propMessage.trim()) {
+        setPropError('Décochez au moins une prestation ou écrivez un message.')
+        setPropSending(false)
+        return
+      }
+      const res = await fetch('/api/public/contre-proposition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, lignesRetirees, message: propMessage.trim() || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setPropError(data.error || 'Erreur lors de l’envoi')
+        return
+      }
+      setPropSent(true)
+    } catch {
+      setPropError('Erreur de connexion, veuillez réessayer')
+    } finally {
+      setPropSending(false)
     }
   }
 
@@ -445,6 +486,11 @@ export default function SignerDevisPage() {
   })()
   const toggleLine = (ordre: number) => setSelection(s => ({ ...s, [ordre]: !s[ordre] }))
   const signTotal = hasChoices ? clientTtc : totalTTC
+
+  // Contre-proposition : toutes les prestations, décochables ; total proposé en direct.
+  const propPrestations = lignes.filter(l => (l.type ?? 'prestation') === 'prestation')
+  const propTtc = propPrestations.reduce((s, l) => s + (propSel[l.ordre] ? lineTtc(l) : 0), 0)
+  const propToggle = (ordre: number) => setPropSel(s => ({ ...s, [ordre]: !s[ordre] }))
 
   // V3.0b — DocumentData unique pour le rendu visuel (header + cartes + tableau + recap).
   const documentData = buildDevisDocument({
@@ -697,6 +743,63 @@ export default function SignerDevisPage() {
               et conditions décrites ci-dessus et vous les acceptez. Cette signature a valeur d&apos;engagement contractuel.
             </p>
           </div>
+        </div>
+
+        {/* ═══ CONTRE-PROPOSITION (non contractuelle) ═══ */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          {propSent ? (
+            <div className="p-8 text-center">
+              <div className="w-14 h-14 rounded-full bg-green-50 grid place-items-center mx-auto mb-3">
+                <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <h3 className="font-syne font-bold text-lg text-[#1a1a2e] mb-1">Proposition envoyée</h3>
+              <p className="text-gray-500 text-sm font-manrope">{entreprise.nom || 'L’artisan'} va étudier votre demande et revenir vers vous. Rien n’est encore signé.</p>
+            </div>
+          ) : !propOpen ? (
+            <div className="p-6 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 className="font-syne font-bold text-[15px] text-[#1a1a2e]">Vous souhaitez modifier ce devis ?</h3>
+                <p className="text-gray-500 text-[13px] font-manrope mt-0.5">Proposez vos changements — ce n’est pas un engagement, l’artisan les étudiera.</p>
+              </div>
+              <button onClick={() => setPropOpen(true)} className="px-4 py-2.5 rounded-xl border-2 border-[#e87a2a] text-[#e87a2a] font-manrope font-bold text-sm hover:bg-[#fff5ec] transition-colors">Proposer des modifications</button>
+            </div>
+          ) : (
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="font-syne font-bold text-lg text-[#1a1a2e]">Proposer des modifications</h3>
+                <p className="text-gray-500 text-[13px] font-manrope mt-0.5">Décochez les prestations que vous ne souhaitez pas, et/ou laissez un message. L’artisan recevra votre proposition et reviendra vers vous.</p>
+              </div>
+              <div className="border border-gray-200 rounded-xl divide-y divide-gray-100">
+                {propPrestations.map(l => {
+                  const kept = !!propSel[l.ordre]
+                  return (
+                    <label key={l.ordre} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
+                      <input type="checkbox" checked={kept} onChange={() => propToggle(l.ordre)} className="w-5 h-5 accent-[#e87a2a] flex-shrink-0" />
+                      <span className={`flex-1 text-sm font-manrope ${kept ? 'text-[#1a1a2e]' : 'text-gray-400 line-through'}`}>{l.designation}</span>
+                      <span className="text-sm font-manrope font-bold text-[#1a1a2e] whitespace-nowrap">{formatCurrency(lineTtc(l))}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              <div>
+                <label className="block text-sm font-manrope font-medium text-gray-700 mb-1.5">Un message pour l’artisan (facultatif)</label>
+                <textarea value={propMessage} onChange={e => setPropMessage(e.target.value)} rows={3} maxLength={1000} placeholder="Ex : pouvez-vous baisser le prix de… / je ferai la peinture moi-même…" className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-manrope outline-none focus:ring-2 focus:ring-[#e87a2a] focus:border-[#e87a2a]" />
+              </div>
+              <div className="flex items-center justify-between bg-[#0f1a3a] text-white rounded-xl px-4 py-3">
+                <span className="text-sm font-manrope text-sky-200">Total proposé</span>
+                <span className="font-syne font-extrabold text-xl">{formatCurrency(propTtc)}</span>
+              </div>
+              {propError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-red-600 text-sm font-manrope">{propError}</p></div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setPropOpen(false)} className="px-4 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-manrope font-bold text-sm">Annuler</button>
+                <button onClick={handleSendProposition} disabled={propSending} className={`flex-1 py-3 rounded-xl font-manrope font-bold text-white text-sm transition-all ${propSending ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#e87a2a] hover:bg-[#f09050] active:scale-[0.99]'}`}>
+                  {propSending ? 'Envoi…' : 'Envoyer ma proposition à l’artisan'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
