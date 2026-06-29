@@ -39,6 +39,7 @@ interface DevisData {
   dechets_collecte_type?: string
   dechets_cout?: number
   dechets_inclure_cout?: boolean
+  afficher_dechets?: boolean
 }
 
 interface Ligne {
@@ -459,6 +460,7 @@ export default function SignerDevisPage() {
       dechets_tri: devis.dechets_tri ?? null,
       dechets_collecte_nom: devis.dechets_collecte_nom ?? null,
       dechets_collecte_type: devis.dechets_collecte_type ?? null,
+      afficher_dechets: devis.afficher_dechets ?? null,
     },
     lignes: lignes.map((l, idx) => ({
       designation: l.designation,

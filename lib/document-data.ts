@@ -183,6 +183,8 @@ export interface RawDevis {
   dechets_tri?: string | null
   dechets_collecte_nom?: string | null
   dechets_collecte_type?: string | null
+  // Gestion des déchets optionnelle : si false, le bloc déchets n'est pas affiché.
+  afficher_dechets?: boolean | null
   // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance). Optionnel + nullable
   // pour gerer le cas ou la migration SQL n'a pas encore ete executee.
   autoliquidation_btp?: boolean | null
@@ -599,8 +601,9 @@ export function buildDevisDocument(opts: {
   const optionsTotals = options.length ? computeOptionsTotals(options, isAutoliq) : undefined
   const nonRetenues: DocumentLeaf[] = nonRetenuesLignes.map((l, i) => leafFromRaw({ ...l, optionnel: false }, String(i + 1)))
 
-  const dechets = opts.doc.dechets_nature || opts.doc.dechets_responsable ||
-                  opts.doc.dechets_tri || opts.doc.dechets_collecte_nom
+  const dechets = (opts.doc.afficher_dechets !== false) &&
+                  (opts.doc.dechets_nature || opts.doc.dechets_responsable ||
+                  opts.doc.dechets_tri || opts.doc.dechets_collecte_nom)
     ? {
         nature: opts.doc.dechets_nature ?? undefined,
         responsable: opts.doc.dechets_responsable ?? undefined,

@@ -159,6 +159,7 @@ export async function GET(
         dechets_collecte_type: devis.dechets_collecte_type,
         dechets_cout: devis.dechets_cout,
         dechets_inclure_cout: devis.dechets_inclure_cout,
+        afficher_dechets: devis.afficher_dechets,
       },
       lignes: lignes || [],
       entreprise: entreprise || {},

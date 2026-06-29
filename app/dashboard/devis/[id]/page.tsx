@@ -67,6 +67,7 @@ interface DevisRecord {
   dechets_collecte_type?: string
   dechets_cout?: number
   dechets_inclure_cout?: boolean
+  afficher_dechets?: boolean
   date_signature?: string
   signed_by?: string
   client_signature_base64?: string
@@ -475,6 +476,7 @@ export default function DevisDetailPage() {
       dechets_tri: devis.dechets_tri ?? null,
       dechets_collecte_nom: devis.dechets_collecte_nom ?? null,
       dechets_collecte_type: devis.dechets_collecte_type ?? null,
+      afficher_dechets: devis.afficher_dechets ?? null,
     },
     lignes: (lignesRaw ?? []).map((l, idx) => ({
       designation: String((l as Record<string, unknown>).designation ?? ''),

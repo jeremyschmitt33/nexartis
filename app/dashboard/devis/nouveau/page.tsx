@@ -509,6 +509,12 @@ function NouveauDevisPage() {
   const [dechetsCollecteType, setDechetsCollecteType] = useState('Déchetterie')
   const [dechetsCout, setDechetsCout] = useState('')
   const [dechetsInclureCout, setDechetsInclureCout] = useState(false)
+  // Gestion des déchets optionnelle : défaut = réglage entreprise (afficher_dechets).
+  const [afficherDechets, setAfficherDechets] = useState(true)
+  const entrepriseDechetsDefault = entreprise ? (entreprise as Record<string, unknown>).afficher_dechets !== false : undefined
+  useEffect(() => {
+    if (entrepriseDechetsDefault !== undefined) setAfficherDechets(entrepriseDechetsDefault)
+  }, [entrepriseDechetsDefault])
   const [dechetteriesProches, setDechetteriesProches] = useState<{nom:string;adresse:string;code_postal:string;commune:string;distance_km:number;accepte_pro:string;accepte_construction:boolean;accepte_deee:boolean}[]>([])
   const [loadingDechetteries, setLoadingDechetteries] = useState(false)
 
@@ -754,6 +760,7 @@ function NouveauDevisPage() {
         dechets_collecte_type: dechetsCollecteType || null,
         dechets_cout: dechetsCout ? parseFloat(dechetsCout) : null,
         dechets_inclure_cout: dechetsInclureCout,
+        afficher_dechets: afficherDechets,
         client_id: null,
         chantier_id: null,
       }
@@ -1449,7 +1456,12 @@ function NouveauDevisPage() {
             <div className="flex items-center gap-2 mb-3">
               <label className="text-sm font-hanken font-medium text-[#0f1a3a]">Gestion des déchets</label>
               <span className="text-[9px] font-hanken text-[#ff7a1a] border border-[#ff7a1a]/40 px-1.5 py-0.5 rounded uppercase tracking-wide font-semibold">Loi AGEC</span>
+              <button type="button" onClick={() => setAfficherDechets(v => !v)} aria-pressed={afficherDechets} aria-label="Afficher la gestion des déchets sur ce devis" className={`relative ml-auto w-11 h-6 rounded-full transition-colors ${afficherDechets ? 'bg-[#ff7a1a]' : 'bg-gray-300'}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${afficherDechets ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
             </div>
+            {!afficherDechets && <p className="text-[12px] font-hanken text-gray-400">Section masquée — elle n&apos;apparaîtra ni sur le devis ni sur le PDF.</p>}
+            {afficherDechets && (<>
             {/* Nature + Quantité */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
@@ -1544,6 +1556,7 @@ function NouveauDevisPage() {
                 </select>
               </div>
             </div>
+            </>)}
           </div>
 
           {/* Totaux */}

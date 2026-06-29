@@ -500,6 +500,7 @@ function EntrepriseSection({
   const [rge, setRge] = useState(false)
   const [metier, setMetier] = useState('')
   const [franchiseTva, setFranchiseTva] = useState(false)
+  const [afficherDechetsParam, setAfficherDechetsParam] = useState(true)
   const [qualificationPro, setQualificationPro] = useState('')
   // Horaires de travail par défaut (28/05/2026) — propagés au planning
   // pour les créneaux Matin / Après-midi / Journée entière.
@@ -549,6 +550,7 @@ function EntrepriseSection({
       setRge(!!entreprise.rge)
       setMetier((entreprise.metier as string) ?? '')
       setFranchiseTva(!!entreprise.franchise_tva)
+      setAfficherDechetsParam((entreprise as Record<string, unknown>).afficher_dechets !== false)
       setQualificationPro((entreprise.qualification_pro as string) ?? '')
       // Horaires de travail — fallback aux valeurs par défaut si non renseigné
       setHeureDebutMatin((entreprise.heure_debut_matin as string) || '08:00')
@@ -591,6 +593,7 @@ function EntrepriseSection({
         mediateur_ville: mediateurVille || null,
         rge, metier,
         franchise_tva: franchiseTva,
+        afficher_dechets: afficherDechetsParam,
         qualification_pro: qualificationPro || null,
         heure_debut_matin: heureDebutMatin || '08:00',
         heure_fin_matin: heureFinMatin || '12:00',
@@ -772,6 +775,11 @@ function EntrepriseSection({
         label="Franchise en base de TVA (non assujetti)"
         checked={franchiseTva}
         onChange={setFranchiseTva}
+      />
+      <PremiumToggle
+        label="Afficher la gestion des déchets (loi AGEC) sur les nouveaux devis"
+        checked={afficherDechetsParam}
+        onChange={setAfficherDechetsParam}
       />
 
       {/* ============ COORDONNÉES ============ */}

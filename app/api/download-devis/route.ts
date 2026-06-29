@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       statut: devis.statut,
       date_signature: devis.date_signature,
       client_signature_base64: devis.client_signature_base64,
-      dechets: (devis.dechets_nature || devis.dechets_quantite || devis.dechets_collecte_nom) ? {
+      dechets: (devis.afficher_dechets !== false && (devis.dechets_nature || devis.dechets_quantite || devis.dechets_collecte_nom)) ? {
         nature: devis.dechets_nature || undefined,
         quantite: devis.dechets_quantite || undefined,
         responsable: devis.dechets_responsable || undefined,
