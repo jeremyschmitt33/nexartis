@@ -1364,9 +1364,30 @@ export default function AidePage() {
             <p className="font-hanken font-bold text-[15px] mb-1" style={{color: '#0f1a3a'}}>
               Aucune réponse trouvée pour «&nbsp;{query.trim()}&nbsp;»
             </p>
-            <p className="font-hanken text-sm text-gray-500">
-              Essaie un autre mot-clé, ou écris-nous directement plus bas.
+            <p className="font-hanken text-sm text-gray-500 mb-4">
+              Essayez l&apos;un de ces sujets courants, ou écrivez-nous directement.
             </p>
+            {/* Suggestions populaires : on ne laisse jamais l'utilisateur sur un cul-de-sac. */}
+            <div className="flex flex-wrap justify-center gap-2 mb-5">
+              {['acompte', 'signature', 'décennale', 'planning', 'facture'].map((sugg) => (
+                <button
+                  key={sugg}
+                  type="button"
+                  onClick={() => setQuery(sugg)}
+                  className="inline-flex items-center px-3 py-1.5 rounded-full border border-gray-200 bg-[#fafbfc] hover:border-[#ff7a1a] hover:bg-orange/5 font-hanken text-sm font-medium text-navy transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2"
+                >
+                  {sugg}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowContactModal(true)}
+              className="bg-orange hover:bg-orange-hover text-cream font-semibold rounded-lg py-2.5 px-5 transition inline-flex items-center gap-2 text-sm"
+            >
+              <MessageCircle size={16} />
+              Nous écrire
+            </button>
           </div>
         )}
 
