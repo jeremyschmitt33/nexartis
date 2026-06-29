@@ -722,6 +722,7 @@ export default function DevisDetailPage() {
               <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Créé le</span>
               <span className="text-sm font-spline-mono text-[#0f1a3a]">{formatDate(devis.created_at)}</span>
             </div>
+            {/* Validite du devis + badge d'expiration dans le panneau Infos. */}
             {(() => {
               const dv = devis.date_validite ? new Date(devis.date_validite) : null
               const jours = dv ? Math.ceil((dv.getTime() - Date.now()) / 86400000) : null

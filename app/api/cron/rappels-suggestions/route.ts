@@ -343,7 +343,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ====================================================================
-  // 3b. Devis ENVOYÉ proche de sa date de validité sans réponse
+  // 3b. Devis ENVOYÉ proche de sa date de validité sans réponse (rappel auto)
   //     -> rappel pour relancer le client avant (ou juste après) expiration.
   //     Fenêtre : expire dans <=7 jours OU expiré depuis <30 jours.
   // ====================================================================
