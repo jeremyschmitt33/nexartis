@@ -13,6 +13,7 @@ import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
+import LineStatutSelect, { type InclusionStatut, inclusionToDb, dbToInclusion } from '@/components/devis/LineStatut'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 import EnvoyerDevisModal from '@/components/dashboard/EnvoyerDevisModal'
 
@@ -25,6 +26,8 @@ interface LineItem {
   // V2.5 — TVA par ligne (parite Obat). Defaut 10% (sauf franchise AE → 0).
   tva: number
   type: 'line' | 'section' | 'subsection' | 'text'
+  // Statut d'inclusion : ferme / facultatif / option
+  inclusion: InclusionStatut
 }
 
 interface ClientRecord { id: string; nom: string; prenom?: string; civilite?: string; adresse?: string; telephone?: string; email?: string; code_postal?: string; ville?: string }
@@ -72,6 +75,8 @@ interface LigneRecord {
   ordre: number
   type?: string
   niveau?: number
+  optionnel?: boolean
+  inclus_par_defaut?: boolean
 }
 
 const UNIT_SUGGESTIONS = ['U', 'm²', 'm', 'ml', 'cm', 'kg', 't', 'h', 'jour', 'demi-journée', 'forfait', 'ensemble', 'lot', 'm³']
@@ -217,10 +222,10 @@ export default function ModifierDevisPage() {
   }
   const handleSheetSave = (payload: SheetLine) => {
     if (sheetLine) {
-      setLines(prev => prev.map(l => l.id === sheetLine.id ? { ...l, designation: payload.designation, qty: payload.qty, unit: payload.unit || l.unit, priceHT: payload.priceHT, type: payload.type } : l))
+      setLines(prev => prev.map(l => l.id === sheetLine.id ? { ...l, designation: payload.designation, qty: payload.qty, unit: payload.unit || l.unit, priceHT: payload.priceHT, type: payload.type, inclusion: payload.inclusion ?? l.inclusion } : l))
     } else {
       // V2.5 : nouvelle ligne herite du taux global (raccourci) ou 10% par defaut.
-      setLines(prev => [...prev, { id: nextId++, designation: payload.designation, qty: payload.qty, unit: payload.unit || 'U', priceHT: payload.priceHT, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type: payload.type }])
+      setLines(prev => [...prev, { id: nextId++, designation: payload.designation, qty: payload.qty, unit: payload.unit || 'U', priceHT: payload.priceHT, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type: payload.type, inclusion: payload.inclusion ?? 'ferme' }])
     }
   }
   const handleSheetSaveAndNew = (payload: SheetLine) => {
@@ -291,7 +296,7 @@ export default function ModifierDevisPage() {
     setLines(raw.map((l, i) => {
       const reactType: LineItem['type'] = l.type === 'section' ? 'section' : l.type === 'sous_section' ? 'subsection' : l.type === 'commentaire' ? 'text' : 'line'
       // V2.5 : on lit le taux_tva DB par ligne (chaque ligne peut avoir son propre taux).
-      return { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, tva: l.taux_tva ?? 10, type: reactType }
+      return { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, tva: l.taux_tva ?? 10, type: reactType, inclusion: dbToInclusion(l.optionnel, l.inclus_par_defaut) }
     }))
     nextId += raw.length
     const firstLine = raw.find(l => !l.type || l.type === 'prestation')
@@ -382,7 +387,7 @@ export default function ModifierDevisPage() {
   function removeLine(lid: number) { setLines(prev => prev.filter(l => l.id !== lid)) }
   function addLine(type: 'line' | 'section' | 'subsection' | 'text' = 'line') {
     // V2.5 : nouvelle ligne herite du taux global (raccourci) ou 10% par defaut.
-    setLines(prev => [...prev, { id: nextId++, designation: '', qty: type === 'line' ? 1 : 0, unit: 'U', priceHT: 0, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type }])
+    setLines(prev => [...prev, { id: nextId++, designation: '', qty: type === 'line' ? 1 : 0, unit: 'U', priceHT: 0, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type, inclusion: 'ferme' }])
   }
   function subtotalAt(idx: number): number {
     const current = lines[idx]
@@ -417,6 +422,8 @@ export default function ModifierDevisPage() {
   } else {
     lines.forEach(l => {
       if (l.type !== 'line') return
+      // Les lignes "Option +" ne sont pas comptees dans le total principal.
+      if (l.inclusion === 'option') return
       const lineTotal = l.qty * l.priceHT
       totalHT += lineTotal
       const taux = autoEntrepreneur ? 0 : (l.tva ?? 0)
@@ -573,6 +580,8 @@ export default function ModifierDevisPage() {
           type: dbType,
           niveau: dbNiveau,
           numero: item.numero || null,
+          // Statut d'inclusion : seules les prestations peuvent etre facultatives/options.
+          ...(dbType === 'prestation' ? inclusionToDb(l.inclusion) : { optionnel: false, inclus_par_defaut: true }),
         }
       })
 
@@ -761,6 +770,9 @@ export default function ModifierDevisPage() {
                       rows={1}
                       className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
                     />
+                    <div className="mt-1.5">
+                      <LineStatutSelect value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
+                    </div>
                   </div>
                   <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1" min={0} />
                   <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1 w-full">
@@ -991,7 +1003,7 @@ export default function ModifierDevisPage() {
 
       {toastMsg && <div className="fixed bottom-6 right-6 bg-[#0f1a3a] text-white px-4 py-2 rounded-lg shadow-lg text-sm font-hanken z-50">{toastMsg}</div>}
 
-      <LineSheet open={sheetOpen} onClose={() => setSheetOpen(false)} line={sheetLine as SheetLine | null} onSave={handleSheetSave} onSaveAndNew={handleSheetSaveAndNew} defaultType={sheetDefaultType} unitOptions={UNIT_SUGGESTIONS} prestations={prestationSuggestions} autoEntrepreneur={autoEntrepreneur} />
+      <LineSheet open={sheetOpen} onClose={() => setSheetOpen(false)} line={sheetLine as SheetLine | null} onSave={handleSheetSave} onSaveAndNew={handleSheetSaveAndNew} defaultType={sheetDefaultType} unitOptions={UNIT_SUGGESTIONS} prestations={prestationSuggestions} autoEntrepreneur={autoEntrepreneur} showStatut />
 
       <EnvoyerDevisModal open={envoyerOpen} onClose={() => setEnvoyerOpen(false)} devisId={devis.id} numeroDevis={devis.numero} clientEmail={clientEmail} chantier={chantierDesc} onSuccess={() => { setEnvoyerOpen(false); router.push(`/dashboard/devis/${devis.id}`) }} />
     </div>

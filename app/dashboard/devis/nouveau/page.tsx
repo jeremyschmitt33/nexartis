@@ -12,6 +12,7 @@ import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
+import LineStatutSelect, { type InclusionStatut, inclusionToDb } from '@/components/devis/LineStatut'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 
 // -------------------------------------------------------------------
@@ -26,6 +27,8 @@ interface LineItem {
   priceHT: number
   tva: number
   type: 'line' | 'section' | 'subsection' | 'text'
+  // Statut d'inclusion : ferme (toujours inclus) / facultatif (le client peut retirer) / option (le client peut ajouter)
+  inclusion: InclusionStatut
 }
 
 interface ClientRecord { id: string; nom: string; prenom?: string; adresse?: string; telephone?: string; email?: string; code_postal?: string; ville?: string }
@@ -592,6 +595,7 @@ function NouveauDevisPage() {
       priceHT: 0,
       tva: autoEntrepreneur ? 0 : 10,
       type,
+      inclusion: 'ferme',
     }])
   }
 
@@ -620,6 +624,7 @@ function NouveauDevisPage() {
         unit: payload.unit || l.unit,
         priceHT: payload.priceHT,
         type: payload.type,
+        inclusion: payload.inclusion ?? l.inclusion,
       } : l))
     } else {
       setLines(prev => [...prev, {
@@ -630,6 +635,7 @@ function NouveauDevisPage() {
         priceHT: payload.priceHT,
         tva: autoEntrepreneur ? 0 : 10,
         type: payload.type,
+        inclusion: payload.inclusion ?? 'ferme',
       }])
     }
   }
@@ -657,6 +663,9 @@ function NouveauDevisPage() {
     // V2.5 — TVA par ligne (parite Obat) : agregation par taux saisi sur chaque ligne
     lines.forEach(l => {
       if (l.type !== 'line') return
+      // Les lignes "Option +" ne sont pas comptees dans le total principal
+      // (elles sont proposees en plus ; le client peut les ajouter a la signature).
+      if (l.inclusion === 'option') return
       const lineTotal = l.qty * l.priceHT
       totalHT += lineTotal
       const taux = autoEntrepreneur ? 0 : (l.tva ?? 0)
@@ -775,6 +784,8 @@ function NouveauDevisPage() {
           type: dbType,
           niveau: dbNiveau,
           numero: item.numero || null,
+          // Statut d'inclusion : seules les vraies prestations peuvent etre facultatives/options.
+          ...(dbType === 'prestation' ? inclusionToDb(l.inclusion) : { optionnel: false, inclus_par_defaut: true }),
         })
       }
       // Mémorisation auto des prestations (best-effort, ne bloque jamais le succès)
@@ -949,7 +960,7 @@ function NouveauDevisPage() {
     const voiceLines = data.lignes as Array<{ designation: string; quantite: number; unite: string; prix_unitaire: number }> | null
     if (voiceLines && voiceLines.length > 0) {
       setLines(voiceLines.map((vl, i) => ({
-        id: nextId + i, designation: vl.designation, qty: vl.quantite || 1, unit: vl.unite || 'U', priceHT: vl.prix_unitaire || 0, tva: autoEntrepreneur ? 0 : 10, type: 'line' as const,
+        id: nextId + i, designation: vl.designation, qty: vl.quantite || 1, unit: vl.unite || 'U', priceHT: vl.prix_unitaire || 0, tva: autoEntrepreneur ? 0 : 10, type: 'line' as const, inclusion: 'ferme' as const,
       })))
       nextId += voiceLines.length
     }
@@ -1345,6 +1356,9 @@ function NouveauDevisPage() {
                         rows={1}
                         className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[38px]"
                       />
+                      <div className="mt-1.5">
+                        <LineStatutSelect value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
+                      </div>
                     </div>
                   ) : (
                     <textarea
@@ -1625,6 +1639,7 @@ function NouveauDevisPage() {
         unitOptions={UNIT_SUGGESTIONS}
         prestations={prestationSuggestions}
         autoEntrepreneur={autoEntrepreneur}
+        showStatut
       />
     </div>
   )

@@ -22,6 +22,7 @@ import { X } from 'lucide-react'
 import Stepper from './Stepper'
 import UnitChips from './UnitChips'
 import DesignationAutocomplete from '../DesignationAutocomplete'
+import LineStatutSelect, { type InclusionStatut } from '../devis/LineStatut'
 import type { PrestationSuggestion } from '@/lib/prestations-memo'
 
 export interface SheetLine {
@@ -33,6 +34,8 @@ export interface SheetLine {
   type: 'line' | 'section' | 'subsection' | 'text'
   // Champ optionnel : présent côté devis (TVA par ligne), absent côté facture
   tva?: number
+  // Statut d'inclusion (devis uniquement) : ferme / facultatif / option
+  inclusion?: InclusionStatut
 }
 
 interface LineSheetProps {
@@ -49,6 +52,8 @@ interface LineSheetProps {
   prestations?: PrestationSuggestion[]
   // Auto-entrepreneur : force TVA à 0 lors d'une sélection de suggestion
   autoEntrepreneur?: boolean
+  // Affiche le sélecteur de statut (Ferme/Facultatif/Option) — devis uniquement
+  showStatut?: boolean
 }
 
 function formatCurrencyFR(n: number): string {
@@ -66,6 +71,7 @@ export default function LineSheet({
   defaultType = 'line',
   prestations,
   autoEntrepreneur = false,
+  showStatut = false,
 }: LineSheetProps) {
   // État local du form (réinitialisé à chaque ouverture)
   const [designation, setDesignation] = useState('')
@@ -75,6 +81,8 @@ export default function LineSheet({
   const [type, setType] = useState<SheetLine['type']>(defaultType)
   // TVA par ligne (devis). undefined côté facture pour ne pas l'injecter dans le payload.
   const [tva, setTva] = useState<number | undefined>(undefined)
+  // Statut d'inclusion (devis). 'ferme' par défaut.
+  const [inclusion, setInclusion] = useState<InclusionStatut>('ferme')
 
   // Re-sync à chaque ouverture / changement de ligne
   useEffect(() => {
@@ -86,6 +94,7 @@ export default function LineSheet({
       setPriceHT(line.priceHT ?? 0)
       setType(line.type)
       setTva(line.tva)
+      setInclusion(line.inclusion ?? 'ferme')
     } else {
       // Mode création
       setDesignation('')
@@ -94,6 +103,7 @@ export default function LineSheet({
       setPriceHT(0)
       setType(defaultType)
       setTva(undefined)
+      setInclusion('ferme')
     }
   }, [open, line, defaultUnit, defaultType])
 
@@ -115,6 +125,8 @@ export default function LineSheet({
     type,
     // N'inclut la TVA QUE si elle est définie (devis) — préserve le comportement facture.
     ...(tva !== undefined ? { tva } : {}),
+    // N'inclut le statut QUE côté devis (showStatut) — préserve le comportement facture.
+    ...(showStatut ? { inclusion: type === 'line' ? inclusion : 'ferme' } : {}),
   })
 
   const handleSave = () => {
@@ -272,6 +284,23 @@ export default function LineSheet({
                   {formatCurrencyFR(totalLigne)}
                 </span>
               </div>
+
+              {/* Statut d'inclusion — devis uniquement */}
+              {showStatut && (
+                <div>
+                  <label className="block text-[13px] font-semibold text-[#4b5563] mb-2 tracking-wide">
+                    Le client peut-il modifier cette ligne ?
+                  </label>
+                  <LineStatutSelect value={inclusion} onChange={setInclusion} size="lg" />
+                  <p className="mt-2 text-[12px] text-gray-500 leading-snug">
+                    {inclusion === 'ferme'
+                      ? 'Ferme : toujours inclus, le client ne peut pas le retirer.'
+                      : inclusion === 'facultatif'
+                      ? 'Facultatif : inclus par défaut, le client peut le retirer.'
+                      : 'Option + : pas inclus, le client peut l’ajouter.'}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
