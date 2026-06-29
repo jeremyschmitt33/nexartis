@@ -10,6 +10,7 @@ import { netAPayerFacture } from "@/lib/facture-net";
 import { InfoBanner, HelpTooltip } from "@/components/ui/v4";
 import RappelsSection from "@/components/dashboard/RappelsSection";
 import DecennaleBanner from "@/components/dashboard/DecennaleBanner";
+import StartupChecklist, { type ChecklistItem } from "@/components/dashboard/StartupChecklist";
 import DoublonsAlert from "@/components/dashboard/DoublonsAlert";
 
 // Type pour un rappel artisan (note privée datée à afficher dans "À faire")
@@ -167,7 +168,59 @@ export default function DashboardPage() {
 
   useEffect(() => { setMounted(true); }, []);
 
+  // Checklist de démarrage : masquage persistant (localStorage, permanent).
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+  useEffect(() => {
+    try { setChecklistDismissed(localStorage.getItem('nexartis_onboarding_checklist_dismissed') === '1'); } catch {}
+  }, []);
+  function dismissChecklist() {
+    setChecklistDismissed(true);
+    try { localStorage.setItem('nexartis_onboarding_checklist_dismissed', '1'); } catch {}
+  }
+
   const loading = fLoading || dLoading || pLoading;
+
+  // Items de la checklist — calculés UNIQUEMENT à partir des données déjà
+  // chargées (entreprise via profilIncomplet, devis, factures). Zéro requête.
+  const devisList = devis ?? [];
+  const facturesList = factures ?? [];
+  const checklistItems: ChecklistItem[] = [
+    {
+      key: 'profil',
+      label: 'Complétez votre fiche entreprise',
+      labelDone: 'Fiche entreprise complétée',
+      soustexte: 'Coordonnées, SIRET, assurance décennale',
+      href: '/dashboard/parametres',
+      done: !!entreprise && !profilIncomplet,
+    },
+    {
+      key: 'devis',
+      label: 'Créez votre premier devis',
+      labelDone: 'Premier devis créé',
+      soustexte: 'Ajoutez vos prestations et tarifs',
+      href: '/dashboard/devis/nouveau',
+      done: devisList.length > 0,
+    },
+    {
+      key: 'signature',
+      label: 'Envoyez un devis à la signature',
+      labelDone: 'Devis envoyé à la signature',
+      soustexte: 'Signature en ligne, à distance',
+      href: '/dashboard/devis',
+      done: devisList.some((d) => ['envoye', 'signe', 'facture'].includes(String(d.statut))),
+    },
+    {
+      key: 'facture',
+      label: 'Créez votre première facture',
+      labelDone: 'Première facture créée',
+      soustexte: 'À partir d’un devis accepté',
+      href: '/dashboard/factures/nouveau',
+      done: facturesList.length > 0,
+    },
+  ];
+  const checklistDoneCount = checklistItems.filter((i) => i.done).length;
+  const checklistAllDone = checklistDoneCount === checklistItems.length;
+  const showChecklist = mounted && !loading && !!entreprise && !checklistAllDone && !checklistDismissed;
 
   /* ── Computed metrics ── */
   // V-AVOIR : un avoir (type='avoir') n'est ni une creance ni un encaissement.
@@ -732,9 +785,21 @@ export default function DashboardPage() {
     <div className="min-h-screen" style={{background: '#f6f8fb'}}>
       <div className="max-w-[1360px] mx-auto px-4 py-5 sm:px-6 sm:py-8 lg:px-9 lg:py-9">
 
+        {/* Checklist de démarrage (onboarding d'activation). Remplace
+            temporairement la bannière "profil incomplet" ci-dessous tant
+            qu'elle est affichée, pour ne pas dupliquer le message profil. */}
+        {showChecklist && (
+          <StartupChecklist
+            items={checklistItems}
+            doneCount={checklistDoneCount}
+            onDismiss={dismissChecklist}
+            style={stagger(0)}
+          />
+        )}
+
         {/* V4 : bannière "Profil entreprise incomplet" via InfoBanner warn.
             Affiche les champs obligatoires manquants + CTA vers /parametres. */}
-        {profilIncomplet && (
+        {profilIncomplet && !showChecklist && (
           <div className="mb-6" style={stagger(0)}>
             <InfoBanner
               variant="warn"
