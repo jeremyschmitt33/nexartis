@@ -511,7 +511,7 @@ function NouveauDevisPage() {
   const [dechetsInclureCout, setDechetsInclureCout] = useState(false)
   // Gestion des déchets optionnelle : défaut = réglage entreprise (afficher_dechets).
   const [afficherDechets, setAfficherDechets] = useState(true)
-  const entrepriseDechetsDefault = entreprise ? (entreprise as Record<string, unknown>).afficher_dechets !== false : undefined
+  const entrepriseDechetsDefault = entreprise ? (entreprise as unknown as Record<string, unknown>).afficher_dechets !== false : undefined
   useEffect(() => {
     if (entrepriseDechetsDefault !== undefined) setAfficherDechets(entrepriseDechetsDefault)
   }, [entrepriseDechetsDefault])

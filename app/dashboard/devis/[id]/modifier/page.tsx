@@ -257,7 +257,7 @@ export default function ModifierDevisPage() {
     if (devis.dechets_collecte_type) setDechetsCollecteType(devis.dechets_collecte_type)
     if (devis.dechets_cout != null) setDechetsCout(String(devis.dechets_cout))
     if (devis.dechets_inclure_cout) setDechetsInclureCout(devis.dechets_inclure_cout)
-    setAfficherDechets((devis as Record<string, unknown>).afficher_dechets !== false)
+    setAfficherDechets((devis as unknown as Record<string, unknown>).afficher_dechets !== false)
     setLoaded(true)
   }, [devis, loaded])
 

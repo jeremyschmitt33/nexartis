@@ -550,7 +550,7 @@ function EntrepriseSection({
       setRge(!!entreprise.rge)
       setMetier((entreprise.metier as string) ?? '')
       setFranchiseTva(!!entreprise.franchise_tva)
-      setAfficherDechetsParam((entreprise as Record<string, unknown>).afficher_dechets !== false)
+      setAfficherDechetsParam((entreprise as unknown as Record<string, unknown>).afficher_dechets !== false)
       setQualificationPro((entreprise.qualification_pro as string) ?? '')
       // Horaires de travail — fallback aux valeurs par défaut si non renseigné
       setHeureDebutMatin((entreprise.heure_debut_matin as string) || '08:00')
