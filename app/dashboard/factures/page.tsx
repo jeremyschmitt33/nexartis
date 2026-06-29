@@ -22,6 +22,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useFactures, useClients, softDeleteRow, insertRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
+import EmptyState from '@/components/ui/EmptyState'
 import { createClient } from '@/lib/supabase/client'
 // Chargement à la demande (next/dynamic, ssr:false) : ces modales ne sont
 // rendues qu'à l'ouverture. On évite ainsi de charger leur JS au premier render
@@ -530,10 +531,20 @@ export default function FacturesListPage() {
           ombre douce, tap zone confortable, montants en Spline Sans Mono. */}
       <div className="md:hidden space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
-            <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
-          </div>
+          (factures?.length ?? 0) === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="Vous n'avez pas encore de facture"
+              description="Vos factures apparaîtront ici. Commencez par accepter un devis, puis transformez-le en facture."
+              actionHref="/dashboard/devis"
+              actionLabel="Voir mes devis"
+            />
+          ) : (
+            <div className="py-16 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
+              <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
+            </div>
+          )
         ) : (
           visible.map((facture) => {
             const id = facture.id as string
@@ -728,10 +739,21 @@ export default function FacturesListPage() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-16 text-center">
-            <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
-          </div>
+          (factures?.length ?? 0) === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="Vous n'avez pas encore de facture"
+              description="Vos factures apparaîtront ici. Commencez par accepter un devis, puis transformez-le en facture."
+              actionHref="/dashboard/devis"
+              actionLabel="Voir mes devis"
+              className="border-0 shadow-none"
+            />
+          ) : (
+            <div className="py-16 text-center">
+              <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="font-hanken text-sm text-gray-500">Aucune facture trouvée</p>
+            </div>
+          )
         )}
         {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
         {filtered.length > visibleCount && (

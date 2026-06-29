@@ -39,6 +39,7 @@ import { PremiumInput, PremiumSelect, PremiumButton, InfoBanner } from "@/compon
 const ExportComptableModal = dynamic(() => import("@/components/dashboard/ExportComptableModal"), { ssr: false })
 import { toast } from '@/lib/toast'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
+import EmptyState from "@/components/ui/EmptyState"
 
 type DevisStatus = "brouillon" | "envoye" | "signe" | "refuse" | "expire" | "facture"
 
@@ -401,10 +402,20 @@ export default function DevisListPage() {
       {/* V4 : Mobile cards (visible < md). rounded-2xl, ombre douce, accent au hover. */}
       <div className="md:hidden space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06)]">
-            <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
-          </div>
+          (devisList?.length ?? 0) === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="Vous n'avez pas encore de devis"
+              description="Créez votre premier devis en quelques minutes, puis envoyez-le à la signature."
+              actionHref="/dashboard/devis/nouveau"
+              actionLabel="Créer mon premier devis"
+            />
+          ) : (
+            <div className="py-12 text-center bg-white rounded-2xl border border-[#0f1a3a]/[0.06] shadow-[0_8px_24px_rgba(15,26,58,0.06)]">
+              <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
+            </div>
+          )
         ) : (
           visible.map((devis) => {
             const statut = (devis.statut as DevisStatus) || "brouillon"
@@ -516,10 +527,21 @@ export default function DevisListPage() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-12 text-center">
-            <FileText size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
-          </div>
+          (devisList?.length ?? 0) === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="Vous n'avez pas encore de devis"
+              description="Créez votre premier devis en quelques minutes, puis envoyez-le à la signature."
+              actionHref="/dashboard/devis/nouveau"
+              actionLabel="Créer mon premier devis"
+              className="border-0 shadow-none"
+            />
+          ) : (
+            <div className="py-12 text-center">
+              <FileText size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-sm font-hanken text-gray-500">Aucun devis trouvé</p>
+            </div>
+          )
         )}
         {/* Bouton "Voir plus" (desktop) — total basé sur filtered.length. */}
         {filtered.length > visibleCount && (
