@@ -84,7 +84,10 @@ const nextConfig = {
               "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.brevo.com https://api.stripe.com https://m.stripe.com https://*.r2.cloudflarestorage.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
-              "frame-src 'self' https://js.stripe.com https://*.stripe.com",
+              // blob: requis pour l'apercu local d'un PDF (panneau "Afficher un
+              // document a cote") via <iframe>. Sans danger : un blob: est cree par
+              // notre propre code a partir d'un fichier choisi par l'utilisateur.
+              "frame-src 'self' blob: https://js.stripe.com https://*.stripe.com",
               // PWA V4 : autorise explicitement le service worker (/sw.js) et le manifest.
               // Sans ces deux directives, certains navigateurs strictes bloquent l'install PWA.
               "worker-src 'self'",

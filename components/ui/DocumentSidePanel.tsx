@@ -89,6 +89,9 @@ export default function DocumentSidePanel() {
   // --- Deplacement du panneau (desktop only) ---
   const onPointerDown = (e: React.PointerEvent) => {
     if (!isDesktop) return
+    // Ne pas demarrer le deplacement quand on clique un bouton de l'en-tete
+    // (Changer / Fermer) : sinon la capture du pointeur "avale" le clic.
+    if ((e.target as HTMLElement).closest('button')) return
     dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }
     try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch { /* ignore */ }
   }
