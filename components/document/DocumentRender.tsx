@@ -5,6 +5,7 @@ import { Fragment, type CSSProperties } from 'react'
 import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentLeaf, DocumentMeta, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
+import { TVA_MENTION_10, TVA_MENTION_5_5 } from '@/lib/legal-mentions'
 import { DEFAULT_DOCUMENT_THEME, themeToCssVars, type DocumentTheme } from '@/lib/document-theme'
 import { DEFAULT_LOGO_CONFIG, logoConfigToCssVars, type LogoConfig } from '@/lib/logo-config'
 
@@ -401,10 +402,14 @@ function RecapDevis({ data }: { data: DocumentData }) {
           <p>Acompte de <strong>{totals.acomptePct} %</strong> à la commande, soit <strong>{eur(totals.acompteMontant)}</strong>. Solde à la réception des travaux. Règlement par virement ou chèque sous 30 jours.</p>
         ) : (<p>Règlement à la réception des travaux, par virement ou chèque, sous 30 jours.</p>)}
         {hasTvaReduite && (
+          /* Mentions TVA réduite : mêmes constantes que le PDF (lib/legal-mentions),
+             déclenchées par le taux des lignes — identique aux 4 rendus. */
           <div className="dv-attest-tva">
-            <p>Je certifie, en qualité de preneur de la prestation, que les travaux réalisés concernent des locaux à usage d&apos;habitation achevés depuis plus de deux ans, qu&apos;ils n&apos;ont pas eu pour effet, sur une période de deux ans au plus, de concourir à la production d&apos;un immeuble neuf au sens du 2° du 2 du I de l&apos;article 257 du CGI, ni d&apos;entraîner une augmentation de la surface de plancher des locaux existants supérieure à 10 %, et, le cas échéant, qu&apos;ils ont la nature de travaux de rénovation.</p>
+            {totals.tvaLignes.some(l => l.taux === 10) && (
+              <p>{TVA_MENTION_10}</p>
+            )}
             {totals.tvaLignes.some(l => l.taux === 5.5) && (
-              <p>Je certifie que les travaux réalisés concernent des locaux à usage d&apos;habitation achevés depuis plus de deux ans et constituent des travaux de rénovation ou d&apos;amélioration de la qualité énergétique au sens de l&apos;article 18 bis de l&apos;annexe IV du CGI.</p>
+              <p>{TVA_MENTION_5_5}</p>
             )}
           </div>
         )}
@@ -509,7 +514,18 @@ function LegalFacture({ data }: { data: DocumentData }) {
   return (
     <div className="dv-legal">
       <div className="dv-legal-grid">
-        {hasTvaReduite && (<div><span className="dv-legal-k">Attestation TVA</span>Le client atteste que les travaux portent sur des locaux d&apos;habitation achevés depuis plus de 2 ans, ouvrant droit aux taux de TVA réduits.</div>)}
+        {hasTvaReduite && (
+          /* Mêmes constantes que le PDF (lib/legal-mentions), déclenchées par le
+             taux des lignes — parité PDF/HTML sur les factures. */
+          <>
+            {data.totals.tvaLignes.some(l => l.taux === 10) && (
+              <div><span className="dv-legal-k">Attestation TVA</span>{TVA_MENTION_10}</div>
+            )}
+            {data.totals.tvaLignes.some(l => l.taux === 5.5) && (
+              <div><span className="dv-legal-k">Attestation TVA</span>{TVA_MENTION_5_5}</div>
+            )}
+          </>
+        )}
         <div><span className="dv-legal-k">Cadre légal</span>Facture émise conformément aux articles L.441-3 et suivants du Code de commerce.</div>
         {artisan.assurance && (<div><span className="dv-legal-k">Assurance décennale</span>{artisan.assurance}</div>)}
         {statutJuridique && (

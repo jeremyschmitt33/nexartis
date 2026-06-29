@@ -138,15 +138,22 @@ export type LegalMention = {
 // Constantes TVA — DÉPLACÉES depuis lib/pdf.ts (V2.4a)
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Note : lib/pdf.ts continue de les utiliser via un import depuis ce module
-// (cf. V2.4a). On garde les textes EXACTEMENT identiques pour ne pas casser le
-// PDF déjà émis chez les artisans.
+// Note : lib/pdf.ts ET components/document/DocumentRender.tsx (rendu HTML)
+// importent ces constantes — source UNIQUE pour garder les 4 rendus identiques.
+//
+// 2026-06-29 — Textes alignés sur le MODÈLE OFFICIEL de l'administration fiscale
+// (BOI-LETTRE-000280, en vigueur, version 22/10/2025), suite à la suppression de
+// l'attestation Cerfa (réforme du 16/02/2025). Le BOFiP admet d'autres rédactions
+// « tant que l'intégralité des éléments de fond sont repris » (BOI-TVA-LIQ-30-20-90-40
+// §85) : on conserve l'ouverture « Je certifie, en qualité de preneur… » (l'identité
+// du preneur est portée par la signature en ligne du devis) et on reprend tous les
+// éléments de fond. Le 5,5 % = base du 10 % + clause « rénovation énergétique ».
 
 export const TVA_MENTION_10 =
-  'Je certifie, en qualité de preneur de la prestation, que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans, qu\'ils n\'ont pas eu pour effet, sur une période de deux ans au plus, de concourir à la production d\'un immeuble neuf au sens du 2° du 2 du I de l\'article 257 du CGI, ni d\'entraîner une augmentation de la surface de plancher des locaux existants supérieure à 10 %, et, le cas échéant, qu\'ils ont la nature de travaux de rénovation.'
+  'Je certifie, en qualité de preneur de la prestation, que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans et qu\'ils n\'ont pas eu pour effet, sur une période de deux ans au plus, de concourir à la production d\'un immeuble neuf au sens du 2° du 2 du I de l\'article 257 du CGI, ni d\'entraîner une augmentation de la surface de plancher des locaux existants supérieure à 10 %.'
 
 export const TVA_MENTION_5_5 =
-  'Je certifie que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans et constituent des travaux de rénovation ou d\'amélioration de la qualité énergétique au sens de l\'article 18 bis de l\'annexe IV du CGI (isolation thermique, systèmes de chauffage performants, énergies renouvelables).'
+  'Je certifie, en qualité de preneur de la prestation, que les travaux réalisés concernent des locaux à usage d\'habitation achevés depuis plus de deux ans, qu\'ils n\'ont pas eu pour effet, sur une période de deux ans au plus, de concourir à la production d\'un immeuble neuf au sens du 2° du 2 du I de l\'article 257 du CGI, ni d\'entraîner une augmentation de la surface de plancher des locaux existants supérieure à 10 %, et qu\'ils ont la nature de travaux de rénovation énergétique.'
 
 export const TVA_MENTION_AE =
   'TVA non applicable, article 293 B du Code Général des Impôts.'
