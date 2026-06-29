@@ -18,6 +18,7 @@ import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 import { DOC_TYPES_META, getDocTypeMeta, type DocTypeKind } from '@/lib/documents-types'
 import DocumentEditorModal from '@/components/documents/DocumentEditorModal'
 import CoffreFortSection from '@/components/documents/CoffreFortSection'
+import HistoriqueEnvoisSection from '@/components/documents/HistoriqueEnvoisSection'
 
 type Row = Record<string, unknown>
 function str(v: unknown): string { return v == null ? '' : String(v) }
@@ -160,6 +161,9 @@ export default function DocumentsPage() {
 
       {/* Coffre-fort : documents televerses par l'artisan (Vague 2b) */}
       <CoffreFortSection devis={devis} clients={clients} />
+
+      {/* Journal des envois : trace de qui a recu quoi et quand. */}
+      <HistoriqueEnvoisSection />
 
       {modalOpen && (
         <DocumentEditorModal

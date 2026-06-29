@@ -208,6 +208,27 @@ export async function POST(req: NextRequest) {
       return secureError("Echec de l'envoi de l'email.", 502)
     }
 
+    // Journal des envois (best-effort) : on trace l'envoi pour que l'artisan
+    // soit couvert (qui a recu quoi et quand). Insertion via service_role
+    // (la table documents_envois est en lecture seule cote utilisateur).
+    // Si la journalisation echoue, l'email est deja parti : on ne fait PAS
+    // echouer la requete, on logue juste l'erreur serveur.
+    try {
+      const { error: logErr } = await admin.from('documents_envois').insert({
+        user_id: user.id,
+        document_id: documentId,
+        document_nom: nomFichier,
+        destinataire_nom: destNom || null,
+        destinataire_email: destEmail,
+        mode,
+        devis_id: mode === 'devis' ? String(b.devis_id || '') || null : null,
+        message: messageRaw || null,
+      })
+      if (logErr) console.error('documents/envoyer: journalisation echouee', logErr)
+    } catch (logErr) {
+      console.error('documents/envoyer: journalisation exception', logErr)
+    }
+
     return secureJson({ ok: true })
   } catch (error) {
     console.error('documents/envoyer error:', error)

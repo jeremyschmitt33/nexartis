@@ -609,6 +609,8 @@ function useDeletedDocumentsTypes() { return useSupabaseQuery<Row>('documents_ty
 // Coffre-fort (Vague 2b) — fichiers televerses par l'artisan (RIB, decennale, Kbis...).
 function useDocumentsStockes() { return useSupabaseQuery<Row>('documents_stockes', { orderBy: 'created_at' }) }
 function useDeletedDocumentsStockes() { return useSupabaseQuery<Row>('documents_stockes', { orderBy: 'created_at', includeDeleted: true }) }
+// Journal des envois de documents (lecture seule via RLS). Tri recent->ancien.
+function useDocumentsEnvois() { return useSupabaseQuery<Row>('documents_envois', { orderBy: 'created_at' }) }
 // Certifications & assurances (Vague 3a) — RGE, Qualibat, decennale, RC pro... Soft delete via deleted_at.
 function useCertifications() { return useSupabaseQuery<Row>('certifications', { orderBy: 'created_at' }) }
 function useDeletedCertifications() { return useSupabaseQuery<Row>('certifications', { orderBy: 'created_at', includeDeleted: true }) }
@@ -733,6 +735,7 @@ export {
   useDocumentsTypes,
   useDeletedDocumentsTypes,
   useDocumentsStockes,
+  useDocumentsEnvois,
   useDeletedDocumentsStockes,
   useCertifications,
   useDeletedCertifications,
