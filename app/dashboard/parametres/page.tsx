@@ -29,6 +29,7 @@ import LogoCustomization from '@/components/parametres/LogoCustomization'
 import PasswordChangeButton from '@/components/parametres/PasswordChangeButton'
 import InstallPrompt from '@/components/InstallPrompt'
 import { QRCodeSVG } from 'qrcode.react'
+import DocumentSidePanel from '@/components/ui/DocumentSidePanel'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -2987,7 +2988,14 @@ export default function ParametresPage() {
 
       {/* Content area */}
       <div className="flex-1 min-w-0">
-        {activeSection === 'entreprise' && entreprise && <EntrepriseSection entreprise={entreprise} update={update} />}
+        {activeSection === 'entreprise' && entreprise && (
+          <>
+            <div className="mb-4">
+              <DocumentSidePanel />
+            </div>
+            <EntrepriseSection entreprise={entreprise} update={update} />
+          </>
+        )}
         {activeSection === 'documents' && entreprise && <DocumentsSection entreprise={entreprise} update={update} />}
         {activeSection === 'facturation' && entreprise && <FacturationSection entreprise={entreprise} update={update} isAdmin={isAdmin} superpdpStatus={superpdpStatus} />}
         {activeSection === 'signature' && entreprise && <SignatureSection entreprise={entreprise} update={update} />}
