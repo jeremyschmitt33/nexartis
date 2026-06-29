@@ -273,7 +273,7 @@ function OptionsBlock({ items, totals }: { items: DocumentLeaf[]; totals?: { ht:
         <strong style={{ color: '#0f1a3a', fontSize: '0.9rem' }}>Options proposées</strong>
         <span style={{ color: '#6b7384', fontSize: '0.75rem' }}>— non comprises dans le total ci-dessus, à ajouter si vous le souhaitez</span>
       </div>
-      <table className="dv-table" style={{ margin: 0 }}>
+      <table className="dv-table" style={{ margin: '8px 0 0' }}>
         <thead>
           <tr>
             <th className="dv-c-num">#</th><th className="dv-c-desg">Désignation</th>
@@ -313,7 +313,7 @@ function NonRetenuesBlock({ items }: { items: DocumentLeaf[] }) {
         <strong style={{ color: '#5b6473', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '.4px' }}>Postes proposés non retenus par le client</strong>
         <span style={{ color: '#8a93a3', fontSize: '0.75rem' }}>— non compris dans le total signé</span>
       </div>
-      <table className="dv-table" style={{ margin: 0 }}>
+      <table className="dv-table" style={{ margin: '8px 0 0' }}>
         <thead>
           <tr>
             <th className="dv-c-num">#</th><th className="dv-c-desg">Désignation</th>
