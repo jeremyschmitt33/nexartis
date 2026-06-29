@@ -8,6 +8,8 @@ import { insertRow, updateRow, type EntrepriseRecord } from '@/lib/hooks'
 import {
   DOC_TYPES_META,
   generateDocTypeTemplate,
+  COURRIER_MODELES,
+  getCourrierModele,
   type DocTypeKind,
   type DocTypeContext,
 } from '@/lib/documents-types'
@@ -45,6 +47,8 @@ export default function DocumentEditorModal({
   const [chantierId, setChantierId] = useState('')
   const [devisId, setDevisId] = useState('')
   const [saving, setSaving] = useState(false)
+  // Modele de courrier choisi (uniquement pour le type 'courrier', en creation).
+  const [modeleSlug, setModeleSlug] = useState('vierge')
 
   // Initialisation : edition -> charge la ligne ; creation -> pre-remplit.
   useEffect(() => {
@@ -62,24 +66,45 @@ export default function DocumentEditorModal({
       setTitre(m?.titre || 'Document')
       setContenu(generateDocTypeTemplate(type, ctx))
       setClientId(''); setChantierId(''); setDevisId('')
+      setModeleSlug('vierge')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, type])
 
-  // Re-genere le texte a partir d'un client/chantier/devis selectionne
-  // (uniquement en creation, pour ne pas ecraser un texte deja edite/sauve).
-  function regenerateFrom(nextClientId: string, nextChantierId: string, nextDevisId: string) {
-    if (isEdit) return
+  // Construit le contexte de generation a partir des selections courantes.
+  function buildCtx(nextClientId: string, nextChantierId: string, nextDevisId: string): DocTypeContext {
     const client = clients.find((c) => str(c.id) === nextClientId) || null
     const chantier = chantiers.find((c) => str(c.id) === nextChantierId) || null
     const dv = devis.find((d) => str(d.id) === nextDevisId) || null
-    const ctx: DocTypeContext = {
+    return {
       entreprise: entreprise as DocTypeContext['entreprise'],
       client: client as DocTypeContext['client'],
       chantier: chantier as DocTypeContext['chantier'],
       devis: dv as DocTypeContext['devis'],
     }
-    setContenu(generateDocTypeTemplate(effType, ctx))
+  }
+
+  // Re-genere le texte a partir d'un client/chantier/devis selectionne
+  // (uniquement en creation, pour ne pas ecraser un texte deja edite/sauve).
+  function regenerateFrom(nextClientId: string, nextChantierId: string, nextDevisId: string) {
+    if (isEdit) return
+    const ctx = buildCtx(nextClientId, nextChantierId, nextDevisId)
+    if (effType === 'courrier') {
+      const m = getCourrierModele(modeleSlug)
+      setContenu(m ? m.generate(ctx) : generateDocTypeTemplate('courrier', ctx))
+    } else {
+      setContenu(generateDocTypeTemplate(effType, ctx))
+    }
+  }
+
+  // Applique un modele de courrier choisi dans le selecteur.
+  function applyCourrierModele(slug: string) {
+    setModeleSlug(slug)
+    if (isEdit) return
+    const m = getCourrierModele(slug)
+    if (!m) return
+    setContenu(m.generate(buildCtx(clientId, chantierId, devisId)))
+    setTitre(slug === 'vierge' ? 'Courrier' : m.label)
   }
 
   async function handleSave() {
@@ -135,6 +160,30 @@ export default function DocumentEditorModal({
           <InfoBanner variant="warn">
             Modele fourni a titre indicatif, il ne constitue pas un conseil juridique. Relisez et adaptez-le a votre situation avant de l&apos;utiliser.
           </InfoBanner>
+
+          {effType === 'courrier' && !isEdit && (
+            <div>
+              <PremiumSelect
+                label="Modele de courrier"
+                value={modeleSlug}
+                onChange={(e) => applyCourrierModele(e.target.value)}
+              >
+                {COURRIER_MODELES.map((m) => (
+                  <option key={m.slug} value={m.slug}>{m.label}</option>
+                ))}
+              </PremiumSelect>
+              {getCourrierModele(modeleSlug)?.description && (
+                <p className="mt-1.5 font-hanken text-xs text-gray-500">
+                  {getCourrierModele(modeleSlug)?.description}
+                </p>
+              )}
+              {getCourrierModele(modeleSlug)?.note && (
+                <p className="mt-1.5 font-hanken text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Attention : {getCourrierModele(modeleSlug)?.note}
+                </p>
+              )}
+            </div>
+          )}
 
           <PremiumInput
             label="Titre du document"
