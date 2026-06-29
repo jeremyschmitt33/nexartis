@@ -1339,6 +1339,8 @@ export interface JalonConformite {
 
 export interface AideMemoireMetier {
   intro: string
+  /** Phrase de cadrage réglementaire affichée selon le type de bâtiment choisi. */
+  cadreParBatiment: Record<BatimentType, string>
   jalons: JalonConformite[]
 }
 
@@ -1347,7 +1349,18 @@ export const AIDE_MEMOIRE: Record<string, AideMemoireMetier> = {
   electricien: {
     intro:
       'Rappel des grandes démarches à ne pas oublier, selon le type de travaux et de bâtiment. Indicatif : ne remplace pas la lecture des normes ni l’avis du Consuel.',
+    cadreParBatiment: {
+      logement:
+        'Habitation privée : NF C 15-100 + attestation Consuel jaune avant mise sous tension.',
+      logement_social:
+        'Logements : NF C 15-100 (comme le privé), attestation Consuel jaune. Parties communes : usage non domestique (Consuel vert) et maintenance à la charge du bailleur.',
+      erp:
+        'Établissement recevant du public : NF C 15-100 + règlement de sécurité incendie (BAES, SSI, passage de la commission de sécurité, vérifications périodiques) + Consuel vert.',
+      locaux_travail:
+        'Locaux de travail : NF C 15-100 + Code du travail (vérification initiale et vérifications périodiques par un organisme accrédité) + Consuel vert.',
+    },
     jalons: [
+      // ── Étapes techniques de réalisation (logement surtout) ──
       {
         id: 'etude',
         intitule: 'Étude et dimensionnement',
@@ -1357,7 +1370,7 @@ export const AIDE_MEMOIRE: Record<string, AideMemoireMetier> = {
       {
         id: 'schema',
         intitule: 'Schéma unifilaire à jour',
-        detail: 'Établir ou mettre à jour le schéma unifilaire du tableau de répartition.',
+        detail: 'Établir ou mettre à jour le schéma unifilaire du tableau de répartition (à fournir pour le Consuel).',
         travaux: ['neuf', 'reno_totale'],
         confiance: 'haute',
       },
@@ -1376,20 +1389,13 @@ export const AIDE_MEMOIRE: Record<string, AideMemoireMetier> = {
         travaux: ['reno_partielle'],
         confiance: 'haute',
       },
+      // ── Habitation (logement privé + privatif social) ──
       {
         id: 'consuel_jaune',
         intitule: 'Attestation Consuel jaune (habitation)',
         detail:
           'Habitation : attestation Consuel jaune. Obligatoire en neuf et en rénovation totale ayant nécessité une mise hors tension par Enedis — à obtenir avant la (re)mise sous tension.',
         batiment: ['logement', 'logement_social'],
-        confiance: 'haute',
-        source: 'https://www.consuel.com',
-      },
-      {
-        id: 'consuel_vert',
-        intitule: 'Attestation Consuel verte (non domestique)',
-        detail: 'Usage non domestique (ERP, locaux professionnels, parties communes) : attestation Consuel verte.',
-        batiment: ['erp', 'locaux_travail'],
         confiance: 'haute',
         source: 'https://www.consuel.com',
       },
@@ -1403,28 +1409,103 @@ export const AIDE_MEMOIRE: Record<string, AideMemoireMetier> = {
         confiance: 'moyenne',
       },
       {
-        id: 'verif_travail',
-        intitule: 'Vérification initiale (locaux de travail)',
-        detail:
-          'Locaux de travail : vérification initiale de l’installation par un organisme accrédité (Code du travail), puis vérifications périodiques.',
-        batiment: ['locaux_travail'],
-        confiance: 'moyenne',
-      },
-      {
-        id: 'erp_secu',
-        intitule: 'ERP : éclairage de sécurité et contrôles',
-        detail:
-          'ERP : éclairage de sécurité (BAES) selon la catégorie et l’effectif, et vérification périodique annuelle par un organisme agréé.',
-        batiment: ['erp'],
-        confiance: 'moyenne',
-      },
-      {
         id: 'diagnostic',
         intitule: 'Diagnostic électrique (logement ancien)',
         detail:
           'Logement de plus de 15 ans mis en vente ou en location : un diagnostic électrique de sécurité peut être exigé.',
         travaux: ['reno_partielle', 'reno_totale'],
         batiment: ['logement', 'logement_social'],
+        confiance: 'moyenne',
+      },
+      // ── Spécifique logement social ──
+      {
+        id: 'social_communs',
+        intitule: 'Parties communes = usage non domestique',
+        detail:
+          'Les parties communes (locaux techniques, halls, circulations) relèvent de l’usage non domestique : attestation Consuel verte, distincte de celle des logements.',
+        batiment: ['logement_social'],
+        confiance: 'moyenne',
+        source: 'https://www.consuel.com',
+      },
+      {
+        id: 'social_bailleur',
+        intitule: 'Coordination avec le bailleur',
+        detail:
+          'Maintenance et vérifications périodiques des installations communes à la charge du bailleur : caler le périmètre et la remise des documents avec lui.',
+        batiment: ['logement_social'],
+        confiance: 'moyenne',
+      },
+      // ── Spécifique ERP ──
+      {
+        id: 'erp_consuel_vert',
+        intitule: 'Attestation Consuel verte (ERP)',
+        detail: 'Usage non domestique : attestation Consuel verte.',
+        batiment: ['erp'],
+        confiance: 'haute',
+        source: 'https://www.consuel.com',
+      },
+      {
+        id: 'erp_verif_initiale',
+        intitule: 'Vérification initiale avant ouverture',
+        detail:
+          'Faire vérifier l’installation par un organisme agréé avant l’ouverture au public (rapport à conserver).',
+        batiment: ['erp'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'erp_commission',
+        intitule: 'Passage de la commission de sécurité',
+        detail:
+          'Selon la catégorie de l’ERP, passage de la commission de sécurité avant l’ouverture au public.',
+        batiment: ['erp'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'erp_baes_ssi',
+        intitule: 'Éclairage de sécurité (BAES) et SSI',
+        detail:
+          'Prévoir l’éclairage de sécurité (BAES) et, selon la catégorie, le système de sécurité incendie (SSI / alarme), dimensionnés selon l’effectif.',
+        batiment: ['erp'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'erp_registre',
+        intitule: 'Registre de sécurité et vérifications périodiques',
+        detail:
+          'Tenir le registre de sécurité ; vérification périodique (en principe annuelle) par un organisme agréé.',
+        batiment: ['erp'],
+        confiance: 'moyenne',
+      },
+      // ── Spécifique locaux de travail ──
+      {
+        id: 'ert_consuel_vert',
+        intitule: 'Attestation Consuel verte (locaux de travail)',
+        detail: 'Usage non domestique : attestation Consuel verte.',
+        batiment: ['locaux_travail'],
+        confiance: 'haute',
+        source: 'https://www.consuel.com',
+      },
+      {
+        id: 'ert_verif_initiale',
+        intitule: 'Vérification initiale par organisme accrédité',
+        detail:
+          'À la mise en service (ou modification de structure), vérification initiale de l’installation par un organisme accrédité (Code du travail).',
+        batiment: ['locaux_travail'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'ert_periodique',
+        intitule: 'Vérifications périodiques + rapport',
+        detail:
+          'Vérifications périodiques (en principe annuelles) ; le rapport doit pouvoir être présenté à l’inspection du travail.',
+        batiment: ['locaux_travail'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'ert_eclairage',
+        intitule: 'Éclairage de sécurité (évacuation)',
+        detail: 'Prévoir l’éclairage de sécurité pour l’évacuation des locaux de travail.',
+        batiment: ['locaux_travail'],
         confiance: 'moyenne',
       },
     ],

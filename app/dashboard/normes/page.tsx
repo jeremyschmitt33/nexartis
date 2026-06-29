@@ -186,6 +186,14 @@ function AideMemoireView({ am, onShowFiches }: { am: AideMemoireMetier; onShowFi
         <PillRow label="Type de bâtiment" value={batiment} options={BATIMENT_LABELS} onChange={setBatiment} />
       </div>
 
+      {/* Cadre réglementaire — change selon le type de bâtiment choisi. */}
+      <div className="flex gap-2.5 rounded-xl bg-[#eef6fc] border border-[#5ab4e0]/40 p-3.5 mb-4">
+        <Info size={15} className="text-[#2f6fb0] flex-shrink-0 mt-0.5" />
+        <p className="text-[12.5px] font-hanken text-[#1a2d5a] leading-relaxed">
+          <span className="font-semibold">Cadre : </span>{am.cadreParBatiment[batiment]}
+        </p>
+      </div>
+
       {jalons.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {jalons.map(j => <JalonRow key={j.id} j={j} />)}
