@@ -261,6 +261,8 @@ export default function SignerDevisPage() {
   const [signing, setSigning] = useState(false)
   const [signed, setSigned] = useState(false)
   const [signError, setSignError] = useState<string | null>(null)
+  // Devis cochable — sélection du client : { [ordre de la ligne]: retenu ? }
+  const [selection, setSelection] = useState<Record<number, boolean>>({})
 
   // Fetch devis data
   useEffect(() => {
@@ -277,6 +279,14 @@ export default function SignerDevisPage() {
         setLignes(data.lignes)
         setEntreprise(data.entreprise)
         setClient(data.client)
+        // Sélection par défaut : facultatifs cochés (inclus), options décochées.
+        const initSel: Record<number, boolean> = {}
+        for (const l of (data.lignes as Ligne[])) {
+          if ((l.type ?? 'prestation') === 'prestation' && l.optionnel === true) {
+            initSel[l.ordre] = l.inclus_par_defaut !== false
+          }
+        }
+        setSelection(initSel)
         if (data.client?.nom) setSignedBy(data.client.nom)
         // Déjà signé ?
         if (data.devis.statut === 'signe' || data.devis.statut === 'facture') {
@@ -303,6 +313,11 @@ export default function SignerDevisPage() {
     setSigning(true)
     setSignError(null)
     try {
+      // Devis cochable : ordres des lignes facultatives/options retenues (cochées).
+      const toggles = lignes.filter(l => (l.type ?? 'prestation') === 'prestation' && l.optionnel === true)
+      const lignesRetenues = toggles.length > 0
+        ? toggles.filter(l => selection[l.ordre]).map(l => l.ordre)
+        : undefined
       const res = await fetch('/api/public/signer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -311,6 +326,7 @@ export default function SignerDevisPage() {
           signedBy: signedBy.trim(),
           signatureBase64: mode === 'draw' ? signatureBase64 : null,
           mode,
+          lignesRetenues,
         }),
       })
       const data = await res.json()
@@ -404,6 +420,31 @@ export default function SignerDevisPage() {
     })
   }
 
+  // ─── Devis cochable : choix client + total recalculé en direct ───
+  const toggleables = lignes.filter(l => (l.type ?? 'prestation') === 'prestation' && l.optionnel === true)
+  const hasChoices = toggleables.length > 0
+  const facultatifs = toggleables.filter(l => l.inclus_par_defaut !== false)
+  const optionsPlus = toggleables.filter(l => l.inclus_par_defaut === false)
+  const lineTtc = (l: Ligne) => { const ht = l.quantite * l.prix_unitaire_ht; return ht + ht * ((l.taux_tva || 0) / 100) }
+  const clientTtc = (() => {
+    let ht = 0
+    const byTaux: Record<number, number> = {}
+    for (const l of lignes) {
+      if ((l.type ?? 'prestation') !== 'prestation') continue
+      const kept = l.optionnel === true ? !!selection[l.ordre] : true
+      if (!kept) continue
+      const t = l.quantite * l.prix_unitaire_ht
+      ht += t
+      const taux = l.taux_tva || 0
+      if (taux > 0) byTaux[taux] = (byTaux[taux] || 0) + t
+    }
+    let tva = 0
+    for (const k of Object.keys(byTaux)) tva += byTaux[Number(k)] * (Number(k) / 100)
+    return ht + tva
+  })()
+  const toggleLine = (ordre: number) => setSelection(s => ({ ...s, [ordre]: !s[ordre] }))
+  const signTotal = hasChoices ? clientTtc : totalTTC
+
   // V3.0b — DocumentData unique pour le rendu visuel (header + cartes + tableau + recap).
   const documentData = buildDevisDocument({
     doc: {
@@ -485,6 +526,55 @@ export default function SignerDevisPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <DocumentRender data={documentData} theme={themeFromEntreprise(entreprise)} logoConfig={logoConfigFromEntreprise(entreprise)} />
         </div>
+
+        {/* ═══ CHOIX DU CLIENT (devis cochable) ═══ */}
+        {hasChoices && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="font-syne font-bold text-lg text-[#1a1a2e]">Personnalisez votre devis</h2>
+              <p className="font-manrope text-gray-500 text-sm mt-0.5">Cochez ou décochez les prestations ci-dessous : votre total se met à jour automatiquement.</p>
+            </div>
+
+            {facultatifs.length > 0 && (
+              <div>
+                <div className="px-6 py-2 bg-orange-50 text-[11px] font-manrope font-bold uppercase tracking-wide text-orange-700">Postes facultatifs — décochez pour retirer</div>
+                {facultatifs.map(l => {
+                  const checked = !!selection[l.ordre]
+                  return (
+                    <label key={l.ordre} className="flex items-center gap-3 px-6 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-orange-50/40">
+                      <input type="checkbox" checked={checked} onChange={() => toggleLine(l.ordre)} className="w-5 h-5 accent-[#e87a2a] flex-shrink-0" />
+                      <span className={`flex-1 font-manrope text-sm ${checked ? 'text-[#1a1a2e]' : 'text-gray-400 line-through'}`}>{l.designation}</span>
+                      <span className={`text-[11px] font-manrope font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${checked ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>{checked ? 'Gardé' : 'Retiré'}</span>
+                      <span className="font-manrope font-bold text-sm text-[#1a1a2e] whitespace-nowrap w-24 text-right">{formatCurrency(lineTtc(l))}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+
+            {optionsPlus.length > 0 && (
+              <div>
+                <div className="px-6 py-2 bg-blue-50 text-[11px] font-manrope font-bold uppercase tracking-wide text-blue-700">Options en plus — cochez pour ajouter</div>
+                {optionsPlus.map(l => {
+                  const checked = !!selection[l.ordre]
+                  return (
+                    <label key={l.ordre} className="flex items-center gap-3 px-6 py-3.5 border-b border-gray-100 cursor-pointer hover:bg-blue-50/40">
+                      <input type="checkbox" checked={checked} onChange={() => toggleLine(l.ordre)} className="w-5 h-5 accent-[#2f6fb0] flex-shrink-0" />
+                      <span className={`flex-1 font-manrope text-sm ${checked ? 'text-[#1a1a2e]' : 'text-gray-500'}`}>{l.designation}</span>
+                      <span className={`text-[11px] font-manrope font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${checked ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{checked ? 'Ajouté' : 'À ajouter'}</span>
+                      <span className="font-manrope font-bold text-sm text-[#1a1a2e] whitespace-nowrap w-24 text-right">+ {formatCurrency(lineTtc(l))}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="px-6 py-4 bg-[#0f1a3a] text-white flex items-center justify-between">
+              <span className="font-manrope text-sm text-sky-200">Votre total à signer</span>
+              <span className="font-syne font-extrabold text-2xl">{formatCurrency(signTotal)}</span>
+            </div>
+          </div>
+        )}
 
         {/* ═══ SECTION SIGNATURE ═══ */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -594,7 +684,7 @@ export default function SignerDevisPage() {
                 ) : mode === 'draw' ? (
                   'Signer ce devis'
                 ) : (
-                  `J'approuve ce devis — ${formatCurrency(totalTTC)}`
+                  `J'approuve ce devis — ${formatCurrency(signTotal)}`
                 )}
               </button>
             )}

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       return rateLimitError()
     }
 
-    const { token, signedBy, signatureBase64, mode } = await req.json()
+    const { token, signedBy, signatureBase64, mode, lignesRetenues } = await req.json()
 
     // Validation
     if (!token || !signedBy) {
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     // 1. Chercher le devis par token
     const { data: devis, error: devisErr } = await supabase
       .from('devis')
-      .select('id, numero, statut, user_id, client_id, montant_ttc, objet, signature_token_expire_at, signature_token_used_at')
+      .select('id, numero, statut, user_id, client_id, montant_ttc, objet, autoliquidation_btp, signature_token_expire_at, signature_token_used_at')
       .eq('signature_token', token)
       .single()
 
@@ -99,6 +99,58 @@ export async function POST(req: NextRequest) {
       return secureError('Ce devis ne peut pas être signé')
     }
 
+    // 2bis. PÉRIMÈTRE CHOISI PAR LE CLIENT (devis cochable)
+    // Le calcul fait foi CÔTÉ SERVEUR : on relit les lignes en base et on applique
+    // la sélection du client (ordres retenus). Le client ne peut JAMAIS forcer un
+    // montant : on recalcule HT/TVA/TTC à partir des prix stockés.
+    const { data: dbLignes } = await supabase
+      .from('devis_lignes')
+      .select('id, ordre, type, designation, optionnel, inclus_par_defaut, quantite, prix_unitaire_ht, taux_tva')
+      .eq('devis_id', devis.id)
+
+    // Liste des ordres retenus envoyée par le client (lignes facultatives/options cochées).
+    // Si absente (ancien client / devis sans option), on applique les valeurs par défaut.
+    const retenuesSet: Set<number> | null = Array.isArray(lignesRetenues)
+      ? new Set(lignesRetenues.map((n: unknown) => Number(n)).filter((n: number) => Number.isFinite(n)))
+      : null
+
+    let signHt = 0
+    const htByTaux: Record<number, number> = {}
+    let retainedPrestations = 0
+    let modifie = false
+    const retires: string[] = []
+    const ajoutes: string[] = []
+    const lineUpdates: { id: string; retenu: boolean }[] = []
+
+    for (const l of (dbLignes ?? [])) {
+      const isPrestation = (l.type ?? 'prestation') === 'prestation'
+      const isToggle = l.optionnel === true && isPrestation
+      let retenu = true
+      if (isToggle) {
+        const estFacultatif = l.inclus_par_defaut !== false // sinon = option "+"
+        retenu = retenuesSet ? retenuesSet.has(Number(l.ordre)) : estFacultatif
+        if (estFacultatif && !retenu) { modifie = true; retires.push(String(l.designation ?? '')) }
+        if (!estFacultatif && retenu) { modifie = true; ajoutes.push(String(l.designation ?? '')) }
+      }
+      lineUpdates.push({ id: l.id as string, retenu })
+      if (retenu && isPrestation) {
+        const t = (Number(l.quantite) || 0) * (Number(l.prix_unitaire_ht) || 0)
+        signHt += t
+        retainedPrestations += 1
+        const taux = devis.autoliquidation_btp ? 0 : (Number(l.taux_tva) || 0)
+        if (taux > 0) htByTaux[taux] = (htByTaux[taux] || 0) + t
+      }
+    }
+
+    // Garde-fou : on refuse un devis vide (toutes les prestations retirées).
+    if ((dbLignes ?? []).length > 0 && retainedPrestations === 0) {
+      return secureError('Impossible de signer un devis sans aucune prestation retenue')
+    }
+
+    let signTva = 0
+    for (const k of Object.keys(htByTaux)) signTva += htByTaux[Number(k)] * (Number(k) / 100)
+    const signTtc = signHt + signTva
+
     // 3. Mettre à jour le devis
     const updateData: Record<string, unknown> = {
       statut: 'signe',
@@ -109,6 +161,15 @@ export async function POST(req: NextRequest) {
       // relisent le devis via ce token apres signature pour afficher la
       // confirmation. used_at suffit a bloquer toute nouvelle signature.
       signature_token_used_at: new Date().toISOString(),
+      modifie_par_client: modifie,
+    }
+    // On n'enregistre un montant signé QUE si le client a réellement modifié le
+    // périmètre. Sinon on garde le montant d'origine (évite toute divergence sur
+    // les devis au forfait ou cas particuliers où la somme des lignes ≠ montant stocké).
+    if (modifie) {
+      updateData.montant_ht_signe = signHt
+      updateData.montant_tva_signe = signTva
+      updateData.montant_ttc_signe = signTtc
     }
 
     if (mode === 'draw' && signatureBase64) {
@@ -129,9 +190,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la signature' }, { status: 500 })
     }
 
-    // 4. Envoyer la notification email à l'artisan
+    // 3bis. Figer le choix par ligne (retenu_par_client) pour la facture + le PDF signé.
+    if (lineUpdates.length > 0) {
+      await Promise.all(
+        lineUpdates.map(u =>
+          supabase.from('devis_lignes').update({ retenu_par_client: u.retenu }).eq('id', u.id),
+        ),
+      )
+    }
+
+    // 4. Envoyer la notification email à l'artisan (montant signé + modifications)
     try {
-      await sendArtisanNotification(supabase, devis, safeSignedBy, mode)
+      await sendArtisanNotification(
+        supabase,
+        { ...devis, montant_ttc: modifie ? signTtc : devis.montant_ttc },
+        safeSignedBy,
+        mode,
+        { modifie, retires, ajoutes },
+      )
     } catch (notifErr) {
       // On ne bloque pas la signature si l'email échoue
       console.error('Notification email error:', notifErr)
@@ -154,6 +230,7 @@ async function sendArtisanNotification(
   devis: { id: string; numero: string; user_id: string; montant_ttc: number; objet?: string },
   signedBy: string,
   mode: string,
+  modifications?: { modifie: boolean; retires: string[]; ajoutes: string[] },
 ) {
   // Récupérer l'email de l'artisan + sa préférence notification.
   // 28/05/2026 : on respecte le toggle "Devis signé" des paramètres
@@ -175,6 +252,17 @@ async function sendArtisanNotification(
   // l'objet (défense en profondeur) avant interpolation dans le HTML de l'email.
   const safeObjet = devis.objet ? sanitizeString(devis.objet, 500) : ''
 
+  // Bloc "modifications client" (devis cochable) : ce que le client a retiré/ajouté.
+  const modifHtml = (() => {
+    if (!modifications?.modifie) return ''
+    const esc = (s: string) => sanitizeString(s, 200)
+    const ret = modifications.retires.filter(Boolean)
+    const add = modifications.ajoutes.filter(Boolean)
+    const retLine = ret.length ? `<p style="margin:0 0 4px;font-size:13px;color:#b91c1c;"><strong>Retiré :</strong> ${ret.map(esc).join(', ')}</p>` : ''
+    const addLine = add.length ? `<p style="margin:0;font-size:13px;color:#1d4ed8;"><strong>Ajouté :</strong> ${add.map(esc).join(', ')}</p>` : ''
+    return `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px;margin:0 0 20px;"><p style="margin:0 0 8px;font-size:13px;color:#9a3412;font-weight:700;">Le client a personnalisé le devis :</p>${retLine}${addLine}</div>`
+  })()
+
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
 <div style="max-width:580px;margin:0 auto;padding:20px;">
 <div style="background:#fff;border-radius:8px;border:1px solid #e5e7eb;">
@@ -185,9 +273,10 @@ async function sendArtisanNotification(
 <p style="font-size:16px;color:#1a1a2e;margin:0 0 14px;">Bonjour ${entreprise.nom},</p>
 <p style="font-size:15px;color:#374151;margin:0 0 16px;line-height:1.6;">Votre devis <strong>n° ${devis.numero}</strong> vient d'être accepté par <strong>${signedBy}</strong> via ${modeLabel}.</p>
 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:0 0 20px;">
-<p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Montant :</strong> ${fmt(devis.montant_ttc || 0)}</p>
+<p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Montant accepté :</strong> ${fmt(devis.montant_ttc || 0)}${modifications?.modifie ? ' (périmètre personnalisé)' : ''}</p>
 ${safeObjet ? `<p style="margin:0;font-size:14px;color:#374151;"><strong>Objet :</strong> ${safeObjet}</p>` : ''}
 </div>
+${modifHtml}
 <div style="text-align:center;margin:20px 0;">
 <a href="https://nexartis.fr/dashboard/devis/${devis.id}" style="background:#2563eb;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;">Voir le devis signé</a>
 </div>
