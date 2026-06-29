@@ -2,6 +2,13 @@
 
 import { ArrowUp, ArrowDown, Trash2, Plus, ImagePlus } from 'lucide-react'
 import PhotoSlot, { type PhotoMap } from './PhotoSlot'
+import MicDictee from './MicDictee'
+
+/** Ajoute un texte dicté à une valeur existante (espace si déjà du contenu). */
+function appendDictee(current: string | undefined, dicte: string): string {
+  const c = (current ?? '').trim()
+  return c ? `${c} ${dicte}` : dicte
+}
 import type { UploadJob } from '@/lib/rapport/upload-queue'
 import type { RapportUploadPayload } from '@/lib/rapport/upload-store'
 import {
@@ -22,6 +29,7 @@ function StringList({ items, placeholder, onChange }: { items: string[]; placeho
           <span className="text-orange font-bold">•</span>
           <input className={inputCls} value={val} placeholder={placeholder}
             onChange={(e) => { const n = [...safe]; n[i] = e.target.value; onChange(n) }} />
+          <MicDictee onText={(t) => { const n = [...safe]; n[i] = appendDictee(safe[i], t); onChange(n) }} />
           {safe.length >= 1 && (
             <button type="button" aria-label="Retirer" onClick={() => onChange(safe.filter((_, j) => j !== i))}
               className="text-gray-300 hover:text-red-500 flex-shrink-0"><Trash2 size={15} /></button>
@@ -70,6 +78,7 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
                 <textarea className={`${inputCls} mt-1.5`} rows={2} value={ref.legende ?? ''} placeholder="Texte de la photo (Entrée = nouvelle ligne)"
                   onChange={(e) => setRef(i, { ...ref, legende: e.target.value })} />
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <MicDictee onText={(t) => setRef(i, { ...ref, legende: appendDictee(ref.legende, t) })} />
                   <button type="button" onClick={() => setRef(i, { ...ref, layout: ref.layout === 'side' ? 'below' : 'side' })}
                     className="inline-flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1 font-hanken text-xs font-semibold text-navy hover:border-sky hover:bg-sky/5">
                     Disposition : {ref.layout === 'side' ? 'texte à côté' : 'texte dessous'} · cliquer pour changer
@@ -91,7 +100,10 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
         return (<>
           <label className={labelCls}>Titre (optionnel)</label>
           <input className={inputCls} value={c.titre ?? ''} placeholder="Ex : Tableau électrique" onChange={(e) => onChange({ ...c, titre: e.target.value })} />
-          <label className={labelCls}>Texte</label>
+          <div className="flex items-center justify-between mt-3 mb-1">
+            <label className="font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500">Texte</label>
+            <MicDictee onText={(t) => onChange({ ...c, texte: appendDictee(c.texte, t) })} />
+          </div>
           <textarea className={inputCls} rows={4} value={c.texte ?? ''} placeholder="Écrivez ce que vous voulez…" onChange={(e) => onChange({ ...c, texte: e.target.value })} />
         </>)
       }
@@ -108,7 +120,10 @@ export default function PageCard({ page, index, total, onMoveUp, onMoveDown, onD
           <StringList items={c.controles ?? []} placeholder="Ex : continuité de terre vérifiée" onChange={(controles) => onChange({ ...c, controles })} />
           <input className={titleCls} value={c.titreObservations ?? 'Observations'} onChange={(e) => onChange({ ...c, titreObservations: e.target.value })} />
           <StringList items={c.observations ?? []} placeholder="Observation…" onChange={(observations) => onChange({ ...c, observations })} />
-          <input className={titleCls} value={c.titreConclusion ?? 'Conclusion'} onChange={(e) => onChange({ ...c, titreConclusion: e.target.value })} />
+          <div className="flex items-center justify-between mt-3 mb-1">
+            <input className="flex-1 font-hanken text-[11px] font-bold uppercase tracking-wide text-gray-500 bg-transparent outline-none border-b border-dashed border-gray-200 focus:border-sky" value={c.titreConclusion ?? 'Conclusion'} onChange={(e) => onChange({ ...c, titreConclusion: e.target.value })} />
+            <MicDictee className="ml-2" onText={(t) => onChange({ ...c, conclusion: appendDictee(c.conclusion, t) })} />
+          </div>
           <textarea className={inputCls} rows={3} value={c.conclusion ?? ''} placeholder="Mot de conclusion…" onChange={(e) => onChange({ ...c, conclusion: e.target.value })} />
         </>)
       }
