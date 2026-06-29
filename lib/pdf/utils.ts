@@ -125,6 +125,8 @@ export interface PdfLigne {
   // Statut d'inclusion (devis) : optionnel=true + inclus_par_defaut=false => "Option +".
   optionnel?: boolean | null
   inclus_par_defaut?: boolean | null
+  // Choix figé du client à la signature (mode signé) : false = non retenu.
+  retenu_par_client?: boolean | null
 }
 
 // ---------------------------------------------------------------------------

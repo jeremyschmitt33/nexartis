@@ -33,6 +33,7 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
           <LinesTable groups={data.groups} />
           {isDevis ? <RecapDevis data={data} /> : <RecapFacture data={data} />}
           {isDevis && data.options && data.options.length > 0 && <OptionsBlock items={data.options} totals={data.optionsTotals} />}
+          {isDevis && data.nonRetenues && data.nonRetenues.length > 0 && <NonRetenuesBlock items={data.nonRetenues} />}
           {/* 2026-06-10 — Mention autoliquidation BTP en pied de doc (art. 283-2 nonies CGI) */}
           {data.meta.autoliquidationBtp && <AutoliquidationMention />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
@@ -299,6 +300,40 @@ function OptionsBlock({ items, totals }: { items: DocumentLeaf[]; totals?: { ht:
           <span>+ {eur(totals.ttc)} TTC</span>
         </div>
       )}
+    </div>
+  )
+}
+
+// Annexe "postes non retenus" : affichée sur un devis signé, pour tracer ce que
+// le client a écarté. Hors total, style atténué + texte barré.
+function NonRetenuesBlock({ items }: { items: DocumentLeaf[] }) {
+  return (
+    <div style={{ margin: '14px 0 4px', border: '1px solid #d8dce5', borderRadius: 10, overflow: 'hidden', background: '#f7f8fa' }}>
+      <div style={{ padding: '9px 14px', background: '#eef0f4', display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <strong style={{ color: '#5b6473', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '.4px' }}>Postes proposés non retenus par le client</strong>
+        <span style={{ color: '#8a93a3', fontSize: '0.75rem' }}>— non compris dans le total signé</span>
+      </div>
+      <table className="dv-table" style={{ margin: 0 }}>
+        <thead>
+          <tr>
+            <th className="dv-c-num">#</th><th className="dv-c-desg">Désignation</th>
+            <th className="dv-c-qte">Qté</th><th className="dv-c-pu">P.U. HT</th>
+            <th className="dv-c-tva">TVA</th><th className="dv-c-tot">Total HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, ii) => (
+            <tr key={`nr-${ii}`} className="dv-row dv-row--item" style={{ color: '#9aa1ad' }}>
+              <td className="dv-c-num">{it.n}</td>
+              <td className="dv-c-desg" style={{ textDecoration: 'line-through' }}>{it.designation}</td>
+              <td className="dv-c-qte">{Number(it.qte).toLocaleString('fr-FR')}{it.unite && <span className="dv-unit"> {it.unite}</span>}</td>
+              <td className="dv-c-pu">{eur(it.pu)}</td>
+              <td className="dv-c-tva">{tauxLabel(it.tva)}</td>
+              <td className="dv-c-tot">{eur(it.qte * it.pu)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

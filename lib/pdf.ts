@@ -14,7 +14,7 @@ import { fmt, fmtDate, font, setFill, normalizeLignes, detectForfaitMode, type P
 import { drawHeader, drawMiniHeaderPages2Plus } from './pdf/header'
 import { drawIdentityCards } from './pdf/identity'
 import { drawObjet } from './pdf/objet'
-import { drawTable, drawOptionsBlock } from './pdf/table'
+import { drawTable, drawOptionsBlock, drawNonRetenuesBlock } from './pdf/table'
 import { drawTotals } from './pdf/totals'
 import {
   drawLegal,
@@ -193,11 +193,17 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
     ? (data.lignes as PdfLigne[]).map(l => ({ ...l, taux_tva: 0 }))
     : (data.lignes as PdfLigne[])
   const lignes = normalizeLignes(rawLignes)
-  // Les postes "Option +" (optionnel + non inclus par défaut) sont sortis du
-  // tableau et des totaux principaux, puis affichés dans un bloc dédié (parité HTML).
+  // Mode SIGNÉ (retenu_par_client renseigné) : on affiche le périmètre accepté +
+  // une annexe des postes non retenus. Sinon : "Option +" dans un bloc séparé.
+  const isSigned = lignes.some(l => l.retenu_par_client !== null && l.retenu_par_client !== undefined)
   const isOptionLine = (l: PdfLigne) => !!l.optionnel && l.inclus_par_defaut === false
-  const mainLignes = lignes.filter(l => !isOptionLine(l))
-  const optionLignes = lignes.filter(isOptionLine)
+  const mainLignes = isSigned
+    ? lignes.filter(l => l.retenu_par_client !== false).map(l => ({ ...l, optionnel: false }))
+    : lignes.filter(l => !isOptionLine(l))
+  const optionLignes = isSigned ? [] : lignes.filter(isOptionLine)
+  const nonRetenuesLignes = isSigned
+    ? lignes.filter(l => l.retenu_par_client === false && ((l.type ?? 'prestation') === 'prestation'))
+    : []
   const palette = buildPalette(theme ?? null)
 
   // 1. HEADER bandeau navy
@@ -265,6 +271,10 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
   // 6 bis. Bloc OPTIONS + (proposées en plus, non comptées dans le total)
   if (optionLignes.length > 0) {
     y = drawOptionsBlock(doc, optionLignes, y + 2, palette)
+  }
+  // 6 ter. Annexe POSTES NON RETENUS (devis signé personnalisé par le client)
+  if (nonRetenuesLignes.length > 0) {
+    y = drawNonRetenuesBlock(doc, nonRetenuesLignes, y + 2, palette)
   }
 
   // 7. Mentions legales (encadre 2x2 + AGEC + TVA)

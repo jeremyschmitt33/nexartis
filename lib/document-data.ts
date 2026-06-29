@@ -146,6 +146,8 @@ export interface DocumentData {
   // Devis : postes "Option +" proposés en plus, NON comptés dans le total principal.
   options?: DocumentLeaf[]
   optionsTotals?: { ht: number; ttc: number }
+  // Devis signé : postes proposés mais NON retenus par le client (annexe, hors total).
+  nonRetenues?: DocumentLeaf[]
 }
 
 // ---------------------------------------------------------------------------
@@ -166,6 +168,7 @@ export interface RawLigne {
   parent_id?: string | null
   optionnel?: boolean | null
   inclus_par_defaut?: boolean | null
+  retenu_par_client?: boolean | null
 }
 
 export interface RawDevis {
@@ -571,11 +574,19 @@ export function buildDevisDocument(opts: {
 }): DocumentData {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
-  // Les postes "Option +" (optionnel + non inclus par défaut) sont sortis du calcul
-  // principal et présentés dans un bloc séparé. Les "facultatifs" restent comptés.
+  // Deux modes :
+  //  • NON signé : "Option +" sorties dans un bloc séparé, "facultatifs" comptés (pastilles).
+  //  • SIGNÉ (retenu_par_client renseigné) : on affiche le PÉRIMÈTRE ACCEPTÉ (lignes retenues,
+  //    devenues "fermes") + une annexe des postes proposés mais NON retenus par le client.
+  const isSigned = opts.lignes.some(l => l.retenu_par_client !== null && l.retenu_par_client !== undefined)
   const isOption = (l: RawLigne) => !!l.optionnel && l.inclus_par_defaut === false
-  const mainLignes = opts.lignes.filter(l => !isOption(l))
-  const optionLignes = opts.lignes.filter(isOption)
+  const mainLignes = isSigned
+    ? opts.lignes.filter(l => l.retenu_par_client !== false).map(l => ({ ...l, optionnel: false }))
+    : opts.lignes.filter(l => !isOption(l))
+  const optionLignes = isSigned ? [] : opts.lignes.filter(isOption)
+  const nonRetenuesLignes = isSigned
+    ? opts.lignes.filter(l => l.retenu_par_client === false && (l.type ?? 'prestation') === 'prestation')
+    : []
   const built = buildHierarchy(mainLignes)
   const isAutoliq = opts.doc.autoliquidation_btp === true
   const groups = isAutoliq ? applyAutoliquidationOnGroups(built.groups) : built.groups
@@ -586,6 +597,7 @@ export function buildDevisDocument(opts: {
     return isAutoliq ? { ...leaf, tva: 0 } : leaf
   })
   const optionsTotals = options.length ? computeOptionsTotals(options, isAutoliq) : undefined
+  const nonRetenues: DocumentLeaf[] = nonRetenuesLignes.map((l, i) => leafFromRaw({ ...l, optionnel: false }, String(i + 1)))
 
   const dechets = opts.doc.dechets_nature || opts.doc.dechets_responsable ||
                   opts.doc.dechets_tri || opts.doc.dechets_collecte_nom
@@ -612,7 +624,7 @@ export function buildDevisDocument(opts: {
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
 
-  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType, options: options.length ? options : undefined, optionsTotals }
+  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType, options: options.length ? options : undefined, optionsTotals, nonRetenues: nonRetenues.length ? nonRetenues : undefined }
 }
 
 export function buildFactureDocument(opts: {

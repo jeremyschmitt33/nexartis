@@ -473,6 +473,7 @@ export default function DevisDetailPage() {
       numero: ((l as Record<string, unknown>).numero ?? null) as string | null,
       optionnel: ((l as Record<string, unknown>).optionnel ?? null) as boolean | null,
       inclus_par_defaut: ((l as Record<string, unknown>).inclus_par_defaut ?? null) as boolean | null,
+      retenu_par_client: ((l as Record<string, unknown>).retenu_par_client ?? null) as boolean | null,
     })),
     client: {
       civilite: client?.civilite ?? null,

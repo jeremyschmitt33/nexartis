@@ -107,9 +107,10 @@ export async function POST(req: NextRequest) {
       clientSiret,
       // V2.4d : ajout TVA intracommunautaire client pour conformité B2B intra-UE
       clientTvaIntra,
-      montant_ht: devis.montant_ht || 0,
-      montant_tva: devis.montant_tva || 0,
-      montant_ttc: devis.montant_ttc || 0,
+      // Mode signé : on affiche le montant réellement accepté par le client.
+      montant_ht: (devis.montant_ht_signe ?? devis.montant_ht) || 0,
+      montant_tva: (devis.montant_tva_signe ?? devis.montant_tva) || 0,
+      montant_ttc: (devis.montant_ttc_signe ?? devis.montant_ttc) || 0,
       lignes: lignesAvecNumero.map((item) => {
         const l = item._orig as Record<string, unknown>
         return {
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
           // Statut d'inclusion (devis cochable) : exclusion des options du total + bloc dédié.
           optionnel: (l.optionnel as boolean | null | undefined),
           inclus_par_defaut: (l.inclus_par_defaut as boolean | null | undefined),
+          retenu_par_client: (l.retenu_par_client as boolean | null | undefined),
         }
       }),
       entreprise: entreprise || {},

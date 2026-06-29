@@ -84,9 +84,10 @@ export async function POST(req: NextRequest) {
     }
 
     const ent = entreprise || {}
-    const totalHT = devis.montant_ht || 0
-    const totalTVA = devis.montant_tva || 0
-    const totalTTC = devis.montant_ttc || 0
+    // Mode signé : montant réellement accepté (sinon proposé). NULL → fallback.
+    const totalHT = (devis.montant_ht_signe ?? devis.montant_ht) || 0
+    const totalTVA = (devis.montant_tva_signe ?? devis.montant_tva) || 0
+    const totalTTC = (devis.montant_ttc_signe ?? devis.montant_ttc) || 0
     const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
     const dateValidite = devis.date_validite ? new Date(devis.date_validite).toLocaleDateString('fr-FR') : ''
 
@@ -140,6 +141,7 @@ export async function POST(req: NextRequest) {
           // Statut d'inclusion (devis cochable) : exclusion des options du total + bloc dédié.
           optionnel: (l.optionnel as boolean | null | undefined),
           inclus_par_defaut: (l.inclus_par_defaut as boolean | null | undefined),
+          retenu_par_client: (l.retenu_par_client as boolean | null | undefined),
         }
       }),
       entreprise: ent,
