@@ -148,7 +148,7 @@ export default function StatistiquesPage() {
     const tauxTransformation = totalDevis > 0 ? Math.round((signedDevis / totalDevis) * 100) : 0;
 
     const devisMontants = devs
-      .map((d) => (d.montant_ttc as number) ?? 0)
+      .map((d) => ((d.montant_ttc_signe ?? d.montant_ttc) as number) ?? 0)
       .filter((m) => m > 0);
     const montantMoyenDevis = devisMontants.length > 0
       ? Math.round(devisMontants.reduce((a, b) => a + b, 0) / devisMontants.length)

@@ -158,7 +158,8 @@ export default function DevisListPage() {
       envoyesCount: envoyes.length,
       envoyesTTC: envoyes.reduce((s: number, d: Record<string, unknown>) => s + Number(d.montant_ttc || 0), 0),
       signesCount: signes.length,
-      signesTTC: signes.reduce((s: number, d: Record<string, unknown>) => s + Number(d.montant_ttc || 0), 0),
+      // Montant réellement accepté par le client (signé) si modifié, sinon proposé.
+      signesTTC: signes.reduce((s: number, d: Record<string, unknown>) => s + Number((d.montant_ttc_signe ?? d.montant_ttc) || 0), 0),
       attenteCount: enAttente.length,
       attenteTTC: enAttente.reduce((s: number, d: Record<string, unknown>) => s + Number(d.montant_ttc || 0), 0),
     }
@@ -182,7 +183,7 @@ export default function DevisListPage() {
       })
     }
     if (sort === "Date") list.sort((a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime())
-    else if (sort === "Montant") list.sort((a, b) => Number(b.montant_ttc || 0) - Number(a.montant_ttc || 0))
+    else if (sort === "Montant") list.sort((a, b) => Number((b.montant_ttc_signe ?? b.montant_ttc) || 0) - Number((a.montant_ttc_signe ?? a.montant_ttc) || 0))
     else if (sort === "Client") list.sort((a, b) => getClientName(a.client_id as string | null).localeCompare(getClientName(b.client_id as string | null)))
     return list
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -428,7 +429,8 @@ export default function DevisListPage() {
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10.5px] font-hanken font-bold uppercase tracking-wider ${STATUS_STYLES[statut] || "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABELS[statut] || statut}
                     </span>
-                    <p className="font-spline-mono font-bold text-[15px] text-[#0f1a3a] tabular-nums">{formatCurrency(devis.montant_ttc as number)}</p>
+                    <p className="font-spline-mono font-bold text-[15px] text-[#0f1a3a] tabular-nums">{formatCurrency((devis.montant_ttc_signe ?? devis.montant_ttc) as number)}</p>
+                    {Boolean(devis.modifie_par_client) && <span className="text-[9.5px] font-hanken font-bold uppercase tracking-wide text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">modifié</span>}
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-2 gap-2">
@@ -498,8 +500,11 @@ export default function DevisListPage() {
                   <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-600">{formatDate(devis.updated_at as string)}</td>
                   <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-600">{formatDate(devis.date_emission as string)}</td>
                   <td className="px-4 py-3 text-[13px] font-spline-mono text-gray-600">{formatDate(devis.date_validite as string)}</td>
-                  <td className="px-4 py-3 text-sm font-spline-mono font-medium text-[#0f1a3a] tabular-nums">{formatCurrency(devis.montant_ht as number)}</td>
-                  <td className="px-4 py-3 text-sm font-spline-mono font-bold text-[#0f1a3a] tabular-nums">{formatCurrency(devis.montant_ttc as number)}</td>
+                  <td className="px-4 py-3 text-sm font-spline-mono font-medium text-[#0f1a3a] tabular-nums">{formatCurrency((devis.montant_ht_signe ?? devis.montant_ht) as number)}</td>
+                  <td className="px-4 py-3 text-sm font-spline-mono font-bold text-[#0f1a3a] tabular-nums">
+                    {formatCurrency((devis.montant_ttc_signe ?? devis.montant_ttc) as number)}
+                    {Boolean(devis.modifie_par_client) && <span className="ml-1.5 text-[9.5px] font-hanken font-bold uppercase tracking-wide text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded align-middle">modifié</span>}
+                  </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <button onClick={(e) => openMenu(e, devis.id as string)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><MoreHorizontal size={16} className="text-gray-500" /></button>
                   </td>

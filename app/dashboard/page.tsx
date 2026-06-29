@@ -206,7 +206,7 @@ export default function DashboardPage() {
   const devisEnCoursMontant = devisEnCours.reduce((sum: number, d: Record<string, unknown>) => sum + Number(d.montant_ht || 0), 0);
   // Devis acceptés (statut 'signe') — utilisés pour la stat "Conversion" et "À planifier"
   const devisSignes = devis.filter((d: Record<string, unknown>) => d.statut === 'signe');
-  const devisSignesMontantTTC = devisSignes.reduce((sum: number, d: Record<string, unknown>) => sum + Number(d.montant_ttc || 0), 0);
+  const devisSignesMontantTTC = devisSignes.reduce((sum: number, d: Record<string, unknown>) => sum + Number((d.montant_ttc_signe ?? d.montant_ttc) || 0), 0);
   const tauxConversion = devis.length > 0
     ? Math.round((devisSignes.length / devis.length) * 100)
     : 0;
@@ -345,10 +345,13 @@ export default function DashboardPage() {
   })
   for (const d of devisAcceptesAPlanifier) {
     const cName = clientName(d.client_id) || (d.notes_client as string)?.split(' | ')[0] || ''
+    // Devis cochable : si le client a personnalisé le périmètre, on le signale + montant signé.
+    const aEteModifie = Boolean(d.modifie_par_client)
+    const montantSigne = (d.montant_ttc_signe ?? d.montant_ttc) as number | null
     todoItems.push({
       title: `Devis ${d.numero} -- accepte`,
-      desc: `${cName} · a planifier`,
-      amount: d.montant_ttc ? formatEuro(Number(d.montant_ttc)) : '',
+      desc: `${cName} · a planifier${aEteModifie ? ' · modifié par le client' : ''}`,
+      amount: montantSigne ? formatEuro(Number(montantSigne)) : '',
       dotColor: '#10b981', amountColor: '#10b981',
       tag: 'Planifier', tagBg: '#ecfdf5', tagColor: '#059669',
       href: d.chantier_id ? `/dashboard/chantiers/${d.chantier_id}` : `/dashboard/devis/${d.id}`,
@@ -607,7 +610,8 @@ export default function DashboardPage() {
     const dotColor = d.statut === 'signe' ? '#22c55e' : d.statut === 'envoye' ? '#5ab4e0' : '#7c3aed';
     activityData.push({
       icon: "doc", desc: cName,
-      detail: `Devis ${d.numero} · ${statusLabel}`, amount: d.montant_ttc ? formatEuro(Number(d.montant_ttc)) : '',
+      detail: `Devis ${d.numero} · ${statusLabel}${d.statut === 'signe' && d.modifie_par_client ? ' (modifié)' : ''}`,
+      amount: (d.montant_ttc_signe ?? d.montant_ttc) ? formatEuro(Number(d.montant_ttc_signe ?? d.montant_ttc)) : '',
       time: timeAgo(d.created_at as string), dotColor,
     });
   }
