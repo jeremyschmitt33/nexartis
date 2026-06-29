@@ -1296,3 +1296,155 @@ export const NORMES_METIERS: MetierNormes[] = [
     ],
   },
 ]
+
+// ============================================================================
+// Aide-mémoire « process & jalons » par métier (assistant de conformité).
+// ----------------------------------------------------------------------------
+// Architecture GÉNÉRIQUE : chaque métier PEUT avoir son aide-mémoire ; seul
+// l'électricien est rempli aujourd'hui. Ajouter un métier plus tard = ajouter
+// une entrée dans AIDE_MEMOIRE (la page Normes l'affichera automatiquement
+// quand l'artisan sélectionne ce métier). Le contenu est orienté DÉMARCHES /
+// JALONS (Consuel, schéma, étapes), PAS les points techniques détaillés (ceux-ci
+// restent dans les fiches NORMES_METIERS, vers lesquelles on renvoie).
+// Indicatif : ne certifie rien, l'artisan reste responsable de la conformité.
+// ============================================================================
+
+export type TravauxType = 'neuf' | 'reno_totale' | 'reno_partielle'
+export type BatimentType = 'logement' | 'logement_social' | 'erp' | 'locaux_travail'
+
+export const TRAVAUX_LABELS: Record<TravauxType, string> = {
+  neuf: 'Neuf',
+  reno_totale: 'Réno totale',
+  reno_partielle: 'Réno partielle',
+}
+
+export const BATIMENT_LABELS: Record<BatimentType, string> = {
+  logement: 'Logement',
+  logement_social: 'Logement social',
+  erp: 'ERP (public)',
+  locaux_travail: 'Locaux de travail',
+}
+
+export interface JalonConformite {
+  id: string
+  intitule: string
+  detail: string
+  /** Contextes concernés ; absent = tous les types de travaux. */
+  travaux?: TravauxType[]
+  /** Contextes concernés ; absent = tous les types de bâtiment. */
+  batiment?: BatimentType[]
+  confiance: Confiance
+  source?: string
+}
+
+export interface AideMemoireMetier {
+  intro: string
+  jalons: JalonConformite[]
+}
+
+/** Aide-mémoire par slug de métier. Seul 'electricien' est rempli au lancement. */
+export const AIDE_MEMOIRE: Record<string, AideMemoireMetier> = {
+  electricien: {
+    intro:
+      'Rappel des grandes démarches à ne pas oublier, selon le type de travaux et de bâtiment. Indicatif : ne remplace pas la lecture des normes ni l’avis du Consuel.',
+    jalons: [
+      {
+        id: 'etude',
+        intitule: 'Étude et dimensionnement',
+        detail: 'Dimensionner l’installation (puissance, nombre de circuits, sections) avant de chiffrer.',
+        confiance: 'haute',
+      },
+      {
+        id: 'schema',
+        intitule: 'Schéma unifilaire à jour',
+        detail: 'Établir ou mettre à jour le schéma unifilaire du tableau de répartition.',
+        travaux: ['neuf', 'reno_totale'],
+        confiance: 'haute',
+      },
+      {
+        id: 'gtl',
+        intitule: 'GTL / ETEL à prévoir',
+        detail: 'Prévoir la Gaine Technique Logement (emplacement, dimensions, réserve dans le tableau).',
+        travaux: ['neuf', 'reno_totale'],
+        batiment: ['logement', 'logement_social'],
+        confiance: 'haute',
+      },
+      {
+        id: 'securite_partielle',
+        intitule: 'Mise en sécurité des circuits touchés',
+        detail: 'En rénovation partielle, sécuriser les circuits modifiés : liaison à la terre et différentiel 30 mA.',
+        travaux: ['reno_partielle'],
+        confiance: 'haute',
+      },
+      {
+        id: 'consuel_jaune',
+        intitule: 'Attestation Consuel jaune (habitation)',
+        detail:
+          'Habitation : attestation Consuel jaune. Obligatoire en neuf et en rénovation totale ayant nécessité une mise hors tension par Enedis — à obtenir avant la (re)mise sous tension.',
+        batiment: ['logement', 'logement_social'],
+        confiance: 'haute',
+        source: 'https://www.consuel.com',
+      },
+      {
+        id: 'consuel_vert',
+        intitule: 'Attestation Consuel verte (non domestique)',
+        detail: 'Usage non domestique (ERP, locaux professionnels, parties communes) : attestation Consuel verte.',
+        batiment: ['erp', 'locaux_travail'],
+        confiance: 'haute',
+        source: 'https://www.consuel.com',
+      },
+      {
+        id: 'consuel_partielle',
+        intitule: 'Consuel souvent non requis en réno partielle',
+        detail:
+          'Rénovation partielle sans coupure Enedis : pas d’attestation Consuel obligatoire en général. Conservez tout de même vos justificatifs.',
+        travaux: ['reno_partielle'],
+        batiment: ['logement', 'logement_social'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'verif_travail',
+        intitule: 'Vérification initiale (locaux de travail)',
+        detail:
+          'Locaux de travail : vérification initiale de l’installation par un organisme accrédité (Code du travail), puis vérifications périodiques.',
+        batiment: ['locaux_travail'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'erp_secu',
+        intitule: 'ERP : éclairage de sécurité et contrôles',
+        detail:
+          'ERP : éclairage de sécurité (BAES) selon la catégorie et l’effectif, et vérification périodique annuelle par un organisme agréé.',
+        batiment: ['erp'],
+        confiance: 'moyenne',
+      },
+      {
+        id: 'diagnostic',
+        intitule: 'Diagnostic électrique (logement ancien)',
+        detail:
+          'Logement de plus de 15 ans mis en vente ou en location : un diagnostic électrique de sécurité peut être exigé.',
+        travaux: ['reno_partielle', 'reno_totale'],
+        batiment: ['logement', 'logement_social'],
+        confiance: 'moyenne',
+      },
+    ],
+  },
+}
+
+/** Retourne l'aide-mémoire d'un métier (ou undefined si pas encore couvert). */
+export function getAideMemoire(slug: string): AideMemoireMetier | undefined {
+  return AIDE_MEMOIRE[slug]
+}
+
+/** Filtre les jalons selon le type de travaux et de bâtiment choisis. */
+export function filtrerJalons(
+  am: AideMemoireMetier,
+  travaux: TravauxType,
+  batiment: BatimentType,
+): JalonConformite[] {
+  return am.jalons.filter(
+    (j) =>
+      (!j.travaux || j.travaux.includes(travaux)) &&
+      (!j.batiment || j.batiment.includes(batiment)),
+  )
+}

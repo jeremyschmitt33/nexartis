@@ -8,7 +8,12 @@
 
 import { useMemo, useState } from 'react'
 import { Search, ShieldCheck, AlertTriangle, ExternalLink, Info } from 'lucide-react'
-import { NORMES_METIERS, NORMES_MAJ, type MetierNormes, type NormeFiche } from '@/lib/normes-metiers'
+import {
+  NORMES_METIERS, NORMES_MAJ,
+  getAideMemoire, filtrerJalons, TRAVAUX_LABELS, BATIMENT_LABELS,
+  type MetierNormes, type NormeFiche,
+  type AideMemoireMetier, type JalonConformite, type TravauxType, type BatimentType,
+} from '@/lib/normes-metiers'
 
 function matchNorme(n: NormeFiche, q: string): boolean {
   const hay = [n.reference, n.intitule, n.sapplique, n.neufVsReno, n.version, n.note, ...(n.pointsCles || []), ...(n.chiffres || [])]
@@ -116,9 +121,97 @@ function MetierBlock({ m }: { m: MetierNormes }) {
   )
 }
 
+// ─── Aide-mémoire « process & jalons » (assistant de conformité) ───────────
+
+function JalonRow({ j }: { j: JalonConformite }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <h3 className="font-syne font-bold text-[#0f1a3a] text-[14px] leading-tight">{j.intitule}</h3>
+        <ConfianceBadge c={j.confiance} />
+      </div>
+      <p className="mt-2 text-[13px] font-hanken text-gray-700">{j.detail}</p>
+      {j.source && (
+        <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+          <a href={j.source} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11.5px] font-hanken font-semibold text-[#2f6fb0] hover:underline">
+            En savoir plus <ExternalLink size={12} />
+          </a>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PillRow<T extends string>({ label, value, options, onChange }: {
+  label: string
+  value: T
+  options: Record<T, string>
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className="text-[11px] font-hanken font-bold uppercase tracking-wide text-gray-500 mb-1.5">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(options) as T[]).map(k => {
+          const active = k === value
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onChange(k)}
+              className={`px-3 py-1.5 rounded-full text-[12.5px] font-hanken font-semibold transition-colors ${
+                active ? 'bg-[#0f1a3a] text-white' : 'bg-white border border-gray-200 text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fff5ec]'
+              }`}
+            >
+              {options[k]}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function AideMemoireView({ am, onShowFiches }: { am: AideMemoireMetier; onShowFiches: () => void }) {
+  const [travaux, setTravaux] = useState<TravauxType>('neuf')
+  const [batiment, setBatiment] = useState<BatimentType>('logement')
+  const jalons = useMemo(() => filtrerJalons(am, travaux, batiment), [am, travaux, batiment])
+
+  return (
+    <div>
+      <p className="font-hanken text-[13px] text-gray-600 mb-4">{am.intro}</p>
+
+      <div className="rounded-xl border border-gray-200 bg-[#fafbfc] p-4 mb-4">
+        <PillRow label="Type de travaux" value={travaux} options={TRAVAUX_LABELS} onChange={setTravaux} />
+        <PillRow label="Type de bâtiment" value={batiment} options={BATIMENT_LABELS} onChange={setBatiment} />
+      </div>
+
+      {jalons.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {jalons.map(j => <JalonRow key={j.id} j={j} />)}
+        </div>
+      ) : (
+        <p className="text-[13px] font-hanken text-gray-500">Aucun jalon particulier pour ce contexte — consultez les fiches techniques.</p>
+      )}
+
+      <button type="button" onClick={onShowFiches} className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-hanken font-semibold text-[#2f6fb0] hover:underline">
+        Voir les fiches techniques détaillées →
+      </button>
+
+      <div className="mt-4 flex gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3">
+        <AlertTriangle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
+        <p className="text-[12px] font-hanken text-amber-800">
+          Aide-mémoire <strong>indicatif</strong>. Nexartis ne certifie aucune installation : vous restez seul responsable de la conformité. Vérifiez auprès du Consuel et des textes officiels.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function NormesPage() {
   const [selected, setSelected] = useState<string>(NORMES_METIERS[0]?.slug ?? '')
   const [query, setQuery] = useState('')
+  const [mode, setMode] = useState<'fiches' | 'aide'>('fiches')
 
   const q = query.trim().toLowerCase()
 
@@ -202,7 +295,7 @@ export default function NormesPage() {
               return (
                 <button
                   key={m.slug}
-                  onClick={() => setSelected(m.slug)}
+                  onClick={() => { setSelected(m.slug); setMode('fiches') }}
                   className={`px-3.5 py-2 rounded-full text-[13px] font-hanken font-semibold transition-colors ${
                     active ? 'bg-[#0f1a3a] text-white' : 'bg-white border border-gray-200 text-[#0f1a3a] hover:border-[#ff7a1a] hover:bg-[#fff5ec]'
                   }`}
@@ -213,12 +306,42 @@ export default function NormesPage() {
             })}
           </div>
 
-          {current && (
-            <>
-              <p className="font-hanken text-[13.5px] text-gray-500 mb-4">{current.resume}</p>
-              <MetierBlock m={current} />
-            </>
-          )}
+          {current && (() => {
+            const am = getAideMemoire(current.slug)
+            return (
+              <>
+                {/* Sous-onglet Fiches / Aide-mémoire — affiché seulement si ce
+                    métier a un aide-mémoire (électricien aujourd'hui). */}
+                {am && (
+                  <div className="flex gap-1 rounded-xl bg-gray-100 p-1 mb-4 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setMode('fiches')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[13px] font-hanken font-semibold transition-colors ${mode === 'fiches' ? 'bg-white text-[#0f1a3a] shadow-[0_1px_3px_rgba(15,26,58,0.1)]' : 'text-gray-500 hover:text-[#0f1a3a]'}`}
+                    >
+                      Fiches normes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('aide')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[13px] font-hanken font-semibold transition-colors ${mode === 'aide' ? 'bg-white text-[#0f1a3a] shadow-[0_1px_3px_rgba(15,26,58,0.1)]' : 'text-gray-500 hover:text-[#0f1a3a]'}`}
+                    >
+                      Aide-mémoire (jalons)
+                    </button>
+                  </div>
+                )}
+
+                {mode === 'aide' && am ? (
+                  <AideMemoireView am={am} onShowFiches={() => setMode('fiches')} />
+                ) : (
+                  <>
+                    <p className="font-hanken text-[13.5px] text-gray-500 mb-4">{current.resume}</p>
+                    <MetierBlock m={current} />
+                  </>
+                )}
+              </>
+            )
+          })()}
         </div>
       )}
     </div>
