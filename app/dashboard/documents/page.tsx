@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ScrollText, ClipboardCheck, Plus, Pencil, Trash2, FileText } from 'lucide-react'
+import { ScrollText, ClipboardCheck, Mail, Send, Plus, Pencil, Trash2, FileText } from 'lucide-react'
 import {
   useDocumentsTypes,
   useEntreprise,
@@ -19,6 +19,7 @@ import { DOC_TYPES_META, getDocTypeMeta, type DocTypeKind } from '@/lib/document
 import DocumentEditorModal from '@/components/documents/DocumentEditorModal'
 import CoffreFortSection from '@/components/documents/CoffreFortSection'
 import HistoriqueEnvoisSection from '@/components/documents/HistoriqueEnvoisSection'
+import EnvoiDocTypeModal from '@/components/documents/EnvoiDocTypeModal'
 
 type Row = Record<string, unknown>
 function str(v: unknown): string { return v == null ? '' : String(v) }
@@ -26,6 +27,7 @@ function str(v: unknown): string { return v == null ? '' : String(v) }
 const ICONS: Record<string, typeof ScrollText> = {
   ScrollText,
   ClipboardCheck,
+  Mail,
 }
 
 export default function DocumentsPage() {
@@ -39,6 +41,7 @@ export default function DocumentsPage() {
   // Modale : type = creation d'un nouveau modele ; editing = edition d'une ligne.
   const [createType, setCreateType] = useState<DocTypeKind | null>(null)
   const [editing, setEditing] = useState<Row | null>(null)
+  const [sendDoc, setSendDoc] = useState<Row | null>(null)
   const modalOpen = createType !== null || editing !== null
 
   const sortedDocs = useMemo(() => {
@@ -139,6 +142,13 @@ export default function DocumentsPage() {
                     </p>
                   </div>
                   <button
+                    onClick={() => setSendDoc(doc)}
+                    aria-label="Envoyer par email"
+                    className="rounded-lg p-2 text-gray-400 hover:bg-[#fff1e6] hover:text-[#ff7a1a]"
+                  >
+                    <Send size={17} />
+                  </button>
+                  <button
                     onClick={() => setEditing(doc)}
                     aria-label="Modifier"
                     className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-[#0f1a3a]"
@@ -175,6 +185,14 @@ export default function DocumentsPage() {
           devis={devis}
           onClose={closeModal}
           onSaved={onSaved}
+        />
+      )}
+
+      {sendDoc && (
+        <EnvoiDocTypeModal
+          doc={sendDoc}
+          clients={clients}
+          onClose={() => setSendDoc(null)}
         />
       )}
     </div>
