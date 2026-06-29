@@ -722,6 +722,25 @@ export default function DevisDetailPage() {
               <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Créé le</span>
               <span className="text-sm font-spline-mono text-[#0f1a3a]">{formatDate(devis.created_at)}</span>
             </div>
+            {(() => {
+              const dv = devis.date_validite ? new Date(devis.date_validite) : null
+              const jours = dv ? Math.ceil((dv.getTime() - Date.now()) / 86400000) : null
+              const actif = devis.statut === 'brouillon' || devis.statut === 'envoye'
+              return (
+                <div className="border-t border-gray-100 pt-4 flex items-center justify-between gap-2">
+                  <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Valable jusqu&apos;au</span>
+                  <span className="flex items-center gap-2">
+                    {actif && jours !== null && jours < 0 && (
+                      <span className="text-[10px] font-hanken font-bold uppercase px-2 py-0.5 rounded-full bg-red-50 text-red-600">Expiré</span>
+                    )}
+                    {actif && jours !== null && jours >= 0 && jours <= 7 && (
+                      <span className="text-[10px] font-hanken font-bold uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Expire dans {jours}&nbsp;j</span>
+                    )}
+                    <span className="text-sm font-spline-mono text-[#0f1a3a]">{devis.date_validite ? formatDate(devis.date_validite) : '—'}</span>
+                  </span>
+                </div>
+              )
+            })()}
             <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
               <span className="text-[11.5px] font-hanken font-bold uppercase tracking-wider text-gray-500">Total TTC</span>
               <span className="text-lg font-spline-mono font-bold text-[#0f1a3a] tabular-nums">{formatCurrency(totalTTC)}</span>

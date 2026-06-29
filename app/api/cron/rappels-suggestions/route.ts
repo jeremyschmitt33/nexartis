@@ -143,11 +143,16 @@ export async function GET(req: NextRequest) {
     .slice(0, 10)
   const thirtyDaysAgoIso = new Date(today.getTime() - 30 * 24 * 3600 * 1000).toISOString()
   const sevenDaysAgoIso = new Date(today.getTime() - 7 * 24 * 3600 * 1000).toISOString()
+  // Fenetre pour relancer un devis ENVOYE proche de sa date de validite :
+  // de "expire il y a moins de 30 jours" a "expire dans 7 jours".
+  const thirtyDaysAgoDate = thirtyDaysAgoIso.slice(0, 10)
+  const in7daysDate = new Date(today.getTime() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 10)
 
   const counters = {
     decennale: 0,
     facture_relance: 0,
     devis_a_planifier: 0,
+    devis_a_relancer: 0,
     // V2.2 10/06/2026 : notif J-1 avant relance auto (filet de securite).
     notif_j1: 0,
   }
@@ -338,6 +343,54 @@ export async function GET(req: NextRequest) {
   }
 
   // ====================================================================
+  // 3b. Devis ENVOYÉ proche de sa date de validité sans réponse
+  //     -> rappel pour relancer le client avant (ou juste après) expiration.
+  //     Fenêtre : expire dans <=7 jours OU expiré depuis <30 jours.
+  // ====================================================================
+  try {
+    const { data, error } = await supabase
+      .from('devis')
+      .select('id, user_id, numero, date_validite, client_id')
+      .eq('statut', 'envoye')
+      .not('date_validite', 'is', null)
+      .lte('date_validite', in7daysDate)
+      .gte('date_validite', thirtyDaysAgoDate)
+      .is('deleted_at', null)
+
+    if (error) {
+      errors.push(`devis_relance: ${error.message}`)
+    } else if (data) {
+      const rows = data as Array<{ id: string; user_id: string; numero: string | null; date_validite: string | null; client_id: string | null }>
+      for (const d of rows) {
+        const dv = d.date_validite ? new Date(d.date_validite) : null
+        const expire = dv ? dv.getTime() < today.getTime() : false
+        const dateStr = dv ? dv.toLocaleDateString('fr-FR') : ''
+        const inserted = await insertIfMissing(
+          supabase,
+          {
+            user_id: d.user_id,
+            titre: expire
+              ? `Devis ${d.numero || '(sans numéro)'} expiré sans réponse`
+              : `Relancer le devis ${d.numero || '(sans numéro)'} (expire bientôt)`,
+            description: expire
+              ? `Ce devis a dépassé sa date de validité (${dateStr}) sans être accepté. Relancez le client ou prolongez la validité.`
+              : `Ce devis arrive à échéance le ${dateStr}. Un petit rappel au client peut faire la différence.`,
+            due_date: todayIso,
+            priorite: 'normale',
+            source: 'auto_devis_relance',
+            lien_devis_id: d.id,
+            lien_client_id: d.client_id,
+          },
+          { source: 'auto_devis_relance', lien_devis_id: d.id },
+        )
+        if (inserted) counters.devis_a_relancer++
+      }
+    }
+  } catch (e) {
+    errors.push(`devis_relance block: ${e instanceof Error ? e.message : String(e)}`)
+  }
+
+  // ====================================================================
   // 4. V2.2 10/06/2026 — Notif J-1 avant relance auto (filet de securite)
   // Le cron `relances-auto-factures` tournera demain matin a 09h UTC.
   // On cree un rappel dashboard le matin meme (06h UTC) pour prevenir
@@ -375,7 +428,7 @@ export async function GET(req: NextRequest) {
         const { data: facsRaw, error: facsErr } = await supabase
           .from('factures')
           .select('id, user_id, numero, client_id, client_nom, date_echeance, montant_ttc, montant_paye, relance_envoyee_j7, relance_envoyee_j15, relance_envoyee_j30')
-          .in('statut', ['envoyee', 'en_retard'])
+          .in('statut', ['envoyee', 'en_retard', 'partiellement_payee'])
           .in('user_id', userIdsActifs)
           .is('deleted_at', null)
           .gte('date_echeance', ago30Date)
@@ -490,7 +543,7 @@ export async function GET(req: NextRequest) {
 
   const durationMs = Date.now() - start
   const createdCount =
-    counters.decennale + counters.facture_relance + counters.devis_a_planifier + counters.notif_j1
+    counters.decennale + counters.facture_relance + counters.devis_a_planifier + counters.devis_a_relancer + counters.notif_j1
 
   // Log structure pour Vercel Logs
   console.log(
