@@ -125,6 +125,9 @@ export async function POST(req: NextRequest) {
           niveau: (l.niveau as 1 | 2 | 3 | undefined),
           parent_id: (l.parent_id as string | null | undefined),
           numero: item.numero,
+          // Statut d'inclusion (devis cochable) : exclusion des options du total + bloc dédié.
+          optionnel: (l.optionnel as boolean | null | undefined),
+          inclus_par_defaut: (l.inclus_par_defaut as boolean | null | undefined),
         }
       }),
       entreprise: entreprise || {},

@@ -41,6 +41,8 @@ export interface DocumentClient {
   siret?: string
 }
 
+export type LigneStatut = 'ferme' | 'facultatif' | 'option'
+
 export interface DocumentLeaf {
   n: string
   designation: string
@@ -48,6 +50,8 @@ export interface DocumentLeaf {
   unite: string
   pu: number
   tva: number
+  // Statut d'inclusion (devis) : ferme par défaut. facultatif/option n'existent que côté devis.
+  statut?: LigneStatut
 }
 
 export interface DocumentSub {
@@ -139,6 +143,9 @@ export interface DocumentData {
   totals: DocumentTotals
   isForfait: boolean
   clientType: 'pro' | 'particulier'
+  // Devis : postes "Option +" proposés en plus, NON comptés dans le total principal.
+  options?: DocumentLeaf[]
+  optionsTotals?: { ht: number; ttc: number }
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +164,8 @@ export interface RawLigne {
   niveau?: number | null
   numero?: string | null
   parent_id?: string | null
+  optionnel?: boolean | null
+  inclus_par_defaut?: boolean | null
 }
 
 export interface RawDevis {
@@ -391,6 +400,12 @@ export function buildHierarchy(lignes: RawLigne[]): { groups: DocumentGroup[]; i
   return { groups, isForfait: false }
 }
 
+// Statut d'inclusion déduit des colonnes DB (optionnel + inclus_par_defaut).
+function statutFromRaw(l: RawLigne): LigneStatut {
+  if (!l.optionnel) return 'ferme'
+  return l.inclus_par_defaut === false ? 'option' : 'facultatif'
+}
+
 function leafFromRaw(l: RawLigne, numero: string): DocumentLeaf {
   return {
     n: numero,
@@ -399,7 +414,20 @@ function leafFromRaw(l: RawLigne, numero: string): DocumentLeaf {
     unite: (l.unite ?? '').toString(),
     pu: Number(l.prix_unitaire_ht ?? 0),
     tva: Number(l.taux_tva ?? 0),
+    statut: statutFromRaw(l),
   }
+}
+
+// Totaux du bloc "Options +" (HT + TTC), calculés à part du total principal.
+function computeOptionsTotals(items: DocumentLeaf[], forceTva0: boolean): { ht: number; ttc: number } {
+  let ht = 0
+  let tva = 0
+  for (const it of items) {
+    const t = it.qte * it.pu
+    ht += t
+    if (!forceTva0) tva += t * ((it.tva || 0) / 100)
+  }
+  return { ht, ttc: ht + tva }
 }
 
 // ---------------------------------------------------------------------------
@@ -543,11 +571,21 @@ export function buildDevisDocument(opts: {
 }): DocumentData {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
-  const built = buildHierarchy(opts.lignes)
+  // Les postes "Option +" (optionnel + non inclus par défaut) sont sortis du calcul
+  // principal et présentés dans un bloc séparé. Les "facultatifs" restent comptés.
+  const isOption = (l: RawLigne) => !!l.optionnel && l.inclus_par_defaut === false
+  const mainLignes = opts.lignes.filter(l => !isOption(l))
+  const optionLignes = opts.lignes.filter(isOption)
+  const built = buildHierarchy(mainLignes)
   const isAutoliq = opts.doc.autoliquidation_btp === true
   const groups = isAutoliq ? applyAutoliquidationOnGroups(built.groups) : built.groups
   const isForfait = built.isForfait
   const totals = computeTotals(groups, opts.doc.acompte_pourcent ?? 0)
+  const options: DocumentLeaf[] = optionLignes.map((l, i) => {
+    const leaf = leafFromRaw(l, String(i + 1))
+    return isAutoliq ? { ...leaf, tva: 0 } : leaf
+  })
+  const optionsTotals = options.length ? computeOptionsTotals(options, isAutoliq) : undefined
 
   const dechets = opts.doc.dechets_nature || opts.doc.dechets_responsable ||
                   opts.doc.dechets_tri || opts.doc.dechets_collecte_nom
@@ -574,7 +612,7 @@ export function buildDevisDocument(opts: {
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
 
-  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType }
+  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType, options: options.length ? options : undefined, optionsTotals }
 }
 
 export function buildFactureDocument(opts: {

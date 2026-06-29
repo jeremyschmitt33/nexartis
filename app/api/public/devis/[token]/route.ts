@@ -74,7 +74,7 @@ export async function GET(
     // 3. Récupérer les lignes du devis
     const { data: lignes } = await supabase
       .from('devis_lignes')
-      .select('designation, quantite, unite, prix_unitaire_ht, taux_tva, montant_ht, ordre, type, optionnel')
+      .select('designation, quantite, unite, prix_unitaire_ht, taux_tva, montant_ht, ordre, type, optionnel, inclus_par_defaut, niveau, numero')
       .eq('devis_id', devis.id)
       .order('ordre')
 

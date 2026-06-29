@@ -51,6 +51,9 @@ interface Ligne {
   ordre: number
   type: string
   optionnel: boolean
+  inclus_par_defaut?: boolean
+  niveau?: number
+  numero?: string
 }
 
 interface Entreprise {
@@ -424,6 +427,10 @@ export default function SignerDevisPage() {
       taux_tva: l.taux_tva,
       ordre: l.ordre ?? idx,
       type: l.type ?? null,
+      niveau: l.niveau ?? null,
+      numero: l.numero ?? null,
+      optionnel: l.optionnel ?? null,
+      inclus_par_defaut: l.inclus_par_defaut ?? null,
     })),
     client: {
       civilite: client.civilite ?? null,

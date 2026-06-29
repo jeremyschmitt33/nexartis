@@ -14,7 +14,7 @@ import { fmt, fmtDate, font, setFill, normalizeLignes, detectForfaitMode, type P
 import { drawHeader, drawMiniHeaderPages2Plus } from './pdf/header'
 import { drawIdentityCards } from './pdf/identity'
 import { drawObjet } from './pdf/objet'
-import { drawTable } from './pdf/table'
+import { drawTable, drawOptionsBlock } from './pdf/table'
 import { drawTotals } from './pdf/totals'
 import {
   drawLegal,
@@ -193,6 +193,11 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
     ? (data.lignes as PdfLigne[]).map(l => ({ ...l, taux_tva: 0 }))
     : (data.lignes as PdfLigne[])
   const lignes = normalizeLignes(rawLignes)
+  // Les postes "Option +" (optionnel + non inclus par défaut) sont sortis du
+  // tableau et des totaux principaux, puis affichés dans un bloc dédié (parité HTML).
+  const isOptionLine = (l: PdfLigne) => !!l.optionnel && l.inclus_par_defaut === false
+  const mainLignes = lignes.filter(l => !isOptionLine(l))
+  const optionLignes = lignes.filter(isOptionLine)
   const palette = buildPalette(theme ?? null)
 
   // 1. HEADER bandeau navy
@@ -234,9 +239,9 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
     y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
   }
 
-  // 5. Tableau
-  const isForfait = detectForfaitMode(lignes, data.montant_ht)
-  y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht, palette)
+  // 5. Tableau (postes fermes + facultatifs ; options exclues)
+  const isForfait = detectForfaitMode(mainLignes, data.montant_ht)
+  y = drawTable(doc, mainLignes, y, isForfait, ent, data.objet, data.montant_ht, palette)
 
   // 6. Bloc CONDITIONS + RECAP + NET A PAYER
   y = drawTotals(
@@ -251,11 +256,16 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
       entreprise: ent,
       netLabel: 'Net à payer',
     },
-    lignes,
+    mainLignes,
     false, // pas de bloc IBAN pour les devis
     y,
     palette,
   )
+
+  // 6 bis. Bloc OPTIONS + (proposées en plus, non comptées dans le total)
+  if (optionLignes.length > 0) {
+    y = drawOptionsBlock(doc, optionLignes, y + 2, palette)
+  }
 
   // 7. Mentions legales (encadre 2x2 + AGEC + TVA)
   y += 4

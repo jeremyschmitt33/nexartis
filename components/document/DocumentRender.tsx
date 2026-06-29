@@ -1,9 +1,9 @@
 // V3.0c.4 — DocumentRender : parite dashboard <-> PDF (7 fixes : metaline empile, adresse 2 lignes, formatPhone, objet sans chantier)
 // V3.0d — Theme custom optionnel : prop `theme` injectee en CSS variables sur la racine .dv-doc.
 //         Quand omise, on applique DEFAULT_DOCUMENT_THEME (charte Nexartis historique) -> rendu identique a avant.
-import { Fragment } from 'react'
+import { Fragment, type CSSProperties } from 'react'
 import './document.css'
-import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentMeta, DocumentTotals } from '@/lib/document-data'
+import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentLeaf, DocumentMeta, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
 import { DEFAULT_DOCUMENT_THEME, themeToCssVars, type DocumentTheme } from '@/lib/document-theme'
 import { DEFAULT_LOGO_CONFIG, logoConfigToCssVars, type LogoConfig } from '@/lib/logo-config'
@@ -32,6 +32,7 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
           {data.meta.situation && <SituationBanner situation={data.meta.situation} totalHt={data.totals.sousTotalHt} totalTtc={data.totals.totalTtc} />}
           <LinesTable groups={data.groups} />
           {isDevis ? <RecapDevis data={data} /> : <RecapFacture data={data} />}
+          {isDevis && data.options && data.options.length > 0 && <OptionsBlock items={data.options} totals={data.optionsTotals} />}
           {/* 2026-06-10 — Mention autoliquidation BTP en pied de doc (art. 283-2 nonies CGI) */}
           {data.meta.autoliquidationBtp && <AutoliquidationMention />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
@@ -239,7 +240,7 @@ function GroupRows({ group }: { group: DocumentGroup }) {
             {s.items.map((it, ii) => (
               <tr key={`i-${ii}`} className="dv-row dv-row--item">
                 <td className="dv-c-num">{it.n}</td>
-                <td className="dv-c-desg">{it.designation}</td>
+                <td className="dv-c-desg">{it.designation}{it.statut === 'facultatif' && <span style={PILL_FAC}>Facultatif</span>}</td>
                 <td className="dv-c-qte">{Number(it.qte).toLocaleString('fr-FR')}{it.unite && <span className="dv-unit"> {it.unite}</span>}</td>
                 <td className="dv-c-pu">{eur(it.pu)}</td>
                 <td className="dv-c-tva">{tauxLabel(it.tva)}</td>
@@ -250,6 +251,55 @@ function GroupRows({ group }: { group: DocumentGroup }) {
         )
       })}
     </>
+  )
+}
+
+// Pastilles de statut (inline pour ne pas dépendre de la feuille document.css)
+const PILL_BASE: CSSProperties = {
+  display: 'inline-block', marginLeft: 6, padding: '1px 7px', borderRadius: 999,
+  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '.3px', textTransform: 'uppercase',
+  verticalAlign: 'middle', lineHeight: 1.5,
+}
+const PILL_FAC: CSSProperties = { ...PILL_BASE, background: '#fdecda', color: '#e87a2a' }
+const PILL_OPT: CSSProperties = { ...PILL_BASE, background: '#e7f0fa', color: '#2f6fb0' }
+
+// Bloc "Options +" : postes proposés en plus, NON comptés dans le total principal.
+function OptionsBlock({ items, totals }: { items: DocumentLeaf[]; totals?: { ht: number; ttc: number } }) {
+  return (
+    <div style={{ margin: '14px 0 4px', border: '1.5px dashed #2f6fb0', borderRadius: 10, overflow: 'hidden', background: '#f6fafe' }}>
+      <div style={{ padding: '9px 14px', background: '#e7f0fa', display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ ...PILL_OPT, marginLeft: 0 }}>Option +</span>
+        <strong style={{ color: '#0f1a3a', fontSize: '0.9rem' }}>Options proposées</strong>
+        <span style={{ color: '#6b7384', fontSize: '0.75rem' }}>— non comprises dans le total ci-dessus, à ajouter si vous le souhaitez</span>
+      </div>
+      <table className="dv-table" style={{ margin: 0 }}>
+        <thead>
+          <tr>
+            <th className="dv-c-num">#</th><th className="dv-c-desg">Désignation</th>
+            <th className="dv-c-qte">Qté</th><th className="dv-c-pu">P.U. HT</th>
+            <th className="dv-c-tva">TVA</th><th className="dv-c-tot">Total HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, ii) => (
+            <tr key={`opt-${ii}`} className="dv-row dv-row--item">
+              <td className="dv-c-num">{it.n}</td>
+              <td className="dv-c-desg">{it.designation}</td>
+              <td className="dv-c-qte">{Number(it.qte).toLocaleString('fr-FR')}{it.unite && <span className="dv-unit"> {it.unite}</span>}</td>
+              <td className="dv-c-pu">{eur(it.pu)}</td>
+              <td className="dv-c-tva">{tauxLabel(it.tva)}</td>
+              <td className="dv-c-tot">{eur(it.qte * it.pu)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {totals && (
+        <div style={{ padding: '9px 14px', background: '#e7f0fa', display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#0f1a3a', fontSize: '0.85rem' }}>
+          <span>Total des options (si toutes ajoutées)</span>
+          <span>+ {eur(totals.ttc)} TTC</span>
+        </div>
+      )}
+    </div>
   )
 }
 

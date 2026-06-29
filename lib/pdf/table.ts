@@ -103,9 +103,12 @@ export function drawTable(
       const pu = l.prix_unitaire_ht ?? 0
       const unite = l.unite ?? ''
       const qLabel = unite ? `${q} ${unite}` : String(q)
+      // Ligne facultative (optionnel=true + inclus_par_defaut!=false) : marqueur discret.
+      const isFacultatif = !!l.optionnel && l.inclus_par_defaut !== false
+      const desig = isFacultatif ? `${l.designation}  (facultatif)` : l.designation
       body.push([
         l.numero ?? '',
-        l.designation,
+        desig,
         qLabel,
         fmt(pu),
         fmtTvaCell(l),
@@ -341,4 +344,99 @@ function buildForfaitLabel(ent: TableEntreprise, objet: string | undefined): str
   if (metier && obj) return `${metier} — ${obj}`
   if (obj) return `Forfait global — ${obj}`
   return 'Forfait global'
+}
+
+/**
+ * Bloc "Options +" du PDF (devis) : postes proposés en plus, NON comptés dans
+ * le total principal. Parité avec le bloc options du rendu HTML (DocumentRender).
+ * @returns nouveau y après le bloc.
+ */
+export function drawOptionsBlock(
+  doc: jsPDF,
+  optionLignes: PdfLigne[],
+  yStart: number,
+  palette: Palette = C,
+): number {
+  const P = palette
+  const M = 18
+  let y = yStart
+  // Saut de page si trop bas pour le titre + au moins une ligne.
+  if (y > 245) { doc.addPage(); y = 25 }
+
+  // Titre du bloc
+  doc.setFont('Hanken Grotesk', 'bold')
+  doc.setFontSize(8.5)
+  setText(doc, P.orange)
+  doc.text('OPTIONS PROPOSÉES (non comprises dans le total ci-dessus)', M, y)
+  y += 2.5
+
+  let optionsHt = 0
+  let optionsTva = 0
+  const body: string[][] = optionLignes.map((l, i) => {
+    const q = l.quantite ?? 0
+    const pu = l.prix_unitaire_ht ?? 0
+    const taux = l.taux_tva ?? 0
+    const lineHt = q * pu
+    optionsHt += lineHt
+    optionsTva += lineHt * (taux / 100)
+    const unite = l.unite ?? ''
+    const qLabel = unite ? `${q} ${unite}` : String(q)
+    return [String(i + 1), l.designation, qLabel, fmt(pu), fmtTvaCell(l), fmt(lineHt)]
+  })
+  const optionsTtc = optionsHt + optionsTva
+
+  autoTable(doc, {
+    startY: y,
+    head: [['N°', 'DÉSIGNATION', 'QTÉ', 'P.U. HT', 'TVA', 'TOTAL HT']],
+    body,
+    theme: 'plain',
+    margin: { left: M, right: M, top: 18, bottom: 22 },
+    tableWidth: 174,
+    rowPageBreak: 'avoid',
+    styles: {
+      font: 'Hanken Grotesk',
+      fontStyle: 'normal',
+      fontSize: 8.5,
+      cellPadding: { top: 2.5, right: 2, bottom: 2.5, left: 2 },
+      textColor: mut(P.navy),
+      lineWidth: 0,
+      overflow: 'linebreak',
+      valign: 'middle',
+    },
+    headStyles: {
+      fillColor: mut(P.white),
+      textColor: mut(P.muted),
+      fontStyle: 'bold',
+      fontSize: 7,
+      halign: 'left',
+      cellPadding: { top: 2, right: 2, bottom: 3, left: 2 },
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: COL_W.num },
+      1: { halign: 'left',   cellWidth: COL_W.designation },
+      2: { halign: 'center', cellWidth: COL_W.qte },
+      3: { halign: 'right',  cellWidth: COL_W.pu },
+      4: { halign: 'center', cellWidth: COL_W.tva },
+      5: { halign: 'right',  cellWidth: COL_W.total },
+    },
+    didDrawCell: (data: CellHookData) => {
+      if (data.section === 'head' && data.column.index === 0) {
+        const yy = data.cell.y + data.cell.height
+        doc.setDrawColor(P.borderSky[0], P.borderSky[1], P.borderSky[2])
+        doc.setLineWidth(0.4)
+        doc.line(18, yy, 192, yy)
+      }
+    },
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const afterY = (doc as any).lastAutoTable.finalY
+  // Total des options (aligné à droite, en gras)
+  doc.setFont('Hanken Grotesk', 'bold')
+  doc.setFontSize(9)
+  setText(doc, P.navy)
+  const totalLabel = `Total des options (si toutes ajoutées) :  + ${fmt(optionsTtc)} TTC`
+  const tw = doc.getTextWidth(totalLabel)
+  doc.text(totalLabel, 192 - tw, afterY + 5)
+  return afterY + 11
 }

@@ -471,6 +471,8 @@ export default function DevisDetailPage() {
       type: ((l as Record<string, unknown>).type ?? null) as string | null,
       niveau: ((l as Record<string, unknown>).niveau ?? null) as number | null,
       numero: ((l as Record<string, unknown>).numero ?? null) as string | null,
+      optionnel: ((l as Record<string, unknown>).optionnel ?? null) as boolean | null,
+      inclus_par_defaut: ((l as Record<string, unknown>).inclus_par_defaut ?? null) as boolean | null,
     })),
     client: {
       civilite: client?.civilite ?? null,

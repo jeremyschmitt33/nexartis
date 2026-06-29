@@ -122,6 +122,9 @@ export interface PdfLigne {
   unite?: string
   prix_unitaire_ht?: number
   taux_tva?: number
+  // Statut d'inclusion (devis) : optionnel=true + inclus_par_defaut=false => "Option +".
+  optionnel?: boolean | null
+  inclus_par_defaut?: boolean | null
 }
 
 // ---------------------------------------------------------------------------
