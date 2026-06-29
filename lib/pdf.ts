@@ -270,11 +270,11 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
 
   // 6 bis. Bloc OPTIONS + (proposées en plus, non comptées dans le total)
   if (optionLignes.length > 0) {
-    y = drawOptionsBlock(doc, optionLignes, y + 2, palette)
+    y = drawOptionsBlock(doc, optionLignes, y + 9, palette)
   }
   // 6 ter. Annexe POSTES NON RETENUS (devis signé personnalisé par le client)
   if (nonRetenuesLignes.length > 0) {
-    y = drawNonRetenuesBlock(doc, nonRetenuesLignes, y + 2, palette)
+    y = drawNonRetenuesBlock(doc, nonRetenuesLignes, y + 9, palette)
   }
 
   // 7. Mentions legales (encadre 2x2 + AGEC + TVA)

@@ -103,9 +103,9 @@ export function drawTable(
       const pu = l.prix_unitaire_ht ?? 0
       const unite = l.unite ?? ''
       const qLabel = unite ? `${q} ${unite}` : String(q)
-      // Ligne facultative (optionnel=true + inclus_par_defaut!=false) : marqueur discret.
+      // Ligne facultative (optionnel=true + inclus_par_defaut!=false) : marqueur orange.
       const isFacultatif = !!l.optionnel && l.inclus_par_defaut !== false
-      const desig = isFacultatif ? `${l.designation}  (facultatif)` : l.designation
+      const desig = isFacultatif ? `${l.designation}  ( facultatif )` : l.designation
       body.push([
         l.numero ?? '',
         desig,
@@ -160,6 +160,13 @@ export function drawTable(
       const m = meta[data.row.index]
       if (!m) return
       applyRowStyles(data, m, P)
+      // Ligne facultative : désignation en orange pour la distinguer.
+      if (m.kind === 'prestation' && data.column.index === 1) {
+        const lg = lignes[m.ligneIdx]
+        if (lg && lg.optionnel && lg.inclus_par_defaut !== false) {
+          data.cell.styles.textColor = mut(P.orange)
+        }
+      }
     },
     didDrawCell: (data: CellHookData) => {
       // Trait fin sous-header (border-sky 0.4 mm)

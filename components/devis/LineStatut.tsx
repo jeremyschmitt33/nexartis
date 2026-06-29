@@ -54,8 +54,8 @@ export default function LineStatutSelect({
           type="button"
           onClick={() => onChange(o.key)}
           aria-pressed={value === o.key}
-          className={`font-hanken font-semibold border-r last:border-r-0 border-gray-200 transition-colors ${
-            size === 'lg' ? 'px-3 py-2 text-sm' : 'px-2 py-1 text-[11px]'
+          className={`font-hanken font-semibold text-center border-r last:border-r-0 border-gray-200 transition-colors ${
+            size === 'lg' ? 'px-3 py-2 text-sm min-w-[88px]' : 'px-2 py-1.5 text-[11px] min-w-[68px]'
           } ${value === o.key ? o.active : 'bg-white text-gray-500 hover:bg-gray-50'}`}
         >
           {o.label}

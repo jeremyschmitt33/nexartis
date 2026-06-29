@@ -278,6 +278,8 @@ export default function DevisDetailPage() {
       const factureId = (facture as Record<string,unknown>).id as string
       if (!factureId) throw new Error('ID facture manquant')
       for (const l of lignes) {
+        // Ne facturer QUE le périmètre retenu (exclut options non prises / lignes retirées).
+        if (ligneExclue(l)) continue
         await insertRow('facture_lignes', {
           facture_id: factureId,
           designation: l.designation,
@@ -397,6 +399,18 @@ export default function DevisDetailPage() {
   // Le helper isAutoEntrepreneur reste utilise UNIQUEMENT pour pre-cocher le taux 0
   // dans les formulaires et pour le footer "Entrepreneur individuel".
   const lignesPrestations = lignes.filter(l => l.type !== 'section' && l.type !== 'sous_section' && l.type !== 'commentaire')
+
+  // Devis cochable : une prestation est EXCLUE du total affiché ET de la facturation si :
+  //   - devis signé : le client ne l'a pas retenue (retenu_par_client === false)
+  //   - devis non signé : c'est une "Option +" (optionnel + non incluse par défaut)
+  const ligneExclue = (l: LigneRecord): boolean => {
+    if (l.type === 'section' || l.type === 'sous_section' || l.type === 'commentaire') return false
+    const r = l as unknown as Record<string, unknown>
+    const retenu = r.retenu_par_client
+    const signe = retenu !== null && retenu !== undefined
+    if (signe) return retenu === false
+    return r.optionnel === true && r.inclus_par_defaut === false
+  }
   const allLinesZeroTva = lignesPrestations.length > 0 && lignesPrestations.every(l => l.taux_tva === 0)
   const isSansTva = allLinesZeroTva
 
@@ -405,6 +419,7 @@ export default function DevisDetailPage() {
   lignes.forEach((l) => {
     const lineTotal = (l.quantite ?? 0) * (l.prix_unitaire_ht ?? 0)
     if (l.type === 'section' || l.type === 'sous_section' || l.type === 'commentaire') return
+    if (ligneExclue(l)) return
     totalHT += lineTotal
     if (isSansTva) return
     // Parite PDF (lib/pdf.ts) : meme fallback 20% (taux normal France) si non renseigne

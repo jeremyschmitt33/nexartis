@@ -185,7 +185,11 @@ export async function POST(req: NextRequest) {
 <p style="font-size:16px;color:#1a1a2e;margin:0 0 14px;font-weight:600;">Bonjour ${clientNom},</p>
 <p style="font-size:15px;color:#374151;margin:0 0 16px;line-height:1.6;">${messagePersonnalise || `Veuillez trouver ci-joint votre devis n\u00b0 ${devis.numero} d'un montant de ${fmt(totalTTC)}.`}</p>
 ${dateValidite ? `<p style="font-size:13px;color:#e87a2a;margin:0 0 16px;">Ce devis est valable jusqu'au ${dateValidite}.</p>` : ''}
-<p style="font-size:14px;color:#6b7280;margin:0 0 16px;line-height:1.6;">Vous trouverez le devis détaillé en pièce jointe de cet email.</p>
+<div style="text-align:center;margin:22px 0;">
+<a href="${signerUrl}" style="background:#e87a2a;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Voir et signer le devis en ligne</a>
+</div>
+<p style="font-size:12px;color:#9ca3af;margin:0 0 16px;line-height:1.5;text-align:center;">Vous pourrez choisir vos options puis signer directement en ligne.<br/>Ou copiez ce lien : <span style="color:#6b7280;">${signerUrl}</span></p>
+<p style="font-size:14px;color:#6b7280;margin:0 0 16px;line-height:1.6;">Une copie du devis est également jointe en PDF à cet email.</p>
 <p style="font-size:14px;color:#374151;margin:0;">Cordialement,<br/><strong>${(ent as Record<string,unknown>).nom || 'Nexartis'}</strong></p>
 </div>
 <div style="padding:12px 28px;border-top:1px solid #e5e7eb;text-align:center;">
