@@ -12,6 +12,7 @@ import { generateRapportPdf, collectPhotoRefs, imgMapKey, type PdfImage } from '
 import { useRapportUpload } from '@/hooks/rapport/useRapportUpload'
 import PageCard from '@/components/rapport/PageCard'
 import AddPageSheet from '@/components/rapport/AddPageSheet'
+import AstuceDictee from '@/components/ui/AstuceDictee'
 import type { PhotoMap } from '@/components/rapport/PhotoSlot'
 import {
   type RapportPageData, type PageType, type PageContent, type PhotoRef,
@@ -389,6 +390,8 @@ export default function RapportEditorPage() {
           <p className="font-hanken text-xs text-amber-800">Sauvegarde hors-ligne indisponible sur cet appareil. Terminez l&apos;envoi des photos avant de fermer.</p>
         </div>
       )}
+
+      <AstuceDictee className="mb-3" />
 
       <div ref={bodyRef} className="space-y-3">
         {pages.length === 0 && (
