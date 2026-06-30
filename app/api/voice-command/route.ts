@@ -29,6 +29,8 @@ import { buildVoiceCommandSystemPrompt, type VoiceArtisanContext } from '@/lib/v
 import { callGeminiResilient } from '@/lib/voice/gemini-call'
 import { extractCiviliteFromTranscription, extractCiviliteFromAnyField, extractObjetFromTranscription } from '@/lib/voice/fallback-extraction'
 import type { VoiceCommandSuccessResponse } from '@/lib/voice/types'
+import { createClient } from '@supabase/supabase-js'
+import { getEffectivePlan } from '@/lib/plans'
 
 // Multipart binaire = runtime Node obligatoire (pas Edge)
 export const runtime = 'nodejs'
@@ -62,6 +64,34 @@ export async function POST(req: NextRequest) {
     // ============================================================
     const user = await getAuthenticatedUser()
     if (!user) return unauthorizedError()
+
+    // ============================================================
+    // 2 bis. Gating offre — le devis vocal par IA est reserve a l'offre Complet
+    // (essai inclus). Resolution du plan via entreprise_membres -> entreprises.
+    // Fail-open : si la lecture echoue, getEffectivePlan(undefined) renvoie
+    // 'complete' et on ne bloque jamais un client par erreur.
+    // ============================================================
+    const supabasePlan = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    const { data: membreVoice } = await supabasePlan
+      .from('entreprise_membres')
+      .select('entreprise_id')
+      .eq('user_id', user.id)
+      .eq('statut', 'actif')
+      .maybeSingle()
+    if (membreVoice?.entreprise_id) {
+      const { data: entrepriseVoice } = await supabasePlan
+        .from('entreprises')
+        .select('abonnement_type, subscription_plan')
+        .eq('id', membreVoice.entreprise_id)
+        .maybeSingle()
+      const planInfo = getEffectivePlan(entrepriseVoice)
+      if (planInfo.plan !== 'complete' && !planInfo.isTrial) {
+        return secureError("Le devis vocal par IA est réservé à l'offre Complet.", 403)
+      }
+    }
 
     // ============================================================
     // 3. Rate-limit user — 10 audios / minute pour eviter abus IA
