@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { constantTimeEqual } from '@/lib/security/constant-time'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendRappelCertification } from '@/lib/email'
 
@@ -115,7 +116,7 @@ export async function GET(req: NextRequest) {
   // Securite CRON_SECRET
   const authHeader = req.headers.get('authorization')
   const expected = `Bearer ${process.env.CRON_SECRET}`
-  if (!process.env.CRON_SECRET || authHeader !== expected) {
+  if (!process.env.CRON_SECRET || !constantTimeEqual(authHeader || '', expected)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
 

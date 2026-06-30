@@ -23,6 +23,7 @@
 // =====================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
+import { constantTimeEqual } from '@/lib/security/constant-time'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { getValidAccessTokenForUser } from '@/lib/superpdp/connexion'
 import { SuperPdpError, type SuperPdpFileResult } from '@/lib/superpdp/client'
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
   // ---- SECURITE : Authorization Bearer CRON_SECRET --------------------
   const auth = req.headers.get('authorization') || ''
   const expected = process.env.CRON_SECRET
-  if (!expected || auth !== `Bearer ${expected}`) {
+  if (!expected || !constantTimeEqual(auth, `Bearer ${expected}`)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
 

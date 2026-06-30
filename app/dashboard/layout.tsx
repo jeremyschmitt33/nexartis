@@ -733,6 +733,29 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+
+  // Titre d'onglet propre par section + noindex (espace prive, non indexable).
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/dashboard': 'Tableau de bord', '/dashboard/devis': 'Devis',
+      '/dashboard/factures': 'Factures', '/dashboard/planning': 'Planning',
+      '/dashboard/chantiers': 'Chantiers', '/dashboard/clients': 'Clients',
+      '/dashboard/fournisseurs': 'Fournisseurs', '/dashboard/rapports': 'Rapports',
+      '/dashboard/achats': 'Achats', '/dashboard/equipe': 'Mon equipe',
+      '/dashboard/materiel': 'Materiel', '/dashboard/statistiques': 'Statistiques',
+      '/dashboard/prestations': 'Prestations', '/dashboard/calculatrice': 'Calculatrices',
+      '/dashboard/normes': 'Normes', '/dashboard/abonnement': 'Abonnement',
+      '/dashboard/parametres': 'Parametres', '/dashboard/documents': 'Documents',
+      '/dashboard/import': 'Importer', '/dashboard/corbeille': 'Corbeille',
+      '/dashboard/aide': 'Aide',
+    }
+    const key = Object.keys(titles).sort((a, b) => b.length - a.length)
+      .find(p => pathname === p || pathname.startsWith(p + '/'))
+    document.title = (key ? titles[key] : 'Espace') + ' \u2014 Nexartis'
+    let meta = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'robots'; document.head.appendChild(meta) }
+    meta.content = 'noindex, nofollow'
+  }, [pathname])
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [hovered, setHovered] = useState(false)

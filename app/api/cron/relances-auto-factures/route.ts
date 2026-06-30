@@ -15,6 +15,7 @@
 // =====================================================================
 
 import { NextRequest, NextResponse } from 'next/server'
+import { constantTimeEqual } from '@/lib/security/constant-time'
 import { createClient } from '@supabase/supabase-js'
 import { isValidEmail } from '@/lib/api-security'
 import { sendRelanceJ7, sendRelanceJ15, sendRelanceJ30 } from '@/lib/email'
@@ -96,7 +97,7 @@ export async function GET(req: NextRequest) {
   // ---- SECURITE : Authorization Bearer CRON_SECRET --------------------
   const auth = req.headers.get('authorization') || ''
   const expected = process.env.CRON_SECRET
-  if (!expected || auth !== `Bearer ${expected}`) {
+  if (!expected || !constantTimeEqual(auth, `Bearer ${expected}`)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
 
