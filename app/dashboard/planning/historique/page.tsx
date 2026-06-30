@@ -158,16 +158,7 @@ function HistoriquePageInner() {
     }
   }
 
-  // ── Redirect if not logged in ──
-  if (!loadingUser && !user) {
-    router.push('/login')
-    return null
-  }
-
-  const loading = lp || li || lc || loadingUser
-  if (loading) return <div className="p-8"><LoadingSkeleton rows={8} /></div>
-
-  // ── Maps ──
+  // ── Maps (avant tout return : regles des Hooks React) ──
   const clientMap = new Map<string, R>()
   clients.forEach(c => { const r = c as R; clientMap.set(r.id as string, r) })
 
@@ -273,6 +264,14 @@ function HistoriquePageInner() {
     })
     return copy
   }, [enrichedAndFiltered, sortKey, sortDir])
+
+  // ── Redirect / chargement (place APRES les hooks : regles des Hooks) ──
+  if (!loadingUser && !user) {
+    router.push('/login')
+    return null
+  }
+  const loading = lp || li || lc || loadingUser
+  if (loading) return <div className="p-8"><LoadingSkeleton rows={8} /></div>
 
   // ── Stats ──
   const totalDuree = sorted.reduce((acc, item) => acc + item._duree, 0)

@@ -48,7 +48,10 @@ export default function GoogleAnalytics() {
       window.removeEventListener('nexartis-cookie-consent-change', handler)
   }, [])
 
-  const measurementId = process.env.NEXT_PUBLIC_GA_ID
+  // .trim() : neutralise un espace ou retour a la ligne parasite dans la
+  // variable NEXT_PUBLIC_GA_ID (sinon le script gtag casse -> SyntaxError
+  // sur toutes les pages et analytics non configure).
+  const measurementId = process.env.NEXT_PUBLIC_GA_ID?.trim()
 
   // Ne rien charger si pas de consentement OU si pas d'ID de mesure configuré
   if (!hasAnalyticsConsent || !measurementId) return null

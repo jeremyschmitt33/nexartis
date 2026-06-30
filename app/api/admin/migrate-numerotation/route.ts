@@ -80,6 +80,7 @@ export async function POST() {
     })
   } catch (e) {
     console.error('Migration error:', e)
-    return secureError('Erreur migration: ' + (e instanceof Error ? e.message : 'inconnue'), 500)
+    // Ne pas exposer e.message dans la reponse (convention securite du projet).
+    return secureError('Erreur lors de la migration', 500)
   }
 }
