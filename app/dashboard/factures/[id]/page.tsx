@@ -1172,11 +1172,15 @@ export default function FactureDetailPage() {
                 type="button"
                 onClick={async () => {
                   const conf = lockConfirm
+                  // On ferme le pop-up IMMEDIATEMENT : le bouton disparait, ce qui
+                  // empeche tout re-clic pendant la generation (lente) du PDF et donc
+                  // les telechargements multiples. Le toast "Generation du PDF..."
+                  // sert d'indicateur de progression.
+                  setLockConfirm(null)
                   await conf.run()
                   if (conf.poseVerrouAuConfirm && !estVerrouillee) {
                     await updateRow('factures', facture.id, { verrouillee_at: new Date().toISOString() })
                   }
-                  setLockConfirm(null)
                   router.refresh()
                 }}
                 className="h-10 px-5 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-[13.5px] font-bold shadow-[0_6px_16px_rgba(255,122,26,0.30),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all"

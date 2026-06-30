@@ -207,7 +207,7 @@
 .dv-pay-row span { width:84px; flex:0 0 auto; }
 .dv-pay-row strong { color:var(--ink); font-weight:600;
   font-family:var(--font-spline-mono,'Spline Sans Mono'),ui-monospace,monospace;
-  font-size:11.5px; word-break:break-all; }
+  font-size:10.5px; white-space:nowrap; letter-spacing:-0.2px; }
 .dv-sign { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding-top:36px; }
 /* V3.0d : signatures agrandies (parite PDF) — min-height 132 -> 190px, max-height image 70 -> 145px */
 .dv-sign-box { border:1px solid var(--line); border-radius:10px; min-height:190px; padding:14px 16px;
