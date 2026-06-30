@@ -36,7 +36,7 @@ const FEATURES_INCLUDED = [
   'Tableau de bord CA',
   'Suivi des impayés simplifié',
   'Optimisé pour smartphone et tablette',
-  'Mentions Factur-X 2026 incluses sur vos factures',
+  'Facturation électronique intégrée',
   'Bibliothèque de vos prestations',
   'TVA 5.5%, 10%, 20% automatique',
   'Acomptes et factures de situation (#1, #2, #3 avec cumul d’avancement)',
@@ -191,6 +191,7 @@ function AbonnementPageContent() {
   const [loadingPortal, setLoadingPortal] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [cgvAccepted, setCgvAccepted] = useState(false)
 
   const isExpiredFlow = searchParams.get('expired') === '1'
   // ?upgrade=planning_chantier (ou autre feature) : on arrive ici depuis une
@@ -245,6 +246,7 @@ function AbonnementPageContent() {
     !entreprise.nom || !entreprise.siret || !entreprise.adresse || !entreprise.code_postal
 
   async function handleSubscribe() {
+    if (!cgvAccepted) return
     setErrorMsg(null)
     setLoadingCheckout(true)
     try {
@@ -654,10 +656,26 @@ function AbonnementPageContent() {
               </div>
             )}
 
+            {/* Acceptation des CGV avant paiement */}
+            <label className="flex items-start gap-2.5 mb-4 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={cgvAccepted}
+                onChange={e => setCgvAccepted(e.target.checked)}
+                className="mt-0.5 w-5 h-5 rounded border-2 border-gray-300 text-[#ff7a1a] focus:ring-2 focus:ring-[#ff7a1a]/30 cursor-pointer accent-[#ff7a1a] shrink-0"
+              />
+              <span className="font-hanken text-[12px] text-gray-600 leading-relaxed">
+                J&apos;ai lu et j&apos;accepte les{' '}
+                <a href="/cgv" target="_blank" rel="noopener noreferrer" className="underline text-[#ff7a1a]">conditions générales de vente</a>{' '}
+                et la{' '}
+                <a href="/rgpd" target="_blank" rel="noopener noreferrer" className="underline text-[#ff7a1a]">politique de confidentialité</a>.
+              </span>
+            </label>
+
             {/* CTA principal V4 — gradient orange, lift au hover */}
             <button
               onClick={handleSubscribe}
-              disabled={loadingCheckout || profilIncomplet}
+              disabled={loadingCheckout || profilIncomplet || !cgvAccepted}
               className="
                 w-full h-14 sm:h-16 rounded-2xl
                 bg-gradient-to-b from-[#ff9d4d] to-[#ff7a1a]
@@ -702,7 +720,7 @@ function AbonnementPageContent() {
           </h3>
           <p className="font-hanken text-xs text-gray-500 leading-relaxed">
             Résiliez en un clic depuis le portail. Vos données restent accessibles
-            pendant 30 jours après la résiliation.
+            pendant 90 jours après la résiliation.
           </p>
         </div>
         <div className="bg-white rounded-2xl border border-[#0f1a3a]/[0.06] p-5

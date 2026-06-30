@@ -24,7 +24,7 @@ export default function CgvPage() {
         <h1 className="mt-2 font-syne text-4xl font-bold tracking-tight text-navy sm:text-5xl">
           Conditions Générales de Vente
         </h1>
-        <p className="mt-3 text-sm text-navy/60">Dernière mise à jour : 24 juin 2026</p>
+        <p className="mt-3 text-sm text-navy/60">Dernière mise à jour : 30 juin 2026</p>
       </header>
 
       <div className="prose prose-slate max-w-none font-manrope text-[15px] leading-relaxed text-navy">
@@ -205,6 +205,42 @@ export default function CgvPage() {
             <li>ne pas porter atteinte au fonctionnement ou à la sécurité du Service ;</li>
             <li>respecter les lois et règlements en vigueur en France.</li>
           </ul>
+        </section>
+
+        <section className="mb-10">
+          <h2 className="font-syne text-2xl font-bold text-navy">Article 8 bis — Contenu mis en ligne par le Client et statut d&apos;hébergeur</h2>
+          <p>
+            Le Client peut importer dans le Service des contenus (photographies, documents, logos, fichiers). Il
+            garantit qu&apos;il détient l&apos;ensemble des droits nécessaires sur ces contenus et qu&apos;il dispose, le
+            cas échéant, du consentement des personnes concernées (notamment au titre du droit à l&apos;image) et
+            d&apos;une base légale pour traiter les données de ses propres clients. Le Client demeure seul responsable
+            de la licéité des contenus qu&apos;il met en ligne.
+          </p>
+          <p>
+            Le Client concède à l&apos;Éditeur une licence non exclusive, strictement limitée à ce qui est nécessaire
+            pour héberger, stocker, afficher, traiter techniquement et restituer ces contenus dans le cadre de la
+            fourniture du Service. L&apos;Éditeur ne revendique aucun droit de propriété sur les contenus du Client et
+            ne les exploite à aucune autre fin.
+          </p>
+          <p>
+            Le Client s&apos;interdit de mettre en ligne tout contenu illicite, notamment contrefaisant, diffamatoire
+            ou portant atteinte à la vie privée ou aux droits de tiers. Au titre du stockage de ces contenus,
+            l&apos;Éditeur agit en qualité d&apos;<strong>hébergeur</strong> au sens de l&apos;article 6 de la loi
+            n° 2004-575 du 21 juin 2004 pour la confiance dans l&apos;économie numérique (LCEN), tel que complété par les
+            articles 6 et suivants du Règlement (UE) 2022/2065 du 19 octobre 2022 sur les services numériques (« DSA »).
+            Sa responsabilité ne peut être engagée que s&apos;il n&apos;a pas agi promptement pour retirer un contenu
+            manifestement illicite après en avoir eu connaissance effective.
+          </p>
+          <p>
+            <strong>Signalement d&apos;un contenu illicite</strong> : tout contenu manifestement illicite peut être
+            signalé à l&apos;adresse contact.nexartis@gmail.com. Pour être valable et faire naître l&apos;obligation de
+            retrait, la notification doit comporter les mentions prévues par la loi : identité du notifiant, description
+            précise et localisation du contenu litigieux, motifs juridiques justifiant le retrait, et justification
+            d&apos;une démarche préalable auprès de l&apos;auteur du contenu lorsqu&apos;elle est possible. L&apos;Éditeur
+            retirera promptement tout contenu dont le caractère manifestement illicite lui aura été notifié. Toute
+            notification abusive dans le but d&apos;obtenir le retrait d&apos;un contenu licite engage la responsabilité
+            de son auteur.
+          </p>
         </section>
 
         <section className="mb-10">

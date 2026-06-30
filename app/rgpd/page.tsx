@@ -25,7 +25,7 @@ export default function RgpdPage() {
           Politique de confidentialité
         </h1>
         <p className="mt-3 text-sm text-navy/60">
-          Dernière mise à jour : 24 juin 2026 — Conforme au Règlement (UE) 2016/679 (RGPD)
+          Dernière mise à jour : 30 juin 2026 — Conforme au Règlement (UE) 2016/679 (RGPD)
         </p>
       </header>
 
@@ -112,6 +112,19 @@ export default function RgpdPage() {
           <p><strong>Base légale</strong> : exécution du contrat (article 6.1.b du RGPD).</p>
           <p><strong>Rôle de Nexartis</strong> : pour les photos et données relatives aux clients finaux de l&apos;artisan, Nexartis agit en qualité de <strong>sous-traitant</strong> au sens de l&apos;article 28 du RGPD, l&apos;artisan demeurant responsable de traitement. Nexartis ne traite ces données que sur instruction de l&apos;artisan et pour la seule fourniture du service.</p>
           <p><strong>Hébergement</strong> : stockage chiffré sur Cloudflare R2 (bucket privé, région Union européenne). <strong>Durée de conservation</strong> : pendant la durée de l&apos;abonnement, puis 90 jours après résiliation pour permettre l&apos;export, avant suppression définitive.</p>
+
+          <h3 className="font-syne text-lg font-bold text-navy mt-6">3.7. Coffre-fort de documents</h3>
+          <p><strong>Données collectées</strong> : documents importés par l&apos;artisan dans son espace de stockage sécurisé (notamment attestations d&apos;assurance, certifications, pièces administratives, documents contractuels et tout fichier qu&apos;il choisit d&apos;y déposer). Ces documents peuvent contenir des données relatives à des tiers (clients, salariés, partenaires de l&apos;artisan).</p>
+          <p><strong>Finalité</strong> : permettre à l&apos;artisan de centraliser, conserver et retrouver ses documents professionnels, et de les joindre à ses envois.</p>
+          <p><strong>Base légale</strong> : exécution du contrat (article 6.1.b du RGPD).</p>
+          <p><strong>Rôle de Nexartis</strong> : lorsqu&apos;un document contient des données relatives aux clients ou tiers de l&apos;artisan, Nexartis agit en qualité de <strong>sous-traitant</strong> au sens de l&apos;article 28 du RGPD, l&apos;artisan demeurant responsable de traitement. <strong>Hébergement et conservation</strong> : stockage chiffré sur Cloudflare R2 (bucket privé, région Union européenne). Les documents sont conservés pendant la durée de l&apos;abonnement, puis durant une fenêtre de 90 jours après résiliation destinée à permettre leur export, avant suppression. Cette fenêtre ne constitue pas un service d&apos;archivage légal : il appartient à l&apos;artisan de conserver lui-même les pièces soumises à des obligations de conservation plus longues (attestations d&apos;assurance, documents contractuels, pièces comptables).</p>
+
+          <h3 className="font-syne text-lg font-bold text-navy mt-6">3.8. Reconnaissance automatique des factures fournisseurs (OCR)</h3>
+          <p><strong>Données collectées</strong> : images ou fichiers de factures fournisseurs importés par l&apos;artisan, et les informations extraites automatiquement (nom du fournisseur, dates, montants, taux de TVA, libellés des dépenses).</p>
+          <p><strong>Finalité</strong> : extraire automatiquement les informations d&apos;une facture fournisseur afin de faciliter la saisie des dépenses et leur export comptable. Une validation humaine par l&apos;artisan est requise avant tout enregistrement.</p>
+          <p><strong>Base légale</strong> : exécution du contrat (article 6.1.b du RGPD).</p>
+          <p><strong>Sous-traitant</strong> : l&apos;analyse est réalisée via l&apos;API Google Gemini. Selon les conditions de l&apos;API Gemini applicables aux services payants et aux utilisateurs situés dans l&apos;Espace économique européen, Google n&apos;utilise pas les fichiers transmis pour entraîner ou améliorer ses modèles ; Google peut néanmoins les conserver pendant une durée limitée à des fins de sécurité, de prévention des abus et de respect de ses obligations légales.</p>
+          <p><strong>Durée de conservation</strong> : la facture fournisseur importée et les informations extraites sont conservées par Nexartis en tant que pièces de dépense, conformément à l&apos;obligation légale de conservation des pièces comptables, ou supprimées à la demande de l&apos;artisan.</p>
         </section>
 
         <section className="mb-10">
@@ -137,11 +150,11 @@ export default function RgpdPage() {
           <ul className="list-disc pl-6">
             <li><strong>Vercel Inc.</strong> (340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis) — hébergement et diffusion du frontal applicatif via son réseau global de points de présence. Transfert hors UE encadré par les Clauses Contractuelles Types (CCT) européennes.</li>
             <li><strong>Supabase Inc.</strong> (970 Toa Payoh North #07-04, Singapour) — base de données PostgreSQL et stockage. Le projet Nexartis est configuré sur la région européenne (Francfort, Allemagne) ; les données utilisateurs sont stockées dans l&apos;Union européenne.</li>
-            <li><strong>Cloudflare, Inc.</strong> (101 Townsend Street, San Francisco, CA 94107, États-Unis) — stockage objet (service R2) des photos de chantier importées par l&apos;artisan. Le bucket est privé et configuré en juridiction Union européenne (Francfort) ; les fichiers sont stockés dans l&apos;UE. Cloudflare adhère actuellement au Data Privacy Framework UE–États-Unis ; les Clauses Contractuelles Types s&apos;appliquent en complément, à titre de base de transfert autonome.</li>
+            <li><strong>Cloudflare, Inc.</strong> (101 Townsend Street, San Francisco, CA 94107, États-Unis) — stockage objet (service R2) des photos de chantier et des documents (coffre-fort) importés par l&apos;artisan. Le bucket est privé et configuré en juridiction Union européenne (Francfort) ; les fichiers sont stockés dans l&apos;UE. Cloudflare adhère actuellement au Data Privacy Framework UE–États-Unis ; les Clauses Contractuelles Types s&apos;appliquent en complément, à titre de base de transfert autonome.</li>
             <li><strong>Stripe Payments Europe Ltd.</strong> (1 Grand Canal Street Lower, Dublin, Irlande) — encaissement de l&apos;abonnement et gestion du portail client.</li>
             <li><strong>Brevo (anciennement Sendinblue)</strong>, Sendinblue SAS (7 rue de Madrid, 75008 Paris, France) — envoi des emails transactionnels (envoi de devis, factures, notifications). Données traitées en France.</li>
             <li><strong>Google LLC (Google Analytics 4)</strong> (1600 Amphitheatre Parkway, Mountain View, CA 94043, États-Unis) — mesure d&apos;audience, activée uniquement après consentement explicite via la bannière cookies.</li>
-            <li><strong>Google LLC (API Google Gemini)</strong> (même adresse) — reconnaissance vocale pour la fonctionnalité optionnelle « Devis vocal » et « Commande vocale ». Le flux audio enregistré par l&apos;artisan est transmis à Google le temps strictement nécessaire à la transcription et à l&apos;extraction d&apos;informations structurées (nom de client, lignes de prestations). Selon les conditions d&apos;utilisation actuelles de l&apos;API Gemini, l&apos;audio n&apos;est pas utilisé pour entraîner les modèles de Google lorsqu&apos;une clé API gérée est utilisée. Voir{' '}
+            <li><strong>Google LLC (API Google Gemini)</strong> (même adresse) — reconnaissance vocale pour les fonctionnalités optionnelles « Devis vocal » et « Commande vocale », ainsi que reconnaissance automatique des factures fournisseurs (OCR). Le flux audio enregistré par l&apos;artisan est transmis à Google le temps strictement nécessaire à la transcription et à l&apos;extraction d&apos;informations structurées (nom de client, lignes de prestations). Selon les conditions d&apos;utilisation actuelles de l&apos;API Gemini, l&apos;audio n&apos;est pas utilisé pour entraîner les modèles de Google lorsqu&apos;une clé API gérée est utilisée. Voir{' '}
               <a
                 href="https://ai.google.dev/gemini-api/terms"
                 target="_blank"

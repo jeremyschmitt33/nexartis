@@ -340,11 +340,11 @@ export default function RegisterPage() {
           {/* Legal */}
           <p className="text-[11px] text-gray-400 font-manrope text-center mt-6 leading-relaxed">
             En créant votre compte, vous acceptez nos{' '}
-            <Link href="/cgu" className="underline">
-              CGU
+            <Link href="/cgv" className="underline">
+              CGV
             </Link>{' '}
             et notre{' '}
-            <Link href="/confidentialite" className="underline">
+            <Link href="/rgpd" className="underline">
               politique de confidentialité
             </Link>
             .
