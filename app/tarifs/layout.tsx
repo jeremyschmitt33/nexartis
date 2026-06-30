@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Tarifs Nexartis — 15€ ou 25€/mois | Logiciel BTP artisan",
+  title: "Tarifs Nexartis : prix logiciel devis & facture artisan",
   description:
-    "Deux offres claires sans engagement : Essentiel à 15€/mois (devis et factures BTP conformes) ou Complet à 25€/mois (planning d'équipe + IA vocale). 14 jours d'essai sans carte bancaire.",
+    "Le prix d'un logiciel de devis et facture pour artisan, sans surprise : 15 €/mois ou 25 €/mois, sans engagement. 14 jours d'essai gratuit, sans carte bancaire.",
   alternates: {
-    canonical: '/tarifs',
+    canonical: "/tarifs",
   },
 };
 

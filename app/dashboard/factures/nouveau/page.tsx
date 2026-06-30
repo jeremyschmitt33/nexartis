@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { creditDisponibleAvoir } from '@/lib/facture-net'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
+import { getEffectivePlan } from '@/lib/plans'
 import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
@@ -86,6 +87,9 @@ export default function NouvelleFacturePage() {
   // AE (franchise TVA) : source de vérité = helper isAutoEntrepreneur. Sert à forcer
   // la TVA à 0 lors d'une sélection de suggestion de prestation.
   const autoEntrepreneur = isAutoEntrepreneur(entreprise)
+  // Gating : les factures de situation sont réservées à l'offre Complet (essai inclus).
+  // Les acomptes simples restent disponibles dans l'Essentiel.
+  const canSituation = getEffectivePlan(entreprise).hasFullAccess
   const clients = clientsRaw as unknown as ClientRecord[]
   const chantiers = (chantiersRaw as unknown as ChantierRecord[]) || []
 
@@ -943,16 +947,30 @@ export default function NouvelleFacturePage() {
               <label className="block font-hanken font-semibold text-xs uppercase tracking-wider text-gray-700 mb-2">Type de facture</label>
               <select
                 value={factureType}
-                onChange={e => setFactureType(e.target.value as 'standard' | 'acompte' | 'situation' | 'avoir')}
+                onChange={e => {
+                  const v = e.target.value as 'standard' | 'acompte' | 'situation' | 'avoir'
+                  if (v === 'situation' && !canSituation) return
+                  setFactureType(v)
+                }}
                 className={inputCls + ' cursor-pointer'}
               >
                 <option value="standard">Facture standard</option>
                 <option value="acompte">Facture d&apos;acompte</option>
-                <option value="situation">Facture de situation</option>
+                <option value="situation" disabled={!canSituation}>
+                  {canSituation ? 'Facture de situation' : 'Facture de situation — offre Complet'}
+                </option>
                 <option value="avoir">Avoir (facture negative)</option>
               </select>
               <p className="mt-1.5 font-hanken text-xs text-gray-500">
                 Une <strong>facture de situation</strong> facture une tranche d&apos;un chantier en cours (#1, #2, #3...).
+                {!canSituation && (
+                  <>
+                    {' '}
+                    <Link href="/dashboard/abonnement?upgrade=factures_situation" className="font-semibold text-[#ff7a1a] underline">
+                      Réservée à l&apos;offre Complet.
+                    </Link>
+                  </>
+                )}
               </p>
             </div>
 

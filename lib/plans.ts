@@ -45,6 +45,8 @@ export type FeatureKey =
   | 'gestion_equipe'
   | 'devis_vocal_ia'
   | 'bibliotheque_prestations_illimitee'
+  | 'factures_situation'
+  | 'rapport_intervention'
 
 export interface PlanDefinition {
   id: PlanId
@@ -86,7 +88,6 @@ const ESSENTIAL_FEATURES: FeatureKey[] = [
   'facturX_2026',
   'suivi_impayes',
   'tableau_bord_ca',
-  'export_comptable',
 ]
 
 const COMPLETE_FEATURES: FeatureKey[] = [
@@ -96,6 +97,9 @@ const COMPLETE_FEATURES: FeatureKey[] = [
   'gestion_equipe',
   'devis_vocal_ia',
   'bibliotheque_prestations_illimitee',
+  'factures_situation',
+  'export_comptable',
+  'rapport_intervention',
 ]
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
@@ -302,5 +306,20 @@ export const UPGRADE_MESSAGES: Partial<Record<FeatureKey, { title: string; descr
     title: 'La bibliothèque illimitée est réservée à l\'offre Complet',
     description:
       'L\'offre Essentiel limite à 50 prestations enregistrées. L\'offre Complet à 25 € HT/mois supprime cette limite.',
+  },
+  factures_situation: {
+    title: 'Les factures de situation sont réservées à l\'offre Complet',
+    description:
+      'Facturez vos chantiers longs en plusieurs situations (#1, #2, #3) avec cumul d\'avancement automatique. Disponible dans l\'offre Complet à 25 € HT/mois. Les acomptes simples restent inclus dans l\'Essentiel.',
+  },
+  export_comptable: {
+    title: 'L\'export comptable est réservé à l\'offre Complet',
+    description:
+      'Exportez vos écritures vers votre comptable (format CSV compatible Sage / EBP / FEC). Disponible dans l\'offre Complet à 25 € HT/mois.',
+  },
+  rapport_intervention: {
+    title: 'Le rapport d\'intervention est réservé à l\'offre Complet',
+    description:
+      'Générez des rapports d\'intervention signés sur le chantier. Disponible dans l\'offre Complet à 25 € HT/mois.',
   },
 }

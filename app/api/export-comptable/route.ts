@@ -36,6 +36,7 @@ import {
   unauthorizedError,
 } from '@/lib/api-security'
 import { buildCsvAchats, type AchatRow, type FournisseurLite } from '@/lib/export/csv-achats'
+import { getEffectivePlan } from '@/lib/plans'
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -471,6 +472,31 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
+
+    // Gating offre : l'export comptable est réservé à l'offre Complet (essai inclus).
+    // Résolution du plan via entreprise_membres → entreprises. En cas d'échec de
+    // lecture, getEffectivePlan(undefined) renvoie 'complete' → on NE bloque jamais
+    // un utilisateur par erreur (fail-open sur l'accès, jamais sur les données).
+    const { data: membreExport } = await supabase
+      .from('entreprise_membres')
+      .select('entreprise_id')
+      .eq('user_id', user.id)
+      .eq('statut', 'actif')
+      .maybeSingle()
+    if (membreExport?.entreprise_id) {
+      const { data: entrepriseExport } = await supabase
+        .from('entreprises')
+        .select('abonnement_type, subscription_plan')
+        .eq('id', membreExport.entreprise_id)
+        .maybeSingle()
+      const planInfo = getEffectivePlan(entrepriseExport)
+      if (planInfo.plan !== 'complete' && !planInfo.isTrial) {
+        return secureError(
+          "L'export comptable est réservé à l'offre Complet. Passez à l'offre Complet pour exporter vos écritures.",
+          403,
+        )
+      }
+    }
 
     // ── Cas ACHATS (depenses fournisseurs) : flux distinct, pas de client/numero.
     if (type === 'achats') {

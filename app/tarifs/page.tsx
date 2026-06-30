@@ -1,308 +1,437 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 
-import PricingSection from "@/components/PricingSection";
+import Atmosphere from "@/components/landing/Atmosphere";
+import ScrollReveal from "@/components/ScrollReveal";
 
 /**
- * Page /tarifs — 2 offres Essentiel (15 €) et Complet (25 €).
+ * Page /tarifs — V2 (2026-06-30) refonte dark premium.
  *
- * Anti-mensonge / juridique :
- *   - Pas de comparatif nominatif avec les concurrents (Obat, Tolteck, Henrri)
- *     pour éviter tout risque de dénigrement ou de chiffre obsolète.
- *   - Comparatif uniquement Essentiel vs Complet.
- *   - FAQ orientée choix de l'offre, pas comparaison.
+ * - Style unifié landing dark (Atmosphere + ScrollReveal + classes globales).
+ *   => corrige le bug V1 : <PricingSection/> utilisait .reveal mais ScrollReveal
+ *      n'était monté que sur app/page.tsx, donc les cartes prix restaient invisibles.
+ * - 2 offres : Essentiel 15 € (Démarrer) / Complet 25 € (Passer la vitesse supérieure).
+ * - Promo "tarif de lancement -20 %" : prix barré 19/31 présenté comme prix à venir.
+ * - FAQ native <details> + schema FAQPage JSON-LD.
+ * - Maillage interne vers pages métier + outils.
+ *
+ * Anti-mensonge :
+ *   - Le rapport d'intervention est marqué BIENTÔT (non encore livré).
+ *   - La répartition des fonctions doit correspondre au gating réel de lib/plans.ts.
+ *   - Aucune fausse promo barrée : 19/31 = "tarif de lancement, bientôt".
  */
 
-const featuresComparison: Array<{
+type CompareValue = boolean | string;
+
+interface CompareRow {
   label: string;
-  essential: boolean | string;
-  complete: boolean | string;
-}> = [
-  { label: "Devis illimités", essential: true, complete: true },
-  { label: "Factures illimitées", essential: true, complete: true },
-  { label: "Signature électronique sur smartphone", essential: true, complete: true },
-  { label: "Mentions légales BTP françaises automatiques", essential: true, complete: true },
-  { label: "TVA 5,5 % / 10 % / 20 % automatique", essential: true, complete: true },
-  { label: "Autoliquidation BTP (sous-traitance)", essential: true, complete: true },
-  { label: "Attestations TVA rénovation auto-générées", essential: true, complete: true },
-  { label: "Acomptes et factures de situation (#1, #2, #3 avec cumul d'avancement)", essential: true, complete: true },
-  { label: "Avoirs et rectifications", essential: true, complete: true },
-  { label: "Tableau de bord chiffre d'affaires", essential: true, complete: true },
-  { label: "Suivi des impayés et relance en 1 clic", essential: true, complete: true },
-  { label: "Relances auto (email) + relance SMS gratuite", essential: true, complete: true },
-  { label: "Client particulier ou société (SIREN/SIRET)", essential: true, complete: true },
-  { label: "Facture verrouillée après le 1er envoi", essential: true, complete: true },
-  { label: "Rappels assurance décennale", essential: true, complete: true },
-  { label: "Photos de chantier classées par client", essential: true, complete: true },
-  { label: "10 calculatrices métier + aide URSSAF", essential: true, complete: true },
-  { label: "QR de virement SEPA sur vos factures", essential: true, complete: true },
-  { label: "Export PDF de chaque devis et facture", essential: true, complete: true },
-  { label: "Export CSV comptable (Sage / EBP / FEC) — à venir", essential: true, complete: true },
-  { label: "Réception des factures fournisseurs (e-facture, dès 2026)", essential: true, complete: true },
-  { label: "Émission électronique prête (échéance 2027)", essential: true, complete: true },
-  { label: "Optimisé smartphone et tablette", essential: true, complete: true },
-  { label: "Données hébergées en Europe (RGPD)", essential: true, complete: true },
-  { label: "Support email Lun-Ven 9h-18h", essential: true, complete: true },
-  { label: "Mises à jour continues incluses", essential: true, complete: true },
-  { label: "Aucune limite de clients", essential: true, complete: true },
-  { label: "Aucune limite de chantiers", essential: true, complete: true },
-  { label: "Catalogue de +700 prestations + bibliothèque perso", essential: "50 max", complete: "Illimitée" },
-  { label: "Planning chantier visuel", essential: false, complete: true },
-  { label: "Alertes conflits d'affectation en temps réel", essential: false, complete: true },
-  { label: "Gestion d'équipe et planning intervenants", essential: false, complete: true },
-  { label: "Devis vocal par intelligence artificielle", essential: false, complete: true },
+  badge?: string;
+  essential: CompareValue;
+  complete: CompareValue;
+}
+
+const ESSENTIAL_FEATURES: string[] = [
+  "Devis & factures illimités",
+  "Signature électronique sur smartphone",
+  "Mentions BTP & TVA (5,5 / 10 / 20 %) automatiques",
+  "Acomptes & attestations TVA rénovation",
+  "Suivi des impayés & relances (email + SMS)",
+  "Conforme facture électronique 2026 / 2027",
+  "Tableau de bord du chiffre d'affaires",
+  "Support par email (Lun–Ven)",
 ];
 
-const faqItems = [
+interface CompleteExtra {
+  label: string;
+  badge?: string;
+}
+
+const COMPLETE_EXTRA: CompleteExtra[] = [
+  { label: "Devis vocal par IA — dictez votre devis depuis le chantier" },
+  { label: "Planning chantier visuel + alertes de conflit" },
+  { label: "Gestion d'équipe & intervenants" },
+  { label: "Factures de situation (#1, #2, #3 avec cumul)" },
+  { label: "Export comptable (Sage / EBP / FEC)" },
+  { label: "Rapport d'intervention", badge: "BIENTÔT" },
+  { label: "Bibliothèque de prestations illimitée" },
+  { label: "Support prioritaire" },
+];
+
+const COMPARISON: CompareRow[] = [
+  { label: "Devis & factures illimités", essential: true, complete: true },
+  { label: "Signature & conformité e-facture 2026", essential: true, complete: true },
+  { label: "Suivi impayés & relances (email + SMS)", essential: true, complete: true },
+  { label: "Acomptes", essential: true, complete: true },
+  { label: "Factures de situation (#1, #2, #3)", essential: false, complete: true },
+  { label: "Devis vocal par IA", essential: false, complete: true },
+  { label: "Planning chantier & alertes de conflit", essential: false, complete: true },
+  { label: "Gestion d'équipe & intervenants", essential: false, complete: true },
+  { label: "Rapport d'intervention", badge: "BIENTÔT", essential: false, complete: true },
+  { label: "Export comptable (Sage / EBP / FEC)", essential: false, complete: true },
+  { label: "Bibliothèque de prestations", essential: "50 max", complete: "Illimitée" },
+  { label: "Support", essential: "Email", complete: "Prioritaire" },
+];
+
+const FAQ: Array<{ q: string; a: string }> = [
   {
-    q: "Quelle offre est faite pour moi ?",
-    a: "Vous travaillez seul ? L'Essentiel à 15 € HT/mois vous suffit largement pour chiffrer, facturer et suivre vos paiements. Vous jonglez entre plusieurs chantiers ou une équipe ? Le Complet à 25 € HT/mois ajoute le planning visuel, les alertes de conflit d'affectation, la gestion d'équipe et le devis vocal par IA — pour 10 € de plus.",
+    q: "Pourquoi le tarif est-il à −20 % en ce moment ?",
+    a: "C'est un tarif de lancement. Les prix augmenteront prochainement (Essentiel à 19 €, Complet à 31 €). En vous abonnant maintenant, vous profitez du tarif réduit dès le départ.",
   },
   {
-    q: "Puis-je passer d'une offre à l'autre ?",
-    a: "Oui, à tout moment, depuis votre espace abonnement. Le passage de l'Essentiel au Complet est instantané (vous récupérez l'accès au planning et à l'équipe). Le passage du Complet à l'Essentiel se fait à la fin de votre période payée en cours.",
+    q: "Quelle est la différence entre Essentiel et Complet ?",
+    a: "L'Essentiel (15 €) couvre tout le métier de base : devis, factures, conformité, relances. Le Complet (25 €) ajoute de quoi gagner du temps et tout piloter : devis vocal par IA, planning, gestion d'équipe, factures de situation, export comptable et support prioritaire. Même en solo, le Complet vaut souvent le coup pour le temps gagné.",
+  },
+  {
+    q: "L'essai de 14 jours demande-t-il une carte bancaire ?",
+    a: "Non. Vous créez votre compte avec un simple email et vous testez toutes les fonctions du Complet pendant 14 jours. Aucune carte n'est demandée. Vous choisissez votre offre à la fin de l'essai.",
   },
   {
     q: "Y a-t-il des frais cachés ou des options payantes ?",
-    a: "Non, absolument aucun. Le tarif annoncé est définitif. Aucun module à acheter, aucun surcoût par utilisateur, aucune limite sur le nombre de clients ou de chantiers. La réception des factures électroniques de vos fournisseurs (obligation dès 2026) et la préparation de l'émission de vos propres factures (échéance 2027) sont incluses dans les deux offres.",
+    a: "Aucun. Pas de surcoût par utilisateur, par catalogue ou par photo. Aucune limite de clients ni de chantiers. Le tarif affiché est définitif.",
   },
   {
-    q: "L'essai gratuit est-il vraiment sans carte bancaire ?",
-    a: "Oui. Vous créez votre compte avec un email, et vous avez 14 jours pour tester toutes les fonctionnalités du Complet. Aucune carte bancaire n'est demandée à l'inscription. Vous choisissez votre offre Essentiel ou Complet à la fin de la période d'essai.",
+    q: "Puis-je changer d'offre ou résilier à tout moment ?",
+    a: "Oui. Vous passez de l'Essentiel au Complet (et inversement) en un clic depuis votre espace, et vous résiliez quand vous voulez, sans engagement. Vos données restent exportables à tout moment.",
   },
   {
-    q: "Puis-je annuler mon abonnement à tout moment ?",
-    a: "Oui, Nexartis est sans engagement. Vous pouvez résilier directement depuis votre espace, à tout moment. Vous pouvez exporter toutes vos données à tout moment (CSV, PDF) avant ou après votre annulation, sans limite.",
+    q: "Combien coûte un logiciel de devis et facture pour artisan ?",
+    a: "Chez Nexartis, le logiciel de devis et facture coûte 15 €/mois HT (offre Essentiel) ou 25 €/mois HT (offre Complet), sans engagement. C'est l'un des meilleurs rapports prix/fonctions du marché pour un artisan du bâtiment, sans frais cachés ni surcoût par utilisateur.",
+  },
+  {
+    q: "Nexartis est-il conforme à la facturation électronique 2026 / 2027 ?",
+    a: "Oui, dans les deux offres. La réception des factures électroniques de vos fournisseurs (obligatoire dès 2026) et la préparation de l'émission de vos propres factures (échéance 2027) sont incluses, sans surcoût.",
+  },
+  {
+    q: "Que deviennent mes données si je résilie ?",
+    a: "Elles restent les vôtres. Vous exportez vos devis, factures et clients en PDF et CSV à tout moment, avant comme après la résiliation, sans limite. Vos données sont hébergées en Europe (RGPD).",
   },
   {
     q: "Proposez-vous un tarif annuel ?",
-    a: "Pas encore. Nous préférons la simplicité d'un tarif unique mensuel sans engagement. Si suffisamment de clients le demandent, nous étudierons une offre annuelle avec réduction.",
-  },
-  {
-    q: "Que se passe-t-il si j'embauche un collaborateur en cours d'année ?",
-    a: "Si vous êtes sur l'Essentiel, vous pourrez basculer vers le Complet en un clic depuis votre espace pour accéder à la gestion d'équipe et au planning. Le tarif s'ajuste immédiatement, sans démarche complexe.",
+    a: "Pas encore. Nous préférons la simplicité d'un tarif mensuel unique, sans engagement. Si suffisamment d'artisans le demandent, nous étudierons une offre annuelle avec réduction.",
   },
 ];
 
-function ComparisonCell({ value }: { value: boolean | string }) {
-  if (value === true)
-    return (
-      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/30">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#10b981"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      </span>
-    );
-  if (value === false)
-    return (
-      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-200 border border-gray-300">
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#9ca3af"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </span>
-    );
-  // Texte (limite numérique)
+const METIER_LINKS: Array<{ href: string; label: string }> = [
+  { href: "/logiciel-devis-electricien", label: "Logiciel devis électricien" },
+  { href: "/logiciel-devis-plombier", label: "Plombier" },
+  { href: "/logiciel-devis-maconnerie", label: "Maçon" },
+  { href: "/logiciel-devis-peintre", label: "Peintre" },
+  { href: "/logiciel-devis-menuisier", label: "Menuisier" },
+  { href: "/logiciel-devis-carreleur", label: "Carreleur" },
+  { href: "/logiciel-devis-chauffagiste", label: "Chauffagiste" },
+  { href: "/logiciel-artisan-auto-entrepreneur", label: "Auto-entrepreneur" },
+];
+
+const ORANGE_CELL = "color-mix(in srgb, #ff7a1a 6%, transparent)";
+
+function CheckMark() {
   return (
-    <span className="text-sm font-semibold text-navy">{value}</span>
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="#2fd6a0" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+      className="mt-0.5 flex-shrink-0" aria-hidden="true"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function CompareCell({ value, accent }: { value: CompareValue; accent?: boolean }) {
+  if (value === true) {
+    return <span className={accent ? "text-accent-2" : "text-mint"} aria-hidden="true">✓</span>;
+  }
+  if (value === false) {
+    return <span className="text-ink-3" aria-hidden="true">—</span>;
+  }
+  return (
+    <span className={accent ? "text-accent-2 text-xs font-bold" : "text-ink-2 text-xs font-semibold"}>
+      {value}
+    </span>
   );
 }
 
 export default function TarifsPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faqItems.map((item) => ({
+    mainEntity: FAQ.map((item) => ({
       "@type": "Question",
       name: item.q,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: item.a,
-      },
+      acceptedAnswer: { "@type": "Answer", text: item.a },
     })),
   };
 
   return (
-    <>
+    <div className="bg-bgdark min-h-screen text-ink font-hanken">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
+      <ScrollReveal />
+      <Atmosphere />
 
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-navy to-[#0d1525] py-20 lg:py-28">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-          }}
-        />
-        <div className="relative mx-auto max-w-7xl px-6 text-center">
-          <h1 className="font-syne text-3xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-            À partir de 15 €/mois.
-            <br />
-            <span className="text-sky">Et rien de caché derrière.</span>
+      <div className="landing-section">
+
+        {/* HERO */}
+        <section className="max-w-4xl mx-auto px-6 pt-20 pb-14 text-center">
+          <h2 className="sr-only">Nos offres et tarifs</h2>
+          <span className="landing-eyebrow landing-eyebrow--accent reveal">
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", boxShadow: "0 0 10px currentColor" }} />
+            Tarif de lancement —20 %
+          </span>
+          <h1 className="font-hanken text-4xl md:text-6xl font-extrabold leading-[1.05] tracking-[-0.03em] mt-6 reveal reveal-delay-1">
+            Le prix d&apos;un logiciel de devis et facture pour artisan,{" "}
+            <span className="landing-text-grad">clair et sans surprise.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl font-manrope text-lg leading-relaxed text-gray-300">
-            Que vous chiffriez seul ou que vous pilotiez une équipe, vous restez
-            conforme à la réglementation française — sans option surprise sur la facture.
+          <p className="mt-6 text-lg md:text-xl text-ink-2 max-w-2xl mx-auto leading-relaxed reveal reveal-delay-2">
+            Deux offres simples, sans engagement. Vous changez quand vous voulez, en un clic.{" "}
+            <span className="font-semibold text-ink">14 jours d&apos;essai, sans carte bancaire.</span>
           </p>
-        </div>
-      </section>
+        </section>
 
-      {/* ── PricingSection (2 cartes) ── */}
-      <PricingSection />
+        {/* CARTES */}
+        <section className="max-w-5xl mx-auto px-6 pb-16">
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-stretch">
 
-      {/* ── Comparatif détaillé Essentiel vs Complet ── */}
-      <section className="bg-cream py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl px-6">
-          <h2 className="mb-4 text-center font-syne text-2xl font-extrabold text-navy md:text-3xl lg:text-4xl">
-            Tout est sur la table, ligne par ligne
-          </h2>
-          <p className="mx-auto mb-12 max-w-xl text-center font-manrope text-lg text-gray-500">
-            Comparez les deux offres en détail. Ce que vous voyez ici, c'est exactement ce que vous aurez.
-          </p>
+            {/* ESSENTIEL */}
+            <div className="reveal rounded-3xl p-[1px] bg-white/[0.08]">
+              <div className="rounded-[23px] bg-bgdark-2 p-8 lg:p-10 h-full flex flex-col border border-white/[0.04]">
+                <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-electric-2">Démarrer</span>
+                <h3 className="font-hanken text-2xl font-extrabold mt-2">Essentiel</h3>
+                <p className="text-ink-2 mt-1 text-sm leading-snug">Tout pour chiffrer, facturer et être payé. Carré et conforme dès le premier jour.</p>
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full text-center">
-                <thead>
-                  <tr className="border-b-2 border-gray-100">
-                    <th className="p-4 text-left font-manrope text-sm font-normal text-gray-400" />
-                    <th className="bg-sky/5 p-4 font-syne text-sm font-bold text-navy">
-                      Essentiel
-                      <div className="mt-1 font-manrope text-xs font-semibold text-sky">
-                        15 € HT/mois
-                      </div>
-                    </th>
-                    <th className="bg-orange/10 p-4 font-syne text-sm font-bold text-navy">
-                      Complet
-                      <div className="mt-1 font-manrope text-xs font-semibold text-orange">
-                        25 € HT/mois
-                      </div>
-                      <div className="mt-1 inline-block rounded-full bg-orange/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange">
-                        ★ Recommandé
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {featuresComparison.map((row, i) => (
-                    <tr
-                      key={row.label}
-                      className={
-                        i < featuresComparison.length - 1
-                          ? "border-b border-gray-50"
-                          : ""
-                      }
-                    >
-                      <td className="p-4 text-left font-manrope text-sm text-gray-700">
-                        {row.label}
-                      </td>
-                      <td className="bg-sky/5 p-4">
-                        <ComparisonCell value={row.essential} />
-                      </td>
-                      <td className="bg-orange/5 p-4">
-                        <ComparisonCell value={row.complete} />
-                      </td>
-                    </tr>
+                <div className="mt-6 flex items-end gap-2">
+                  <span className="text-ink-3 line-through text-2xl font-bold">19€</span>
+                  <span className="font-hanken text-6xl font-black leading-none tabular-nums">15€</span>
+                  <span className="text-ink-2 font-semibold mb-1.5">/mois HT</span>
+                </div>
+                <p className="text-xs text-accent-ink font-bold mt-1">Tarif de lancement · bientôt 19 €</p>
+                <p className="text-xs text-ink-3 mt-0.5">Sans engagement · Résiliation à tout moment</p>
+
+                <Link href="/register?plan=essential" className="mt-6 block text-center rounded-2xl py-3.5 font-bold border border-white/[0.16] text-ink hover:bg-white/[0.06] transition">
+                  Démarrer l&apos;essai gratuit
+                </Link>
+                <p className="text-center text-xs text-ink-3 mt-2">14 jours · sans carte bancaire</p>
+
+                <div className="h-px bg-white/[0.08] my-7" />
+
+                <ul className="space-y-3 text-sm text-ink-2">
+                  {ESSENTIAL_FEATURES.map((f) => (
+                    <li key={f} className="flex gap-2.5"><CheckMark />{f}</li>
                   ))}
-                </tbody>
-              </table>
+                </ul>
+              </div>
+            </div>
+
+            {/* COMPLET */}
+            <div
+              className="reveal reveal-delay-1 rounded-3xl p-[1.5px] overflow-hidden"
+              style={{ background: "linear-gradient(135deg, color-mix(in srgb,#3f7bff 65%,transparent) 0%, color-mix(in srgb,#ff7a1a 80%,transparent) 100%)" }}
+            >
+              <div className="rounded-[22px] bg-bgdark-2 p-8 lg:p-10 h-full flex flex-col relative overflow-hidden">
+                <div
+                  aria-hidden="true"
+                  className="absolute -top-24 -right-24 w-72 h-72 rounded-full pointer-events-none"
+                  style={{ background: "radial-gradient(circle, color-mix(in srgb,#ff7a1a 26%,transparent) 0%, transparent 65%)", filter: "blur(30px)" }}
+                />
+                <div className="relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-accent-ink">Passer la vitesse supérieure</span>
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wide px-3 py-1.5 rounded-full"
+                      style={{ color: "#ffc79a", background: "color-mix(in srgb,#ff7a1a 14%,transparent)", border: "1px solid color-mix(in srgb,#ff7a1a 38%,transparent)" }}
+                    >
+                      ★ Recommandé
+                    </span>
+                  </div>
+                  <h3 className="font-hanken text-2xl font-extrabold mt-2">Complet</h3>
+                  <p className="text-ink-2 mt-1 text-sm leading-snug">Tout l&apos;Essentiel, plus de quoi gagner un temps fou et tout piloter — même en solo.</p>
+
+                  <div className="mt-6 flex items-end gap-2">
+                    <span className="text-ink-3 line-through text-2xl font-bold">31€</span>
+                    <span className="font-hanken text-6xl font-black leading-none tabular-nums text-accent-2">25€</span>
+                    <span className="text-ink-2 font-semibold mb-1.5">/mois HT</span>
+                  </div>
+                  <p className="text-xs text-gold font-bold mt-1">Tarif de lancement · bientôt 31 €</p>
+                  <p className="text-xs text-ink-3 mt-0.5">Sans engagement · Aucune limite</p>
+
+                  <Link href="/register?plan=complete" className="mt-6 block text-center rounded-2xl py-3.5 font-bold text-bgdark bg-gradient-to-br from-accent-2 to-accent shadow-[0_8px_30px_rgba(255,122,26,0.35)] hover:-translate-y-0.5 transition">
+                    Essayer le Complet — 14 jours
+                  </Link>
+                  <p className="text-center text-xs text-ink-3 mt-2">14 jours · sans carte bancaire</p>
+
+                  <div className="h-px bg-white/[0.10] my-7" />
+
+                  <p className="text-[11px] uppercase tracking-[0.12em] font-bold text-accent-2 mb-3">Tout l&apos;Essentiel, et en plus :</p>
+                  <ul className="space-y-3 text-sm text-ink">
+                    {COMPLETE_EXTRA.map((f) => (
+                      <li key={f.label} className="flex gap-2.5">
+                        <span className="text-gold mt-0.5" aria-hidden="true">★</span>
+                        <span>
+                          {f.label}
+                          {f.badge ? <span className="ml-1.5 text-[10px] bg-white/15 px-1.5 py-0.5 rounded font-bold align-middle">{f.badge}</span> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 
-          <p className="mt-6 text-center font-manrope text-xs text-gray-400 italic">
-            * Les deux offres incluent les mises à jour à vie, la réception des
-            factures électroniques (dès 2026) et l'émission prête pour 2027, sans surcoût.
-          </p>
-        </div>
-      </section>
+          <p className="text-center text-sm text-ink-2 mt-8 reveal">Vous passez de l&apos;Essentiel au Complet (et inversement) à tout moment depuis votre espace.</p>
+        </section>
 
-      {/* ── FAQ ── */}
-      <section className="bg-white py-20 lg:py-28">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="mb-12 text-center font-syne text-2xl font-extrabold text-navy md:text-3xl lg:text-4xl">
-            Questions sur les tarifs
-          </h2>
+        {/* RÉASSURANCE */}
+        <section className="border-y border-white/[0.07] bg-bgdark-2/40 py-7">
+          <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6 text-sm font-semibold text-center text-ink-2">
+            <span>Sans carte bancaire</span>
+            <span>Sans engagement</span>
+            <span>Hébergé en Europe</span>
+            <span>Données exportables à vie</span>
+          </div>
+        </section>
 
-          <div className="space-y-3">
-            {faqItems.map((item, i) => (
-              <div
-                key={i}
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white"
-              >
-                <button
-                  className="flex w-full items-center justify-between px-6 py-5 text-left"
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                >
-                  <span className="pr-4 font-syne text-base font-bold text-navy">
-                    {item.q}
-                  </span>
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy/5 text-navy transition-transform ${
-                      openFaq === i ? "rotate-45" : ""
-                    }`}
-                  >
-                    +
-                  </span>
-                </button>
-                {openFaq === i && (
-                  <div className="border-t border-gray-100 px-6 pb-5 pt-4">
-                    <p className="font-manrope text-sm leading-relaxed text-gray-600">
-                      {item.a}
-                    </p>
-                  </div>
-                )}
+        {/* DIFFÉRENCIATION */}
+        <section className="max-w-5xl mx-auto px-6 py-20 lg:py-28">
+          <div className="text-center mb-14 reveal">
+            <span className="landing-eyebrow mb-5">
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", boxShadow: "0 0 10px currentColor" }} />
+              Comment choisir
+            </span>
+            <h2 className="font-hanken text-3xl md:text-5xl font-extrabold tracking-[-0.03em] mt-5">Quelle version est faite pour vous ?</h2>
+            <p className="text-ink-2 mt-3 max-w-2xl mx-auto text-lg">Ce n&apos;est pas une question de taille d&apos;entreprise. C&apos;est une question d&apos;ambition.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+            {/* Démarrer */}
+            <div className="reveal rounded-3xl p-[1px] bg-white/[0.08]">
+              <div className="rounded-[23px] bg-bgdark-2 p-8 lg:p-10 h-full border border-white/[0.04]">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: "color-mix(in srgb,#3f7bff 14%,transparent)" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6aa0ff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </div>
+                <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-electric-2">Démarrer · Essentiel</span>
+                <h3 className="font-hanken text-2xl font-extrabold mt-2 mb-3">Vous voulez être carré, tout de suite.</h3>
+                <p className="text-ink-2 leading-relaxed mb-5">Des devis pros en 2 minutes, des factures conformes, vos relances qui partent toutes seules, et vous êtes payé plus vite. L&apos;essentiel du métier, sans prise de tête.</p>
+                <ul className="space-y-2.5 text-sm text-ink-2">
+                  <li className="flex gap-2.5"><CheckMark />Je chiffre et je facture proprement</li>
+                  <li className="flex gap-2.5"><CheckMark />Je suis en règle avec la loi française</li>
+                  <li className="flex gap-2.5"><CheckMark />Je relance mes impayés sans y penser</li>
+                </ul>
               </div>
+            </div>
+
+            {/* Vitesse supérieure */}
+            <div className="reveal reveal-delay-1 rounded-3xl p-[1.5px] overflow-hidden" style={{ background: "linear-gradient(135deg, color-mix(in srgb,#3f7bff 55%,transparent) 0%, color-mix(in srgb,#f5c842 70%,transparent) 100%)" }}>
+              <div className="rounded-[22px] bg-bgdark-2 p-8 lg:p-10 h-full relative overflow-hidden">
+                <div aria-hidden="true" className="absolute -top-16 -right-16 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, color-mix(in srgb,#f5c842 22%,transparent), transparent 65%)", filter: "blur(28px)" }} />
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: "color-mix(in srgb,#f5c842 18%,transparent)" }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f5c842" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                  </div>
+                  <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-accent-ink">Passer la vitesse supérieure · Complet</span>
+                  <h3 className="font-hanken text-2xl font-extrabold mt-2 mb-3">Vous voulez gagner du temps et tout piloter.</h3>
+                  <p className="text-ink-2 leading-relaxed mb-5">Dictez vos devis à la voix depuis le chantier, visualisez tout sur un planning, sortez vos rapports et vos exports compta en un clic. Vous arrêtez de gérer : vous pilotez.</p>
+                  <ul className="space-y-2.5 text-sm text-ink">
+                    <li className="flex gap-2.5"><span className="text-gold" aria-hidden="true">★</span>Je gagne des heures sur mes devis (vocal IA)</li>
+                    <li className="flex gap-2.5"><span className="text-gold" aria-hidden="true">★</span>Je vois tous mes chantiers d&apos;un coup d&apos;œil</li>
+                    <li className="flex gap-2.5"><span className="text-gold" aria-hidden="true">★</span>Je pilote mon équipe quand je grandis</li>
+                  </ul>
+                  <p className="mt-6 text-sm bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-ink-2">
+                    <span className="text-ink font-bold">Même seuls</span>, beaucoup d&apos;artisans choisissent le Complet — pour le devis vocal et le planning, le temps gagné est payé en une journée.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* TABLEAU COMPARATIF */}
+        <section className="max-w-4xl mx-auto px-6 py-16 lg:py-20">
+          <div className="text-center mb-12 reveal">
+            <h2 className="font-hanken text-3xl md:text-4xl font-extrabold tracking-[-0.02em]">Tout est sur la table, ligne par ligne</h2>
+            <p className="text-ink-2 mt-3 max-w-xl mx-auto">Ce que vous voyez ici, c&apos;est exactement ce que vous aurez. Rien de caché.</p>
+          </div>
+          <div className="reveal rounded-2xl border border-white/[0.08] overflow-x-auto bg-bgdark-2">
+            <table className="w-full text-sm min-w-[480px]">
+              <thead>
+                <tr className="border-b border-white/[0.08]">
+                  <th className="text-left p-4" />
+                  <th className="p-4 font-hanken text-ink">Essentiel<span className="block text-xs text-electric-2 font-bold mt-0.5">15 €</span></th>
+                  <th className="p-4 font-hanken text-ink" style={{ background: ORANGE_CELL }}>Complet<span className="block text-xs text-accent-2 font-bold mt-0.5">25 €</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON.map((row, i) => (
+                  <tr key={row.label} className={i < COMPARISON.length - 1 ? "border-b border-white/[0.05]" : ""}>
+                    <td className="text-left p-4 text-ink-2">
+                      {row.label}
+                      {row.badge ? <span className="ml-1.5 text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-bold">{row.badge}</span> : null}
+                    </td>
+                    <td className="text-center p-4"><CompareCell value={row.essential} /></td>
+                    <td className="text-center p-4" style={{ background: ORANGE_CELL }}><CompareCell value={row.complete} accent /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* ZÉRO FRAIS CACHÉ */}
+        <section className="max-w-3xl mx-auto px-6 py-16 text-center reveal">
+          <h2 className="font-hanken text-3xl md:text-5xl font-extrabold tracking-[-0.03em] mb-4"><span className="landing-text-grad">15 €, c&apos;est 15 €.</span></h2>
+          <p className="text-ink-2 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">Pas de surcoût par utilisateur. Pas de catalogue à acheter. Pas de frais par photo. Pas de limite de clients ni de chantiers. Le tarif annoncé est le tarif final.</p>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl p-6 bg-bgdark-2 border border-white/[0.07]"><div className="font-hanken text-3xl font-black text-accent-2">0 €</div><p className="text-sm text-ink-3 mt-1">de frais cachés</p></div>
+            <div className="rounded-2xl p-6 bg-bgdark-2 border border-white/[0.07]"><div className="font-hanken text-3xl font-black text-accent-2">∞</div><p className="text-sm text-ink-3 mt-1">clients &amp; chantiers</p></div>
+            <div className="rounded-2xl p-6 bg-bgdark-2 border border-white/[0.07]"><div className="font-hanken text-3xl font-black text-accent-2">14 j</div><p className="text-sm text-ink-3 mt-1">d&apos;essai sans CB</p></div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="max-w-3xl mx-auto px-6 py-16 lg:py-20">
+          <h2 className="text-center font-hanken text-3xl md:text-4xl font-extrabold mb-12 reveal">Questions fréquentes sur les tarifs</h2>
+          <div className="space-y-3">
+            {FAQ.map((item) => (
+              <details key={item.q} className="group reveal bg-bgdark-2 rounded-xl border border-white/[0.08] overflow-hidden">
+                <summary className="flex items-center justify-between px-6 py-5 cursor-pointer list-none">
+                  <span className="font-hanken font-bold pr-4 group-open:text-accent-2 transition-colors">{item.q}</span>
+                  <span className="w-7 h-7 flex items-center justify-center rounded-full bg-white/[0.06] transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+                </summary>
+                <div className="px-6 pb-5 text-sm text-ink-2 leading-relaxed">{item.a}</div>
+              </details>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── CTA ── */}
-      <section className="bg-navy py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-6 text-center">
-          <div>
-            <h2 className="mb-4 font-syne text-3xl font-extrabold text-white md:text-4xl lg:text-5xl">
-              Faites votre premier devis ce soir
-            </h2>
-            <p className="mx-auto mb-8 max-w-lg font-manrope text-lg text-gray-400">
-              14 jours gratuits, toutes les fonctionnalités du Complet, sans
-              carte bancaire. Vous annulez quand vous voulez.
-            </p>
-            <Link
-              href="/register"
-              className="inline-flex h-16 items-center justify-center rounded-xl bg-orange px-10 font-syne text-lg font-bold text-white transition-colors hover:bg-orange-hover"
-            >
-              Démarrer mon essai gratuit — 14 jours
-            </Link>
+        {/* MAILLAGE INTERNE */}
+        <section className="max-w-5xl mx-auto px-6 py-16 lg:py-20">
+          <div className="text-center mb-10 reveal">
+            <h2 className="font-hanken text-2xl md:text-3xl font-extrabold tracking-[-0.02em]">Découvrez Nexartis selon votre métier</h2>
+            <p className="text-ink-2 mt-3 max-w-xl mx-auto">Un logiciel pensé pour chaque corps de métier du bâtiment.</p>
           </div>
-        </div>
-      </section>
-    </>
+          <div className="reveal flex flex-wrap justify-center gap-3 text-sm font-semibold">
+            {METIER_LINKS.map((l) => (
+              <Link key={l.href} href={l.href} className="px-4 py-2.5 rounded-full bg-bgdark-2 border border-white/[0.08] text-ink-2 hover:text-ink hover:border-white/20 transition">{l.label}</Link>
+            ))}
+          </div>
+          <div className="reveal reveal-delay-1 mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2">
+            <Link href="/planning-chantier-intelligent" className="hover:text-accent-2 underline underline-offset-2 transition">Planning chantier intelligent</Link>
+            <Link href="/calculateur-taux-horaire-artisan" className="hover:text-accent-2 underline underline-offset-2 transition">Calculer votre taux horaire</Link>
+            <Link href="/blog" className="hover:text-accent-2 underline underline-offset-2 transition">Comparatifs &amp; conseils sur le blog</Link>
+            <Link href="/a-propos" className="hover:text-accent-2 underline underline-offset-2 transition">Qui est derrière Nexartis</Link>
+          </div>
+        </section>
+
+        {/* CTA FINAL */}
+        <section className="max-w-3xl mx-auto px-6 py-20 text-center reveal">
+          <h2 className="font-hanken text-3xl md:text-5xl font-extrabold tracking-[-0.03em] mb-4">Faites votre premier devis ce soir.</h2>
+          <p className="text-ink-2 text-lg mb-8 max-w-lg mx-auto">14 jours gratuits, toutes les fonctions du Complet, sans carte bancaire. Vous annulez quand vous voulez.</p>
+          <Link href="/register?plan=complete" className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 text-bgdark font-bold text-lg px-10 h-16 hover:-translate-y-0.5 transition shadow-[0_10px_40px_rgba(255,122,26,0.4)]">
+            Démarrer mon essai gratuit — 14 jours
+          </Link>
+        </section>
+
+      </div>
+    </div>
   );
 }
