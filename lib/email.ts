@@ -3,8 +3,66 @@
 // Server-side only — do NOT import from client components
 // -------------------------------------------------------------------
 
+import crypto from 'crypto'
+import { createClient } from '@supabase/supabase-js'
+
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 const SENDER = { name: 'Nexartis', email: 'no-reply@nexartis.fr' }
+const SITE_URL = 'https://nexartis.fr'
+
+// -------------------------------------------------------------------
+// Desinscription des emails marketing (lien signe + opt-out par email)
+// -------------------------------------------------------------------
+
+function unsubscribeSignature(email: string): string {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.BREVO_API_KEY || 'nexartis-unsub'
+  return crypto.createHmac('sha256', secret).update(email.trim().toLowerCase()).digest('hex').slice(0, 32)
+}
+
+/** Construit l'URL de desinscription signee pour un email donne. */
+export function buildUnsubscribeUrl(email: string): string {
+  const e = Buffer.from(email.trim().toLowerCase()).toString('base64url')
+  return `${SITE_URL}/api/unsubscribe?e=${e}&s=${unsubscribeSignature(email)}`
+}
+
+/** Verifie un lien de desinscription. Retourne l'email si valide, sinon null. */
+export function verifyUnsubscribe(emailB64: string, sig: string): string | null {
+  if (!emailB64 || !sig) return null
+  let email: string
+  try {
+    email = Buffer.from(emailB64, 'base64url').toString('utf8')
+  } catch {
+    return null
+  }
+  if (!email) return null
+  const expected = unsubscribeSignature(email)
+  if (sig.length !== expected.length) return null
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+  } catch {
+    return null
+  }
+  return email.trim().toLowerCase()
+}
+
+/** Vrai si l'email s'est desinscrit des emails marketing. Fail-open (false) si lecture impossible. */
+async function isOptedOut(email: string): Promise<boolean> {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    )
+    const { data } = await supabase
+      .from('email_optouts')
+      .select('email')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle()
+    return !!data
+  } catch {
+    return false
+  }
+}
 
 // -------------------------------------------------------------------
 // Core send function
@@ -15,9 +73,10 @@ interface SendEmailParams {
   subject: string
   html: string
   senderName?: string
+  listUnsubscribeUrl?: string
 }
 
-export async function sendEmail({ to, subject, html, senderName }: SendEmailParams) {
+export async function sendEmail({ to, subject, html, senderName, listUnsubscribeUrl }: SendEmailParams) {
   const apiKey = process.env.BREVO_API_KEY
   if (!apiKey) throw new Error('BREVO_API_KEY is not configured')
 
@@ -33,6 +92,14 @@ export async function sendEmail({ to, subject, html, senderName }: SendEmailPara
       to: [{ email: to.email, name: to.name || to.email }],
       subject,
       htmlContent: html,
+      ...(listUnsubscribeUrl
+        ? {
+            headers: {
+              'List-Unsubscribe': `<${listUnsubscribeUrl}>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
+          }
+        : {}),
     }),
   })
 
@@ -51,6 +118,8 @@ export async function sendEmail({ to, subject, html, senderName }: SendEmailPara
 interface LayoutOptions {
   logoUrl?: string
   entrepriseNom?: string
+  /** Si present, ajoute un lien de desinscription dans le pied de page (emails marketing uniquement). */
+  unsubscribeUrl?: string
 }
 
 function header(opts: LayoutOptions): string {
@@ -66,9 +135,13 @@ function header(opts: LayoutOptions): string {
 <div style="height:1px;background:#e5e7eb;margin:0 32px;"></div>`
 }
 
-function footer(): string {
+function footer(unsubscribeUrl?: string): string {
+  const unsub = unsubscribeUrl
+    ? `<p style="margin:8px 0 0;font-size:11px;color:#9ca3af;line-height:1.5;">Vous recevez cet email d'information en tant qu'utilisateur de Nexartis. <a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Se désinscrire de ces emails</a>.</p>`
+    : ''
   return `<div style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center;">
   <p style="margin:0;font-size:11px;color:#9ca3af;">Envoyé via Nexartis — nexartis.fr</p>
+  ${unsub}
 </div>`
 }
 
@@ -83,7 +156,7 @@ function layout(body: string, opts: LayoutOptions = {}) {
       <div style="padding:32px;">
         ${body}
       </div>
-      ${footer()}
+      ${footer(opts.unsubscribeUrl)}
     </div>
   </div>
 </body>
@@ -348,6 +421,10 @@ export async function sendGesteCommercialEmail(user: {
   moisOfferts: number // 1 ou 3
   newExpireAt: string // ISO date string
 }) {
+  // Respect de la desinscription : on n'envoie pas d'email marketing a un opt-out.
+  if (await isOptedOut(user.email)) {
+    return { skipped: true as const, reason: 'opted_out' as const }
+  }
   const formattedDate = new Date(user.newExpireAt).toLocaleDateString('fr-FR', {
     day: '2-digit', month: 'long', year: 'numeric',
   })
@@ -424,13 +501,16 @@ export async function sendGesteCommercialEmail(user: {
       </p>
     </div>`
 
+  const unsubUrl = buildUnsubscribeUrl(user.email)
   return sendEmail({
     to: { email: user.email, name: user.name },
     subject: `🎁 ${user.moisOfferts} mois offert${sMois} sur Nexartis + nouveautés à découvrir`,
     html: layout(body, {
       entrepriseNom: 'Nexartis',
       logoUrl: 'https://nexartis.fr/images/logo-nexartis.png',
+      unsubscribeUrl: unsubUrl,
     }),
+    listUnsubscribeUrl: unsubUrl,
   })
 }
 
@@ -980,7 +1060,6 @@ export interface RappelCertificationParams {
   entrepriseNom?: string
   logoUrl?: string
 }
-
 export async function sendRappelCertification(params: RappelCertificationParams): Promise<boolean> {
   try {
     const entNom = params.entrepriseNom || 'Nexartis'

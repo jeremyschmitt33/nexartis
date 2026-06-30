@@ -11,6 +11,13 @@ import {
  * Cree une session Stripe Checkout pour l'abonnement mensuel.
  * L'utilisateur doit etre connecte.
  */
+
+// Versions des documents legaux affiches/acceptes a la souscription.
+// A mettre a jour si le contenu des CGV ou de la politique change, pour pouvoir
+// prouver QUELLE version a ete acceptee.
+const CGV_VERSION = '2026-06-30'
+const CONFIDENTIALITE_VERSION = '2026-06-30'
+
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting
@@ -38,6 +45,22 @@ export async function POST(req: NextRequest) {
 
     if (!entreprise) {
       return secureError('Profil entreprise introuvable', 404)
+    }
+
+    // Conformite : enregistrer la preuve d'acceptation des CGV au moment du
+    // paiement. L'UI exige la case "j'accepte les CGV" cochee pour atteindre
+    // cette route. Non bloquant : un echec d'ecriture n'empeche pas le paiement.
+    {
+      const { error: acceptErr } = await supabase.from('cgv_acceptances').insert({
+        user_id: user.id,
+        entreprise_id: entreprise.id,
+        cgv_version: CGV_VERSION,
+        confidentialite_version: CONFIDENTIALITE_VERSION,
+        ip,
+      })
+      if (acceptErr) {
+        console.error('[checkout] enregistrement acceptation CGV echoue (non bloquant):', acceptErr.message)
+      }
     }
 
     // Recuperer ou creer le client Stripe
