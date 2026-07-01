@@ -82,6 +82,7 @@ const data = {
     "Factur-X obligatoire en réception le 1er septembre 2026 (toutes entreprises)",
     "Factur-X obligatoire en émission le 1er septembre 2027 pour les TPE et auto-entrepreneurs",
     "Attestation TVA papier supprimée le 16 février 2025 — remplacée par une mention sur le devis",
+    "Devis écrit obligatoire pour tout dépannage, réparation ou entretien à domicile, dès le 1er euro et même en urgence (arrêté du 24 janvier 2017) — l'ancien seuil de 150 € est supprimé",
     "Mention décennale obligatoire sur tout devis et facture (loi Spinetta) : nom de l'assureur, n° de contrat, zone géographique",
     "Auto-entrepreneur serrurier : seuils TVA 37 500€ pour les services, 85 000€ pour les ventes",
     "Mention art. 293 B du CGI tolérée jusqu'au 31 décembre 2027 pour les micro-entrepreneurs",
@@ -138,6 +139,11 @@ const data = {
         "Le logiciel est-il conforme à la facturation électronique 2026 (Factur-X) ?",
       answer:
         "Oui. La réforme française impose Factur-X en réception au 1er septembre 2026 pour toutes les entreprises, et en émission au 1er septembre 2027 pour les TPE et auto-entrepreneurs. Toutes les factures Nexartis intègrent déjà les mentions légales exigées par la réforme (numéros d'identification, références TVA, conditions de règlement, pénalités), et Nexartis évolue avec le calendrier officiel pour rester aligné avant l'échéance qui vous concerne. Inclus par défaut dès l'offre Essentiel à 15€ HT/mois.",
+    },
+    {
+      question: "Le devis est-il obligatoire pour un dépannage serrurerie en urgence ?",
+      answer:
+        "Oui, et c'est une obligation souvent ignorée : pour tout dépannage, réparation ou entretien réalisé au domicile d'un particulier, un devis écrit détaillé est obligatoire **dès le premier euro**, y compris la nuit ou le dimanche en urgence (arrêté du 24 janvier 2017). L'ancien seuil de 150 € a été supprimé : il n'existe plus aucun montant en dessous duquel vous pourriez vous en dispenser. Le devis doit détailler chaque prestation et fourniture, le prix de la main-d'œuvre (taux horaire ou forfait), les frais de déplacement et les majorations éventuelles. Avec Nexartis, vous éditez ce devis conforme en 1 à 2 minutes depuis votre téléphone, sur place, et le client le signe à l'écran avant le début de l'intervention — c'est votre meilleure protection en cas de litige et un argument de sérieux face au client.",
     },
     {
       question: "Comment facturer un dépannage urgence depuis le terrain ?",

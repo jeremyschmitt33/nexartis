@@ -22,7 +22,7 @@ const data = {
   keywordPrincipal: "logiciel devis chauffagiste",
 
   tvaNotes:
-    "TVA 5,5% rénovation énergétique (PAC, chaudière condensation, granulés), 10% entretien, 20% neuf",
+    "TVA 5,5% rénovation énergétique (PAC, granulés bois), 10% entretien, 20% neuf et chaudières gaz/fioul (depuis le 1er mars 2025)",
 
   specificite:
     "Nexartis applique la TVA 5,5% automatiquement sur les équipements RGE, injecte votre qualification QualiPAC ou QualiBois sur le devis, et joint l'attestation indispensable au dossier MaPrimeRenov' du client.",
@@ -48,7 +48,7 @@ const data = {
 
   // ─── C — TVA : paragraphe + tableau + réglementation ──────────────────
   paragrapheTva:
-    "En chauffage, vous jonglez avec trois taux de TVA selon la nature du chantier. La TVA à 5,5% s'applique aux équipements de rénovation énergétique éligibles : pompe à chaleur air-eau ou géothermique respectant les critères MaPrimeRenov' (COP minimum requis), chaudière à condensation très haute performance (ETAS ≥ 92%), chaudière à granulés bois, chauffe-eau thermodynamique, chauffe-eau solaire individuel, poêle à granulés conforme (rendement ≥ 87%, émissions CO ≤ 0,12%). Deux conditions cumulatives : être certifié RGE (QualiPAC pour les pompes à chaleur, QualiBois Eau ou QualiBois Air pour le bois, Chauffage+ pour les chaudières) et intervenir dans un logement de plus de 2 ans. La TVA à 10% s'applique à l'entretien annuel, au dépannage, à la rénovation classique non éligible. La TVA à 20% reste obligatoire sur le neuf, les locaux commerciaux et la fourniture seule.\n\nDepuis le **16 février 2025**, l'attestation TVA papier (anciennement formulaires 1300-SD et 1301-SD) a été officiellement supprimée. Elle est remplacée par une mention à intégrer au devis et à la facture, indiquant que les conditions du taux réduit sont remplies. La responsabilité, en cas d'erreur de taux, repose désormais entièrement sur l'artisan, et les justificatifs doivent être conservés cinq ans en cas de contrôle fiscal.\n\nDans Nexartis, vous cochez la case correspondante au moment de créer votre devis : la mention est ajoutée automatiquement en pied de document, et le taux est tracé dans l'historique. Votre qualification RGE et sa date de validité apparaissent aussi sur le devis et la facture — éléments indispensables au client pour monter son dossier MaPrimeRenov' ou CEE. Côté Factur-X, les mentions légales exigées par la réforme sont intégrées par défaut dès l'offre Essentiel à 15€ HT/mois — vos factures sont alignées sur la réforme française dont le calendrier impose la réception le 1er septembre 2026 et l'émission le 1er septembre 2027 pour les TPE.",
+    "En chauffage, vous jonglez avec trois taux de TVA selon la nature du chantier. La TVA à 5,5% s'applique aux équipements de rénovation énergétique éligibles : pompe à chaleur air-eau ou géothermique respectant les critères MaPrimeRenov' (COP minimum requis), chaudière à granulés bois, chauffe-eau thermodynamique, chauffe-eau solaire individuel, poêle à granulés conforme (rendement ≥ 87%, émissions CO ≤ 0,12%). Deux conditions cumulatives : être certifié RGE (QualiPAC pour les pompes à chaleur, QualiBois Eau ou QualiBois Air pour le bois) et intervenir dans un logement de plus de 2 ans. Attention : depuis le 1er mars 2025 (loi de finances 2025), les chaudières à énergie fossile — gaz comme fioul, condensation comprise — sont exclues du taux réduit ; leur fourniture et pose relèvent désormais de la TVA à 20%. La TVA à 10% s'applique à l'entretien annuel, au dépannage et à la rénovation classique non éligible. La TVA à 20% reste obligatoire sur le neuf, les locaux commerciaux, la fourniture seule et les chaudières gaz/fioul.\n\nDepuis le **16 février 2025**, l'attestation TVA papier (anciennement formulaires 1300-SD et 1301-SD) a été officiellement supprimée. Elle est remplacée par une mention à intégrer au devis et à la facture, indiquant que les conditions du taux réduit sont remplies. La responsabilité, en cas d'erreur de taux, repose désormais entièrement sur l'artisan, et les justificatifs doivent être conservés cinq ans en cas de contrôle fiscal.\n\nDans Nexartis, vous cochez la case correspondante au moment de créer votre devis : la mention est ajoutée automatiquement en pied de document, et le taux est tracé dans l'historique. Votre qualification RGE et sa date de validité apparaissent aussi sur le devis et la facture — éléments indispensables au client pour monter son dossier MaPrimeRenov' ou CEE. Côté Factur-X, les mentions légales exigées par la réforme sont intégrées par défaut dès l'offre Essentiel à 15€ HT/mois — vos factures sont alignées sur la réforme française dont le calendrier impose la réception le 1er septembre 2026 et l'émission le 1er septembre 2027 pour les TPE.",
 
   tableauTva: [
     {
@@ -57,9 +57,9 @@ const data = {
       conditions: "RGE QualiPAC / QualiBois + logement >2 ans",
     },
     {
-      type: "Chaudière gaz à condensation haute performance (ETAS ≥92%)",
-      taux: "5,5%",
-      conditions: "RGE Chauffage+ + logement >2 ans",
+      type: "Chaudière gaz ou fioul, condensation incluse (fourniture + pose)",
+      taux: "20%",
+      conditions: "Taux réduit supprimé depuis le 1er mars 2025",
     },
     {
       type: "Entretien annuel chaudière, dépannage",
@@ -83,6 +83,7 @@ const data = {
     "Factur-X obligatoire en émission le 1er septembre 2027 pour les TPE et auto-entrepreneurs",
     "Attestation TVA papier supprimée le 16 février 2025 — remplacée par une mention sur le devis",
     "RGE QualiPAC obligatoire pour la TVA 5,5% sur PAC et pour l'éligibilité MaPrimeRenov'",
+    "Chaudières à énergie fossile (gaz/fioul, condensation incluse) : fin du taux réduit, TVA 20% sur fourniture + pose depuis le 1er mars 2025 (loi de finances 2025)",
     "Qualification PG (Professionnel Gaz) obligatoire pour intervenir sur installations gaz domestiques",
     "Mention art. 293 B du CGI tolérée jusqu'au 31 décembre 2027 pour les micro-entrepreneurs",
   ],

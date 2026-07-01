@@ -82,6 +82,7 @@ const data = {
     "Factur-X obligatoire en réception le 1er septembre 2026 (toutes entreprises)",
     "Factur-X obligatoire en émission le 1er septembre 2027 pour les TPE et auto-entrepreneurs",
     "Attestation TVA papier supprimée le 16 février 2025 — remplacée par une mention sur le devis",
+    "Entretien de jardin chez un particulier : crédit d'impôt services à la personne de 50% pour le client (plafond 5 000 € de dépenses/an) si l'entreprise est déclarée ou agréée SAP — la création et l'aménagement n'y sont pas éligibles",
     "Certiphyto obligatoire pour tout paysagiste utilisant des produits phytosanitaires à titre professionnel",
     "Loi Labbé en vigueur depuis 2019 : interdiction des phytos pour les particuliers, ZNT à respecter près des points d'eau",
     "Auto-entrepreneur paysagiste : seuils TVA 37 500€ pour les services, 85 000€ pour les ventes",
@@ -132,6 +133,11 @@ const data = {
       question: "Comment gérer un contrat d'entretien récurrent dans le logiciel ?",
       answer:
         "Dans Nexartis, vous créez un contrat d'entretien type avec les prestations annuelles (par exemple : 7 tontes d'avril à octobre, 2 tailles de haie, 2 désherbages), le montant total HT, le taux de TVA et la fréquence de facturation souhaitée. Le logiciel génère automatiquement chaque facture mensuelle ou trimestrielle à la date programmée, l'envoie au client et la rattache au chantier d'origine. Pour le client, c'est une trésorerie lissée sur l'année ; pour vous, c'est zéro saisie après la mise en place initiale. Chaque intervention sur le terrain est notée dans l'historique du chantier avec date, durée et observations.",
+    },
+    {
+      question: "Mes clients peuvent-ils bénéficier d'un crédit d'impôt pour l'entretien de leur jardin ?",
+      answer:
+        "Oui, et c'est un argument commercial à mettre en avant sur vos devis. Les petits travaux de jardinage d'entretien courant (tonte de pelouse, taille de haie, débroussaillage, désherbage) réalisés chez un particulier ouvrent droit, pour votre client, à un **crédit d'impôt de 50%** au titre des services à la personne, dans la limite de 5 000 € de dépenses par an et par foyer. Deux conditions : votre entreprise doit être déclarée ou agréée « services à la personne », et seul l'entretien courant est concerné — la création et l'aménagement paysager n'y sont pas éligibles. Concrètement, un contrat d'entretien annuel de 2 000 € ne revient qu'à 1 000 € pour votre client après crédit d'impôt : le préciser sur le devis lève une grande partie des objections de prix. Avec Nexartis, vous mémorisez cette mention et votre contrat d'entretien récurrent une seule fois, et la facture se génère automatiquement à chaque échéance.",
     },
     {
       question:
