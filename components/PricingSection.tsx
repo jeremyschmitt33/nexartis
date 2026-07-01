@@ -20,42 +20,88 @@ import Link from "next/link";
 
 interface FeatureRow {
   label: string;
-  highlight?: boolean;
+  /** Étiquette optionnelle (ex: "BIENTÔT") affichée à côté du libellé. */
+  badge?: string;
 }
 
-const ESSENTIAL_FEATURES: FeatureRow[] = [
-  { label: "Devis illimités" },
-  { label: "Factures illimitées" },
-  { label: "Signature électronique en ligne" },
-  { label: "Mentions légales BTP automatiques" },
-  { label: "TVA 5,5 % / 10 % / 20 % automatique" },
-  { label: "Attestations TVA rénovation auto" },
-  { label: "Acomptes et factures de situation (#1, #2, #3)" },
-  { label: "Tableau de bord du chiffre d'affaires" },
-  { label: "Suivi des impayés et relance en 1 clic" },
-  { label: "Relances auto (email) + relance SMS gratuite" },
-  { label: "Réception des factures fournisseurs (e-facture, dès 2026)" },
-  { label: "Émission électronique prête (échéance 2027)" },
-  { label: "QR de virement SEPA pour être payé plus vite" },
-  { label: "10 calculatrices métier + aide URSSAF" },
-  { label: "Facture verrouillée après le 1er envoi" },
-  { label: "Client particulier ou société (SIREN/SIRET)" },
-  { label: "Rappels assurance décennale" },
-  { label: "Photos de chantier par client" },
-  { label: "Export PDF des devis et factures" },
-  { label: "Export CSV comptable (à venir)" },
-  { label: "Catalogue de +700 prestations + bibliothèque perso (50 max)" },
-  { label: "Données hébergées en Europe" },
-  { label: "Support email Lun-Ven 9h-18h" },
-  { label: "Sans engagement" },
+interface FeatureGroup {
+  title: string;
+  items: FeatureRow[];
+}
+
+/**
+ * Fonctionnalités de l'offre Essentiel, regroupées par thème pour un rendu
+ * lisible en 2 colonnes (au lieu d'une longue liste plate qui déséquilibrait
+ * visuellement la carte).
+ *
+ * ⚠️ Aligné sur lib/plans.ts (source de vérité du gating) :
+ *   - Les "acomptes" sont bien dans l'Essentiel.
+ *   - Les "factures de situation" et l'"export comptable" sont réservés au
+ *     Complet → ils NE figurent PAS ici, mais dans COMPLETE_EXTRA_FEATURES.
+ */
+const ESSENTIAL_GROUPS: FeatureGroup[] = [
+  {
+    title: "Devis, factures & signature",
+    items: [
+      { label: "Devis illimités" },
+      { label: "Factures illimitées" },
+      { label: "Acomptes" },
+      { label: "Factures d'avoir" },
+      { label: "Signature électronique en ligne" },
+      { label: "Export PDF des devis et factures" },
+    ],
+  },
+  {
+    title: "Conformité BTP & e-facture",
+    items: [
+      { label: "Mentions légales BTP automatiques" },
+      { label: "TVA 5,5 % / 10 % / 20 % automatique" },
+      { label: "Attestations TVA rénovation auto" },
+      { label: "Facture verrouillée après le 1er envoi" },
+      { label: "E-facture : réception 2026 + émission prête 2027" },
+    ],
+  },
+  {
+    title: "Paiement & trésorerie",
+    items: [
+      { label: "Suivi des impayés et relance en 1 clic" },
+      { label: "Relances auto (email) + SMS gratuite" },
+      { label: "QR de virement SEPA pour être payé plus vite" },
+      { label: "Tableau de bord du chiffre d'affaires" },
+    ],
+  },
+  {
+    title: "Outils métier & confort",
+    items: [
+      { label: "10 calculatrices métier + aide URSSAF" },
+      { label: "Catalogue de +700 prestations + biblio perso (50 max)" },
+      { label: "Rappels assurance décennale" },
+      { label: "Photos de chantier par client" },
+      { label: "Client particulier ou société (SIREN/SIRET)" },
+      { label: "Données hébergées en Europe" },
+      { label: "Support email Lun-Ven 9h-18h" },
+      { label: "Sans engagement" },
+    ],
+  },
 ];
 
+/** Liste aplatie de l'Essentiel, pour le rappel dépliable dans la carte Complet. */
+const ESSENTIAL_FLAT: FeatureRow[] = ESSENTIAL_GROUPS.flatMap((g) => g.items);
+
+/**
+ * Avantages exclusifs du Complet, "en plus" de tout l'Essentiel.
+ * Aligné sur lib/plans.ts (features réservées au plan 'complete').
+ * Le rapport d'intervention est marqué BIENTÔT (non encore livré).
+ */
 const COMPLETE_EXTRA_FEATURES: FeatureRow[] = [
-  { label: "Planning chantier visuel", highlight: true },
-  { label: "Alertes conflits d'affectation en temps réel", highlight: true },
-  { label: "Gestion d'équipe et planning intervenants", highlight: true },
-  { label: "Devis vocal par IA (exclusif)", highlight: true },
-  { label: "Bibliothèque prestations illimitée", highlight: true },
+  { label: "Planning chantier visuel" },
+  { label: "Alertes conflits d'affectation en temps réel" },
+  { label: "Gestion d'équipe et planning intervenants" },
+  { label: "Devis vocal par IA (exclusif)" },
+  { label: "Factures de situation (#1, #2, #3 avec cumul)" },
+  { label: "Export comptable (Sage / EBP / FEC)" },
+  { label: "Rapport d'intervention", badge: "BIENTÔT" },
+  { label: "Bibliothèque prestations illimitée" },
 ];
 
 function CheckIcon({ color = "#2fd6a0" }: { color?: string }) {
@@ -155,18 +201,27 @@ export default function PricingSection() {
 
               <div className="h-px w-full bg-white/[0.08] mb-7" />
 
-              {/* Features */}
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {ESSENTIAL_FEATURES.map((f) => (
-                  <li
-                    key={f.label}
-                    className="flex items-start gap-2.5 text-[14px] text-ink-2 font-medium leading-snug"
-                  >
-                    <CheckIcon />
-                    {f.label}
-                  </li>
+              {/* Features groupées par thème (2 colonnes) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6 mb-8 flex-1">
+                {ESSENTIAL_GROUPS.map((group) => (
+                  <div key={group.title}>
+                    <p className="text-[10.5px] uppercase tracking-[0.12em] font-bold text-ink-3 mb-2.5">
+                      {group.title}
+                    </p>
+                    <ul className="space-y-2">
+                      {group.items.map((f) => (
+                        <li
+                          key={f.label}
+                          className="flex items-start gap-2 text-[13.5px] text-ink-2 font-medium leading-snug"
+                        >
+                          <CheckIcon />
+                          <span>{f.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
 
               {/* CTA */}
               <Link
@@ -249,7 +304,14 @@ export default function PricingSection() {
                       className="flex items-start gap-2.5 text-[14px] text-ink font-semibold leading-snug"
                     >
                       <StarIcon />
-                      {f.label}
+                      <span>
+                        {f.label}
+                        {f.badge ? (
+                          <span className="ml-1.5 text-[10px] uppercase tracking-wide bg-white/15 px-1.5 py-0.5 rounded font-bold align-middle">
+                            {f.badge}
+                          </span>
+                        ) : null}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -273,10 +335,10 @@ export default function PricingSection() {
                     >
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
-                    Voir aussi les {ESSENTIAL_FEATURES.length} fonctionnalités de l&apos;Essentiel
+                    Voir aussi les {ESSENTIAL_FLAT.length} fonctionnalités de l&apos;Essentiel
                   </summary>
                   <ul className="space-y-1.5 mt-3 pl-1">
-                    {ESSENTIAL_FEATURES.map((f) => (
+                    {ESSENTIAL_FLAT.map((f) => (
                       <li
                         key={f.label}
                         className="flex items-start gap-2 text-[13px] text-ink-3 leading-snug"
