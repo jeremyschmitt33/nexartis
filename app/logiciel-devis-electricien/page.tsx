@@ -57,9 +57,9 @@ const data = {
       conditions: "Logement >2 ans",
     },
     {
-      type: "Installation photovoltaïque autoconsommation ≤36 kVA",
+      type: "Installation photovoltaïque autoconsommation ≤9 kWc",
       taux: "5,5%",
-      conditions: "RGE QualiPV + logement >2 ans",
+      conditions: "Depuis le 1er oct. 2025, sous conditions techniques + logement >2 ans",
     },
     {
       type: "Pose borne de recharge IRVE chez particulier",
@@ -159,7 +159,7 @@ const data = {
       question:
         "Comment gérer le photovoltaïque en autoconsommation et la TVA 5,5% ?",
       answer:
-        "Pour un photovoltaïque en autoconsommation ≤ 36 kVA dans un logement de plus de 2 ans, le taux est de 5,5% si vous êtes certifié RGE QualiPV. Dans Nexartis, vous créez la prestation « Installation photovoltaïque 3 kWc » avec TVA 5,5% par défaut dans votre bibliothèque, vous joignez votre attestation RGE QualiPV au devis (depuis vos documents pré-enregistrés), et la mention obligatoire est ajoutée automatiquement en pied de document. Le client garde la pièce justificative pour ses propres archives et pour son dossier MaPrimeRenov' éventuel.",
+        "Depuis le 1er octobre 2025, la pose de panneaux photovoltaïques en autoconsommation jusqu'à 9 kWc bénéficie de la TVA à 5,5% dans un logement de plus de 2 ans, sous conditions techniques (système de gestion de l'énergie, panneaux certifiés bas-carbone). Auparavant, ces installations relevaient d'un taux plus élevé. Dans Nexartis, vous créez la prestation « Installation photovoltaïque 3 kWc » avec TVA 5,5% par défaut dans votre bibliothèque, vous joignez vos justificatifs au devis, et la mention obligatoire est ajoutée automatiquement en pied de document. Le client garde la pièce justificative pour ses propres archives et pour son dossier d'aide éventuel.",
     },
     {
       question: "Comment créer un devis depuis le chantier ?",

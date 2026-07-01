@@ -55,7 +55,7 @@ const TVA_MIX: Record<string, MixEntry> = {
   electricien: {
     rates: [{ taux: "5,5", poids: 8 }, { taux: "10", poids: 62 }, { taux: "20", poids: 30 }],
     contexte:
-      "En électricité, la majorité des chantiers de rénovation relèvent du taux à 10 %. Le 20 % concerne le neuf et les locaux professionnels, et le 5,5 % les installations liées à la rénovation énergétique (photovoltaïque en autoconsommation, raccordement de pompe à chaleur).",
+      "En électricité, la majorité des chantiers de rénovation relèvent du taux à 10 %. Le 20 % concerne le neuf et les locaux professionnels, et le 5,5 % les installations de rénovation énergétique éligibles (raccordement de pompe à chaleur, ou photovoltaïque en autoconsommation jusqu'à 9 kWc, sous conditions, depuis le 1er octobre 2025).",
   },
   plombier: {
     rates: [{ taux: "5,5", poids: 12 }, { taux: "10", poids: 58 }, { taux: "20", poids: 30 }],
