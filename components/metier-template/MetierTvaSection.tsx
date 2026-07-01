@@ -1,6 +1,7 @@
 "use client";
 
 import RichText from "./RichText";
+import MetierTvaChart from "./MetierTvaChart";
 
 interface MetierTvaSectionProps {
   nom: string;
@@ -44,90 +45,8 @@ export default function MetierTvaSection({
         </div>
       )}
 
-      {/* ── Graphe SVG : répartition des 3 taux ── */}
-      <figure className="mt-10 overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-[#f6f8fb] to-white p-6 md:p-8">
-        <figcaption className="font-hanken text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
-          Répartition typique des taux en {nom.toLowerCase()}
-        </figcaption>
-
-        {/* Barre 3 segments — proportions indicatives : 25/55/20 */}
-        <div className="mt-5">
-          <svg
-            viewBox="0 0 600 60"
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-12 w-full"
-            role="img"
-            aria-label="Répartition des taux de TVA"
-          >
-            <defs>
-              <linearGradient id="tvaG1" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="#2fd6a0" />
-                <stop offset="1" stopColor="#1eb88a" />
-              </linearGradient>
-              <linearGradient id="tvaG2" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="#ff9d4d" />
-                <stop offset="1" stopColor="#ff7a1a" />
-              </linearGradient>
-              <linearGradient id="tvaG3" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="#3f7bff" />
-                <stop offset="1" stopColor="#2d5cd4" />
-              </linearGradient>
-            </defs>
-            <rect x="0" y="15" width="150" height="30" rx="6" fill="url(#tvaG1)" />
-            <rect x="155" y="15" width="330" height="30" rx="6" fill="url(#tvaG2)" />
-            <rect x="490" y="15" width="110" height="30" rx="6" fill="url(#tvaG3)" />
-            <text x="75" y="35" textAnchor="middle" fill="#fff" fontFamily="'Spline Sans Mono', monospace" fontSize="14" fontWeight="700">
-              5,5%
-            </text>
-            <text x="320" y="35" textAnchor="middle" fill="#fff" fontFamily="'Spline Sans Mono', monospace" fontSize="14" fontWeight="700">
-              10%
-            </text>
-            <text x="545" y="35" textAnchor="middle" fill="#fff" fontFamily="'Spline Sans Mono', monospace" fontSize="14" fontWeight="700">
-              20%
-            </text>
-          </svg>
-        </div>
-
-        {/* Légende 3 cards */}
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="flex items-baseline gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#2fd6a0]" aria-hidden="true" />
-              <p className="font-spline-mono text-2xl font-bold text-[#0f1a3a]">5,5%</p>
-            </div>
-            <p className="mt-2 font-hanken text-sm font-semibold text-[#0f1a3a]">
-              Rénovation énergétique
-            </p>
-            <p className="mt-1 font-hanken text-xs text-gray-500">
-              Pompe à chaleur, isolation, chauffage haute performance
-            </p>
-          </div>
-          <div className="rounded-xl border border-[#ff7a1a]/30 bg-[#ff7a1a]/5 p-4">
-            <div className="flex items-baseline gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#ff7a1a]" aria-hidden="true" />
-              <p className="font-spline-mono text-2xl font-bold text-[#0f1a3a]">10%</p>
-            </div>
-            <p className="mt-2 font-hanken text-sm font-semibold text-[#0f1a3a]">
-              Amélioration habitat
-            </p>
-            <p className="mt-1 font-hanken text-xs text-gray-500">
-              Logement &gt; 2 ans, entretien, transformation
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="flex items-baseline gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#3f7bff]" aria-hidden="true" />
-              <p className="font-spline-mono text-2xl font-bold text-[#0f1a3a]">20%</p>
-            </div>
-            <p className="mt-2 font-hanken text-sm font-semibold text-[#0f1a3a]">
-              Travaux neufs
-            </p>
-            <p className="mt-1 font-hanken text-xs text-gray-500">
-              Constructions, locaux pros, piscines
-            </p>
-          </div>
-        </div>
-      </figure>
+      {/* Graphe TVA spécifique au métier (composant isolé, accessible) */}
+      <MetierTvaChart nom={nom} />
 
       {/* Tableau TVA structuré (optionnel) */}
       {tableauTva && tableauTva.length > 0 && (
