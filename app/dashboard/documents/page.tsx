@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ScrollText, ClipboardCheck, Mail, Send, Plus, Pencil, Trash2, FileText } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ScrollText, ClipboardCheck, Mail, Send, Plus, Pencil, Trash2, FileText, KeyRound } from 'lucide-react'
 import {
   useDocumentsTypes,
   useEntreprise,
@@ -31,9 +32,12 @@ const ICONS: Record<string, typeof ScrollText> = {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter()
   const askConfirm = useConfirm()
   const { data: docs, loading, error, refetch } = useDocumentsTypes()
   const { entreprise } = useEntreprise()
+  // COP : document reserve aux serruriers (gating par metier).
+  const isSerrurier = (entreprise?.metier || '').toLowerCase().includes('serrur')
   const { data: clients } = useClients()
   const { data: chantiers } = useChantiers()
   const { data: devis } = useDevis()
@@ -102,6 +106,26 @@ export default function DocumentsPage() {
               </PremiumCard>
             )
           })}
+
+          {/* COP : carte affichee uniquement pour les serruriers. */}
+          {isSerrurier && (
+            <PremiumCard className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff1e6] text-[#ff7a1a]">
+                  <KeyRound size={22} />
+                </span>
+                <h3 className="font-hanken text-base font-bold text-[#0f1a3a]">Contrat d&apos;ouverture de porte</h3>
+              </div>
+              <p className="font-manrope text-sm leading-relaxed text-gray-500">
+                Contrat pre-rempli pour vos interventions d&apos;ouverture d&apos;urgence : bareme, attestation d&apos;acces et mentions legales.
+              </p>
+              <div className="mt-auto pt-1">
+                <PremiumButton variant="primary" icon={<Plus size={18} />} onClick={() => router.push('/dashboard/documents/cop/nouveau')}>
+                  Creer ce document
+                </PremiumButton>
+              </div>
+            </PremiumCard>
+          )}
         </div>
       </section>
 
