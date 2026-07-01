@@ -100,7 +100,7 @@ const COMPLETE_EXTRA_FEATURES: FeatureRow[] = [
   { label: "Devis vocal par IA (exclusif)" },
   { label: "Factures de situation (#1, #2, #3 avec cumul)" },
   { label: "Export comptable (Sage / EBP / FEC)" },
-  { label: "Rapport d'intervention", badge: "BIENTÔT" },
+  { label: "Rapport d'intervention" },
   { label: "Bibliothèque prestations illimitée" },
 ];
 
