@@ -32,6 +32,20 @@ Le principe tient en trois temps, directement depuis votre smartphone.
 
 La voix sert à capturer vite ce que vous avez en tête sur place. Le logiciel se charge de la mise en forme, la partie la plus fastidieuse quand on tape tout à la main sur un petit écran.
 
+## Devis vocal ou saisie manuelle : le gain concret
+
+Pour mesurer l'intérêt réel, comparons la dictée à la saisie classique sur les points qui comptent vraiment pour un artisan.
+
+| Critère | Saisie manuelle au clavier | Dictée vocale par IA |
+|---|---|---|
+| Où et quand | Au bureau, le soir | Sur le chantier, dans l'instant |
+| Vitesse de première saisie | Lente sur un petit écran | Rapide, on parle plus vite qu'on ne tape |
+| Risque d'oublier un poste | Élevé, les détails s'effacent en fin de journée | Faible, tout est capté sur place |
+| Mise en forme des lignes | À faire à la main | Automatique |
+| Contrôle des prix et de la TVA | Manuel | Manuel, vous validez |
+
+La dictée ne fait pas gagner du temps sur tout. Elle en fait gagner là où ça pèse le plus : la première saisie et la mémoire du chantier. Le reste, les prix et les vérifications, demande le même soin qu'avant.
+
 ## Un brouillon structuré, pas un devis parfait du premier coup
 
 Soyons clairs sur ce que fait la dictée, et ce qu'elle ne fait pas. L'IA produit un **brouillon fiable**, pas un devis contractuel prêt à partir sans relecture.
@@ -58,6 +72,29 @@ La dictée n'a pas le même intérêt pour tout le monde. Elle devient précieus
 
 Pour un artisan qui produit cinq à trente devis par mois, capturer l'essentiel à la voix puis finaliser au calme fait gagner un temps réel, sans rien sacrifier à la qualité du document.
 
+## Les limites à connaître, et comment bien dicter
+
+La dictée vocale n'a rien de magique, et mieux vaut connaître ses limites avant de compter dessus les yeux fermés.
+
+- Le bruit du chantier gêne la reconnaissance. Une meuleuse ou un compresseur à côté, et la transcription perd en fiabilité.
+- Le vocabulaire très spécialisé ou les références de matériel passent parfois mal. Vous corrigez alors la ligne à la main.
+- Le traitement de l'audio par l'IA demande une connexion. En zone blanche, vous notez et vous synchronisez au retour.
+- La relecture reste indispensable. Un devis dicté ne part jamais sans vérification, on l'a dit plus haut.
+
+Quelques réflexes rendent la dictée bien plus efficace. Parlez poste par poste, en marquant une courte pause entre chaque ligne. Annoncez la désignation, puis la quantité et l'unité, comme vous le feriez à l'oral face à un client. Gardez les prix pour l'écran, au calme, une fois le brouillon en place. Avec l'habitude, un devis de quinze lignes se capture en deux minutes sur le terrain, puis se finalise en quelques clics au bureau.
+
+## Où va le devis vocal dans les prochaines années
+
+La dictée assistée par IA reste une technologie jeune, et elle va progresser vite sur trois points concrets.
+
+Le premier, c'est la compréhension du vocabulaire de chantier. L'IA structure déjà vos lignes, mais elle bute encore sur certains termes très spécialisés ou sur les marques de matériel. Les modèles s'affinent d'un trimestre à l'autre, et cette reconnaissance métier deviendra plus précise.
+
+Le deuxième, c'est le lien avec votre bibliothèque de prix. Demain, dicter « pose d'un tableau 13 modules » ne remplira pas seulement la désignation : l'outil proposera aussi votre tarif habituel, tiré de votre catalogue. La voix servira alors à chiffrer, pas seulement à décrire.
+
+Le troisième, c'est l'intégration au reste de votre gestion. Le devis dicté se prolongera dans la facture, le planning et, à terme, la facture électronique conforme, sans ressaisie d'un bout à l'autre.
+
+Une chose ne bougera pas : le contrôle reste chez l'artisan. La voix accélère la saisie, mais la décision sur les prix, les marges et les mentions vous appartient. C'est la ligne que Nexartis tient et continuera de tenir, une IA au service du terrain plutôt qu'à sa place.
+
 ## Questions fréquentes sur le devis vocal
 
 ### Quel logiciel permet de faire un devis à la voix ?
@@ -79,6 +116,16 @@ Pas tout à fait. L'IA génère un brouillon structuré que vous relisez avant l
 ### Sur quels appareils fonctionne le devis vocal ?
 
 Sur smartphone et tablette, via l'application installable, ainsi que sur ordinateur. Vous commencez un devis à la voix sur le chantier et vous le finalisez sur n'importe quel appareil connecté à votre compte.
+
+### Le devis vocal fonctionne-t-il sans connexion internet ?
+
+La reconnaissance vocale a besoin d'une connexion pour que l'IA traite l'audio et structure les lignes. En zone sans réseau, vous préparez le devis dès que la connexion revient, ou vous le complétez plus tard depuis votre compte, sur n'importe quel appareil.
+
+### Le devis vocal comprend-il le vocabulaire de mon métier ?
+
+Il reconnaît la plupart des termes courants du bâtiment. Sur des références très spécifiques ou des marques de matériel, une correction manuelle reste parfois nécessaire. Cette reconnaissance métier s'améliore régulièrement au fil des mises à jour.
+
+> **À retenir** : le devis vocal est un accélérateur de saisie, pas un pilote automatique. Chez Nexartis, il est inclus dans l'offre Complet à 25 € HT/mois, il produit un brouillon structuré depuis le chantier, et vous gardez toujours la main sur les prix, la TVA et l'envoi.
 
 ## Essayer le devis vocal
 
