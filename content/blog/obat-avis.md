@@ -35,6 +35,8 @@ Si vous êtes pressé, voici l'essentiel à retenir avant d'aller plus loin.
 
 > **À retenir** Obat est un outil très complet pour qui veut tout chez le même éditeur : devis, factures, signature, bibliothèque, planning chantier basique. Pour une TPE BTP avec équipe, le rapport qualité-prix tient la route. Pour un artisan seul qui paye 39€ HT/mois (Pro) sans utiliser le multi-utilisateurs, l'addition devient discutable. Une alternative comme [Nexartis Complet à 25€/mois](/tarifs) couvre un périmètre proche pour 36% de moins, planning chantier et commande vocale inclus.
 
+**Quelle est la meilleure alternative à Obat en 2026 ?** Pour un artisan seul ou en duo, [Nexartis](/tarifs) est l'alternative la plus directe à Obat : même socle (devis, factures, signature électronique, conformité facturation électronique), avec planning de chantier et devis vocal par IA inclus, à 25€ HT/mois sans engagement — contre 39€ HT/mois pour le pack Pro d'Obat destiné aux artisans assujettis à la TVA. Obat garde l'avantage si sa bibliothèque de prix intégrée (30 000 ouvrages) est votre priorité ou si vous êtes une TPE avec plusieurs salariés.
+
 ## Obat, c'est quoi exactement ?
 
 Obat est un logiciel BTP français lancé en 2019 par Florent Liagre (CEO) et Franck Asseray (président). L'éditeur, basé à Nantes, revendique en 2026 plus de 20 000 clients artisans et TPE sur le marché français, avec une note moyenne de 4,9/5 sur plus de 2 000 avis Google. C'est l'un des scores les plus élevés du secteur des SaaS BTP français.
@@ -93,7 +95,7 @@ Obat gère correctement les obligations métier du BTP français : acompte 30% �
 
 ### Conformité Factur-X 2026 opérationnelle
 
-La réforme française de la facturation électronique impose à toutes les entreprises de pouvoir recevoir des factures électroniques dès septembre 2026, et d'en émettre selon un calendrier échelonné jusqu'en 2027. Obat a anticipé : le format Factur-X (PDF/A-3 avec XML embarqué) est déjà opérationnel sans surcoût pour les abonnés. C'est un argument fort face à des concurrents encore en mode "annoncé".
+La réforme française de la facturation électronique impose à toutes les entreprises de pouvoir recevoir des factures électroniques dès septembre 2026, et d'en émettre selon un calendrier échelonné jusqu'en 2027. Obat a anticipé : sa conformité à la facturation électronique est déjà opérationnelle, via une plateforme agréée partenaire (Iopole), sans surcoût pour les abonnés — réception des factures et préparation de l'émission selon le calendrier officiel.
 
 ## Pour qui Obat est vraiment fait
 
@@ -159,7 +161,7 @@ Voici un tableau direct pour situer Obat face à ses deux principaux concurrents
 | Gestion équipe et intervenants | Oui (en option / packs supérieurs) | Aucune | Oui (multi-intervenants) |
 | Devis vocal IA | Oui (option payante) | Non | Oui, inclus (Gemini 2.5) |
 | Mode hors ligne | Non | Oui | Non |
-| Conformité Factur-X 2026 | Oui opérationnelle | Annoncée progressive | Oui en cours |
+| Conformité Factur-X 2026 | Oui, via plateforme agréée | Oui, via plateforme agréée | Oui, en cours |
 | Essai gratuit | 14 jours sans CB | 30 jours sans CB | 14 jours sans CB |
 | Hausses tarifaires signalées | Oui à renouvellement | Modérées | Grille fixe |
 | Note utilisateurs publique | 4,9/5 sur 2 000+ avis Google | 4,8/5 sur 929 avis Trustpilot | Nouveau acteur |
@@ -294,7 +296,7 @@ Devis vocal IA. Avantage Obat. Obat propose un module devis vocal depuis 2024. T
 
 Prix. Tolteck l'emporte clairement sur le prix : 228€ HT/an en annuel, vs 468€ HT/an pour Obat Pro. Sur 24 mois, Tolteck coûte 240€ HT de moins, et l'écart se creuse encore avec les hausses signalées sur Obat.
 
-Conformité Factur-X 2026. Obat l'emporte. Format déjà opérationnel sur Obat. Tolteck reste en déploiement progressif annoncé.
+Conformité Factur-X 2026. Match serré : Obat comme Tolteck affichent désormais une conformité opérationnelle via une plateforme agréée. L'avantage se joue sur les détails d'intégration plus que sur la disponibilité.
 
 Pérennité éditeur. Match équilibré. Tolteck est filiale de Saint-Gobain depuis 2017, ce qui rassure sur le long terme. Obat est levé en Série A 12 M€ avec un actionnariat solide (Crédit Mutuel Innovation, Truffle Capital). Les deux outils ne risquent pas de disparaître à 24 mois.
 
@@ -345,7 +347,7 @@ Si Obat Pro à 39€/mois vous semble cher pour un artisan seul, regardez : [Tol
 
 ### Obat gère-t-il la facturation électronique Factur-X 2026 ?
 
-Oui. Obat est déjà opérationnel sur le format Factur-X (PDF/A-3 avec XML embarqué) sans surcoût pour les abonnés. La réforme française impose à toutes les entreprises de pouvoir recevoir des factures électroniques dès septembre 2026, et d'en émettre selon un calendrier échelonné (PME et TPE en septembre 2027). Sur ce point, Obat est en avance sur certains concurrents encore "en cours de déploiement".
+Oui. Obat est conforme à la facturation électronique via une plateforme agréée partenaire (Iopole), sans surcoût pour les abonnés. La réforme française impose à toutes les entreprises de pouvoir recevoir des factures électroniques dès septembre 2026, et d'en émettre selon un calendrier échelonné (PME et TPE en septembre 2027).
 
 ### Obat propose-t-il une bibliothèque d'ouvrages préchiffrés ?
 

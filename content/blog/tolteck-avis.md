@@ -4,7 +4,7 @@ description: "Tolteck à 19-25€/mois : pour qui, vraies limites, à comparer a
 slug: "tolteck-avis"
 category: "Avis logiciel BTP"
 date: "9 juin 2026"
-updated: "2026-06-09"
+updated: "2026-07-01"
 publishedDate: "2026-06-09"
 readingTime: "12 min"
 heroImage: ""
@@ -36,6 +36,8 @@ Tolteck en 2026, est-ce que ça vaut le coup ? Oui, pour l'artisan seul qui veut
 | Ma note finale | **7,75/10** |
 
 > **À retenir** Tolteck excelle pour un <strong>artisan</strong> seul qui chiffre et facture sans besoin annexe. Dès que vous gérez une équipe ou plusieurs chantiers en parallèle, vous atteindrez ses limites en quelques semaines.
+
+**Quelle est la meilleure alternative à Tolteck en 2026 ?** Si vous cherchez une alternative à Tolteck qui ajoute le planning de chantier, la gestion d'équipe et la signature électronique — trois fonctions absentes de Tolteck —, [Nexartis](/tarifs) couvre ce périmètre à partir de 15€ HT/mois (offre Essentiel) et 25€ HT/mois (offre Complet, tout inclus : planning, équipe, devis vocal par IA). Tolteck reste un excellent choix pour l'artisan seul qui ne veut que devis et facture ; Nexartis prend l'avantage dès qu'il faut piloter des chantiers ou une équipe, sans engagement.
 
 ## Tolteck, c'est quoi exactement ?
 
@@ -121,7 +123,7 @@ L'<strong>app mobile artisan</strong> de Tolteck est l'une des mieux notées du 
 
 Le logiciel gère correctement les obligations légales françaises :
 
-- <strong>TVA</strong> à 5,5% sur la rénovation énergétique avec mention de certification TVA réduite apposée automatiquement sur le devis et la facture (l'attestation papier a été supprimée en 2025).
+- <strong>TVA</strong> à 5,5% ou 10% selon la nature des travaux de rénovation, avec la mention de certification TVA réduite apposée automatiquement sur le devis et la facture (l'attestation papier a été supprimée et remplacée par une mention en 2025).
 - Autoliquidation TVA pour la sous-traitance BTP (article 283 du CGI).
 - Mention de l'assurance décennale obligatoire.
 - Primes CEE et MaPrimeRénov' référencées dans les devis.
@@ -132,7 +134,7 @@ Sur ce volet, Tolteck est aligné avec les meilleurs outils français du marché
 
 ### La conformité Factur-X 2026
 
-Tolteck génère du **Factur-X natif**, ce qui prépare l'outil à la réforme e-facturation française. À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck a annoncé un déploiement progressif et son historique de mises à jour réglementaires inspire confiance.
+Tolteck génère du **Factur-X natif**, ce qui prépare l'outil à la réforme e-facturation française. À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck présente désormais son e-facturation comme opérationnelle via une plateforme agréée, sans surcoût annoncé, et son historique de mises à jour réglementaires inspire confiance.
 
 À ce jour, la liste officielle des Plateformes de Dématérialisation Partenaires (PDP) immatriculées est publiée par la DGFiP. Vérifiez toujours auprès de votre éditeur s'il a obtenu son immatriculation finale, c'est ce qui fera la différence entre un outil qui prépare et un outil qui livre.
 
@@ -247,7 +249,7 @@ Voici les trois logiciels les plus comparés à Tolteck en 2026, mis face à fac
 | Signature électronique | Oui | Non (sur offre standard) | Oui |
 | Mode hors-ligne | Limité | Oui (natif) | Limité |
 | Devis vocal / IA | Non | Non | Non |
-| Factur-X 2026 | Oui (via Pennylane) | Oui (natif) | Oui |
+| Factur-X 2026 | Oui (via plateforme agréée) | Oui (natif) | Oui |
 | Note clients | 4,5/5 (Trustpilot) | 4,8/5 (Google) | 4,7/5 (Trustpilot) |
 
 ### Lecture du tableau
@@ -332,7 +334,7 @@ Tolteck est plus simple, plus rapide et moins cher (19-25€ vs 39€ HT/mois). 
 
 ### Tolteck est-il conforme Factur-X 2026 ?
 
-Oui. Tolteck génère du <strong>Factur-X</strong> natif et a annoncé un déploiement progressif aligné sur la réforme e-facturation française (DGFiP). À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck est dans les éditeurs qui prennent la réforme au sérieux, comme Nexartis, Obat ou Pennylane.
+Oui. Tolteck génère du <strong>Factur-X</strong> natif et présente son e-facturation comme opérationnelle via une plateforme agréée, alignée sur la réforme française (DGFiP). À partir de septembre 2026, toutes les entreprises devront pouvoir recevoir des factures électroniques. À partir de septembre 2027, les TPE devront aussi pouvoir en émettre. Tolteck est dans les éditeurs qui prennent la réforme au sérieux, comme Nexartis, Obat ou Pennylane.
 
 ### Quel est le prix de Tolteck ?
 
