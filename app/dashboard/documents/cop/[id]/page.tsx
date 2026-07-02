@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Printer, KeyRound, Check } from 'lucide-react'
+import { ArrowLeft, Printer, KeyRound, Check, Receipt } from 'lucide-react'
 import { useEntreprise, useSupabaseRecord, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { PremiumButton } from '@/components/ui/v4'
 import { buildCopDocument, type RawCop } from '@/lib/cop-data'
@@ -12,6 +12,7 @@ import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import CopDocument from '@/components/document/CopDocument'
 import CopSignSection from '@/components/documents/CopSignSection'
+import CopFactureSection from '@/components/documents/CopFactureSection'
 
 // Next 14 App Router (client component) : on lit l'id via useParams().
 export default function CopDetailPage() {
@@ -87,16 +88,28 @@ export default function CopDetailPage() {
       </div>
 
       {String((cop as Record<string, unknown>).statut) === 'signe' ? (
-        <div className="mb-5 flex items-center gap-2 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 font-manrope text-sm text-[#166534]">
-          <Check size={16} />
-          <span>
-            Contrat signe
-            {(cop as Record<string, unknown>).signed_by ? ` par ${String((cop as Record<string, unknown>).signed_by)}` : ''}
-            {(cop as Record<string, unknown>).date_signature
-              ? ` le ${new Date(String((cop as Record<string, unknown>).date_signature)).toLocaleString('fr-FR')}`
-              : ''}.
-          </span>
-        </div>
+        <>
+          <div className="mb-5 flex items-center gap-2 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 font-manrope text-sm text-[#166534]">
+            <Check size={16} />
+            <span>
+              Contrat signe
+              {(cop as Record<string, unknown>).signed_by ? ` par ${String((cop as Record<string, unknown>).signed_by)}` : ''}
+              {(cop as Record<string, unknown>).date_signature
+                ? ` le ${new Date(String((cop as Record<string, unknown>).date_signature)).toLocaleString('fr-FR')}`
+                : ''}.
+            </span>
+          </div>
+          {(cop as Record<string, unknown>).facture_id ? (
+            <Link
+              href="/dashboard/factures"
+              className="mb-6 flex items-center gap-2 rounded-xl border border-[#dbe4ff] bg-[#fafbff] px-4 py-3 font-manrope text-sm text-[#1d4ed8] hover:bg-[#eef2ff]"
+            >
+              <Receipt size={16} /> Une facture a ete generee pour ce contrat — voir dans Factures
+            </Link>
+          ) : (
+            <CopFactureSection copId={id} />
+          )}
+        </>
       ) : (
         <CopSignSection
           copId={id}
