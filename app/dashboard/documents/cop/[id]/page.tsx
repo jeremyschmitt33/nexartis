@@ -13,6 +13,7 @@ import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import CopDocument from '@/components/document/CopDocument'
 import CopSignSection from '@/components/documents/CopSignSection'
 import CopFactureSection from '@/components/documents/CopFactureSection'
+import CopSendSection from '@/components/documents/CopSendSection'
 
 // Next 14 App Router (client component) : on lit l'id via useParams().
 export default function CopDetailPage() {
@@ -109,6 +110,7 @@ export default function CopDetailPage() {
           ) : (
             <CopFactureSection copId={id} />
           )}
+          <CopSendSection copId={id} />
         </>
       ) : (
         <CopSignSection
