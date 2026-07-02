@@ -10,7 +10,7 @@
 // .dv-d-num (Spline Mono). Aucun montant en mono, aucune Syne dans le document.
 // ============================================================================
 
-import { Fragment, type CSSProperties } from 'react'
+import { type CSSProperties } from 'react'
 import './document.css'
 import type { DocumentArtisan } from '@/lib/document-data'
 import { eur, tauxLabel, type CopData, type CopLegal } from '@/lib/cop-data'
@@ -44,8 +44,8 @@ export default function CopDocument({
         <HeaderD data={data} />
         <div className="dv-body">
           <TitreBloc data={data} />
-          <BaremeTable data={data} />
-          <RecapCop data={data} />
+          <PrixSobre data={data} />
+          <DetailPrix data={data} />
           <PrixFermeBox text={data.legal.prixFerme} />
           <AttestationBox text={data.legal.attestation} identiteVerifiee={data.identiteVerifiee} pieceNature={data.pieceNature} />
           <RenonciationBox mentions={data.legal.renonciation} />
@@ -151,73 +151,66 @@ function TitreBloc({ data }: { data: CopData }) {
   )
 }
 
-// ── Tableau du bareme ──────────────────────────────────────────────────────
-function BaremeTable({ data }: { data: CopData }) {
+// ── Prix ferme, sobre facon CONTRAT (pas de "Net a payer" facon facture) ────
+function PrixSobre({ data }: { data: CopData }) {
   return (
-    <table className="dv-table">
-      <thead>
-        <tr>
-          <th className="dv-c-num">#</th>
-          <th className="dv-c-desg">Designation</th>
-          <th className="dv-c-qte">Qte</th>
-          <th className="dv-c-pu">P.U. HT</th>
-          <th className="dv-c-tva">TVA</th>
-          <th className="dv-c-tot">Total HT</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.lignes.map((l, i) => (
-          <tr key={`cop-${i}`} className="dv-row dv-row--item">
-            <td className="dv-c-num">{i + 1}</td>
-            <td className="dv-c-desg">{l.designation}</td>
-            <td className="dv-c-qte">
-              {Number(l.quantite).toLocaleString('fr-FR')}
-              {l.unite && <span className="dv-unit"> {l.unite}</span>}
-            </td>
-            <td className="dv-c-pu">{eur(l.pu_ht)}</td>
-            <td className="dv-c-tva">{tauxLabel(l.tva_taux)}</td>
-            <td className="dv-c-tot">{eur(l.quantite * l.pu_ht)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div style={PRIX_BLOCK}>
+      <span style={PRIX_LABEL}>Prix de l&apos;ouverture d&apos;urgence</span>
+      <span style={PRIX_VALUE}>{eur(data.totals.ttc)} TTC</span>
+    </div>
   )
 }
 
-// ── Recap totaux (calque RecapDevis / TotalsBox) ───────────────────────────
-function RecapCop({ data }: { data: CopData }) {
+// ── Detail du prix (obligation d'info : bareme + TVA) + reglement ───────────
+// Presente en PETIT sous le prix ferme : le document reste un contrat, pas un devis.
+function DetailPrix({ data }: { data: CopData }) {
   const { totals } = data
   return (
-    <div className="dv-recap">
-      <div className="dv-recap-notes">
-        <div className="dv-recap-notes-title">Conditions de reglement</div>
-        <p>Reglement de l&apos;intervention d&apos;urgence a la fin de la prestation (especes, carte, virement ou cheque).</p>
-        {(data.artisan.iban || data.artisan.bic) && (
-          <div className="dv-pay">
-            <div className="dv-pay-k">Pour regler par virement</div>
-            {data.artisan.iban && (<div className="dv-pay-row"><span>IBAN</span><strong>{data.artisan.iban}</strong></div>)}
-            {data.artisan.bic && (<div className="dv-pay-row"><span>BIC</span><strong>{data.artisan.bic}</strong></div>)}
-            <div className="dv-pay-row"><span>Beneficiaire</span><strong>{data.artisan.nom}</strong></div>
-          </div>
-        )}
+    <div style={{ marginTop: 12 }}>
+      <div style={DETAIL_TITLE}>Detail du prix</div>
+      <table className="dv-table">
+        <thead>
+          <tr>
+            <th className="dv-c-num">#</th>
+            <th className="dv-c-desg">Designation</th>
+            <th className="dv-c-qte">Qte</th>
+            <th className="dv-c-pu">P.U. HT</th>
+            <th className="dv-c-tva">TVA</th>
+            <th className="dv-c-tot">Total HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.lignes.map((l, i) => (
+            <tr key={`cop-${i}`} className="dv-row dv-row--item">
+              <td className="dv-c-num">{i + 1}</td>
+              <td className="dv-c-desg">{l.designation}</td>
+              <td className="dv-c-qte">
+                {Number(l.quantite).toLocaleString('fr-FR')}
+                {l.unite && <span className="dv-unit"> {l.unite}</span>}
+              </td>
+              <td className="dv-c-pu">{eur(l.pu_ht)}</td>
+              <td className="dv-c-tva">{tauxLabel(l.tva_taux)}</td>
+              <td className="dv-c-tot">{eur(l.quantite * l.pu_ht)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={DETAIL_TOTALS}>
+        <span>Total HT : <strong>{eur(totals.ht)}</strong></span>
+        <span>Dont TVA : <strong>{totals.parTaux.length === 0 ? 'non applicable' : eur(totals.tva)}</strong></span>
+        <span>Total TTC : <strong>{eur(totals.ttc)}</strong></span>
       </div>
-      <div className="dv-recap-box">
-        <div className="dv-recap-line"><span>Sous-total HT</span><span>{eur(totals.ht)}</span></div>
-        {totals.parTaux.length === 0 && (
-          <div className="dv-recap-line dv-recap-line--mute"><span>TVA non applicable</span><span>{eur(0)}</span></div>
-        )}
-        {totals.parTaux.map((l) => (
-          <div className="dv-recap-line dv-recap-line--mute" key={`t-${l.taux}`}>
-            <span>TVA {tauxLabel(l.taux)} <em>(base {eur(l.base)})</em></span>
-            <span>{eur(l.montant)}</span>
-          </div>
-        ))}
-        <div className="dv-recap-line dv-recap-line--ttc"><span>Total TTC</span><span>{eur(totals.ttc)}</span></div>
-        <div className="dv-recap-net">
-          <span>Net a payer</span>
-          <strong>{eur(totals.ttc)}</strong>
+      <p style={{ ...BOX_TEXT_MUTE, marginTop: 8 }}>
+        Reglement de l&apos;intervention d&apos;urgence a la fin de la prestation (especes, carte, virement ou cheque).
+      </p>
+      {(data.artisan.iban || data.artisan.bic) && (
+        <div className="dv-pay">
+          <div className="dv-pay-k">Pour regler par virement</div>
+          {data.artisan.iban && (<div className="dv-pay-row"><span>IBAN</span><strong>{data.artisan.iban}</strong></div>)}
+          {data.artisan.bic && (<div className="dv-pay-row"><span>BIC</span><strong>{data.artisan.bic}</strong></div>)}
+          <div className="dv-pay-row"><span>Beneficiaire</span><strong>{data.artisan.nom}</strong></div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -279,6 +272,9 @@ function RgpdBox({ text }: { text: string }) {
 
 // ── Zone signatures (2 cases vides en 1a ; la signature reelle viendra en 1b) ──
 function SignatureCop({ artisan }: { artisan: DocumentArtisan }) {
+  // Signature/cachet de l'artisan pre-rempli depuis les parametres (comme le devis).
+  const imgSrc = artisan.signatureBase64 || artisan.tamponBase64
+  const imgAlt = artisan.signatureBase64 ? 'Signature' : 'Tampon'
   return (
     <div className="dv-sign">
       <div className="dv-sign-box">
@@ -287,7 +283,12 @@ function SignatureCop({ artisan }: { artisan: DocumentArtisan }) {
       </div>
       <div className="dv-sign-box">
         <div className="dv-sign-label">{artisan.nom || "L'entreprise"}</div>
-        <div className="dv-sign-hint">Signature &amp; cachet de l&apos;entreprise</div>
+        {imgSrc ? (
+          <div className="dv-sign-img-wrap">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imgSrc} alt={imgAlt} className="dv-sign-img" />
+          </div>
+        ) : (<div className="dv-sign-hint">Signature &amp; cachet de l&apos;entreprise</div>)}
       </div>
     </div>
   )
@@ -325,4 +326,24 @@ const BOX_PLAIN: CSSProperties = {
 const BOX_ACCENT: CSSProperties = {
   margin: '12px 0 0', border: '1.5px solid #e87a2a', borderRadius: 10,
   background: '#fff6ee', padding: '10px 14px',
+}
+// Prix ferme sobre (facon contrat) : bandeau marine + montant or tabulaire.
+const PRIX_BLOCK: CSSProperties = {
+  margin: '16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+  gap: 12, padding: '14px 18px', borderRadius: 12, background: '#0f1a3a', color: '#fff',
+}
+const PRIX_LABEL: CSSProperties = {
+  fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.6px', color: '#9fb2d6',
+}
+const PRIX_VALUE: CSSProperties = {
+  fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-.5px', color: '#f5c842',
+  fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+}
+const DETAIL_TITLE: CSSProperties = {
+  fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.8px',
+  color: '#6b7384', marginBottom: 6,
+}
+const DETAIL_TOTALS: CSSProperties = {
+  display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'flex-end',
+  marginTop: 8, fontSize: '0.78rem', color: '#3a4256', fontVariantNumeric: 'tabular-nums',
 }

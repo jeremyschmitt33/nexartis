@@ -230,9 +230,11 @@ function buildLegal(opts: {
   const attestation =
     `Je soussigne(e) ${nom}, ${statut} du logement situe ${adresse}, atteste etre en droit d'y acceder ` +
     `et requiers expressement ${entreprise} pour proceder a l'ouverture de la ou des fermetures de condamnation ` +
-    `par les moyens techniques appropries. Je suis informe(e) que l'ouverture peut necessiter une intervention ` +
-    `destructive (percage du cylindre) et j'y consens. Cette attestation vaut reconnaissance de mon droit d'acces ; ` +
-    `elle ne degage pas l'entreprise de sa responsabilite en cas de faute professionnelle dans l'execution.`
+    `de la porte, PAR TOUS LES MOYENS CONVENABLES. Le choix de la technique d'ouverture releve du professionnel ; ` +
+    `j'accepte que l'ouverture puisse necessiter une intervention destructive (notamment le percage du cylindre) ` +
+    `et j'y consens expressement. La presente attestation vaut reconnaissance de mon droit d'acces et acceptation ` +
+    `des moyens techniques employes ; elle ne degage pas l'entreprise de sa responsabilite en cas de faute ` +
+    `professionnelle dans l'execution.`
 
   const prixFerme =
     `Le prix de l'ouverture d'urgence est fixe fermement a ${eur(ttc)} TTC selon le bareme ci-dessus. ` +

@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Trash2, KeyRound } from 'lucide-react'
 import { useEntreprise, LoadingSkeleton } from '@/lib/hooks'
 import { PremiumButton, PremiumInput, PremiumSelect, FieldLabel } from '@/components/ui/v4'
 import { isAutoEntrepreneur } from '@/lib/helpers'
-import { buildCopDocument, defaultCopLignes, type CopLigne } from '@/lib/cop-data'
-import { themeFromEntreprise } from '@/lib/document-theme'
-import { logoConfigFromEntreprise } from '@/lib/logo-config'
-import CopDocument from '@/components/document/CopDocument'
+import { defaultCopLignes, type CopLigne } from '@/lib/cop-data'
+import { hasMetier } from '@/lib/metiers'
 
 const TVA_RATES = [0, 5.5, 10, 20]
 const UNITES = ['forfait', 'U', 'h', 'jour', 'ml', 'm']
@@ -27,7 +25,7 @@ export default function CopNouveauPage() {
   const router = useRouter()
   const { entreprise, loading: loadingEntreprise } = useEntreprise()
 
-  const isSerrurier = (entreprise?.metier || '').toLowerCase().includes('serrur')
+  const isSerrurier = hasMetier(entreprise as Record<string, unknown> | null, 'serrurier')
 
   // ── Etat du formulaire ────────────────────────────────────────────────
   const [clientNom, setClientNom] = useState('')
@@ -72,31 +70,6 @@ export default function CopNouveauPage() {
     setLignes((prev) => prev.filter((_, i) => i !== idx))
   }
 
-  // ── Aperçu live ───────────────────────────────────────────────────────
-  const previewData = useMemo(() => {
-    if (!entreprise) return null
-    return buildCopDocument(
-      {
-        numero: 'COP-…',
-        client_nom: clientNom || null,
-        client_prenom: clientPrenom || null,
-        client_adresse: clientAdresse || null,
-        client_cp: clientCp || null,
-        client_ville: clientVille || null,
-        statut_occupant: statutOccupant,
-        identite_verifiee: identiteVerifiee,
-        piece_nature: pieceNature || null,
-        date_intervention: dateIntervention ? new Date(dateIntervention).toISOString() : null,
-        lieu: lieu || null,
-        nature_urgence: natureUrgence || null,
-        lignes,
-      },
-      entreprise as unknown as Record<string, unknown>,
-    )
-  }, [entreprise, clientNom, clientPrenom, clientAdresse, clientCp, clientVille, statutOccupant, identiteVerifiee, pieceNature, dateIntervention, lieu, natureUrgence, lignes])
-
-  const theme = useMemo(() => themeFromEntreprise(entreprise), [entreprise])
-  const logoConfig = useMemo(() => logoConfigFromEntreprise(entreprise), [entreprise])
 
   // ── Enregistrement ────────────────────────────────────────────────────
   async function handleSave() {
@@ -186,8 +159,8 @@ export default function CopNouveauPage() {
         Modele fourni a titre indicatif, adaptez-le a votre situation.
       </p>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* ── Colonne formulaire ── */}
+      <div className="mx-auto max-w-2xl">
+        {/* ── Formulaire (apercu complet apres enregistrement) ── */}
         <div className="space-y-6">
           <section className="space-y-3">
             <h2 className="font-hanken text-sm font-semibold uppercase tracking-wide text-gray-400">Occupant</h2>
@@ -268,14 +241,6 @@ export default function CopNouveauPage() {
               )}
             </div>
           </section>
-        </div>
-
-        {/* ── Colonne aperçu ── */}
-        <div className="lg:sticky lg:top-6 lg:h-fit">
-          <h2 className="mb-3 font-hanken text-sm font-semibold uppercase tracking-wide text-gray-400">Apercu</h2>
-          <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_2px_10px_rgba(15,26,58,0.06)]">
-            {previewData && <CopDocument data={previewData} theme={theme} logoConfig={logoConfig} />}
-          </div>
         </div>
       </div>
     </div>

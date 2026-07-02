@@ -21,6 +21,7 @@ import DocumentEditorModal from '@/components/documents/DocumentEditorModal'
 import CoffreFortSection from '@/components/documents/CoffreFortSection'
 import HistoriqueEnvoisSection from '@/components/documents/HistoriqueEnvoisSection'
 import EnvoiDocTypeModal from '@/components/documents/EnvoiDocTypeModal'
+import { hasMetier } from '@/lib/metiers'
 
 type Row = Record<string, unknown>
 function str(v: unknown): string { return v == null ? '' : String(v) }
@@ -36,8 +37,8 @@ export default function DocumentsPage() {
   const askConfirm = useConfirm()
   const { data: docs, loading, error, refetch } = useDocumentsTypes()
   const { entreprise } = useEntreprise()
-  // COP : document reserve aux serruriers (gating par metier).
-  const isSerrurier = (entreprise?.metier || '').toLowerCase().includes('serrur')
+  // COP : document reserve aux serruriers (gating via hasMetier — liste + texte libre).
+  const isSerrurier = hasMetier(entreprise as Record<string, unknown> | null, 'serrurier')
   const { data: clients } = useClients()
   const { data: chantiers } = useChantiers()
   const { data: devis } = useDevis()

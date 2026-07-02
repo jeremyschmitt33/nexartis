@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
 import ParrainageSection from '@/components/dashboard/ParrainageSection'
 import CertificationsSection from '@/components/parametres/CertificationsSection'
+import { METIERS_PREDEFINIS } from '@/lib/metiers'
 
 // -------------------------------------------------------------------
 // Types & constants
@@ -500,6 +501,8 @@ function EntrepriseSection({
   const [mediateurVille, setMediateurVille] = useState('')
   const [rge, setRge] = useState(false)
   const [metier, setMetier] = useState('')
+  // Metiers predefinis (multi-choix) — colonne jsonb entreprises.metiers.
+  const [metiers, setMetiers] = useState<string[]>([])
   const [franchiseTva, setFranchiseTva] = useState(false)
   const [afficherDechetsParam, setAfficherDechetsParam] = useState(true)
   const [qualificationPro, setQualificationPro] = useState('')
@@ -550,6 +553,10 @@ function EntrepriseSection({
       }
       setRge(!!entreprise.rge)
       setMetier((entreprise.metier as string) ?? '')
+      {
+        const rawMetiers = (entreprise as unknown as Record<string, unknown>).metiers
+        setMetiers(Array.isArray(rawMetiers) ? rawMetiers.map((x) => String(x)) : [])
+      }
       setFranchiseTva(!!entreprise.franchise_tva)
       setAfficherDechetsParam((entreprise as unknown as Record<string, unknown>).afficher_dechets !== false)
       setQualificationPro((entreprise.qualification_pro as string) ?? '')
@@ -592,7 +599,7 @@ function EntrepriseSection({
         mediateur_adresse: mediateurAdresse || null,
         mediateur_code_postal: mediateurCodePostal || null,
         mediateur_ville: mediateurVille || null,
-        rge, metier,
+        rge, metier, metiers,
         franchise_tva: franchiseTva,
         afficher_dechets: afficherDechetsParam,
         qualification_pro: qualificationPro || null,
@@ -757,10 +764,51 @@ function EntrepriseSection({
           placeholder="10 000 € (laisser vide si EI)"
         />
 
+        {/* Métier / activité : liste prédéfinie (multi-choix) + champ libre.
+            La multi-sélection alimente entreprises.metiers (jsonb) et fiabilise
+            le gating (ex : carte contrat d'ouverture de porte pour serruriers),
+            à l'abri des fautes de frappe. Le champ libre reste pour un métier
+            hors liste ou une précision. */}
+        <div className="sm:col-span-2">
+          <label className="mb-1.5 block font-manrope text-sm font-semibold text-[#0f1a3a]">
+            Métier / activité
+          </label>
+          <p className="mb-2.5 font-manrope text-xs text-gray-400">
+            Sélectionnez votre ou vos métiers. Certains documents s&apos;activent selon le métier
+            (ex : le contrat d&apos;ouverture de porte pour les serruriers).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {METIERS_PREDEFINIS.map((m) => {
+              const on = metiers.includes(m.slug)
+              return (
+                <button
+                  key={m.slug}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setMetiers((prev) =>
+                      prev.includes(m.slug) ? prev.filter((s) => s !== m.slug) : [...prev, m.slug],
+                    )
+                  }
+                  className={
+                    'rounded-full border px-3.5 py-1.5 font-manrope text-sm font-medium transition ' +
+                    (on
+                      ? 'border-[#0f1a3a] bg-[#0f1a3a] text-white'
+                      : 'border-gray-200 bg-white text-[#0f1a3a] hover:border-[#0f1a3a]')
+                  }
+                >
+                  {m.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <PremiumInput
-          label="Métier / activité"
+          label="Autre métier / précision (optionnel)"
           value={metier}
           onChange={setMetier}
+          placeholder="Ex : dépanneur multi-services"
         />
         {/* qualificationPro conservé en state (rétro-compat handleSave) mais UI retirée */}
       </div>

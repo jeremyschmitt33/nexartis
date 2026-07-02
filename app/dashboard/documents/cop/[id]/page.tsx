@@ -7,6 +7,7 @@ import { ArrowLeft, Printer, KeyRound } from 'lucide-react'
 import { useEntreprise, useSupabaseRecord, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { PremiumButton } from '@/components/ui/v4'
 import { buildCopDocument, type RawCop } from '@/lib/cop-data'
+import { hasMetier } from '@/lib/metiers'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import CopDocument from '@/components/document/CopDocument'
@@ -18,7 +19,7 @@ export default function CopDetailPage() {
   const { entreprise, loading: loadingEntreprise } = useEntreprise()
   const { data: cop, loading, error } = useSupabaseRecord<Record<string, unknown>>('contrats_ouverture', id || null)
 
-  const isSerrurier = (entreprise?.metier || '').toLowerCase().includes('serrur')
+  const isSerrurier = hasMetier(entreprise as Record<string, unknown> | null, 'serrurier')
 
   const previewData = useMemo(() => {
     if (!entreprise || !cop) return null
