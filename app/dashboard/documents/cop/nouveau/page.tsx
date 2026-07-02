@@ -241,6 +241,11 @@ export default function CopNouveauPage() {
               )}
             </div>
           </section>
+
+          {/* Bouton Enregistrer en bas (pratique sur mobile, apres les prestations) */}
+          <div className="pt-2">
+            <PremiumButton onClick={handleSave} loading={saving}>Enregistrer le contrat</PremiumButton>
+          </div>
         </div>
       </div>
     </div>

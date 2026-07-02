@@ -120,9 +120,20 @@ export default function CopDetailPage() {
         />
       )}
 
-      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_2px_10px_rgba(15,26,58,0.06)]">
+      <div id="cop-print-area" className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_2px_10px_rgba(15,26,58,0.06)]">
         {previewData && <CopDocument data={previewData} theme={theme} logoConfig={logoConfig} />}
       </div>
+
+      {/* Impression : on ne montre QUE le contrat (ni sidebar, ni boutons, ni section facture). */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+          body * { visibility: hidden !important; }
+          #cop-print-area, #cop-print-area * { visibility: visible !important; }
+          #cop-print-area { position: absolute !important; left: 0; top: 0; width: 100%; margin: 0 !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
+          @page { size: A4; margin: 0; }
+        }
+      ` }} />
     </div>
   )
 }
