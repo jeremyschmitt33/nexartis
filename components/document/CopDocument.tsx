@@ -50,7 +50,7 @@ export default function CopDocument({
           <AttestationBox text={data.legal.attestation} identiteVerifiee={data.identiteVerifiee} pieceNature={data.pieceNature} />
           <RenonciationBox mentions={data.legal.renonciation} />
           <BlocBBox text={data.legal.blocB} />
-          <SignatureCop artisan={data.artisan} />
+          <SignatureCop data={data} />
           <RgpdBox text={data.legal.rgpd} />
         </div>
         <PageFootRich artisan={data.artisan} />
@@ -271,7 +271,8 @@ function RgpdBox({ text }: { text: string }) {
 }
 
 // ── Zone signatures (2 cases vides en 1a ; la signature reelle viendra en 1b) ──
-function SignatureCop({ artisan }: { artisan: DocumentArtisan }) {
+function SignatureCop({ data }: { data: CopData }) {
+  const artisan = data.artisan
   // Signature/cachet de l'artisan pre-rempli depuis les parametres (comme le devis).
   const imgSrc = artisan.signatureBase64 || artisan.tamponBase64
   const imgAlt = artisan.signatureBase64 ? 'Signature' : 'Tampon'
@@ -279,7 +280,19 @@ function SignatureCop({ artisan }: { artisan: DocumentArtisan }) {
     <div className="dv-sign">
       <div className="dv-sign-box">
         <div className="dv-sign-label">L&apos;occupant</div>
-        <div className="dv-sign-hint">Date, mention « Lu et approuve » et signature</div>
+        {data.clientSignatureBase64 ? (
+          <>
+            <div className="dv-sign-img-wrap">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={data.clientSignatureBase64} alt="Signature du client" className="dv-sign-img" />
+            </div>
+            <div className="dv-sign-hint">
+              {data.signedBy}{data.dateSignature ? ` — signe le ${data.dateSignature}` : ''}
+            </div>
+          </>
+        ) : (
+          <div className="dv-sign-hint">Date, mention « Lu et approuve » et signature</div>
+        )}
       </div>
       <div className="dv-sign-box">
         <div className="dv-sign-label">{artisan.nom || "L'entreprise"}</div>

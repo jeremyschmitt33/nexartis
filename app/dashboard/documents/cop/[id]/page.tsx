@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Printer, KeyRound } from 'lucide-react'
+import { ArrowLeft, Printer, KeyRound, Check } from 'lucide-react'
 import { useEntreprise, useSupabaseRecord, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
 import { PremiumButton } from '@/components/ui/v4'
 import { buildCopDocument, type RawCop } from '@/lib/cop-data'
@@ -11,6 +11,7 @@ import { hasMetier } from '@/lib/metiers'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import CopDocument from '@/components/document/CopDocument'
+import CopSignSection from '@/components/documents/CopSignSection'
 
 // Next 14 App Router (client component) : on lit l'id via useParams().
 export default function CopDetailPage() {
@@ -84,6 +85,27 @@ export default function CopDetailPage() {
         </div>
         <PremiumButton variant="secondary" icon={<Printer size={18} />} onClick={handlePrint}>Imprimer</PremiumButton>
       </div>
+
+      {String((cop as Record<string, unknown>).statut) === 'signe' ? (
+        <div className="mb-5 flex items-center gap-2 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 font-manrope text-sm text-[#166534]">
+          <Check size={16} />
+          <span>
+            Contrat signe
+            {(cop as Record<string, unknown>).signed_by ? ` par ${String((cop as Record<string, unknown>).signed_by)}` : ''}
+            {(cop as Record<string, unknown>).date_signature
+              ? ` le ${new Date(String((cop as Record<string, unknown>).date_signature)).toLocaleString('fr-FR')}`
+              : ''}.
+          </span>
+        </div>
+      ) : (
+        <CopSignSection
+          copId={id}
+          defaultSignedBy={[
+            (cop as Record<string, unknown>).client_prenom,
+            (cop as Record<string, unknown>).client_nom,
+          ].filter(Boolean).join(' ')}
+        />
+      )}
 
       <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_2px_10px_rgba(15,26,58,0.06)]">
         {previewData && <CopDocument data={previewData} theme={theme} logoConfig={logoConfig} />}

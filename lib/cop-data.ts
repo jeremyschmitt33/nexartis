@@ -77,6 +77,10 @@ export interface CopData {
   pieceNature?: string
   identiteVerifiee: boolean
   natureUrgence?: string
+  statut?: string
+  clientSignatureBase64?: string
+  signedBy?: string
+  dateSignature?: string // formatee fr-FR (date + heure)
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +101,10 @@ export interface RawCop {
   lieu?: string | null
   lignes?: CopLigne[] | null
   nature_urgence?: string | null
+  statut?: string | null
+  client_signature_base64?: string | null
+  signed_by?: string | null
+  date_signature?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -311,6 +319,10 @@ export function buildCopDocument(raw: RawCop, entreprise: RawEntreprise): CopDat
     pieceNature: raw.piece_nature ?? undefined,
     identiteVerifiee: Boolean(raw.identite_verifiee),
     natureUrgence: raw.nature_urgence ?? undefined,
+    statut: raw.statut ?? undefined,
+    clientSignatureBase64: raw.client_signature_base64 ?? undefined,
+    signedBy: raw.signed_by ?? undefined,
+    dateSignature: fmtDateHeure(raw.date_signature) || undefined,
     legal,
   }
 }
