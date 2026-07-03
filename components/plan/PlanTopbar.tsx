@@ -18,6 +18,8 @@ export interface PlanTopbarProps {
   onRenommer: (nom: string) => void
   statut: StatutSauvegarde
   retourHref: string
+  /** Appelé au clic sur « retour » : flush de l'autosave avant navigation. */
+  onRetour?: () => void
   niveaux: Niveau[]
   niveauId: string
   onNiveau: (id: string) => void
@@ -79,6 +81,7 @@ export default function PlanTopbar(props: PlanTopbarProps) {
     <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 bg-white px-3 py-2 sm:px-4">
       <Link
         href={props.retourHref}
+        onClick={props.onRetour}
         aria-label="Retour au chantier"
         className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border-[1.5px] border-gray-200 text-navy transition-colors hover:border-orange"
       >

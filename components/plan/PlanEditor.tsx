@@ -81,7 +81,7 @@ function IconeOutil({ type }: { type: Outil }) {
 export default function PlanEditor({ planId, nomInitial, dataInitiale, retourHref }: PlanEditorProps) {
   const etat = usePlanState(dataInitiale)
   const [nom, setNom] = useState(nomInitial)
-  const { statut } = useAutosave(planId, nom, etat.data, etat.version)
+  const { statut, flush } = useAutosave(planId, nom, etat.data, etat.version)
   const [vue, setVue] = useState<VueCalque>('tout')
   const [outil, setOutil] = useState<Outil>('select')
   const [modalOuverte, setModalOuverte] = useState(false)
@@ -225,6 +225,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, retourHre
         onRenommer={setNom}
         statut={statut}
         retourHref={retourHref}
+        onRetour={flush}
         niveaux={etat.data.levels}
         niveauId={etat.niveauId}
         onNiveau={etat.setNiveauId}
