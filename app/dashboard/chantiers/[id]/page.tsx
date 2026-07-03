@@ -6,9 +6,10 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Pencil, User, Phone, Calendar, HardHat,
   FileText, Receipt, Clock, Plus, Download,
-  ChevronLeft, ChevronRight, Check, X, Users, Zap, Trash2, Camera,
+  ChevronLeft, ChevronRight, Check, X, Users, Zap, Trash2, Camera, Ruler,
 } from 'lucide-react'
 import PhotoSection from '@/components/photos/PhotoSection'
+import PlanTab from '@/components/plan/PlanTab'
 import {
   useSupabaseRecord, useClients, useIntervenants, useDevis, useFactures,
   usePlanning, useAchats, useChantierNotes, useSousTraitantPaiements,
@@ -24,13 +25,14 @@ import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 // Types & helpers
 // -------------------------------------------------------------------
 type R = Record<string, unknown>
-type TabKey = 'resume' | 'devis' | 'factures' | 'photos'
+type TabKey = 'resume' | 'devis' | 'factures' | 'photos' | 'plan'
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'resume', label: 'Vue générale', icon: HardHat },
   { key: 'devis', label: 'Devis', icon: FileText },
   { key: 'factures', label: 'Factures', icon: Receipt },
   { key: 'photos', label: 'Photos', icon: Camera },
+  { key: 'plan', label: 'Plan 2D', icon: Ruler },
 ]
 
 const NOTE_CATS = [
@@ -769,6 +771,11 @@ export default function ChantierDetailPage() {
               ].filter(Boolean).join(', ')}
             />
           </div>
+        )}
+
+        {/* ── PLAN 2D DU CHANTIER ── */}
+        {activeTab === 'plan' && (
+          <PlanTab chantierId={id} clientId={chantier.client_id ? String(chantier.client_id) : null} />
         )}
 
         {/* ── GANTT CHART ── */}
