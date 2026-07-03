@@ -16,9 +16,15 @@
  * - `flush()` exposé : annule le debounce et sauve tout de suite si besoin.
  *   Appelé au clic « retour » (PlanTopbar) et à l'unmount de l'éditeur
  *   (navigation client Next : `pagehide` ne se déclenche pas).
- * - `pagehide` / `visibilitychange(hidden)` : PATCH REST direct avec
- *   `fetch(..., { keepalive: true })` — survit au rechargement/fermeture,
- *   contrairement aux requêtes supabase-js qui meurent avec la page.
+ * - `pagehide` / `visibilitychange(hidden)` : `navigator.sendBeacon` vers
+ *   la route MÊME ORIGINE `/api/plan/beacon-save`.
+ *   ⚠️ LEÇON (prouvée en prod, 03/07/2026) : un PATCH REST direct vers
+ *   Supabase (cross-origin + headers Authorization/apikey) déclenche un
+ *   PRÉVOL OPTIONS ; au déchargement de la page, Chrome envoie l'OPTIONS
+ *   puis tue la page avant le PATCH → la sauvegarde ne part JAMAIS, même
+ *   avec `fetch keepalive` (keepalive ne protège pas les requêtes à prévol).
+ *   sendBeacon même origine : zéro prévol, cookies inclus, conçu pour
+ *   survivre au déchargement. Le serveur recalcule `computed` lui-même.
  * - Snapshot plan_revisions (reason 'autosave') toutes les 10 min d'édition
  *   active, déclenché à l'issue d'une sauvegarde réussie.
  */
@@ -32,8 +38,8 @@ export type StatutSauvegarde = 'sauvegarde' | 'encours' | 'erreur'
 
 const DEBOUNCE_MS = 2000
 const REVISION_MS = 10 * 60 * 1000
-/** Limite navigateur (~64 Ko) sur le corps d'un fetch keepalive. */
-const KEEPALIVE_MAX_OCTETS = 60000
+/** Limite navigateur (~64 Ko) sur la file d'attente sendBeacon. */
+const BEACON_MAX_OCTETS = 60000
 
 /** Métrés dénormalisés stockés dans plans.computed (résumé léger, Push 2). */
 export function calculerComputed(data: PlanData): Record<string, unknown> {
@@ -65,25 +71,6 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
   // Dernier contenu effectivement ÉCRIT en base. Au montage, la base
   // contient déjà l'état initial chargé (donc « rien à sauver »).
   const sauve = useRef<{ name: string; version: number }>({ name, version })
-  // Jeton d'accès maintenu à jour pour le PATCH keepalive du pagehide.
-  const jeton = useRef<{ token: string; userId: string } | null>(null)
-
-  useEffect(() => {
-    const supabase = createClient()
-    let actif = true
-    void supabase.auth.getSession().then(({ data: s }) => {
-      if (actif && s.session) {
-        jeton.current = { token: s.session.access_token, userId: s.session.user.id }
-      }
-    })
-    const { data: abo } = supabase.auth.onAuthStateChange((_evt, session) => {
-      if (session) jeton.current = { token: session.access_token, userId: session.user.id }
-    })
-    return () => {
-      actif = false
-      abo.subscription.unsubscribe()
-    }
-  }, [])
 
   const sauvegarder = useCallback(async () => {
     // Un save est déjà en vol : sa clause finally re-déclenchera si le
@@ -193,44 +180,24 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
     return () => flushRef.current()
   }, [])
 
-  // Best effort au rechargement/fermeture d'onglet : PATCH REST keepalive
-  // (les requêtes supabase-js, elles, sont annulées par le navigateur).
+  // Best effort au rechargement/fermeture d'onglet : sendBeacon vers notre
+  // route même origine (cookies inclus, pas de prévol CORS — voir en-tête).
+  // `computed` n'est plus envoyé : le serveur le recalcule (zéro confiance).
   useEffect(() => {
     const envoyer = () => {
       const c = contenu.current
       const propre = c.version === sauve.current.version && c.name === sauve.current.name
       // Rien à sauver ET aucun save en vol susceptible de mourir → inutile.
       if (propre && !enCours.current) return
-      const auth = jeton.current
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      if (!auth || !url || !cle) return
-      const corps = JSON.stringify({
-        name: c.name,
-        data: c.data,
-        computed: calculerComputed(c.data),
-        updated_at: new Date().toISOString(),
-      })
-      if (corps.length > KEEPALIVE_MAX_OCTETS) return
+      const corps = JSON.stringify({ planId, name: c.name, data: c.data })
+      if (corps.length > BEACON_MAX_OCTETS) return
       try {
-        void fetch(
-          `${url}/rest/v1/plans?id=eq.${encodeURIComponent(planId)}&user_id=eq.${encodeURIComponent(auth.userId)}`,
-          {
-            method: 'PATCH',
-            keepalive: true,
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: cle,
-              Authorization: `Bearer ${auth.token}`,
-              Prefer: 'return=minimal',
-            },
-            body: corps,
-          }
-        ).catch(() => {
-          // Best effort : la page est en train de disparaître.
-        })
+        navigator.sendBeacon(
+          '/api/plan/beacon-save',
+          new Blob([corps], { type: 'application/json' })
+        )
       } catch (_e) {
-        // Best effort : rien d'autre à faire à ce stade.
+        // Best effort : la page est en train de disparaître.
       }
     }
     const onPageHide = () => envoyer()
