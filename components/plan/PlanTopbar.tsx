@@ -9,9 +9,11 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import type { Niveau } from '@/lib/plan/types'
+import type { MetierId } from '@/lib/plan/profils'
 import type { StatutSauvegarde } from './useAutosave'
 import type { VueCalque } from './PlanRender'
 import LevelTabs from './LevelTabs'
+import VueMetierPill from './VueMetierPill'
 
 export interface PlanTopbarProps {
   nom: string
@@ -27,6 +29,8 @@ export interface PlanTopbarProps {
   onRenommerNiveau: (id: string, name: string) => void
   vue: VueCalque
   onVue: (vue: VueCalque) => void
+  metier: MetierId
+  onMetier: (metier: MetierId) => void
   canUndo: boolean
   canRedo: boolean
   onUndo: () => void
@@ -105,6 +109,7 @@ export default function PlanTopbar(props: PlanTopbarProps) {
           className="w-36 truncate rounded-lg border-[1.5px] border-transparent bg-transparent px-2 py-1 font-hanken text-[15px] font-extrabold tracking-tight text-navy transition-colors hover:border-gray-200 focus:border-orange focus:bg-white focus:outline-none sm:w-52"
         />
         <IndicateurSauvegarde statut={props.statut} />
+        <VueMetierPill metier={props.metier} onMetier={props.onMetier} />
       </div>
 
       <div className="order-last w-full sm:order-none sm:w-auto sm:flex-1 flex flex-wrap items-center justify-start gap-2 sm:justify-center">

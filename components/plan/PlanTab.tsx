@@ -2,19 +2,18 @@
 
 /**
  * PlanTab — Onglet « Plan 2D » de la page chantier (Push 2, 03/07/2026).
- * Liste des plans du chantier (deleted_at IS NULL), création (INSERT puis
- * redirection vers l'éditeur), ouverture, soft delete avec ConfirmDialog.
- * Volontairement léger : la page chantier fait 1 810 lignes, tout vit ici.
+ * Liste des plans du chantier (deleted_at IS NULL), ouverture, soft delete
+ * avec ConfirmDialog. Depuis le Push 3a (étape F), « Nouveau plan » ouvre le
+ * wizard 2 étapes (métier puis méthode) : voir CreatePlanWizard.tsx.
  */
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { insertRow, softDeleteRow } from '@/lib/hooks'
+import { softDeleteRow } from '@/lib/hooks'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
 import { toast } from '@/lib/toast'
-import { planDataVide, nomAvecSuffixe } from '@/lib/plan/defaults'
-import { calculerComputed } from './useAutosave'
+import CreatePlanWizard from './CreatePlanWizard'
 
 interface LignePlan {
   id: string
@@ -43,7 +42,7 @@ export default function PlanTab({ chantierId, clientId }: PlanTabProps) {
   const confirm = useConfirm()
   const [plans, setPlans] = useState<LignePlan[]>([])
   const [chargement, setChargement] = useState(true)
-  const [creation, setCreation] = useState(false)
+  const [wizardOuvert, setWizardOuvert] = useState(false)
 
   const charger = useCallback(async () => {
     const supabase = createClient()
@@ -65,26 +64,6 @@ export default function PlanTab({ chantierId, clientId }: PlanTabProps) {
   useEffect(() => {
     charger()
   }, [charger])
-
-  const creerPlan = async () => {
-    if (creation) return
-    setCreation(true)
-    try {
-      const nom = nomAvecSuffixe('Plan 1', plans.map((p) => p.name))
-      const data = planDataVide()
-      const cree = (await insertRow('plans', {
-        chantier_id: chantierId,
-        client_id: clientId || null,
-        name: nom,
-        data,
-        computed: calculerComputed(data),
-      })) as { id: string }
-      router.push(`/dashboard/plans/${cree.id}`)
-    } catch (_e) {
-      toast.error('Impossible de créer le plan')
-      setCreation(false)
-    }
-  }
 
   const supprimerPlan = async (plan: LignePlan) => {
     const ok = await confirm({
@@ -114,17 +93,12 @@ export default function PlanTab({ chantierId, clientId }: PlanTabProps) {
         </div>
         <button
           type="button"
-          onClick={creerPlan}
-          disabled={creation}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] px-4 py-2 font-hanken text-sm font-bold text-white shadow-[0_4px_12px_rgba(255,122,26,0.25)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => setWizardOuvert(true)}
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] px-4 py-2 font-hanken text-sm font-bold text-white shadow-[0_4px_12px_rgba(255,122,26,0.25)] transition-all hover:-translate-y-0.5"
         >
-          {creation ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" aria-hidden="true" />
-          ) : (
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          )}
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
           Nouveau plan
         </button>
       </div>
@@ -181,6 +155,14 @@ export default function PlanTab({ chantierId, clientId }: PlanTabProps) {
           })}
         </ul>
       )}
+
+      <CreatePlanWizard
+        open={wizardOuvert}
+        chantierId={chantierId}
+        clientId={clientId}
+        plansExistants={plans.map((p) => ({ id: p.id, name: p.name }))}
+        onFermer={() => setWizardOuvert(false)}
+      />
     </div>
   )
 }

@@ -21,13 +21,15 @@ export interface RoomSheetProps {
   onSupprimer: () => void
   onSupprimerOuverture: (ouvertureId: string) => void
   onFermer: () => void
+  /** Contenu additionnel rendu sous les champs (panneau métrés, Push 3a). */
+  children?: React.ReactNode
 }
 
 function Etiquette({ children }: { children: React.ReactNode }) {
   return <span className="mb-1.5 block font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500">{children}</span>
 }
 
-export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer }: RoomSheetProps) {
+export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
   const [nom, setNom] = useState(piece.name)
   const [hsp, setHsp] = useState(mmVersSaisieM(piece.height))
 
@@ -200,6 +202,7 @@ export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSu
           </button>
         </div>
       </div>
+      {children}
     </div>
   )
 }

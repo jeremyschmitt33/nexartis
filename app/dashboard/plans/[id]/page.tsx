@@ -15,12 +15,14 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { PlanData } from '@/lib/plan/types'
 import { normaliserPlanData } from '@/lib/plan/defaults'
+import { profilDe, type MetierId } from '@/lib/plan/profils'
 import PlanEditor from '@/components/plan/PlanEditor'
 
 interface PlanCharge {
   id: string
   name: string
   data: PlanData
+  metier: MetierId
   chantierId: string | null
 }
 
@@ -45,7 +47,7 @@ export default function PageEditeurPlan() {
       }
       const { data: row, error } = await supabase
         .from('plans')
-        .select('id, name, data, chantier_id, deleted_at')
+        .select('id, name, data, metier_defaut, chantier_id, deleted_at')
         .eq('id', planId)
         .single()
       if (annule) return
@@ -57,6 +59,8 @@ export default function PageEditeurPlan() {
         id: String(row.id),
         name: String(row.name ?? 'Plan'),
         data: normaliserPlanData(row.data),
+        // Vue métier mémorisée par plan : inconnu / null → 'tce' (Tous les métrés).
+        metier: profilDe(row.metier_defaut ? String(row.metier_defaut) : null).id,
         chantierId: row.chantier_id ? String(row.chantier_id) : null,
       })
       setEtat('pret')
@@ -103,6 +107,7 @@ export default function PageEditeurPlan() {
         planId={plan.id}
         nomInitial={plan.name}
         dataInitiale={plan.data}
+        metierInitial={plan.metier}
         retourHref={plan.chantierId ? `/dashboard/chantiers/${plan.chantierId}` : '/dashboard/chantiers'}
       />
     </div>

@@ -15,6 +15,7 @@ import { aireMm2, centreMm, estDansPolygone, fmtNombreFr, mm2VersM2, mmVersM } f
 import { surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
 import { COULEURS_PLAN } from '@/lib/plan/defaults'
 import { bornesPiece, estRectiligne } from '@/lib/plan/edition'
+import SymboleSvg from './SymboleSvg'
 
 export type VueCalque = 'existant' | 'projet' | 'tout'
 
@@ -316,6 +317,7 @@ export interface PlanRenderProps {
   niveau: Niveau
   vue: VueCalque
   selectedRoomId?: string | null
+  selectedSymbolId?: string | null
   /** true dans l'éditeur (attributs data-* + curseurs), false pour l'export. */
   interactif?: boolean
   /** Préfixe des ids de <pattern> pour éviter les collisions. */
@@ -324,11 +326,12 @@ export interface PlanRenderProps {
   grille?: boolean
 }
 
-/** Ordre des passes : grille → pièces → sélection → ouvertures → cotes → étiquettes → badges. */
+/** Ordre des passes : grille → pièces → sélection → ouvertures → cotes → étiquettes → symboles → badges. */
 export default function PlanRender({
   niveau,
   vue,
   selectedRoomId = null,
+  selectedSymbolId = null,
   interactif = false,
   idPrefix = 'plan',
   grille = false,
@@ -338,6 +341,9 @@ export default function PlanRender({
   const selection = selectedRoomId ? tri.find((r) => r.id === selectedRoomId) : undefined
   const creee = surfaceCreeeProjetM2(niveau.rooms)
   const opacite = (p: Piece) => (vue === 'projet' && p.layer === 'existant' ? 0.35 : 1)
+  const symbolesVisibles = niveau.symbols.filter(
+    (s) => vue === 'tout' || (vue === 'projet' ? true : s.layer === 'existant')
+  )
 
   return (
     <g>
@@ -363,6 +369,11 @@ export default function PlanRender({
       {tri.map((r) => (
         <g key={r.id} opacity={opacite(r)}>
           <RenduEtiquette piece={r} />
+        </g>
+      ))}
+      {symbolesVisibles.map((s) => (
+        <g key={s.id} opacity={vue === 'projet' && s.layer === 'existant' ? 0.35 : 1}>
+          <SymboleSvg symbole={s} interactif={interactif} selectionne={s.id === selectedSymbolId} />
         </g>
       ))}
       {vue !== 'existant' && creee > 0 &&

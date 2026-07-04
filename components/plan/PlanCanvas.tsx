@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CalqueId, Niveau, PointMm, TypeOuverture } from '@/lib/plan/types'
-import { estDansPolygone, fmtNombreFr, mmVersM, snapMm } from '@/lib/plan/geometry'
+import { estDansPolygone, snapMm } from '@/lib/plan/geometry'
 import {
   cadrerSur,
   bornesNiveau,
@@ -30,10 +30,16 @@ import {
   type GuideAimant,
 } from '@/lib/plan/edition'
 import PlanRender, { PlanDefs, type VueCalque } from './PlanRender'
+import PolygonePreview from './PolygonePreview'
 import CoteInput from './CoteInput'
 import ZoomControls from './ZoomControls'
+import { useCanvasNav } from './useCanvasNav'
 
-export type Outil = 'select' | TypeOuverture
+/** Outil actif : sélection, ouverture, ou pose de symbole (`sym:<type>`). */
+export type Outil = 'select' | TypeOuverture | `sym:${string}`
+
+/** Pas d'aimantation des symboles (plus fin que la grille des pièces). */
+const GRILLE_SYM_MM = 50
 
 export interface PolygoneEnCours {
   nom: string
@@ -45,12 +51,17 @@ export interface PlanCanvasProps {
   vue: VueCalque
   outil: Outil
   selectedRoomId: string | null
+  selectedSymbolId: string | null
   polygone: PolygoneEnCours | null
   onSelectRoom: (id: string | null) => void
+  onSelectSymbol: (id: string | null) => void
   onDebutGeste: () => void
   onDeplacerPiece: (roomId: string, dx: number, dy: number) => void
   onCote: (roomId: string, dim: 'w' | 'h', mm: number) => void
   onPoserOuverture: (roomId: string, point: PointMm, type: TypeOuverture) => void
+  onPoserSymbole: (type: string, point: PointMm, roomId: string | null) => void
+  onDeplacerSymbole: (symboleId: string, dx: number, dy: number) => void
+  onFinDeplacerSymbole: (symboleId: string) => void
   onPolygoneTermine: (points: PointMm[]) => void
   onPolygoneAnnule: () => void
 }
@@ -60,8 +71,9 @@ interface Presse {
   sx: number
   sy: number
   bouge: boolean
-  mode: 'pan' | 'drag'
+  mode: 'pan' | 'drag' | 'dragSym'
   roomId: string | null
+  symId: string | null
   bornes: BornesPiece | null
   applique: { dx: number; dy: number }
   gesteCommence: boolean
@@ -83,15 +95,22 @@ export default function PlanCanvas({
   vue,
   outil,
   selectedRoomId,
+  selectedSymbolId,
   polygone,
   onSelectRoom,
+  onSelectSymbol,
   onDebutGeste,
   onDeplacerPiece,
   onCote,
   onPoserOuverture,
+  onPoserSymbole,
+  onDeplacerSymbole,
+  onFinDeplacerSymbole,
   onPolygoneTermine,
   onPolygoneAnnule,
 }: PlanCanvasProps) {
+  /** Type de symbole si l'outil actif est une pose de symbole, sinon null. */
+  const outilSym = outil.startsWith('sym:') ? outil.slice(4) : null
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [vp, setVp] = useState<Viewport>(viewportDefaut)
@@ -131,45 +150,15 @@ export default function PlanCanvas({
     if (!vueTouchee.current) ajusterVue()
   }, [nbPieces, ajusterVue])
 
-  // ── Zoom molette (listener natif : preventDefault interdit en passif) ────
-  useEffect(() => {
-    const svg = svgRef.current
-    if (!svg) return
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const rect = svg.getBoundingClientRect()
-      const facteur = e.deltaY < 0 ? 1.12 : 1 / 1.12
-      vueTouchee.current = true
-      setVp((v) => zoomAutour(v, e.clientX - rect.left, e.clientY - rect.top, facteur))
+  // ── Zoom molette + Espace (pan) + Échap : hook extrait (useCanvasNav) ────
+  const onEchap = useCallback(() => {
+    if (polygone) {
+      setPolyPts([])
+      onPolygoneAnnule()
     }
-    svg.addEventListener('wheel', onWheel, { passive: false })
-    return () => svg.removeEventListener('wheel', onWheel)
-  }, [])
-
-  // ── Espace = pan temporaire, Échap = annulation ───────────────────────────
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const cible = e.target as HTMLElement | null
-      if (cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA')) return
-      if (e.code === 'Space') espace.current = true
-      if (e.key === 'Escape') {
-        if (polygone) {
-          setPolyPts([])
-          onPolygoneAnnule()
-        }
-        setCoteEdit(null)
-      }
-    }
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') espace.current = false
-    }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-    }
+    setCoteEdit(null)
   }, [polygone, onPolygoneAnnule])
+  useCanvasNav(svgRef, setVp, vueTouchee, espace, onEchap)
 
   const pointMonde = useCallback(
     (clientX: number, clientY: number): PointMm => {
@@ -188,11 +177,21 @@ export default function PlanCanvas({
     guideTimer.current = setTimeout(() => setGuides([]), 400)
   }, [])
 
+  /** Pièce (la plus haute) contenant un point monde, ou null. */
+  const pieceAuPoint = useCallback((pt: PointMm): string | null => {
+    const rooms = niveauRef.current.rooms
+    for (let i = rooms.length - 1; i >= 0; i--) {
+      if (estDansPolygone(pt, rooms[i].vertices)) return rooms[i].id
+    }
+    return null
+  }, [])
+
   // ── Pointer down / move / up ──────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0 && e.button !== 1) return
     setCoteEdit(null)
     const cible = (e.target as Element).closest('[data-room-id]')
+    const cibleSym = (e.target as Element).closest('[data-symbol-id]')
     const p: Presse = {
       pointerId: e.pointerId,
       sx: e.clientX,
@@ -200,13 +199,17 @@ export default function PlanCanvas({
       bouge: false,
       mode: 'pan',
       roomId: null,
+      symId: null,
       bornes: null,
       applique: { dx: 0, dy: 0 },
       gesteCommence: false,
       vueDepart: vp,
     }
     const panForce = e.button === 1 || espace.current
-    if (!panForce && !polygone && outil === 'select' && cible) {
+    if (!panForce && !polygone && outil === 'select' && cibleSym) {
+      p.mode = 'dragSym'
+      p.symId = cibleSym.getAttribute('data-symbol-id')
+    } else if (!panForce && !polygone && outil === 'select' && cible) {
       const id = cible.getAttribute('data-room-id')
       const piece = niveau.rooms.find((r) => r.id === id)
       if (piece) {
@@ -234,6 +237,19 @@ export default function PlanCanvas({
     if (p.mode === 'pan') {
       vueTouchee.current = true
       setVp({ k: p.vueDepart.k, tx: p.vueDepart.tx + dxPx, ty: p.vueDepart.ty + dyPx })
+      return
+    }
+    if (p.mode === 'dragSym' && p.symId) {
+      if (!p.gesteCommence) {
+        p.gesteCommence = true
+        onDebutGeste()
+      }
+      const dx = snapMm(dxPx / p.vueDepart.k, GRILLE_SYM_MM)
+      const dy = snapMm(dyPx / p.vueDepart.k, GRILLE_SYM_MM)
+      if (dx !== p.applique.dx || dy !== p.applique.dy) {
+        onDeplacerSymbole(p.symId, dx - p.applique.dx, dy - p.applique.dy)
+        p.applique = { dx, dy }
+      }
       return
     }
     if (p.mode === 'drag' && p.roomId && p.bornes) {
@@ -264,6 +280,8 @@ export default function PlanCanvas({
     presse.current = null
     if (p.bouge) {
       setGuides([])
+      // Fin de drag d'un symbole : réaffectation de la pièce d'appartenance.
+      if (p.mode === 'dragSym' && p.symId) onFinDeplacerSymbole(p.symId)
       return
     }
 
@@ -308,24 +326,30 @@ export default function PlanCanvas({
     }
 
     const cible = (e.target as Element).closest('[data-room-id]')
+    const cibleSym = (e.target as Element).closest('[data-symbol-id]')
 
-    // 3) Outil ouverture : clic dans une pièce, près du mur receveur.
-    if (outil !== 'select') {
-      const pt = pointMonde(e.clientX, e.clientY)
-      const rooms = niveau.rooms
-      let dans: string | null = null
-      for (let i = rooms.length - 1; i >= 0; i--) {
-        if (estDansPolygone(pt, rooms[i].vertices)) {
-          dans = rooms[i].id
-          break
-        }
-      }
-      if (!dans && cible) dans = cible.getAttribute('data-room-id')
-      if (dans) onPoserOuverture(dans, pt, outil)
+    // 3) Outil symbole : pose en série (l'outil reste actif, Échap pour sortir).
+    if (outilSym) {
+      const [x, y] = pointMonde(e.clientX, e.clientY)
+      const pt: PointMm = [snapMm(x, GRILLE_SYM_MM), snapMm(y, GRILLE_SYM_MM)]
+      onPoserSymbole(outilSym, pt, pieceAuPoint(pt))
       return
     }
 
-    // 4) Sélection.
+    // 4) Outil ouverture : clic dans une pièce, près du mur receveur.
+    if (outil !== 'select') {
+      const pt = pointMonde(e.clientX, e.clientY)
+      let dans = pieceAuPoint(pt)
+      if (!dans && cible) dans = cible.getAttribute('data-room-id')
+      if (dans) onPoserOuverture(dans, pt, outil as TypeOuverture)
+      return
+    }
+
+    // 5) Sélection : symbole prioritaire (rendu au-dessus des pièces).
+    if (cibleSym) {
+      onSelectSymbol(cibleSym.getAttribute('data-symbol-id'))
+      return
+    }
     onSelectRoom(cible ? cible.getAttribute('data-room-id') : null)
   }
 
@@ -336,43 +360,6 @@ export default function PlanCanvas({
       setSouris(null)
       onPolygoneTermine(pts)
     }
-  }
-
-  // ── Aperçu du polygone en cours (éditeur uniquement) ─────────────────────
-  const apercuPoly = () => {
-    if (!polygone || polyPts.length === 0) return null
-    const c = polygone.calque === 'projet' ? C.orange : C.navyMid
-    const pts = souris ? [...polyPts, souris] : polyPts
-    const segs = []
-    for (let i = 0; i < pts.length - 1; i++) {
-      const [x1, y1] = pts[i]
-      const [x2, y2] = pts[i + 1]
-      const L = Math.hypot(x2 - x1, y2 - y1)
-      if (L < 200) continue
-      segs.push(
-        <text key={i} x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 140} fontFamily="'Spline Sans Mono', monospace" fontSize="230" fill={c} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="65">
-          {fmtNombreFr(mmVersM(L))} m
-        </text>
-      )
-    }
-    return (
-      <g pointerEvents="none">
-        <polyline
-          points={pts.map((p) => p.join(',')).join(' ')}
-          fill="rgba(90,180,224,0.08)"
-          stroke={c}
-          strokeWidth="2.4"
-          strokeDasharray="8 6"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        {segs}
-        {polyPts.map(([px, py], i) => (
-          <circle key={i} cx={px} cy={py} r="90" fill={C.blanc} stroke={c} strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
-        ))}
-        <circle cx={polyPts[0][0]} cy={polyPts[0][1]} r="150" fill="none" stroke={C.orange} strokeWidth="2" strokeDasharray="5 4" vectorEffect="non-scaling-stroke" />
-      </g>
-    )
   }
 
   const curseur = polygone ? 'cursor-crosshair' : outil !== 'select' ? 'cursor-copy' : 'cursor-default'
@@ -397,7 +384,15 @@ export default function PlanCanvas({
           <PlanDefs idPrefix="editeur" />
         </defs>
         <g transform={transformSvg(vp)}>
-          <PlanRender niveau={niveau} vue={vue} selectedRoomId={selectedRoomId} interactif idPrefix="editeur" grille />
+          <PlanRender
+            niveau={niveau}
+            vue={vue}
+            selectedRoomId={selectedRoomId}
+            selectedSymbolId={selectedSymbolId}
+            interactif
+            idPrefix="editeur"
+            grille
+          />
           {guides.map((g, i) =>
             g.vertical ? (
               <line key={i} x1={g.at} y1={-50000} x2={g.at} y2={50000} stroke={C.sky} strokeWidth="1.6" strokeDasharray="8 6" vectorEffect="non-scaling-stroke" pointerEvents="none" />
@@ -405,7 +400,7 @@ export default function PlanCanvas({
               <line key={i} x1={-50000} y1={g.at} x2={50000} y2={g.at} stroke={C.sky} strokeWidth="1.6" strokeDasharray="8 6" vectorEffect="non-scaling-stroke" pointerEvents="none" />
             )
           )}
-          {apercuPoly()}
+          {polygone && <PolygonePreview points={polyPts} souris={souris} calque={polygone.calque} />}
         </g>
       </svg>
 

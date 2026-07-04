@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { Niveau, Ouverture, Piece, PlanData } from '@/lib/plan/types'
+import type { Niveau, Ouverture, Piece, PlanData, Symbole } from '@/lib/plan/types'
 import { genId, niveauVide, nomAvecSuffixe } from '@/lib/plan/defaults'
 import {
   purgerOuverturesInvalides,
@@ -33,6 +33,9 @@ export interface PlanStateApi {
   selectedRoomId: string | null
   selectRoom: (id: string | null) => void
   pieceSelectionnee: Piece | null
+  selectedSymbolId: string | null
+  selectSymbol: (id: string | null) => void
+  symboleSelectionne: Symbole | null
   canUndo: boolean
   canRedo: boolean
   undo: () => void
@@ -48,6 +51,12 @@ export interface PlanStateApi {
   dupliquerPiece: (roomId: string) => void
   ajouterOuverture: (roomId: string, ouverture: Ouverture) => void
   supprimerOuverture: (roomId: string, ouvertureId: string) => void
+  ajouterSymbole: (symbole: Symbole) => void
+  supprimerSymbole: (symboleId: string) => void
+  /** Mutation SANS cran d'undo (frames de drag, après debutGeste). */
+  deplacerSymboleSansUndo: (symboleId: string, dx: number, dy: number) => void
+  /** Patch SANS cran d'undo (fin de drag : réaffectation de pièce). */
+  majSymboleSansUndo: (symboleId: string, patch: Partial<Symbole>) => void
   ajouterNiveau: () => void
   renommerNiveau: (niveauId: string, name: string) => void
 }
@@ -56,7 +65,8 @@ export function usePlanState(initial: PlanData): PlanStateApi {
   const [data, setData] = useState<PlanData>(initial)
   const [version, setVersion] = useState(0)
   const [niveauId, setNiveauId] = useState<string>(initial.levels[0]?.id ?? '')
-  const [selectedRoomId, selectRoom] = useState<string | null>(null)
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
+  const [selectedSymbolId, setSelectedSymbolId] = useState<string | null>(null)
   const [undoCount, setUndoCount] = useState(0)
   const [redoCount, setRedoCount] = useState(0)
 
@@ -73,6 +83,22 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     if (!selectedRoomId) return null
     return niveau.rooms.find((r) => r.id === selectedRoomId) ?? null
   }, [niveau, selectedRoomId])
+
+  const symboleSelectionne = useMemo<Symbole | null>(() => {
+    if (!selectedSymbolId) return null
+    return niveau.symbols.find((s) => s.id === selectedSymbolId) ?? null
+  }, [niveau, selectedSymbolId])
+
+  /** Sélections exclusives : une pièce OU un symbole, jamais les deux. */
+  const selectRoom = useCallback((id: string | null) => {
+    setSelectedRoomId(id)
+    setSelectedSymbolId(null)
+  }, [])
+
+  const selectSymbol = useCallback((id: string | null) => {
+    setSelectedSymbolId(id)
+    if (id) setSelectedRoomId(null)
+  }, [])
 
   const pushUndo = useCallback(() => {
     undoStack.current.push(JSON.stringify(dataRef.current))
@@ -151,7 +177,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
       })
       selectRoom(piece.id)
     },
-    [muter, surNiveau]
+    [muter, surNiveau, selectRoom]
   )
 
   const majPiece = useCallback(
@@ -199,11 +225,15 @@ export function usePlanState(initial: PlanData): PlanStateApi {
             if (o.sharedWith === roomId) o.sharedWith = null
           }
         }
+        // Les symboles de la pièce restent posés mais perdent leur rattachement.
+        for (const s of niv.symbols) {
+          if (s.roomId === roomId) s.roomId = null
+        }
       })
       selectRoom(null)
       return piece
     },
-    [muter, surNiveau, niveauId]
+    [muter, surNiveau, niveauId, selectRoom]
   )
 
   const dupliquerPiece = useCallback(
@@ -224,7 +254,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
       })
       selectRoom(copie.id)
     },
-    [muter, surNiveau, niveauId]
+    [muter, surNiveau, niveauId, selectRoom]
   )
 
   const ajouterOuverture = useCallback(
@@ -236,7 +266,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
       })
       selectRoom(roomId)
     },
-    [muter, surNiveau]
+    [muter, surNiveau, selectRoom]
   )
 
   const supprimerOuverture = useCallback(
@@ -248,6 +278,52 @@ export function usePlanState(initial: PlanData): PlanStateApi {
       })
     },
     [muter, surNiveau]
+  )
+
+  const ajouterSymbole = useCallback(
+    (symbole: Symbole) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        if (niv) niv.symbols.push(symbole)
+      })
+    },
+    [muter, surNiveau]
+  )
+
+  const supprimerSymbole = useCallback(
+    (symboleId: string) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        if (niv) niv.symbols = niv.symbols.filter((s) => s.id !== symboleId)
+      })
+      setSelectedSymbolId((id) => (id === symboleId ? null : id))
+    },
+    [muter, surNiveau]
+  )
+
+  const deplacerSymboleSansUndo = useCallback(
+    (symboleId: string, dx: number, dy: number) => {
+      if (dx === 0 && dy === 0) return
+      const copie = clone(dataRef.current)
+      const niv = surNiveau(copie)
+      const s = niv?.symbols.find((x) => x.id === symboleId)
+      if (!s) return
+      s.position = [Math.round(s.position[0] + dx), Math.round(s.position[1] + dy)]
+      commit(copie)
+    },
+    [surNiveau, commit]
+  )
+
+  const majSymboleSansUndo = useCallback(
+    (symboleId: string, patch: Partial<Symbole>) => {
+      const copie = clone(dataRef.current)
+      const niv = surNiveau(copie)
+      const i = niv ? niv.symbols.findIndex((x) => x.id === symboleId) : -1
+      if (!niv || i < 0) return
+      niv.symbols[i] = { ...niv.symbols[i], ...patch }
+      commit(copie)
+    },
+    [surNiveau, commit]
   )
 
   const ajouterNiveau = useCallback(() => {
@@ -274,10 +350,13 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     [muter]
   )
 
-  const changerNiveau = useCallback((id: string) => {
-    setNiveauId(id)
-    selectRoom(null)
-  }, [])
+  const changerNiveau = useCallback(
+    (id: string) => {
+      setNiveauId(id)
+      selectRoom(null)
+    },
+    [selectRoom]
+  )
 
   return {
     data,
@@ -288,6 +367,9 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     selectedRoomId,
     selectRoom,
     pieceSelectionnee,
+    selectedSymbolId,
+    selectSymbol,
+    symboleSelectionne,
     canUndo: undoCount > 0,
     canRedo: redoCount > 0,
     undo,
@@ -301,6 +383,10 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     dupliquerPiece,
     ajouterOuverture,
     supprimerOuverture,
+    ajouterSymbole,
+    supprimerSymbole,
+    deplacerSymboleSansUndo,
+    majSymboleSansUndo,
     ajouterNiveau,
     renommerNiveau,
   }
