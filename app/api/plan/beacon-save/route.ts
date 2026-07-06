@@ -29,6 +29,15 @@ import {
  * limit IP, validation stricte du corps, `computed` RECALCULÉ côté serveur
  * (jamais accepté du client), UPDATE filtré user_id + RLS (ceinture-bretelles).
  * Réponse 204 sans corps (sendBeacon ne lit pas la réponse).
+ *
+ * Push 4 — garde `save_seq` anti-écriture en retard (miroir de useAutosave) :
+ * le corps porte saveSeq (Date.now() capturé à l'envoi), l'UPDATE écrit
+ * `save_seq: saveSeq` sous filtre `.lt('save_seq', saveSeq)`. Une ancienne
+ * version n'écrase JAMAIS une plus récente, quel que soit l'ordre d'arrivée
+ * des deux canaux. 0 ligne touchée (plan introuvable OU écriture plus récente
+ * déjà en base) → 204 quand même : version LA PLUS SIMPLE retenue, assumée —
+ * sendBeacon ne lit jamais la réponse, et distinguer les deux cas exigerait
+ * un SELECT préalable (course TOCTOU en prime) pour un statut sans lecteur.
  */
 
 export const dynamic = 'force-dynamic'
@@ -186,6 +195,11 @@ export async function POST(req: NextRequest) {
   if (!estPlanDataValide(brutData)) {
     return secureError('Données du plan invalides')
   }
+  // Push 4 — saveSeq : number fini exigé, sinon 0. Avec 0, `.lt('save_seq', 0)`
+  // ne matche jamais (save_seq >= 0 en base) : un beacon inordonnable
+  // (client obsolète, corps trafiqué) ne peut PAS écraser un état plus récent.
+  const saveSeqBrut = corps.saveSeq
+  const saveSeq = typeof saveSeqBrut === 'number' && Number.isFinite(saveSeqBrut) ? saveSeqBrut : 0
   // m2 : symboles/clôtures invalides filtrés (rejet doux, jamais de 400 ici).
   const planData = nettoyerSymbolesEtClotures(brutData)
 
@@ -198,25 +212,26 @@ export async function POST(req: NextRequest) {
 
   // UPDATE via le client serveur (cookies) : la RLS s'applique déjà,
   // le filtre user_id explicite est la ceinture-bretelles.
-  const { data: lignes, error } = await supabase
+  // Push 4 — plus de .select('id') ni de 404 : 0 ligne touchée = best-effort
+  // 204 (cf. en-tête — le filtre save_seq rend le comptage ambigu et
+  // sendBeacon ne consomme pas la réponse).
+  const { error } = await supabase
     .from('plans')
     .update({
       name,
       data: planData,
       computed,
       updated_at: new Date().toISOString(),
+      save_seq: saveSeq,
     })
     .eq('id', planId)
     .eq('user_id', user.id)
     .is('deleted_at', null)
-    .select('id')
+    .lt('save_seq', saveSeq)
 
   if (error) {
     console.error('[plan] beacon-save : update échoué')
     return secureError('Sauvegarde impossible', 500)
-  }
-  if (!lignes || lignes.length === 0) {
-    return secureError('Plan introuvable', 404)
   }
 
   return new Response(null, {

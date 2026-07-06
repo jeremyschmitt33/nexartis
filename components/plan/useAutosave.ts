@@ -27,6 +27,16 @@
  *   survivre au déchargement. Le serveur recalcule `computed` lui-même.
  * - Snapshot plan_revisions (reason 'autosave') toutes les 10 min d'édition
  *   active, déclenché à l'issue d'une sauvegarde réussie.
+ *
+ * Push 4 (06/07/2026) :
+ * - Garde `save_seq` anti-écriture en retard : chaque tentative capture
+ *   seq = Date.now(), écrit `save_seq: seq` et filtre `.lt('save_seq', seq)`.
+ *   Invariant : une ancienne version n'écrase JAMAIS une plus récente, quel
+ *   que soit l'ordre d'arrivée des deux canaux (UPDATE supabase-js / beacon).
+ *   0 ligne touchée par le filtre = succès silencieux (une écriture plus
+ *   récente est déjà en base) — pas de .select(), on ne distingue pas ce cas.
+ * - Hors-ligne honnête : `horsLigne` exposé (navigator.onLine + événements
+ *   online/offline), flush() automatique au retour du réseau.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -61,6 +71,8 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
   statut: StatutSauvegarde
   /** Sauvegarde immédiate (annule le debounce). Sans effet si tout est déjà sauvé. */
   flush: () => void
+  /** Push 4 — true quand le navigateur est hors connexion (online/offline). */
+  horsLigne: boolean
 } {
   const [statut, setStatut] = useState<StatutSauvegarde>('sauvegarde')
   const derniereRevision = useRef<number>(Date.now())
@@ -85,6 +97,13 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
       const { data: auth } = await supabase.auth.getUser()
       const user = auth.user
       if (!user) throw new Error('Non connecté')
+      // Push 4 — garde anti-écriture en retard : seq capturé à CHAQUE
+      // tentative. Si une écriture plus récente (ex. beacon parti pendant un
+      // masquage d'onglet) est déjà en base, `.lt('save_seq', seq)` matche
+      // 0 ligne et l'UPDATE est un no-op : succès silencieux VOULU (pas de
+      // .select() — le distinguer d'un plan introuvable n'apporte rien ici,
+      // l'invariant est de ne jamais écraser plus récent).
+      const seq = Date.now()
       const { error } = await supabase
         .from('plans')
         .update({
@@ -92,9 +111,11 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
           data: capture.data,
           computed: calculerComputed(capture.data),
           updated_at: new Date().toISOString(),
+          save_seq: seq,
         })
         .eq('id', planId)
         .eq('user_id', user.id)
+        .lt('save_seq', seq)
       if (error) throw new Error(error.message)
       ok = true
       sauve.current = { name: capture.name, version: capture.version }
@@ -180,6 +201,26 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
     return () => flushRef.current()
   }, [])
 
+  // Push 4 — hors-ligne honnête : état exposé à l'indicateur/bannière +
+  // flush automatique au retour du réseau. `sauve` n'ayant pas bougé après
+  // un échec, flush() détecte le contenu non écrit et relance l'écriture.
+  // Init dans l'effet (pas au useState) : évite tout écart d'hydratation SSR.
+  const [horsLigne, setHorsLigne] = useState(false)
+  useEffect(() => {
+    setHorsLigne(!navigator.onLine)
+    const onOnline = () => {
+      setHorsLigne(false)
+      flushRef.current()
+    }
+    const onOffline = () => setHorsLigne(true)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
   // Best effort au rechargement/fermeture d'onglet : sendBeacon vers notre
   // route même origine (cookies inclus, pas de prévol CORS — voir en-tête).
   // `computed` n'est plus envoyé : le serveur le recalcule (zéro confiance).
@@ -189,7 +230,8 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
       const propre = c.version === sauve.current.version && c.name === sauve.current.name
       // Rien à sauver ET aucun save en vol susceptible de mourir → inutile.
       if (propre && !enCours.current) return
-      const corps = JSON.stringify({ planId, name: c.name, data: c.data })
+      // Push 4 — saveSeq : même garde anti-retard côté route beacon-save.
+      const corps = JSON.stringify({ planId, name: c.name, data: c.data, saveSeq: Date.now() })
       if (corps.length > BEACON_MAX_OCTETS) return
       try {
         navigator.sendBeacon(
@@ -212,5 +254,5 @@ export function useAutosave(planId: string, name: string, data: PlanData, versio
     }
   }, [planId])
 
-  return { statut, flush }
+  return { statut, flush, horsLigne }
 }

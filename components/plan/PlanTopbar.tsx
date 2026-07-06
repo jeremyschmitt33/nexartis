@@ -19,6 +19,8 @@ export interface PlanTopbarProps {
   nom: string
   onRenommer: (nom: string) => void
   statut: StatutSauvegarde
+  /** Push 4 — hors connexion : l'indicateur affiche « Hors ligne » (prioritaire). */
+  horsLigne: boolean
   retourHref: string
   /** Appelé au clic sur « retour » : flush de l'autosave avant navigation. */
   onRetour?: () => void
@@ -45,7 +47,20 @@ const VUES: { key: VueCalque; label: string }[] = [
   { key: 'tout', label: 'Tout' },
 ]
 
-function IndicateurSauvegarde({ statut }: { statut: StatutSauvegarde }) {
+function IndicateurSauvegarde({ statut, horsLigne }: { statut: StatutSauvegarde; horsLigne: boolean }) {
+  // Push 4 — hors connexion : prioritaire sur les trois statuts (un save qui
+  // échoue hors ligne afficherait « Non enregistré » sans expliquer pourquoi).
+  if (horsLigne) {
+    return (
+      <span className="inline-flex items-center gap-1.5 font-hanken text-xs font-semibold text-amber-600">
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+          <path strokeLinecap="round" d="M3 3l18 18" />
+          <path strokeLinecap="round" d="M5 12.5a10 10 0 015.3-2.7M12.7 9.8a10 10 0 016.3 2.7M8.5 16a5 5 0 015.6-1M12 19.5h.01" />
+        </svg>
+        Hors ligne
+      </span>
+    )
+  }
   if (statut === 'encours') {
     return (
       <span className="inline-flex items-center gap-1.5 font-hanken text-xs font-semibold text-gray-500">
@@ -110,7 +125,7 @@ export default function PlanTopbar(props: PlanTopbarProps) {
           aria-label="Nom du plan"
           className="w-36 truncate rounded-lg border-[1.5px] border-transparent bg-transparent px-2 py-1 font-hanken text-[15px] font-extrabold tracking-tight text-navy transition-colors hover:border-gray-200 focus:border-orange focus:bg-white focus:outline-none sm:w-52"
         />
-        <IndicateurSauvegarde statut={props.statut} />
+        <IndicateurSauvegarde statut={props.statut} horsLigne={props.horsLigne} />
         <VueMetierPill metier={props.metier} onMetier={props.onMetier} />
       </div>
 

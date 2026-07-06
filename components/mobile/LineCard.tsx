@@ -32,9 +32,11 @@ interface LineCardProps {
   onTap: () => void
   onDelete: () => void
   formatCurrency: (n: number) => string
+  /** Push 4 — badge optionnel (ex. « vient du plan »), rendu sous la désignation des lignes classiques. */
+  badge?: React.ReactNode
 }
 
-export default function LineCard({ line, subtotal, onTap, onDelete, formatCurrency }: LineCardProps) {
+export default function LineCard({ line, subtotal, onTap, onDelete, formatCurrency, badge }: LineCardProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
     onDelete()
@@ -132,6 +134,8 @@ export default function LineCard({ line, subtotal, onTap, onDelete, formatCurren
         <div className="text-base font-medium text-[#0f1a3a] leading-tight break-words">
           {line.designation || <span className="text-gray-400 italic">Désignation à compléter</span>}
         </div>
+
+        {badge && <div className="mt-1.5">{badge}</div>}
 
         <div className="flex items-center justify-between mt-3 gap-3">
           <span className="text-sm text-gray-600 font-manrope">

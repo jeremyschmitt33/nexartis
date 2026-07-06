@@ -53,7 +53,7 @@ export interface PlanEditorProps {
 export default function PlanEditor({ planId, nomInitial, dataInitiale, metierInitial, chantierId, retourHref }: PlanEditorProps) {
   const etat = usePlanState(dataInitiale)
   const [nom, setNom] = useState(nomInitial)
-  const { statut, flush } = useAutosave(planId, nom, etat.data, etat.version)
+  const { statut, flush, horsLigne } = useAutosave(planId, nom, etat.data, etat.version)
   const [vue, setVue] = useState<VueCalque>('tout')
   const [metier, setMetier] = useState<MetierId>(profilDe(metierInitial).id)
   const [outil, setOutil] = useState<Outil>('select')
@@ -306,6 +306,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
         nom={nom}
         onRenommer={setNom}
         statut={statut}
+        horsLigne={horsLigne}
         retourHref={retourHref}
         onRetour={flush}
         niveaux={etat.data.levels}
@@ -323,6 +324,15 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
         onRedo={etat.redo}
         onEnvoyerDevis={() => ouvrirTiroir(null)}
       />
+
+      {/* Push 4 — hors-ligne honnête : bannière discrète sous la topbar.
+          Pas de localStorage/Service Worker dans ce push : les modifications
+          vivent en mémoire, d'où la consigne de ne pas fermer l'onglet. */}
+      {horsLigne && (
+        <div role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center font-hanken text-xs font-semibold text-amber-800">
+          Hors connexion — vos modifications seront enregistrées au retour du réseau. Ne fermez pas l&apos;onglet.
+        </div>
+      )}
 
       <div className="relative flex min-h-0 flex-1">
         {/* Palette gauche à libellés, filtrée par la vue métier (desktop) */}

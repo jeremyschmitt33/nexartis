@@ -14,6 +14,12 @@
 -- ⚠️  À EXÉCUTER dans Supabase → SQL Editor → New Query → coller → Run.
 -- Idempotent : peut être lancé plusieurs fois.
 --
+-- HISTORIQUE :
+-- - 05/07/2026 (Push 4 Plan 2D) : replace_devis_lignes préserve désormais
+--   optionnel, inclus_par_defaut et source_plan (lien plan↔ligne). Ce fichier
+--   reflète la définition EN PROD — ne jamais ré-exécuter une version plus
+--   ancienne, elle effacerait ces colonnes à chaque sauvegarde de devis.
+--
 -- ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -76,7 +82,10 @@ BEGIN
       type,
       niveau,
       numero,
-      parent_id
+      parent_id,
+      optionnel,
+      inclus_par_defaut,
+      source_plan
     )
     VALUES (
       p_devis_id,
@@ -92,6 +101,12 @@ BEGIN
       CASE
         WHEN v_ligne->>'parent_id' IS NULL THEN NULL
         ELSE (v_ligne->>'parent_id')::uuid
+      END,
+      COALESCE((v_ligne->>'optionnel')::boolean, false),
+      COALESCE((v_ligne->>'inclus_par_defaut')::boolean, true),
+      CASE
+        WHEN jsonb_typeof(v_ligne->'source_plan') = 'object' THEN v_ligne->'source_plan'
+        ELSE NULL
       END
     );
   END LOOP;

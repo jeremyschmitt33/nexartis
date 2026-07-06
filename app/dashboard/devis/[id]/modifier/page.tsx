@@ -16,6 +16,8 @@ import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
 import LineStatutSelect, { type InclusionStatut, inclusionToDb, dbToInclusion } from '@/components/devis/LineStatut'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 import EnvoyerDevisModal from '@/components/dashboard/EnvoyerDevisModal'
+import SourcePlanBadge from '@/components/devis/SourcePlanBadge'
+import type { SourcePlan } from '@/lib/plan/types'
 
 interface LineItem {
   id: number
@@ -28,6 +30,11 @@ interface LineItem {
   type: 'line' | 'section' | 'subsection' | 'text'
   // Statut d'inclusion : ferme / facultatif / option
   inclusion: InclusionStatut
+  // Push 4 — lien plan↔devis : source_plan chargé de la DB + valeurs
+  // d'ORIGINE (référence de la règle « ligne éditée = déliée » au save).
+  // Absents sur les lignes créées à la main.
+  sourcePlan?: SourcePlan | null
+  orig?: { designation: string; qty: number; unit: string } | null
 }
 
 interface ClientRecord { id: string; nom: string; prenom?: string; civilite?: string; adresse?: string; telephone?: string; email?: string; code_postal?: string; ville?: string }
@@ -77,6 +84,8 @@ interface LigneRecord {
   niveau?: number
   optionnel?: boolean
   inclus_par_defaut?: boolean
+  // Push 4 — lien vivant ligne↔plan (useDevisLignes fait select('*')).
+  source_plan?: SourcePlan | null
 }
 
 const UNIT_SUGGESTIONS = ['U', 'm²', 'm', 'ml', 'cm', 'kg', 't', 'h', 'jour', 'demi-journée', 'forfait', 'ensemble', 'lot', 'm³']
@@ -304,7 +313,14 @@ export default function ModifierDevisPage() {
     setLines(rawKept.map((l, i) => {
       const reactType: LineItem['type'] = l.type === 'section' ? 'section' : l.type === 'sous_section' ? 'subsection' : l.type === 'commentaire' ? 'text' : 'line'
       // V2.5 : on lit le taux_tva DB par ligne (chaque ligne peut avoir son propre taux).
-      return { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, tva: l.taux_tva ?? 10, type: reactType, inclusion: dbToInclusion(l.optionnel, l.inclus_par_defaut) }
+      const item: LineItem = { id: nextId + i, designation: l.designation || '', qty: l.quantite || (reactType === 'line' ? 1 : 0), unit: l.unite || 'U', priceHT: l.prix_unitaire_ht || 0, tva: l.taux_tva ?? 10, type: reactType, inclusion: dbToInclusion(l.optionnel, l.inclus_par_defaut) }
+      // Push 4 — lien plan : on garde source_plan tel quel + un instantané des
+      // valeurs CHARGÉES (désignation/qté/unité) pour la règle « éditée = déliée ».
+      if (l.source_plan) {
+        item.sourcePlan = l.source_plan
+        item.orig = { designation: item.designation, qty: item.qty, unit: item.unit }
+      }
+      return item
     }))
     nextId += rawKept.length
     const firstLine = rawKept.find(l => !l.type || l.type === 'prestation')
@@ -396,6 +412,18 @@ export default function ModifierDevisPage() {
   function addLine(type: 'line' | 'section' | 'subsection' | 'text' = 'line') {
     // V2.5 : nouvelle ligne herite du taux global (raccourci) ou 10% par defaut.
     setLines(prev => [...prev, { id: nextId++, designation: '', qty: type === 'line' ? 1 : 0, unit: 'U', priceHT: 0, tva: autoEntrepreneur ? 0 : (globalTvaRate || 10), type, inclusion: 'ferme' }])
+  }
+  // Push 4 — source_plan effectif d'une ligne : `lie` passe à false si la
+  // désignation, la quantité ou l'unité diffèrent des valeurs CHARGÉES.
+  // Changer le prix ou la TVA ne délie PAS (l'artisan chiffre librement).
+  // Utilisé par le payload RPC (persistance) ET par le badge (affichage live).
+  function sourcePlanEffectif(l: LineItem): SourcePlan | null {
+    const sp = l.sourcePlan
+    if (!sp) return null
+    if (sp.lie && l.orig && (l.designation !== l.orig.designation || l.qty !== l.orig.qty || l.unit !== l.orig.unit)) {
+      return { ...sp, lie: false }
+    }
+    return sp
   }
   function subtotalAt(idx: number): number {
     const current = lines[idx]
@@ -589,6 +617,10 @@ export default function ModifierDevisPage() {
           type: dbType,
           niveau: dbNiveau,
           numero: item.numero || null,
+          // Push 4 — le lien plan↔devis survit aux re-sauvegardes : la RPC
+          // replace_devis_lignes ré-insère source_plan (NULL si absent).
+          // `lie` est recalculé ici (règle « ligne éditée = déliée »).
+          source_plan: sourcePlanEffectif(l),
           // Statut d'inclusion : seules les prestations peuvent etre facultatives/options.
           ...(dbType === 'prestation' ? inclusionToDb(l.inclusion) : { optionnel: false, inclus_par_defaut: true }),
         }
@@ -715,7 +747,7 @@ export default function ModifierDevisPage() {
               </div>
             )}
             {lines.map((line, idx) => (
-              <LineCard key={line.id} line={line} subtotal={subtotalAt(idx)} onTap={() => openEditSheet(line)} onDelete={() => removeLine(line.id)} formatCurrency={formatCurrency} />
+              <LineCard key={line.id} line={line} subtotal={subtotalAt(idx)} onTap={() => openEditSheet(line)} onDelete={() => removeLine(line.id)} formatCurrency={formatCurrency} badge={line.sourcePlan ? <SourcePlanBadge sourcePlan={sourcePlanEffectif(line) ?? line.sourcePlan} /> : undefined} />
             ))}
             <div className="flex flex-wrap gap-2 pt-2">
               <button type="button" onClick={() => openCreateSheet('line')} className="flex-1 min-w-[44%] flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:border-[#ff7a1a] hover:bg-[#fff5ec] rounded-full px-4 py-2.5 text-sm font-hanken font-semibold text-[#0f1a3a] active:scale-95 transition-all"><Plus size={16} /> Ligne</button>
@@ -779,8 +811,10 @@ export default function ModifierDevisPage() {
                       rows={1}
                       className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
                     />
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <LineStatutSelect value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
+                      {/* Push 4 — badge « vient du plan » (lié / lien rompu) */}
+                      {line.sourcePlan ? <SourcePlanBadge sourcePlan={sourcePlanEffectif(line) ?? line.sourcePlan} /> : null}
                     </div>
                   </div>
                   <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1" min={0} />
