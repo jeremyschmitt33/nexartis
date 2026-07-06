@@ -37,6 +37,7 @@ import SymboleSheet from './SymboleSheet'
 import ClotureSheet from './ClotureSheet'
 import DevisDrawer, { type PreSelection } from './DevisDrawer'
 import AddRoomModal, { type DemandePiece } from './AddRoomModal'
+import Iso3dView from './Iso3dView'
 import type { VueCalque } from './PlanRender'
 
 export interface PlanEditorProps {
@@ -67,6 +68,10 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   const [chutes, setChutes] = useState<string>(String(CHUTES_DEFAUT_PCT))
   const [tiroirOuvert, setTiroirOuvert] = useState(false)
   const [preSelection, setPreSelection] = useState<PreSelection | null>(null)
+  // Push 6 — vue 3D de présentation : surcouche lecture seule au-dessus du
+  // canvas (qui reste monté : viewport 2D intact au retour). Palette, panneau,
+  // FAB et outils sont masqués ; l'autosave continue (aucune mutation en 3D).
+  const [mode3d, setMode3d] = useState(false)
 
   /** Coefficient de chutes numérique sûr (même garde-fou que le panneau). */
   const chutesBrut = Number(chutes.replace(',', '.').trim())
@@ -77,6 +82,27 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     setPreSelection(sel)
     setTiroirOuvert(true)
   }, [flush])
+
+  // ── Push 6 : bascule 2D / 3D ──────────────────────────────────────────────
+  const changerMode3d = (v: boolean) => {
+    setMode3d(v)
+    if (v) {
+      // Entrée en 3D : on neutralise tout geste 2D en cours.
+      setOutil('select')
+      setPolygone(null)
+      etat.selectRoom(null)
+    }
+  }
+
+  // Échap en 3D : retour à la 2D (seul raccourci actif dans ce mode).
+  useEffect(() => {
+    if (!mode3d) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !tiroirOuvert && !modalOuverte) setMode3d(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mode3d, tiroirOuvert, modalOuverte])
 
   // ── Vue métier : refiltre palette + panneau, mémorisée PAR PLAN ───────────
   const changerMetier = useCallback(
@@ -150,8 +176,9 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   }, [etat])
 
   // ── Raccourcis clavier (hook extrait, comportement inchangé) ──────────────
+  // Push 6 : inactifs en 3D (sauf Échap, géré au-dessus — aucune mutation en 3D).
   usePlanShortcuts({
-    actif: !tiroirOuvert && !modalOuverte,
+    actif: !tiroirOuvert && !modalOuverte && !mode3d,
     outilActif: outil !== 'select',
     traceEnCours: polygone !== null,
     peutSupprimer: Boolean(etat.pieceSelectionnee || etat.symboleSelectionne || etat.clotureSelectionnee),
@@ -328,10 +355,12 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
         onDupliquerNiveau={dupliquerNiveau}
         vue={vue}
         onVue={setVue}
+        mode3d={mode3d}
+        onMode3d={changerMode3d}
         metier={metier}
         onMetier={changerMetier}
-        canUndo={etat.canUndo}
-        canRedo={etat.canRedo}
+        canUndo={etat.canUndo && !mode3d}
+        canRedo={etat.canRedo && !mode3d}
         onUndo={etat.undo}
         onRedo={etat.redo}
         onEnvoyerDevis={() => ouvrirTiroir(null)}
@@ -347,15 +376,18 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
       )}
 
       <div className="relative flex min-h-0 flex-1">
-        {/* Palette gauche à libellés, filtrée par la vue métier (desktop) */}
-        <PlanPalette
-          metier={metier}
-          outil={outil}
-          onOutil={setOutil}
-          onAjouterPiece={() => ouvrirModal(null)}
-          onZoneExt={(nomZone) => ouvrirModal(nomZone)}
-          onCloture={demarrerCloture}
-        />
+        {/* Palette gauche à libellés, filtrée par la vue métier (desktop).
+            Push 6 : masquée en 3D (vue de présentation, aucun outil actif). */}
+        {!mode3d && (
+          <PlanPalette
+            metier={metier}
+            outil={outil}
+            onOutil={setOutil}
+            onAjouterPiece={() => ouvrirModal(null)}
+            onZoneExt={(nomZone) => ouvrirModal(nomZone)}
+            onCloture={demarrerCloture}
+          />
+        )}
 
         {/* Canvas + surcouches */}
         <div className="relative min-w-0 flex-1">
@@ -381,25 +413,31 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             onPolygoneAnnule={() => setPolygone(null)}
           />
 
-          <PlanOverlays
-            metier={metier}
-            outil={outil}
-            onOutil={setOutil}
-            onCloture={demarrerCloture}
-            polygone={polygone}
-            onAnnulerPolygone={() => setPolygone(null)}
-            niveauVide={niveauVide}
-            onAjouterPiece={() => ouvrirModal(null)}
-            annulation={annulation}
-            onAnnulerSuppression={() => {
-              setAnnulation(null)
-              etat.undo()
-            }}
-          />
+          {!mode3d && (
+            <PlanOverlays
+              metier={metier}
+              outil={outil}
+              onOutil={setOutil}
+              onCloture={demarrerCloture}
+              polygone={polygone}
+              onAnnulerPolygone={() => setPolygone(null)}
+              niveauVide={niveauVide}
+              onAjouterPiece={() => ouvrirModal(null)}
+              annulation={annulation}
+              onAnnulerSuppression={() => {
+                setAnnulation(null)
+                etat.undo()
+              }}
+            />
+          )}
+
+          {/* Push 6 — vue 3D : surcouche opaque au-dessus du canvas 2D */}
+          {mode3d && <Iso3dView niveau={etat.niveau} nomPlan={nom} />}
         </div>
 
-        {/* Panneau droit : pièce (RoomSheet + métrés), symbole ou clôture */}
-        {(etat.pieceSelectionnee || etat.symboleSelectionne || etat.clotureSelectionnee) && (
+        {/* Panneau droit : pièce (RoomSheet + métrés), symbole ou clôture.
+            Push 6 : masqué en 3D (la sélection est vidée à l'entrée en 3D). */}
+        {!mode3d && (etat.pieceSelectionnee || etat.symboleSelectionne || etat.clotureSelectionnee) && (
           <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[48%] overflow-hidden rounded-t-2xl border-t border-gray-200 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:w-[320px] lg:flex-shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none">
             {etat.pieceSelectionnee ? (
               <RoomSheet

@@ -33,6 +33,9 @@ export interface PlanTopbarProps {
   onDupliquerNiveau: (id: string) => void
   vue: VueCalque
   onVue: (vue: VueCalque) => void
+  /** Push 6 — vue 3D isométrique : segmented [2D | 3D]. */
+  mode3d: boolean
+  onMode3d: (mode3d: boolean) => void
   metier: MetierId
   onMetier: (metier: MetierId) => void
   canUndo: boolean
@@ -172,21 +175,41 @@ export default function PlanTopbar(props: PlanTopbarProps) {
           </button>
         </div>
 
-        <div className="flex rounded-xl border border-gray-200/60 bg-[#fafbfc] p-1" role="group" aria-label="Calques affichés">
-          {VUES.map((v) => (
+        {/* Push 6 — bascule 2D / 3D (la 3D est une vue de présentation) */}
+        <div className="flex rounded-xl border border-gray-200/60 bg-[#fafbfc] p-1" role="group" aria-label="Vue 2D ou 3D">
+          {([false, true] as const).map((v) => (
             <button
-              key={v.key}
+              key={v ? '3d' : '2d'}
               type="button"
-              onClick={() => props.onVue(v.key)}
-              aria-pressed={props.vue === v.key}
+              onClick={() => props.onMode3d(v)}
+              aria-pressed={props.mode3d === v}
               className={`rounded-lg px-3 py-1.5 font-hanken text-xs font-bold transition-all ${
-                props.vue === v.key ? 'bg-white text-navy shadow-[0_2px_6px_rgba(15,26,58,0.08)]' : 'text-gray-500 hover:text-navy'
+                props.mode3d === v ? 'bg-white text-navy shadow-[0_2px_6px_rgba(15,26,58,0.08)]' : 'text-gray-500 hover:text-navy'
               }`}
             >
-              {v.label}
+              {v ? '3D' : '2D'}
             </button>
           ))}
         </div>
+
+        {/* Le filtre de calques ne s'applique qu'en 2D (la 3D a son Avant/Après) */}
+        {!props.mode3d && (
+          <div className="flex rounded-xl border border-gray-200/60 bg-[#fafbfc] p-1" role="group" aria-label="Calques affichés">
+            {VUES.map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                onClick={() => props.onVue(v.key)}
+                aria-pressed={props.vue === v.key}
+                className={`rounded-lg px-3 py-1.5 font-hanken text-xs font-bold transition-all ${
+                  props.vue === v.key ? 'bg-white text-navy shadow-[0_2px_6px_rgba(15,26,58,0.08)]' : 'text-gray-500 hover:text-navy'
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"

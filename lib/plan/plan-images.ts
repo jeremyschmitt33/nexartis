@@ -2,7 +2,8 @@
  * Module Plan 2D — Images du plan dans le devis (Push 5, 06/07/2026)
  *
  * SOURCE UNIQUE pour les 4 rendus du devis (HTML dashboard, PDF download,
- * PDF email, page publique /signer/[token]) : la MÊME image PNG, générée UNE
+ * PDF email, page publique /signer/[token]) : la MÊME image (JPEG depuis le
+ * Push 6 — poids PDF ; PNG pour les entrées antérieures), générée UNE
  * fois à l'injection (lib/plan/export.ts) et stockée en data URL base64 dans
  * `plans.export_images` (pattern identique au logo entreprise), est relue ici
  * par les 4 chemins => parité par construction.
@@ -18,7 +19,11 @@ export interface ImagePlanExport {
   niveauId: string
   /** Nom du niveau au moment de la génération (ex. « RDC »). */
   nom: string
-  /** PNG en data URL base64 (comme entreprises.logo_url). */
+  /**
+   * Image en data URL base64 (comme entreprises.logo_url). JPEG qualité
+   * 0,85 depuis le Push 6 ; les PNG déjà en base restent valides (les
+   * rendus HTML acceptent les deux, lib/pdf/plan.ts détecte le format).
+   */
   dataUrl: string
   genereLe?: string
 }

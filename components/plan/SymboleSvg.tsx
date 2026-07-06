@@ -14,8 +14,12 @@ import { defSymbole, type FormeSymbole } from '@/lib/plan/symboles'
 const C = COULEURS_PLAN
 const FONT_NUM = "'Spline Sans Mono', ui-monospace, monospace"
 
-/** Une forme élémentaire (trait 2 px écran via non-scaling-stroke). */
-function Forme({ f, c }: { f: FormeSymbole; c: string }) {
+/**
+ * Une forme élémentaire (trait 2 px écran via non-scaling-stroke).
+ * Exportée depuis le Push 6 : la vue 3D (Iso3dView) réutilise les MÊMES
+ * glyphes pour dessiner les symboles en 3D (parité visuelle 2D/3D).
+ */
+export function Forme({ f, c }: { f: FormeSymbole; c: string }) {
   const trait = {
     stroke: c,
     strokeWidth: 2,

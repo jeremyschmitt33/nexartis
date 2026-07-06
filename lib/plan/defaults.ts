@@ -57,6 +57,21 @@ export const COULEURS_PLAN = {
   piscineFond: 'rgba(90, 180, 224, 0.18)',
 } as const
 
+/**
+ * Teintes dérivées pour la VUE 3D isométrique (Push 6) : ombrage plat
+ * 3 tons de la famille navy pour les murs (selon l'orientation de la
+ * normale, faces avant/arrière et axes X/Y) + sol intérieur légèrement
+ * plus soutenu que cream. Même règle que COULEURS_PLAN : hex uniquement,
+ * et defaults.ts reste LE seul fichier du module où des hex sont écrits.
+ */
+export const COULEURS_ISO = {
+  solInt: '#efece2',
+  murAvantX: '#c8d1e4',
+  murAvantY: '#e2e7f1',
+  murArriereX: '#dbe1ee',
+  murArriereY: '#eef1f7',
+} as const
+
 /** 8 types de pièces les plus fréquents (chips visibles). */
 export const CHIPS_BASE = [
   'Salon',

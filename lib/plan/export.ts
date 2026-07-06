@@ -6,7 +6,14 @@
  * Chaîne : PlanRender (le MÊME rendu SVG pur que l'éditeur — parité de dessin
  * par construction) -> SVG statique autonome (titre + légende + fond blanc,
  * AUCUNE ressource externe, couleurs hex COULEURS_PLAN uniquement, polices
- * avec repli système sans-serif/monospace) -> PNG data URL via canvas.
+ * avec repli système sans-serif/monospace) -> image data URL via canvas.
+ *
+ * Push 6 — POIDS PDF : les images de plan injectées sont désormais produites
+ * en JPEG qualité 0,85 (fond blanc rempli d'abord : JPEG n'a pas d'alpha),
+ * mesuré en prod : PDF 3,6 Mo -> 15,7 Mo avec un plan PNG, ~10× moins en
+ * JPEG. Les PNG déjà stockés en base restent affichés tels quels
+ * (lib/pdf/plan.ts détecte le format via le préfixe du data URL).
+ * svgVersPng reste disponible en PNG pour la capture de la vue 3D.
  *
  * CLIENT UNIQUEMENT (document/canvas/Image) : appelé depuis le tiroir
  * d'injection (DevisDrawer -> useInjection.stockerImagePlanNiveau).
@@ -183,15 +190,18 @@ export function genererSvgExport(data: PlanData, niveauId: string): SvgExport | 
 }
 
 /**
- * Rasterise un SVG autonome en PNG data URL via canvas (fond blanc).
- * `echelle` 2 = @2x. Côtés bornés à 2048 px (canvas iOS). Résout null en cas
- * d'échec (jamais de rejet).
+ * Rasterise un SVG autonome en image data URL via canvas (fond blanc rempli
+ * d'abord — indispensable en JPEG, qui n'a pas de canal alpha).
+ * `echelle` 2 = @2x. Côtés bornés à 2048 px (canvas iOS). `format` 'jpeg' =
+ * qualité 0,85 (Push 6, poids PDF) ; 'png' par défaut (capture vue 3D).
+ * Résout null en cas d'échec (jamais de rejet).
  */
 export function svgVersPng(
   svg: string,
   largeur: number,
   hauteur: number,
-  echelle: number
+  echelle: number,
+  format: 'png' | 'jpeg' = 'png'
 ): Promise<string | null> {
   return new Promise((resolve) => {
     try {
@@ -216,7 +226,9 @@ export function svgVersPng(
           ctx.fillStyle = C.blanc
           ctx.fillRect(0, 0, w, h)
           ctx.drawImage(img, 0, 0, w, h)
-          resolve(canvas.toDataURL('image/png'))
+          resolve(
+            format === 'jpeg' ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png')
+          )
         } catch {
           resolve(null)
         }
@@ -230,8 +242,9 @@ export function svgVersPng(
 }
 
 /**
- * Image PNG complète d'un niveau : SVG -> PNG @2x, avec repli à l'échelle 1
- * si le data URL dépasse la taille maximale, puis abandon (null).
+ * Image complète d'un niveau : SVG -> JPEG qualité 0,85 @2x (Push 6, poids
+ * PDF : ~10× plus léger que le PNG), avec repli à l'échelle 1 si le data URL
+ * dépasse la taille maximale, puis abandon (null).
  */
 export async function genererImagePlanNiveau(
   data: PlanData,
@@ -239,9 +252,9 @@ export async function genererImagePlanNiveau(
 ): Promise<string | null> {
   const exporte = genererSvgExport(data, niveauId)
   if (!exporte) return null
-  const grand = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 2)
+  const grand = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 2, 'jpeg')
   if (grand && grand.length <= TAILLE_MAX_DATAURL) return grand
-  const petit = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 1)
+  const petit = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 1, 'jpeg')
   if (petit && petit.length <= TAILLE_MAX_DATAURL) return petit
   return null
 }
