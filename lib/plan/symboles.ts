@@ -28,7 +28,7 @@ export interface DefSymbole {
   type: string
   /** Libellé FR (palette, panneau, aria-labels). */
   label: string
-  metier: 'electricien' | 'plombier'
+  metier: 'electricien' | 'plombier' | 'exterieur'
   /** Demi-encombrement en mm : zone cliquable + anneau de sélection. */
   rayon: number
   formes: FormeSymbole[]
@@ -37,7 +37,7 @@ export interface DefSymbole {
 const S = (
   type: string,
   label: string,
-  metier: 'electricien' | 'plombier',
+  metier: 'electricien' | 'plombier' | 'exterieur',
   rayon: number,
   formes: FormeSymbole[]
 ): DefSymbole => ({ type, label, metier, rayon, formes })
@@ -165,9 +165,20 @@ const PLOMBERIE: DefSymbole[] = [
   ]),
 ]
 
+/* ── Extérieur (Push 3b) — portail projeté sur la clôture la plus proche ──── */
+
+const EXTERIEUR: DefSymbole[] = [
+  S('portail', 'Portail', 'exterieur', 700, [
+    // Vantail 1,20 m vu de dessus : rectangle fond blanc + diagonale
+    // (le rectangle « gomme » visuellement la clôture sous le portail).
+    { forme: 'rect', x: -600, y: -170, w: 1200, h: 340, fond: true },
+    { forme: 'ligne', x1: -600, y1: 170, x2: 600, y2: -170 },
+  ]),
+]
+
 /** Catalogue complet, indexé par type. */
 export const SYMBOLES: Record<string, DefSymbole> = Object.fromEntries(
-  [...ELEC, ...PLOMBERIE].map((d) => [d.type, d])
+  [...ELEC, ...PLOMBERIE, ...EXTERIEUR].map((d) => [d.type, d])
 )
 
 /** Définition d'un symbole, ou null si le type est inconnu (donnée ancienne). */

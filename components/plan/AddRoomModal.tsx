@@ -26,6 +26,8 @@ export interface DemandePiece {
 export interface AddRoomModalProps {
   open: boolean
   calqueParDefaut: CalqueId
+  /** Type pré-sélectionné à l'ouverture (palette Extérieur : Terrasse…). */
+  typeInitial?: string | null
   onValider: (demande: DemandePiece) => void
   onFermer: () => void
 }
@@ -36,7 +38,7 @@ const FORMES: { key: FormePiece; label: string }[] = [
   { key: 'poly', label: 'Polygone libre' },
 ]
 
-export default function AddRoomModal({ open, calqueParDefaut, onValider, onFermer }: AddRoomModalProps) {
+export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null, onValider, onFermer }: AddRoomModalProps) {
   const [type, setType] = useState<string>('Chambre')
   const [nomLibre, setNomLibre] = useState('')
   const [voirTout, setVoirTout] = useState(false)
@@ -49,6 +51,14 @@ export default function AddRoomModal({ open, calqueParDefaut, onValider, onFerme
   useEffect(() => {
     if (open) setCalque(calqueParDefaut)
   }, [open, calqueParDefaut])
+
+  // Type pré-sélectionné (palette Extérieur) : chip cochée + section dépliée
+  // si elle est derrière « Voir tout » (Terrasse / Piscine / Pelouse).
+  useEffect(() => {
+    if (!open || !typeInitial) return
+    setType(typeInitial)
+    if ((CHIPS_PLUS as readonly string[]).includes(typeInitial)) setVoirTout(true)
+  }, [open, typeInitial])
 
   useEffect(() => {
     if (!open) return

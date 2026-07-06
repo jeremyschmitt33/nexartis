@@ -71,6 +71,25 @@ function estPieceValide(p: unknown): p is Piece {
   return true
 }
 
+/** Symbole plausible ? (m2, audit 3a) position [x,y] finie + type string. */
+function estSymboleValide(s: unknown): boolean {
+  if (typeof s !== 'object' || s === null) return false
+  const x = s as Record<string, unknown>
+  return typeof x.type === 'string' && x.type.length > 0 && estPointValide(x.position)
+}
+
+/** Clôture plausible ? id string + polyligne d'au moins 2 points finis. */
+function estClotureValide(c: unknown): boolean {
+  if (typeof c !== 'object' || c === null) return false
+  const x = c as Record<string, unknown>
+  return (
+    typeof x.id === 'string' &&
+    Array.isArray(x.points) &&
+    x.points.length >= 2 &&
+    x.points.every(estPointValide)
+  )
+}
+
 /**
  * Validation structurelle stricte de PlanData : suffisante pour garantir
  * que les fonctions de métré (pures) produisent des nombres finis.
@@ -87,6 +106,24 @@ function estPlanDataValide(data: unknown): data is PlanData {
     if (!Array.isArray(n.rooms) || !n.rooms.every(estPieceValide)) return false
   }
   return true
+}
+
+/**
+ * Durcissement m2 (audit 3a) : REJET DOUX des symboles/clôtures invalides.
+ * Une entrée corrompue (position non finie, type manquant) est FILTRÉE au
+ * lieu de faire échouer toute la sauvegarde de dernier souffle en 400 —
+ * perdre une pose de symbole vaut mieux que perdre tout le plan.
+ * Retourne un nouvel objet (ne mute pas l'entrée).
+ */
+function nettoyerSymbolesEtClotures(data: PlanData): PlanData {
+  return {
+    ...data,
+    levels: data.levels.map((n) => ({
+      ...n,
+      symbols: Array.isArray(n.symbols) ? n.symbols.filter(estSymboleValide) : [],
+      clotures: Array.isArray(n.clotures) ? n.clotures.filter(estClotureValide) : [],
+    })),
+  }
 }
 
 /**
@@ -145,10 +182,12 @@ export async function POST(req: NextRequest) {
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > NOM_MAX) {
     return secureError('Nom de plan invalide')
   }
-  const planData = corps.data
-  if (!estPlanDataValide(planData)) {
+  const brutData = corps.data
+  if (!estPlanDataValide(brutData)) {
     return secureError('Données du plan invalides')
   }
+  // m2 : symboles/clôtures invalides filtrés (rejet doux, jamais de 400 ici).
+  const planData = nettoyerSymbolesEtClotures(brutData)
 
   let computed: Record<string, unknown>
   try {

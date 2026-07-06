@@ -44,6 +44,8 @@ const GRILLE_SYM_MM = 50
 export interface PolygoneEnCours {
   nom: string
   calque: CalqueId
+  /** 'cloture' = polyligne OUVERTE : pas de fermeture, 2 points suffisent. */
+  mode?: 'piece' | 'cloture'
 }
 
 export interface PlanCanvasProps {
@@ -52,9 +54,11 @@ export interface PlanCanvasProps {
   outil: Outil
   selectedRoomId: string | null
   selectedSymbolId: string | null
+  selectedFenceId: string | null
   polygone: PolygoneEnCours | null
   onSelectRoom: (id: string | null) => void
   onSelectSymbol: (id: string | null) => void
+  onSelectFence: (id: string | null) => void
   onDebutGeste: () => void
   onDeplacerPiece: (roomId: string, dx: number, dy: number) => void
   onCote: (roomId: string, dim: 'w' | 'h', mm: number) => void
@@ -96,9 +100,11 @@ export default function PlanCanvas({
   outil,
   selectedRoomId,
   selectedSymbolId,
+  selectedFenceId,
   polygone,
   onSelectRoom,
   onSelectSymbol,
+  onSelectFence,
   onDebutGeste,
   onDeplacerPiece,
   onCote,
@@ -286,12 +292,12 @@ export default function PlanCanvas({
     }
 
     // ── Clic simple ──
-    // 1) Mode polygone : chaque clic pose un point, clic près du 1er = fermeture.
+    // 1) Mode polygone : un point par clic, clic près du 1er = fermeture (clôture : jamais).
     if (polygone) {
       const [x, y] = pointMonde(e.clientX, e.clientY)
       const px = snapMm(x, GRILLE_MM)
       const py = snapMm(y, GRILLE_MM)
-      if (polyPts.length >= 3) {
+      if (polygone.mode !== 'cloture' && polyPts.length >= 3) {
         const [x0, y0] = polyPts[0]
         if (Math.hypot(px - x0, py - y0) < FERMETURE_POLY_MM) {
           const pts = polyPts
@@ -345,16 +351,22 @@ export default function PlanCanvas({
       return
     }
 
-    // 5) Sélection : symbole prioritaire (rendu au-dessus des pièces).
+    // 5) Sélection : symbole prioritaire, puis clôture, puis pièce.
     if (cibleSym) {
       onSelectSymbol(cibleSym.getAttribute('data-symbol-id'))
+      return
+    }
+    const cibleCloture = (e.target as Element).closest('[data-fence-id]')
+    if (cibleCloture) {
+      onSelectFence(cibleCloture.getAttribute('data-fence-id'))
       return
     }
     onSelectRoom(cible ? cible.getAttribute('data-room-id') : null)
   }
 
   const onDoubleClick = () => {
-    if (polygone && polyPts.length >= 3) {
+    const min = polygone?.mode === 'cloture' ? 2 : 3
+    if (polygone && polyPts.length >= min) {
       const pts = polyPts
       setPolyPts([])
       setSouris(null)
@@ -389,6 +401,7 @@ export default function PlanCanvas({
             vue={vue}
             selectedRoomId={selectedRoomId}
             selectedSymbolId={selectedSymbolId}
+            selectedFenceId={selectedFenceId}
             interactif
             idPrefix="editeur"
             grille
@@ -400,7 +413,7 @@ export default function PlanCanvas({
               <line key={i} x1={-50000} y1={g.at} x2={50000} y2={g.at} stroke={C.sky} strokeWidth="1.6" strokeDasharray="8 6" vectorEffect="non-scaling-stroke" pointerEvents="none" />
             )
           )}
-          {polygone && <PolygonePreview points={polyPts} souris={souris} calque={polygone.calque} />}
+          {polygone && <PolygonePreview points={polyPts} souris={souris} calque={polygone.calque} ouvert={polygone.mode === 'cloture'} />}
         </g>
       </svg>
 

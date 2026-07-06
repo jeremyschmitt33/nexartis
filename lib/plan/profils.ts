@@ -217,6 +217,8 @@ const TYPES_COMMANDES = ['interrupteur', 'va_et_vient']
 const TYPES_LUMIERES = ['dcl_plafond', 'applique']
 /** Prises courant faible (comptées à part, hors NF prises). */
 const TYPES_COURANT_FAIBLE = ['prise_rj45', 'prise_tv']
+/** Autres équipements élec (m4, audit 3a) : comptés dans une ligne dédiée. */
+const TYPES_AUTRES_ELEC = ['vmc', 'sortie_cable']
 /** Points d'eau (plomberie). */
 const TYPES_POINTS_EAU = [
   'evier',
@@ -242,10 +244,12 @@ export interface CompteursElec {
   commandes: number
   lumieres: number
   tableaux: number
+  /** VMC + sorties de câble (m4) : ligne « Autres équipements » du panneau. */
+  autres: number
 }
 
 export function compteursElec(symbols: Symbole[]): CompteursElec {
-  const c: CompteursElec = { prises: 0, socles: 0, courantFaible: 0, commandes: 0, lumieres: 0, tableaux: 0 }
+  const c: CompteursElec = { prises: 0, socles: 0, courantFaible: 0, commandes: 0, lumieres: 0, tableaux: 0, autres: 0 }
   for (const s of symbols) {
     if (TYPES_PRISES.includes(s.type)) {
       c.prises++
@@ -254,6 +258,7 @@ export function compteursElec(symbols: Symbole[]): CompteursElec {
     else if (TYPES_COMMANDES.includes(s.type)) c.commandes++
     else if (TYPES_LUMIERES.includes(s.type)) c.lumieres++
     else if (s.type === 'tableau') c.tableaux++
+    else if (TYPES_AUTRES_ELEC.includes(s.type)) c.autres++
   }
   return c
 }

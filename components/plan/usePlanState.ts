@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { Niveau, Ouverture, Piece, PlanData, Symbole } from '@/lib/plan/types'
+import type { Cloture, Niveau, Ouverture, Piece, PlanData, Symbole } from '@/lib/plan/types'
 import { genId, niveauVide, nomAvecSuffixe } from '@/lib/plan/defaults'
 import {
   purgerOuverturesInvalides,
@@ -36,6 +36,9 @@ export interface PlanStateApi {
   selectedSymbolId: string | null
   selectSymbol: (id: string | null) => void
   symboleSelectionne: Symbole | null
+  selectedFenceId: string | null
+  selectFence: (id: string | null) => void
+  clotureSelectionnee: Cloture | null
   canUndo: boolean
   canRedo: boolean
   undo: () => void
@@ -53,6 +56,8 @@ export interface PlanStateApi {
   supprimerOuverture: (roomId: string, ouvertureId: string) => void
   ajouterSymbole: (symbole: Symbole) => void
   supprimerSymbole: (symboleId: string) => void
+  ajouterCloture: (cloture: Cloture) => void
+  supprimerCloture: (clotureId: string) => void
   /** Mutation SANS cran d'undo (frames de drag, après debutGeste). */
   deplacerSymboleSansUndo: (symboleId: string, dx: number, dy: number) => void
   /** Patch SANS cran d'undo (fin de drag : réaffectation de pièce). */
@@ -67,6 +72,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
   const [niveauId, setNiveauId] = useState<string>(initial.levels[0]?.id ?? '')
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [selectedSymbolId, setSelectedSymbolId] = useState<string | null>(null)
+  const [selectedFenceId, setSelectedFenceId] = useState<string | null>(null)
   const [undoCount, setUndoCount] = useState(0)
   const [redoCount, setRedoCount] = useState(0)
 
@@ -89,15 +95,32 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     return niveau.symbols.find((s) => s.id === selectedSymbolId) ?? null
   }, [niveau, selectedSymbolId])
 
-  /** Sélections exclusives : une pièce OU un symbole, jamais les deux. */
+  const clotureSelectionnee = useMemo<Cloture | null>(() => {
+    if (!selectedFenceId) return null
+    return niveau.clotures.find((c) => c.id === selectedFenceId) ?? null
+  }, [niveau, selectedFenceId])
+
+  /** Sélections exclusives : une pièce OU un symbole OU une clôture. */
   const selectRoom = useCallback((id: string | null) => {
     setSelectedRoomId(id)
     setSelectedSymbolId(null)
+    setSelectedFenceId(null)
   }, [])
 
   const selectSymbol = useCallback((id: string | null) => {
     setSelectedSymbolId(id)
-    if (id) setSelectedRoomId(null)
+    if (id) {
+      setSelectedRoomId(null)
+      setSelectedFenceId(null)
+    }
+  }, [])
+
+  const selectFence = useCallback((id: string | null) => {
+    setSelectedFenceId(id)
+    if (id) {
+      setSelectedRoomId(null)
+      setSelectedSymbolId(null)
+    }
   }, [])
 
   const pushUndo = useCallback(() => {
@@ -301,6 +324,28 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     [muter, surNiveau]
   )
 
+  const ajouterCloture = useCallback(
+    (cloture: Cloture) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        if (niv) niv.clotures.push(cloture)
+      })
+      selectFence(cloture.id)
+    },
+    [muter, surNiveau, selectFence]
+  )
+
+  const supprimerCloture = useCallback(
+    (clotureId: string) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        if (niv) niv.clotures = niv.clotures.filter((c) => c.id !== clotureId)
+      })
+      setSelectedFenceId((id) => (id === clotureId ? null : id))
+    },
+    [muter, surNiveau]
+  )
+
   const deplacerSymboleSansUndo = useCallback(
     (symboleId: string, dx: number, dy: number) => {
       if (dx === 0 && dy === 0) return
@@ -370,6 +415,9 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     selectedSymbolId,
     selectSymbol,
     symboleSelectionne,
+    selectedFenceId,
+    selectFence,
+    clotureSelectionnee,
     canUndo: undoCount > 0,
     canRedo: redoCount > 0,
     undo,
@@ -385,6 +433,8 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     supprimerOuverture,
     ajouterSymbole,
     supprimerSymbole,
+    ajouterCloture,
+    supprimerCloture,
     deplacerSymboleSansUndo,
     majSymboleSansUndo,
     ajouterNiveau,

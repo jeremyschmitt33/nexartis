@@ -35,6 +35,8 @@ export interface PlanTopbarProps {
   canRedo: boolean
   onUndo: () => void
   onRedo: () => void
+  /** Ouvre le tiroir d'envoi des métrés au devis (Push 3b). */
+  onEnvoyerDevis: () => void
 }
 
 const VUES: { key: VueCalque; label: string }[] = [
@@ -167,6 +169,17 @@ export default function PlanTopbar(props: PlanTopbarProps) {
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={props.onEnvoyerDevis}
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#ff9d4d] to-[#ff7a1a] px-3.5 font-hanken text-[12.5px] font-bold text-white shadow-[0_6px_16px_rgba(255,122,26,0.3)] transition-all hover:brightness-105"
+        >
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
+          </svg>
+          Envoyer au devis
+        </button>
       </div>
     </header>
   )

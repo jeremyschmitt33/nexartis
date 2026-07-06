@@ -6,7 +6,7 @@
  * Fonctions PURES : elles retournent de NOUVEAUX objets, ne mutent jamais.
  */
 
-import type { Niveau, Ouverture, Piece, PointMm, TypeOuverture } from './types'
+import type { Cloture, Niveau, Ouverture, Piece, PointMm, TypeOuverture } from './types'
 import { longueurAreteMm, snapMm } from './geometry'
 import { AIMANT_MM, COTE_MAX_MM, COTE_MIN_MM, GRILLE_MM, creerOuverture } from './defaults'
 
@@ -207,6 +207,45 @@ export function preparerOuverture(
     Math.max(marge, Math.min(arete.alongMm - largeur / 2, arete.longueurMm - largeur - marge))
   )
   return { ouverture: creerOuverture(type, arete.edgeIndex, offset) }
+}
+
+/** Distance max (mm) entre le clic et la clôture pour poser un portail. */
+export const PORTAIL_DIST_MAX_MM = 1500
+
+/**
+ * Projette un point sur le segment de clôture le plus proche (pose du
+ * portail, Push 3b). Retourne la position projetée + l'angle du segment
+ * (rotation du symbole en degrés) + le calque de la clôture porteuse,
+ * ou null si aucune clôture n'est à moins de PORTAIL_DIST_MAX_MM.
+ */
+export function projeterSurClotures(
+  clotures: Cloture[],
+  point: PointMm
+): { clotureId: string; layer: Cloture['layer']; position: PointMm; rotation: number } | null {
+  let best: { clotureId: string; layer: Cloture['layer']; position: PointMm; rotation: number; dist: number } | null = null
+  for (const cl of clotures) {
+    for (let i = 0; i < cl.points.length - 1; i++) {
+      const a = cl.points[i]
+      const b = cl.points[i + 1]
+      const proj = projeterSurSegment(point, a, b)
+      if (proj.longueur === 0) continue
+      if (best === null || proj.dist < best.dist) {
+        const t = proj.t
+        best = {
+          clotureId: cl.id,
+          layer: cl.layer,
+          position: [
+            Math.round(a[0] + (b[0] - a[0]) * t),
+            Math.round(a[1] + (b[1] - a[1]) * t),
+          ],
+          rotation: Math.round((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI),
+          dist: proj.dist,
+        }
+      }
+    }
+  }
+  if (!best || best.dist > PORTAIL_DIST_MAX_MM) return null
+  return { clotureId: best.clotureId, layer: best.layer, position: best.position, rotation: best.rotation }
 }
 
 /** Une ouverture reste-t-elle valide sur son arête (après redimensionnement) ? */

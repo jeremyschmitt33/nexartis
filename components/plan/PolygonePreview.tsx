@@ -16,9 +16,11 @@ export interface PolygonePreviewProps {
   points: PointMm[]
   souris: PointMm | null
   calque: CalqueId
+  /** true pour une CLÔTURE (polyligne ouverte) : pas de fond ni de cible de fermeture. */
+  ouvert?: boolean
 }
 
-export default function PolygonePreview({ points, souris, calque }: PolygonePreviewProps) {
+export default function PolygonePreview({ points, souris, calque, ouvert = false }: PolygonePreviewProps) {
   if (points.length === 0) return null
   const c = calque === 'projet' ? C.orange : C.navyMid
   const pts = souris ? [...points, souris] : points
@@ -49,10 +51,10 @@ export default function PolygonePreview({ points, souris, calque }: PolygonePrev
     <g pointerEvents="none">
       <polyline
         points={pts.map((p) => p.join(',')).join(' ')}
-        fill="rgba(90,180,224,0.08)"
+        fill={ouvert ? 'none' : 'rgba(90,180,224,0.08)'}
         stroke={c}
         strokeWidth="2.4"
-        strokeDasharray="8 6"
+        strokeDasharray={ouvert ? '14 7' : '8 6'}
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
@@ -60,16 +62,18 @@ export default function PolygonePreview({ points, souris, calque }: PolygonePrev
       {points.map(([px, py], i) => (
         <circle key={i} cx={px} cy={py} r="90" fill={C.blanc} stroke={c} strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
       ))}
-      <circle
-        cx={points[0][0]}
-        cy={points[0][1]}
-        r="150"
-        fill="none"
-        stroke={C.orange}
-        strokeWidth="2"
-        strokeDasharray="5 4"
-        vectorEffect="non-scaling-stroke"
-      />
+      {!ouvert && (
+        <circle
+          cx={points[0][0]}
+          cy={points[0][1]}
+          r="150"
+          fill="none"
+          stroke={C.orange}
+          strokeWidth="2"
+          strokeDasharray="5 4"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
     </g>
   )
 }

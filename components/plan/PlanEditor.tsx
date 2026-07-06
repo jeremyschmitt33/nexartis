@@ -1,33 +1,41 @@
 'use client'
 
 /**
- * PlanEditor — Orchestrateur de l'éditeur de plan 2D (Push 2 → 3a, 03/07/2026).
- * Topbar (+ vue métier) + palette filtrée par profil (PlanPalette) + canvas +
- * panneau pièce (RoomSheet + MetresPanel) / panneau symbole (SymboleSheet) +
- * modale d'ajout + barre polygone + suppression « Annuler » 8 s + raccourcis.
+ * PlanEditor — Orchestrateur de l'éditeur de plan 2D (Push 2 → 3b).
+ * Topbar (+ vue métier + CTA devis) + palette filtrée par profil + canvas +
+ * panneau pièce (RoomSheet + MetresPanel) / symbole (SymboleSheet) / clôture
+ * (ClotureSheet) + modale d'ajout + tiroir devis (DevisDrawer) + surcouches
+ * (PlanOverlays) + raccourcis.
  *
- * Push 3a : pose de symboles en série (l'outil reste actif, Échap = retour
- * sélection), drag + réaffectation de pièce, vue métier mémorisée PAR PLAN
- * (colonne plans.metier_defaut).
+ * Push 3b : injection devis (tiroir append-only), groupe Extérieur (zones
+ * cat 'ext', clôture polyligne ouverte, portail projeté sur la clôture),
+ * m1 (un symbole hérite du CALQUE DE LA PIÈCE cliquée, plus du toggle de
+ * vue), mode de déduction peinture + chutes remontés ici (panneau et tiroir
+ * appliquent les mêmes règles).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { CalqueId, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
-import { aireMm2, estDansPolygone, fmtSurfaceM2 } from '@/lib/plan/geometry'
-import { OUVERTURE_DEFAUTS, creerPieceL, creerPiecePoly, creerPieceRect, nomAvecSuffixe } from '@/lib/plan/defaults'
-import { positionNouvellePiece, preparerOuverture } from '@/lib/plan/edition'
-import { profilDe, type MetierId } from '@/lib/plan/profils'
+import type { ModeDeduction, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
+import { aireMm2, estDansPolygone, fmtNombreFr, fmtSurfaceM2 } from '@/lib/plan/geometry'
+import { OUVERTURE_DEFAUTS, creerCloture, creerPieceL, creerPiecePoly, creerPieceRect, nomAvecSuffixe } from '@/lib/plan/defaults'
+import { positionNouvellePiece, preparerOuverture, projeterSurClotures } from '@/lib/plan/edition'
+import { clotureMl } from '@/lib/plan/metrics'
+import { CHUTES_DEFAUT_PCT, profilDe, type MetierId } from '@/lib/plan/profils'
 import { creerSymbole } from '@/lib/plan/symboles'
 import { toast } from '@/lib/toast'
 import { usePlanState } from './usePlanState'
 import { useAutosave } from './useAutosave'
+import { usePlanShortcuts } from './usePlanShortcuts'
 import PlanTopbar from './PlanTopbar'
 import PlanCanvas, { type Outil, type PolygoneEnCours } from './PlanCanvas'
-import PlanPalette, { outilsMobiles } from './PlanPalette'
+import PlanPalette from './PlanPalette'
+import PlanOverlays from './PlanOverlays'
 import RoomSheet from './RoomSheet'
 import MetresPanel from './MetresPanel'
 import SymboleSheet from './SymboleSheet'
+import ClotureSheet from './ClotureSheet'
+import DevisDrawer, { type PreSelection } from './DevisDrawer'
 import AddRoomModal, { type DemandePiece } from './AddRoomModal'
 import type { VueCalque } from './PlanRender'
 
@@ -37,10 +45,12 @@ export interface PlanEditorProps {
   dataInitiale: PlanData
   /** Vue métier mémorisée du plan (plans.metier_defaut, 'tce' si null). */
   metierInitial: MetierId
+  /** Chantier de rattachement (devis cibles du tiroir d'injection). */
+  chantierId: string | null
   retourHref: string
 }
 
-export default function PlanEditor({ planId, nomInitial, dataInitiale, metierInitial, retourHref }: PlanEditorProps) {
+export default function PlanEditor({ planId, nomInitial, dataInitiale, metierInitial, chantierId, retourHref }: PlanEditorProps) {
   const etat = usePlanState(dataInitiale)
   const [nom, setNom] = useState(nomInitial)
   const { statut, flush } = useAutosave(planId, nom, etat.data, etat.version)
@@ -48,16 +58,35 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   const [metier, setMetier] = useState<MetierId>(profilDe(metierInitial).id)
   const [outil, setOutil] = useState<Outil>('select')
   const [modalOuverte, setModalOuverte] = useState(false)
+  const [typeInitial, setTypeInitial] = useState<string | null>(null)
   const [polygone, setPolygone] = useState<PolygoneEnCours | null>(null)
   const [annulation, setAnnulation] = useState<{ nom: string; baseVersion: number } | null>(null)
   const annulationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Push 3b — réglages de métré partagés panneau/tiroir + tiroir devis.
+  const [modePeinture, setModePeinture] = useState<ModeDeduction>(profilDe('peintre').deductionDefaut)
+  const [chutes, setChutes] = useState<string>(String(CHUTES_DEFAUT_PCT))
+  const [tiroirOuvert, setTiroirOuvert] = useState(false)
+  const [preSelection, setPreSelection] = useState<PreSelection | null>(null)
+
+  /** Coefficient de chutes numérique sûr (même garde-fou que le panneau). */
+  const chutesBrut = Number(chutes.replace(',', '.').trim())
+  const chutesPct = Number.isFinite(chutesBrut) && chutesBrut >= 0 && chutesBrut <= 100 ? chutesBrut : CHUTES_DEFAUT_PCT
+
+  const ouvrirTiroir = useCallback((sel: PreSelection | null) => {
+    flush() // le snapshot 'devis_envoye' doit refléter le plan sauvegardé
+    setPreSelection(sel)
+    setTiroirOuvert(true)
+  }, [flush])
 
   // ── Vue métier : refiltre palette + panneau, mémorisée PAR PLAN ───────────
   const changerMetier = useCallback(
     (m: MetierId) => {
       setMetier(m)
-      // L'outil symbole actif peut ne plus exister dans la nouvelle vue.
-      setOutil((o) => (o.startsWith('sym:') && !profilDe(m).symboles.includes(o.slice(4)) ? 'select' : o))
+      // L'outil symbole actif peut ne plus exister dans la nouvelle vue
+      // (le portail, groupe Extérieur, reste disponible pour tous les profils).
+      setOutil((o) =>
+        o.startsWith('sym:') && o !== 'sym:portail' && !profilDe(m).symboles.includes(o.slice(4)) ? 'select' : o
+      )
       // Persistance best effort (RLS user_id = auth.uid() côté Supabase).
       const persister = async () => {
         try {
@@ -95,6 +124,11 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
       etat.supprimerSymbole(etat.symboleSelectionne.id)
       return
     }
+    if (etat.clotureSelectionnee) {
+      etat.supprimerCloture(etat.clotureSelectionnee.id)
+      toast.success('Clôture supprimée', { description: 'Ctrl+Z pour annuler.' })
+      return
+    }
     if (!etat.pieceSelectionnee) return
     const base = etat.version
     const piece = etat.supprimerPiece(etat.pieceSelectionnee.id)
@@ -104,36 +138,24 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     annulationTimer.current = setTimeout(() => setAnnulation(null), 8000)
   }, [etat])
 
-  // ── Raccourcis clavier ────────────────────────────────────────────────────
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const cible = e.target as HTMLElement | null
-      if (cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA' || cible.isContentEditable)) return
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) etat.redo()
-        else etat.undo()
-        return
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-        e.preventDefault()
-        etat.redo()
-        return
-      }
-      if (e.key === 'Escape' && outil !== 'select' && !polygone) {
-        setOutil('select')
-        return
-      }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && (etat.pieceSelectionnee || etat.symboleSelectionne)) {
-        e.preventDefault()
-        supprimerSelection()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [etat, supprimerSelection, outil, polygone])
+  // ── Raccourcis clavier (hook extrait, comportement inchangé) ──────────────
+  usePlanShortcuts({
+    actif: !tiroirOuvert && !modalOuverte,
+    outilActif: outil !== 'select',
+    traceEnCours: polygone !== null,
+    peutSupprimer: Boolean(etat.pieceSelectionnee || etat.symboleSelectionne || etat.clotureSelectionnee),
+    onUndo: etat.undo,
+    onRedo: etat.redo,
+    onOutilSelect: useCallback(() => setOutil('select'), []),
+    onSupprimer: supprimerSelection,
+  })
 
-  // ── Ajout de pièce (modale) ───────────────────────────────────────────────
+  // ── Ajout de pièce / zone extérieure (modale) ─────────────────────────────
+  const ouvrirModal = (type: string | null) => {
+    setTypeInitial(type)
+    setModalOuverte(true)
+  }
+
   const validerAjout = (demande: DemandePiece) => {
     setModalOuverte(false)
     const noms = etat.niveau.rooms.map((r) => r.name)
@@ -141,7 +163,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     if (demande.forme === 'poly') {
       setOutil('select')
       etat.selectRoom(null)
-      setPolygone({ nom: nomPiece, calque: demande.calque })
+      setPolygone({ nom: nomPiece, calque: demande.calque, mode: 'piece' })
       toast.info('Dessinez la pièce sur le plan', {
         description: 'Cliquez chaque angle — double-clic ou clic sur le premier point pour fermer.',
       })
@@ -159,10 +181,30 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     })
   }
 
+  // ── Clôture : polyligne OUVERTE (réutilise le mécanisme polygone) ─────────
+  const demarrerCloture = () => {
+    setOutil('select')
+    etat.selectRoom(null)
+    setPolygone({ nom: 'Clôture', calque: vue === 'projet' ? 'projet' : 'existant', mode: 'cloture' })
+    toast.info('Tracez la clôture sur le plan', {
+      description: 'Cliquez les points le long de la parcelle — double-clic pour terminer.',
+    })
+  }
+
   const terminerPolygone = (points: PointMm[]) => {
     const p = polygone
     setPolygone(null)
     if (!p) return
+    if (p.mode === 'cloture') {
+      if (points.length < 2) {
+        toast.warning('Il faut au moins 2 points pour tracer une clôture.')
+        return
+      }
+      const cloture = creerCloture(p.calque, points)
+      etat.ajouterCloture(cloture)
+      toast.success(`Clôture tracée — ${fmtNombreFr(clotureMl(cloture))} ml calculés sur la polyligne.`)
+      return
+    }
     if (points.length < 3) {
       toast.warning('Il faut au moins 3 points pour fermer la forme.')
       return
@@ -190,6 +232,10 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   const poserOuverture = (roomId: string, point: PointMm, type: TypeOuverture) => {
     const piece = etat.niveau.rooms.find((r) => r.id === roomId)
     if (!piece) return
+    if (piece.cat === 'ext') {
+      toast.warning('Pas d’ouverture sur une zone extérieure', { description: 'Terrasses, piscines et pelouses n’ont pas de murs.' })
+      return
+    }
     const resultat = preparerOuverture(piece, point, type)
     if ('erreur' in resultat) {
       toast.warning(resultat.erreur)
@@ -199,14 +245,36 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     toast.success(`${OUVERTURE_DEFAUTS[type].label} posée sur ${piece.name}`)
   }
 
-  /** Pose en série : l'outil RESTE actif, Échap pour revenir à la sélection. */
+  /**
+   * Pose en série (l'outil RESTE actif, Échap pour revenir à la sélection).
+   * m1 (audit 3a) : le symbole hérite du CALQUE DE LA PIÈCE cliquée, plus du
+   * toggle de vue. Portail : projeté sur la clôture la plus proche, hérite du
+   * calque de la clôture, tourné le long du segment.
+   */
   const poserSymbole = (type: string, point: PointMm, roomId: string | null) => {
+    if (type === 'portail') {
+      if (etat.niveau.clotures.length === 0) {
+        toast.warning('Tracez d’abord une clôture', { description: 'Le portail se pose sur une clôture (palette Extérieur).' })
+        return
+      }
+      const proj = projeterSurClotures(etat.niveau.clotures, point)
+      if (!proj) {
+        toast.warning('Cliquez plus près d’une clôture pour poser le portail.')
+        return
+      }
+      etat.ajouterSymbole({ ...creerSymbole('portail', proj.layer, proj.position, null), rotation: proj.rotation })
+      return
+    }
     if (!roomId) {
       toast.warning("Cliquez à l'intérieur d'une pièce pour poser le symbole.")
       return
     }
-    const calque: CalqueId = vue === 'projet' ? 'projet' : 'existant'
-    etat.ajouterSymbole(creerSymbole(type, calque, point, roomId))
+    const piece = etat.niveau.rooms.find((r) => r.id === roomId)
+    if (piece?.cat === 'ext') {
+      toast.warning('Les symboles se posent dans les pièces intérieures.')
+      return
+    }
+    etat.ajouterSymbole(creerSymbole(type, piece?.layer ?? 'existant', point, roomId))
   }
 
   /** Fin de drag : réaffecte le symbole à la pièce qui le contient. */
@@ -253,11 +321,19 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
         canRedo={etat.canRedo}
         onUndo={etat.undo}
         onRedo={etat.redo}
+        onEnvoyerDevis={() => ouvrirTiroir(null)}
       />
 
       <div className="relative flex min-h-0 flex-1">
         {/* Palette gauche à libellés, filtrée par la vue métier (desktop) */}
-        <PlanPalette metier={metier} outil={outil} onOutil={setOutil} onAjouterPiece={() => setModalOuverte(true)} />
+        <PlanPalette
+          metier={metier}
+          outil={outil}
+          onOutil={setOutil}
+          onAjouterPiece={() => ouvrirModal(null)}
+          onZoneExt={(nomZone) => ouvrirModal(nomZone)}
+          onCloture={demarrerCloture}
+        />
 
         {/* Canvas + surcouches */}
         <div className="relative min-w-0 flex-1">
@@ -267,9 +343,11 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             outil={outil}
             selectedRoomId={etat.selectedRoomId}
             selectedSymbolId={etat.selectedSymbolId}
+            selectedFenceId={etat.selectedFenceId}
             polygone={polygone}
             onSelectRoom={etat.selectRoom}
             onSelectSymbol={etat.selectSymbol}
+            onSelectFence={etat.selectFence}
             onDebutGeste={etat.debutGeste}
             onDeplacerPiece={etat.deplacerPieceSansUndo}
             onCote={editerCote}
@@ -281,90 +359,25 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             onPolygoneAnnule={() => setPolygone(null)}
           />
 
-          {/* Outils (mobile) : même liste que la palette, filtrée par métier */}
-          <div
-            className="absolute left-2 right-2 top-2 flex gap-1.5 overflow-x-auto rounded-xl border border-gray-200 bg-white/95 p-1.5 shadow-sm backdrop-blur sm:hidden"
-            aria-label="Outils du plan"
-          >
-            {outilsMobiles(metier).map((o) => (
-              <button
-                key={o.key}
-                type="button"
-                onClick={() => setOutil(o.key)}
-                aria-pressed={outil === o.key}
-                className={`whitespace-nowrap rounded-lg px-3 py-1.5 font-hanken text-xs font-bold transition-colors ${
-                  outil === o.key ? 'bg-orange/10 text-orange' : 'text-navy'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Barre polygone en cours */}
-          {polygone && (
-            <div className="absolute left-1/2 top-14 z-20 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-lg sm:top-3">
-              <span className="font-hanken text-[13px] font-semibold text-navy">
-                {polygone.nom} — cliquez chaque angle, double-clic pour fermer
-              </span>
-              <button
-                type="button"
-                onClick={() => setPolygone(null)}
-                className="rounded-lg border-[1.5px] border-gray-200 px-2.5 py-1 font-hanken text-xs font-bold text-navy transition-colors hover:border-red-300 hover:text-red-600"
-              >
-                Annuler
-              </button>
-            </div>
-          )}
-
-          {/* État vide */}
-          {niveauVide && !polygone && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="pointer-events-auto rounded-2xl border border-gray-200 bg-white px-6 py-6 text-center shadow-lg">
-                <p className="font-hanken text-[15px] font-extrabold text-navy">Ce niveau est vide</p>
-                <p className="mt-1 font-hanken text-[13px] text-gray-500">Ajoutez votre première pièce pour commencer le plan.</p>
-                <button
-                  type="button"
-                  onClick={() => setModalOuverte(true)}
-                  className="mt-4 rounded-xl bg-gradient-to-r from-[#ff9d4d] to-[#ff7a1a] px-5 py-2.5 font-hanken text-[14px] font-bold text-white shadow-[0_8px_20px_rgba(255,122,26,0.35)] transition-all hover:brightness-105"
-                >
-                  Ajouter une pièce
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* FAB ajout (au-dessus du tiroir mobile) */}
-          {!polygone && !niveauVide && (
-            <button
-              type="button"
-              onClick={() => setModalOuverte(true)}
-              className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#ff9d4d] to-[#ff7a1a] px-5 py-3 font-hanken text-[14px] font-bold text-white shadow-[0_8px_20px_rgba(255,122,26,0.4)] transition-all hover:brightness-105"
-            >
-              + Ajouter une pièce
-            </button>
-          )}
-
-          {/* Suppression : « Annuler » 8 s */}
-          {annulation && (
-            <div className="absolute bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-xl bg-navy px-4 py-2.5 shadow-xl">
-              <span className="font-hanken text-[13px] font-semibold text-white">{annulation.nom} supprimée</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setAnnulation(null)
-                  etat.undo()
-                }}
-                className="rounded-lg bg-white/10 px-3 py-1 font-hanken text-xs font-bold text-white transition-colors hover:bg-white/20"
-              >
-                Annuler
-              </button>
-            </div>
-          )}
+          <PlanOverlays
+            metier={metier}
+            outil={outil}
+            onOutil={setOutil}
+            onCloture={demarrerCloture}
+            polygone={polygone}
+            onAnnulerPolygone={() => setPolygone(null)}
+            niveauVide={niveauVide}
+            onAjouterPiece={() => ouvrirModal(null)}
+            annulation={annulation}
+            onAnnulerSuppression={() => {
+              setAnnulation(null)
+              etat.undo()
+            }}
+          />
         </div>
 
-        {/* Panneau droit : pièce (RoomSheet + métrés) ou symbole sélectionné */}
-        {(etat.pieceSelectionnee || etat.symboleSelectionne) && (
+        {/* Panneau droit : pièce (RoomSheet + métrés), symbole ou clôture */}
+        {(etat.pieceSelectionnee || etat.symboleSelectionne || etat.clotureSelectionnee) && (
           <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[48%] overflow-hidden rounded-t-2xl border-t border-gray-200 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:w-[320px] lg:flex-shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none">
             {etat.pieceSelectionnee ? (
               <RoomSheet
@@ -375,7 +388,17 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
                 onSupprimerOuverture={(oid) => etat.supprimerOuverture(etat.pieceSelectionnee!.id, oid)}
                 onFermer={() => etat.selectRoom(null)}
               >
-                <MetresPanel piece={etat.pieceSelectionnee} symboles={symbolesPiece} metier={metier} />
+                <MetresPanel
+                  piece={etat.pieceSelectionnee}
+                  symboles={symbolesPiece}
+                  metier={metier}
+                  niveau={etat.niveau}
+                  modePeinture={modePeinture}
+                  onModePeinture={setModePeinture}
+                  chutes={chutes}
+                  onChutes={setChutes}
+                  onEnvoyer={(sel) => ouvrirTiroir(sel)}
+                />
               </RoomSheet>
             ) : etat.symboleSelectionne ? (
               <SymboleSheet
@@ -383,6 +406,13 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
                 piece={pieceDuSymbole}
                 onSupprimer={supprimerSelection}
                 onFermer={() => etat.selectSymbol(null)}
+              />
+            ) : etat.clotureSelectionnee ? (
+              <ClotureSheet
+                cloture={etat.clotureSelectionnee}
+                onEnvoyerDevis={() => ouvrirTiroir({ metric: 'cloture_ml', roomId: etat.clotureSelectionnee!.id })}
+                onSupprimer={supprimerSelection}
+                onFermer={() => etat.selectFence(null)}
               />
             ) : null}
           </aside>
@@ -392,8 +422,22 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
       <AddRoomModal
         open={modalOuverte}
         calqueParDefaut={vue === 'projet' ? 'projet' : 'existant'}
+        typeInitial={typeInitial}
         onValider={validerAjout}
         onFermer={() => setModalOuverte(false)}
+      />
+
+      <DevisDrawer
+        open={tiroirOuvert}
+        onClose={() => setTiroirOuvert(false)}
+        planId={planId}
+        chantierId={chantierId}
+        niveau={etat.niveau}
+        data={etat.data}
+        metier={metier}
+        modePeinture={modePeinture}
+        chutesPct={chutesPct}
+        preSelection={preSelection}
       />
     </div>
   )

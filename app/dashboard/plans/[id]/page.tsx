@@ -108,6 +108,7 @@ export default function PageEditeurPlan() {
         nomInitial={plan.name}
         dataInitiale={plan.data}
         metierInitial={plan.metier}
+        chantierId={plan.chantierId}
         retourHref={plan.chantierId ? `/dashboard/chantiers/${plan.chantierId}` : '/dashboard/chantiers'}
       />
     </div>

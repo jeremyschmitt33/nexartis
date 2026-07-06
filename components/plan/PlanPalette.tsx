@@ -2,10 +2,12 @@
 
 /**
  * PlanPalette — Palette d'outils à libellés, FILTRÉE PAR PROFIL MÉTIER
- * (Push 3a, 03/07/2026). Extraite de PlanEditor (limite 450 lignes).
+ * (Push 3a → 3b). Extraite de PlanEditor (limite 450 lignes).
  *
- * Groupes : Dessin / Ouvertures / [symboles du métier actif]. La vue
- * « Tous les métrés » (tce) affiche tous les groupes de symboles.
+ * Groupes : Dessin / Ouvertures / [symboles du métier actif] / Extérieur.
+ * Le groupe Extérieur (Push 3b) est proposé à TOUS les profils : Terrasse,
+ * Piscine, Pelouse (zones cat 'ext' via la modale pièce), Clôture (polyligne
+ * ouverte) et Portail (symbole projeté sur la clôture la plus proche).
  * `outilsMobiles` fournit la même liste à la barre mobile de PlanEditor.
  */
 
@@ -42,12 +44,16 @@ export function groupesSymboles(metier: MetierId): GroupeSymboles[] {
   return [{ titre: profil.label, outils: versOutils(profil.symboles) }]
 }
 
-/** Liste plate pour la barre d'outils mobile. */
+/** Zones extérieures créées via la modale pièce (chips pré-sélectionnées). */
+export const ZONES_EXTERIEURES = ['Terrasse', 'Piscine', 'Pelouse'] as const
+
+/** Liste plate pour la barre d'outils mobile (portail inclus, Push 3b). */
 export function outilsMobiles(metier: MetierId): { key: Outil; label: string }[] {
   return [
     { key: 'select', label: 'Sélection' },
     ...OUTILS_OUVERTURE.map((o) => ({ key: o.key as Outil, label: o.label })),
     ...groupesSymboles(metier).flatMap((g) => g.outils.map((o) => ({ key: o.key, label: o.label }))),
+    { key: 'sym:portail', label: 'Portail' },
   ]
 }
 
@@ -97,14 +103,67 @@ function IconeOutil({ type }: { type: Outil }) {
   )
 }
 
+/** Icônes du groupe Extérieur (tracés repris de la maquette V2.1 validée). */
+function IconeExt({ type }: { type: string }) {
+  const common = {
+    className: 'h-4 w-4 flex-shrink-0',
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+  if (type === 'Terrasse')
+    return (
+      <svg {...common}>
+        <rect x="3" y="5" width="18" height="14" rx="1" />
+        <path d="M7.5 5v14M12 5v14M16.5 5v14" />
+      </svg>
+    )
+  if (type === 'Piscine')
+    return (
+      <svg {...common}>
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <path d="M6 10.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 2-1 3 0" />
+        <path d="M6 15c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 2-1 3 0" />
+      </svg>
+    )
+  if (type === 'Pelouse')
+    return (
+      <svg {...common}>
+        <path d="M7 20v-6c0-2-1-3.5-2.5-4.5M12 20v-8c0-2.5-1-4.5-3-6M12 20v-8c0-2.5 1-4.5 3-6M17 20v-6c0-2 1-3.5 2.5-4.5" />
+      </svg>
+    )
+  if (type === 'Cloture')
+    return (
+      <svg {...common}>
+        <path d="M5 21V8l1.5-2.5L8 8v13M16 21V8l1.5-2.5L19 8v13" />
+        <path d="M2 12h20M2 17h20" />
+      </svg>
+    )
+  return (
+    <svg {...common}>
+      <path d="M3 21V9M21 21V9" />
+      <path d="M3 9c3-2.4 5.6-3.5 9-3.5S18 6.6 21 9" />
+      <path d="M3 13h18M3 17h18M12 21V5.5" />
+    </svg>
+  )
+}
+
 export interface PlanPaletteProps {
   metier: MetierId
   outil: Outil
   onOutil: (outil: Outil) => void
   onAjouterPiece: () => void
+  /** Ouvre la modale pièce avec le type de zone pré-sélectionné (Terrasse…). */
+  onZoneExt: (nom: string) => void
+  /** Démarre le tracé d'une clôture (polyligne ouverte). */
+  onCloture: () => void
 }
 
-export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece }: PlanPaletteProps) {
+export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, onZoneExt, onCloture }: PlanPaletteProps) {
   const groupes = groupesSymboles(metier)
 
   const bouton = (key: Outil, label: string, icone: React.ReactNode) => (
@@ -160,11 +219,35 @@ export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece }: 
         </div>
       ))}
 
+      {titre('Extérieur')}
+      {ZONES_EXTERIEURES.map((nom) => (
+        <button
+          key={nom}
+          type="button"
+          onClick={() => onZoneExt(nom)}
+          className="flex w-full items-center gap-2 rounded-xl border-[1.5px] border-transparent px-2.5 py-2 text-left font-hanken text-[12.5px] font-semibold text-navy transition-colors hover:bg-gray-50"
+        >
+          <IconeExt type={nom} />
+          <span className="truncate">{nom}</span>
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onCloture}
+        className="flex w-full items-center gap-2 rounded-xl border-[1.5px] border-transparent px-2.5 py-2 text-left font-hanken text-[12.5px] font-semibold text-navy transition-colors hover:bg-gray-50"
+      >
+        <IconeExt type="Cloture" />
+        <span className="truncate">Clôture / grillage</span>
+      </button>
+      {bouton('sym:portail', 'Portail', <IconeExt type="Portail" />)}
+
       {outil !== 'select' && (
         <p className="mx-1 mt-1 rounded-lg bg-sky/10 px-2 py-1.5 font-hanken text-[11px] leading-snug text-navy">
-          {outilSym
-            ? 'Cliquez dans une pièce pour poser le symbole — posez-en plusieurs à la suite, Échap pour terminer.'
-            : "Cliquez dans une pièce, près du mur qui recevra l'ouverture."}
+          {outil === 'sym:portail'
+            ? 'Cliquez sur une clôture pour y poser le portail.'
+            : outilSym
+              ? 'Cliquez dans une pièce pour poser le symbole — posez-en plusieurs à la suite, Échap pour terminer.'
+              : "Cliquez dans une pièce, près du mur qui recevra l'ouverture."}
         </p>
       )}
     </aside>

@@ -12,10 +12,11 @@
 
 import type { Niveau, Ouverture, Piece, PointMm } from '@/lib/plan/types'
 import { aireMm2, centreMm, estDansPolygone, fmtNombreFr, mm2VersM2, mmVersM } from '@/lib/plan/geometry'
-import { surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
+import { perimetreMl, surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
 import { COULEURS_PLAN } from '@/lib/plan/defaults'
 import { bornesPiece, estRectiligne } from '@/lib/plan/edition'
 import SymboleSvg from './SymboleSvg'
+import ClotureSvg from './ClotureSvg'
 
 export type VueCalque = 'existant' | 'projet' | 'tout'
 
@@ -48,6 +49,11 @@ export function PlanDefs({ idPrefix = 'plan' }: { idPrefix?: string }) {
       <pattern id={`${idPrefix}-grille`} width="1000" height="1000" patternUnits="userSpaceOnUse">
         <path d="M 1000 0 L 0 0 0 1000" fill="none" stroke={C.grille} strokeWidth="1" vectorEffect="non-scaling-stroke" />
       </pattern>
+      {/* Lattes discrètes des terrasses (Push 3b) : traits navy très légers. */}
+      <pattern id={`${idPrefix}-lattes`} width="300" height="300" patternUnits="userSpaceOnUse" patternTransform="rotate(90)">
+        <rect width="300" height="300" fill={C.blanc} fillOpacity="0.6" />
+        <line x1="0" y1="0" x2="0" y2="300" stroke={C.navy} strokeWidth="24" strokeOpacity="0.1" />
+      </pattern>
     </>
   )
 }
@@ -58,15 +64,31 @@ function RenduPiece({ piece, idPrefix, interactif }: { piece: Piece; idPrefix: s
   const pts = piece.vertices.map((p) => p.join(',')).join(' ')
   const projet = piece.layer === 'projet'
   const ext = piece.cat === 'ext'
-  const fill = projet ? `url(#${idPrefix}-hach-projet)` : ext ? C.blanc : C.cream
+  // Zones extérieures (Push 3b) : contour FIN (pas de murs épais), fonds doux
+  // par sous-type — terrasse lattes, piscine sky 18 %, pelouse #7dba8a 12 %
+  // (entorse palette documentée dans COULEURS_PLAN).
+  let fill = projet ? `url(#${idPrefix}-hach-projet)` : ext ? C.blanc : C.cream
+  let stroke = couleurCalque(piece.layer)
+  let fillOpacity = projet ? 1 : 0.5
+  if (ext && !projet) {
+    fillOpacity = 1
+    if (piece.extType === 'terrasse') fill = `url(#${idPrefix}-lattes)`
+    else if (piece.extType === 'piscine') {
+      fill = C.piscineFond
+      stroke = C.sky
+    } else if (piece.extType === 'pelouse') {
+      fill = C.pelouseFond
+      stroke = C.pelouse
+    } else fill = C.blanc
+  }
   return (
     <polygon
       data-room-id={interactif ? piece.id : undefined}
       points={pts}
       fill={fill}
-      fillOpacity={projet ? 1 : 0.5}
-      stroke={couleurCalque(piece.layer)}
-      strokeWidth={projet ? 4 : 6}
+      fillOpacity={fillOpacity}
+      stroke={stroke}
+      strokeWidth={ext ? (projet ? 2.4 : 2) : projet ? 4 : 6}
       strokeDasharray={projet ? '10 6' : undefined}
       strokeLinejoin="miter"
       vectorEffect="non-scaling-stroke"
@@ -289,6 +311,11 @@ function RenduEtiquette({ piece }: { piece: Piece }) {
       <text x={cx} y={cy + 260} fontFamily={FONT_NUM} fontSize={petite ? 190 : 250} fill={piece.layer === 'projet' ? C.orange : C.navyMid} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="60">
         {fmtNombreFr(aire, 1)} m²
       </text>
+      {piece.extType === 'piscine' && (
+        <text x={cx} y={cy + 540} fontFamily={FONT_NUM} fontSize={petite ? 170 : 220} fill={C.navyMid} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="55">
+          {fmtNombreFr(perimetreMl(piece))} ml de périmètre
+        </text>
+      )}
     </g>
   )
 }
@@ -318,6 +345,7 @@ export interface PlanRenderProps {
   vue: VueCalque
   selectedRoomId?: string | null
   selectedSymbolId?: string | null
+  selectedFenceId?: string | null
   /** true dans l'éditeur (attributs data-* + curseurs), false pour l'export. */
   interactif?: boolean
   /** Préfixe des ids de <pattern> pour éviter les collisions. */
@@ -326,12 +354,13 @@ export interface PlanRenderProps {
   grille?: boolean
 }
 
-/** Ordre des passes : grille → pièces → sélection → ouvertures → cotes → étiquettes → symboles → badges. */
+/** Ordre des passes : grille → pièces → sélection → clôtures → ouvertures → cotes → étiquettes → symboles → badges. */
 export default function PlanRender({
   niveau,
   vue,
   selectedRoomId = null,
   selectedSymbolId = null,
+  selectedFenceId = null,
   interactif = false,
   idPrefix = 'plan',
   grille = false,
@@ -344,6 +373,9 @@ export default function PlanRender({
   const symbolesVisibles = niveau.symbols.filter(
     (s) => vue === 'tout' || (vue === 'projet' ? true : s.layer === 'existant')
   )
+  const cloturesVisibles = niveau.clotures.filter(
+    (c) => vue === 'tout' || (vue === 'projet' ? true : c.layer === 'existant')
+  )
 
   return (
     <g>
@@ -354,6 +386,11 @@ export default function PlanRender({
         </g>
       ))}
       {selection && <RenduSelection piece={selection} />}
+      {cloturesVisibles.map((c) => (
+        <g key={c.id} opacity={vue === 'projet' && c.layer === 'existant' ? 0.35 : 1}>
+          <ClotureSvg cloture={c} interactif={interactif} selectionnee={c.id === selectedFenceId} />
+        </g>
+      ))}
       {tri.map((r) => (
         <g key={r.id} opacity={opacite(r)}>
           {r.openings.map((o) => (

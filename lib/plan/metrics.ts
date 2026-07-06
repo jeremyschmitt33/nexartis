@@ -14,6 +14,7 @@ import type {
   Cloture,
   MetresPiece,
   ModeDeduction,
+  Niveau,
   Ouverture,
   Piece,
   TypeOuverture,
@@ -157,6 +158,55 @@ export function surfaceExterieureM2(pieces: Piece[]): number {
     if (p.cat === 'ext') total += surfaceSolM2(p);
   }
   return Math.round(total * 100) / 100;
+}
+
+/**
+ * Totaux du groupe Extérieur d'un niveau (Push 3b) : zones cat 'ext' par
+ * sous-type, clôtures en ml et portails (symboles type 'portail') en unités.
+ * Le moteur calcule tout ; l'affichage (panneau, tiroir devis) filtre.
+ */
+export interface TotauxExterieur {
+  terrasseM2: number;
+  piscineM2: number;
+  piscinePerimetreMl: number;
+  pelouseM2: number;
+  autreExtM2: number;
+  clotureMl: number;
+  portails: number;
+}
+
+export function totauxExterieur(niveau: Niveau): TotauxExterieur {
+  const t: TotauxExterieur = {
+    terrasseM2: 0,
+    piscineM2: 0,
+    piscinePerimetreMl: 0,
+    pelouseM2: 0,
+    autreExtM2: 0,
+    clotureMl: 0,
+    portails: 0,
+  };
+  for (const p of niveau.rooms) {
+    if (p.cat !== 'ext') continue;
+    const s = surfaceSolM2(p);
+    if (p.extType === 'terrasse') t.terrasseM2 += s;
+    else if (p.extType === 'piscine') {
+      t.piscineM2 += s;
+      t.piscinePerimetreMl += perimetreMl(p);
+    } else if (p.extType === 'pelouse') t.pelouseM2 += s;
+    else t.autreExtM2 += s;
+  }
+  for (const c of niveau.clotures) t.clotureMl += clotureMl(c);
+  for (const s of niveau.symbols) {
+    if (s.type === 'portail') t.portails += 1;
+  }
+  const arrondi = (v: number) => Math.round(v * 100) / 100;
+  t.terrasseM2 = arrondi(t.terrasseM2);
+  t.piscineM2 = arrondi(t.piscineM2);
+  t.piscinePerimetreMl = arrondi(t.piscinePerimetreMl);
+  t.pelouseM2 = arrondi(t.pelouseM2);
+  t.autreExtM2 = arrondi(t.autreExtM2);
+  t.clotureMl = arrondi(t.clotureMl);
+  return t;
 }
 
 /** Surface créée par le calque projet (pièces intérieures du calque projet). */

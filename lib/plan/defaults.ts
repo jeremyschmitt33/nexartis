@@ -13,6 +13,7 @@
 
 import type {
   CalqueId,
+  Cloture,
   Niveau,
   Ouverture,
   Piece,
@@ -45,6 +46,15 @@ export const COULEURS_PLAN = {
   fond: '#f6f8fb',
   grille: '#e3e9f2',
   blanc: '#ffffff',
+  /**
+   * ENTORSE PALETTE DOCUMENTÉE (spec V2 §8 bis, maquette V2.1 validée) :
+   * vert pelouse, absent de tailwind.config.ts, réservé au trait des zones
+   * « Pelouse » du plan. Le fond utilise pelouseFond (12 % d'opacité).
+   */
+  pelouse: '#7dba8a',
+  pelouseFond: 'rgba(125, 186, 138, 0.12)',
+  /** Fond des piscines : sky à 18 % (maquette V2.1). */
+  piscineFond: 'rgba(90, 180, 224, 0.18)',
 } as const
 
 /** 8 types de pièces les plus fréquents (chips visibles). */
@@ -252,6 +262,15 @@ export function creerPiecePoly(
     vertices: normaliserCCW(points),
     height: hsp,
     openings: [],
+  }
+}
+
+/** Clôture / grillage : polyligne OUVERTE (points en mm entiers), métrée en ml. */
+export function creerCloture(layer: CalqueId, points: PointMm[]): Cloture {
+  return {
+    id: genId(),
+    layer,
+    points: points.map(([x, y]): PointMm => [Math.round(x), Math.round(y)]),
   }
 }
 
