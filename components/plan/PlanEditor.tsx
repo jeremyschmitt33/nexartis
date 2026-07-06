@@ -108,6 +108,17 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     [planId]
   )
 
+  // ── Push 5 : duplication du niveau actif (copie profonde + toast) ─────────
+  const dupliquerNiveau = useCallback(
+    (id: string) => {
+      const nomCree = etat.dupliquerNiveau(id)
+      if (nomCree) {
+        toast.success(`Niveau dupliqué — « ${nomCree} »`, { description: 'Ctrl+Z pour annuler.' })
+      }
+    },
+    [etat]
+  )
+
   // ── Barre « Annuler » 8 s après suppression ───────────────────────────────
   useEffect(() => {
     if (annulation && etat.version > annulation.baseVersion + 1) setAnnulation(null)
@@ -314,6 +325,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
         onNiveau={etat.setNiveauId}
         onAjouterNiveau={etat.ajouterNiveau}
         onRenommerNiveau={etat.renommerNiveau}
+        onDupliquerNiveau={dupliquerNiveau}
         vue={vue}
         onVue={setVue}
         metier={metier}

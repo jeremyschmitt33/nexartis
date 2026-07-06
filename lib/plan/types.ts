@@ -116,6 +116,12 @@ export interface SourcePlan {
   metric: string;
   /** false dès que l'artisan édite la ligne à la main ("lien rompu"). */
   lie: boolean;
+  /**
+   * Niveau d'origine du métré (Push 5). Sert à sélectionner la ou les images
+   * de plan à afficher sur le devis. Optionnel : les lignes injectées avant
+   * le Push 5 n'en ont pas (les rendus affichent alors toutes les images du plan).
+   */
+  niveauId?: string | null;
 }
 
 /** Métrés calculés d'une pièce (tout en unités finales : m², ml, u). */

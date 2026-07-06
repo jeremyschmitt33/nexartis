@@ -23,6 +23,7 @@ import { toast } from '@/lib/toast'
 import {
   LIBELLE_STATUT,
   injecterLignes,
+  stockerImagePlanNiveau,
   useDevisModifiables,
   useDoublons,
 } from './useInjection'
@@ -155,7 +156,11 @@ export default function DevisDrawer({
     if (!devisId || cochees.length === 0) return
     setMode('envoi')
     try {
-      const resultat = await injecterLignes(planId, devisId, cochees, data)
+      const resultat = await injecterLignes(planId, devisId, cochees, data, niveau.id)
+      // Push 5 — image « Plan du chantier » du niveau injecté, régénérée à
+      // CHAQUE injection réussie. Best-effort : ne lève jamais, l'injection
+      // reste un succès même si la génération d'image échoue.
+      await stockerImagePlanNiveau(planId, data, niveau.id)
       setSucces({ n: resultat.inseres, numero: resultat.numero, devisId })
       setMode('succes')
     } catch (e) {

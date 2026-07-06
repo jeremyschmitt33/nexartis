@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import type { LegalContext } from '@/lib/legal-mentions'
 import DocumentRender from '@/components/document/DocumentRender'
-import { buildDevisDocument } from '@/lib/document-data'
+import { buildDevisDocument, type DocumentPlanImage } from '@/lib/document-data'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
 
@@ -254,6 +254,8 @@ export default function SignerDevisPage() {
   const [lignes, setLignes] = useState<Ligne[]>([])
   const [entreprise, setEntreprise] = useState<Entreprise>({})
   const [client, setClient] = useState<ClientInfo>({ nom: '', adresse: '', telephone: '', email: '' })
+  // Push 5 (Plan 2D) — images « Plan du chantier » servies par l'API publique.
+  const [planImages, setPlanImages] = useState<DocumentPlanImage[]>([])
 
   // Signature state
   const [mode, setMode] = useState<'draw' | 'approve' | null>(null)
@@ -287,6 +289,8 @@ export default function SignerDevisPage() {
         setLignes(data.lignes)
         setEntreprise(data.entreprise)
         setClient(data.client)
+        // Push 5 (Plan 2D) — tolérant : payload ancien sans planImages = [].
+        setPlanImages(Array.isArray(data.planImages) ? data.planImages : [])
         // Sélection par défaut : facultatifs cochés (inclus), options décochées.
         const initSel: Record<number, boolean> = {}
         const initProp: Record<number, boolean> = {}
@@ -557,6 +561,8 @@ export default function SignerDevisPage() {
       franchise_tva: entreprise.franchise_tva ?? null,
     },
     chantier: null,
+    // Push 5 (Plan 2D) — même canal DocumentData que le dashboard (parité).
+    planImages: planImages.length > 0 ? planImages : undefined,
   })
 
   return (

@@ -4,6 +4,7 @@ import {
   getClientIp, checkRateLimit, isValidUUID,
   secureJson, secureError, rateLimitError,
 } from '@/lib/api-security'
+import { chargerImagesPlansDevis } from '@/lib/plan/plan-images'
 
 /**
  * GET /api/public/devis/[token]
@@ -122,6 +123,17 @@ export async function GET(
       if (!clientAdresse && parts.length > 1) clientAdresse = parts[1] || ''
     }
 
+    // 5 bis. Push 5 (Plan 2D) — images « Plan du chantier » : la MÊME image
+    // PNG que le dashboard et les 2 PDF (plans.export_images, base64). Requête
+    // séparée limitée à source_plan : le select des lignes (étape 3) reste
+    // inchangé et aucun identifiant de plan n'est exposé au client public.
+    const { data: lignesPlan } = await supabase
+      .from('devis_lignes')
+      .select('source_plan')
+      .eq('devis_id', devis.id)
+      .not('source_plan', 'is', null)
+    const planImages = await chargerImagesPlansDevis(supabase, (lignesPlan || []) as Record<string, unknown>[])
+
     // 6. Marquer le devis comme consulté
     if (!devis.consulte_par_client) {
       await supabase.from('devis').update({
@@ -170,6 +182,8 @@ export async function GET(
         email: clientEmail,
         siret: clientSiret || undefined,
       },
+      // Push 5 (Plan 2D) — section « Plan du chantier » de la page /signer.
+      planImages,
     })
   } catch (error) {
     console.error('Public devis fetch error:', error)

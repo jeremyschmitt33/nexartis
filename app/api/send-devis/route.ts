@@ -4,6 +4,7 @@ import { generateDevisPdf } from '@/lib/pdf'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { buildDocumentEmailHtml } from '@/lib/email'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { chargerImagesPlansDevis } from '@/lib/plan/plan-images'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, isValidEmail,
@@ -50,6 +51,11 @@ export async function POST(req: NextRequest) {
 
     const { data: lignes } = await supabase.from('devis_lignes').select('*').eq('devis_id', devisId).order('ordre')
     const { data: entreprise } = await supabase.from('entreprises').select('*').eq('user_id', devis.user_id).single()
+
+    // Push 5 (Plan 2D) — MÊME image PNG que le PDF download, le HTML dashboard
+    // et /signer (plans.export_images, helper partagé). Best-effort : [] si
+    // le devis n'a aucune ligne issue d'un plan.
+    const planImages = await chargerImagesPlansDevis(supabase, (lignes || []) as Record<string, unknown>[])
 
     // Resolve client — extraire toutes les infos
     let clientNom = 'Client'
@@ -161,6 +167,8 @@ export async function POST(req: NextRequest) {
         cout: devis.dechets_cout ?? undefined,
         inclure_cout: devis.dechets_inclure_cout ?? false,
       } : undefined,
+      // Push 5 (Plan 2D) — annexe « Plan du chantier » (absente si devis sans plan)
+      plan_images: planImages.length > 0 ? planImages : undefined,
     }, themeFromEntreprise(entreprise))
 
     // Générer un token de signature s'il n'en a pas encore

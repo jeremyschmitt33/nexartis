@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateDevisPdf } from '@/lib/pdf'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { chargerImagesPlansDevis } from '@/lib/plan/plan-images'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID,
@@ -50,6 +51,11 @@ export async function POST(req: NextRequest) {
 
     const { data: lignes } = await supabase.from('devis_lignes').select('*').eq('devis_id', devisId).order('ordre')
     const { data: entreprise } = await supabase.from('entreprises').select('*').eq('user_id', devis.user_id).single()
+
+    // Push 5 (Plan 2D) — MÊME image PNG que le HTML dashboard, le PDF email et
+    // /signer (plans.export_images, chargée via le helper partagé). Best-effort :
+    // retourne [] sans lever si le devis n'a aucune ligne issue d'un plan.
+    const planImages = await chargerImagesPlansDevis(supabase, (lignes || []) as Record<string, unknown>[])
 
     // Resolve client — calque exact de send-devis pour parité PDF email / PDF download
     let clientNom = 'Client'
@@ -148,6 +154,8 @@ export async function POST(req: NextRequest) {
         cout: devis.dechets_cout ?? undefined,
         inclure_cout: devis.dechets_inclure_cout ?? false,
       } : undefined,
+      // Push 5 (Plan 2D) — annexe « Plan du chantier » (absente si devis sans plan)
+      plan_images: planImages.length > 0 ? planImages : undefined,
     }, themeFromEntreprise(entreprise))
 
     return NextResponse.json({ pdfBase64, filename: `Devis-${devis.numero}.pdf` })

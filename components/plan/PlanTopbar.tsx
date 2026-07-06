@@ -29,6 +29,8 @@ export interface PlanTopbarProps {
   onNiveau: (id: string) => void
   onAjouterNiveau: () => void
   onRenommerNiveau: (id: string, name: string) => void
+  /** Push 5 — duplication profonde du niveau actif. */
+  onDupliquerNiveau: (id: string) => void
   vue: VueCalque
   onVue: (vue: VueCalque) => void
   metier: MetierId
@@ -136,6 +138,7 @@ export default function PlanTopbar(props: PlanTopbarProps) {
           onChange={props.onNiveau}
           onAjouter={props.onAjouterNiveau}
           onRenommer={props.onRenommerNiveau}
+          onDupliquer={props.onDupliquerNiveau}
         />
       </div>
 

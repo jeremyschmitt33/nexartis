@@ -23,6 +23,7 @@ import {
   type LegalEntreprise,
 } from './pdf/legal'
 import { drawSignatures } from './pdf/signatures'
+import { drawPlanAnnexe, type PdfPlanImage } from './pdf/plan'
 import { drawFooterAllPages } from './pdf/footer'
 import { drawSepaPaymentBlock, canDrawSepaQr } from './sepa-qr'
 import { buildPalette, type Palette } from './pdf/palette'
@@ -124,6 +125,10 @@ export interface DevisData {
   client_signature_base64?: string
   // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
   autoliquidation_btp?: boolean
+  // Push 5 (Plan 2D) — annexe « Plan du chantier » : images PNG (data URL)
+  // chargées par la route appelante via chargerImagesPlansDevis. Optionnel :
+  // absent pour un devis sans plan (PDF strictement inchangé).
+  plan_images?: PdfPlanImage[]
 }
 
 export interface FactureData {
@@ -298,6 +303,13 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
     date_signature: data.date_signature,
     client_signature_base64: data.client_signature_base64,
   }, y + 8, palette)
+
+  // 8 bis. Push 5 (Plan 2D) — annexe « Plan du chantier » : pages ajoutées en
+  // fin de devis, AVANT le mini-header/footer pour qu'elles en héritent.
+  // Garde stricte : rien n'est dessiné si plan_images est absent/vide.
+  if (data.plan_images && data.plan_images.length > 0) {
+    drawPlanAnnexe(doc, data.plan_images, palette)
+  }
 
   // 9. Mini-header pages 2+ + footer toutes pages
   drawMiniHeaderPages2Plus(doc, ent, 'DEVIS', data.numero, data.date_emission)

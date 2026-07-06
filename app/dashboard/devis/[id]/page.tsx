@@ -21,7 +21,9 @@ import LegalMentionsBlock from '@/components/legal/LegalMentionsBlock'
 import ProfilIncompletBanner from '@/components/legal/ProfilIncompletBanner'
 import DocumentRender from '@/components/document/DocumentRender'
 import PhotoSection from '@/components/photos/PhotoSection'
-import { buildDevisDocument } from '@/lib/document-data'
+import { buildDevisDocument, type DocumentPlanImage } from '@/lib/document-data'
+import { chargerImagesPlansDevis } from '@/lib/plan/plan-images'
+import { createClient } from '@/lib/supabase/client'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { logoConfigFromEntreprise } from '@/lib/logo-config'
 import { fetchAndDownloadPdf } from '@/lib/download-pdf'
@@ -245,6 +247,25 @@ export default function DevisDetailPage() {
   const [convertTriggered, setConvertTriggered] = useState(false)
   const [relanceTriggered, setRelanceTriggered] = useState(false)
   const [chantierCreating, setChantierCreating] = useState(false)
+
+  // Push 5 (Plan 2D) — images « Plan du chantier » : la MÊME image PNG
+  // (plans.export_images, base64) que les 2 PDF et /signer, chargée via le
+  // helper partagé à partir des source_plan des lignes. Best-effort : [].
+  const [planImages, setPlanImages] = useState<DocumentPlanImage[]>([])
+  useEffect(() => {
+    let annule = false
+    if (!lignesRaw || lignesRaw.length === 0) {
+      setPlanImages([])
+      return
+    }
+    ;(async () => {
+      const imgs = await chargerImagesPlansDevis(createClient(), lignesRaw as Record<string, unknown>[])
+      if (!annule) setPlanImages(imgs)
+    })()
+    return () => {
+      annule = true
+    }
+  }, [lignesRaw])
 
   // Auto-ouvrir modal envoi si ?relance=1 ou ?send=1 (depuis widget "À faire" ou liste devis)
   useEffect(() => {
@@ -553,6 +574,8 @@ export default function DevisDetailPage() {
       franchise_tva: (entreprise?.franchise_tva as boolean | undefined) ?? null,
     },
     chantier: null,
+    // Push 5 (Plan 2D) — même canal DocumentData que /signer (parité des 4 rendus).
+    planImages: planImages.length > 0 ? planImages : undefined,
   })
 
   return (

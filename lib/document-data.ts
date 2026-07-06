@@ -6,6 +6,15 @@
 
 export type DocumentType = 'devis' | 'facture'
 
+// Push 5 (Plan 2D) — image de plan affichée dans la section « Plan du
+// chantier » d'un devis. La MÊME image (PNG base64 stocké en DB, pattern
+// logo) alimente les 4 rendus : HTML dashboard, PDF download, PDF email,
+// page publique /signer. Voir lib/plan/plan-images.ts.
+export interface DocumentPlanImage {
+  titre: string
+  dataUrl: string
+}
+
 export interface DocumentArtisan {
   nom: string
   baseline: string
@@ -148,6 +157,9 @@ export interface DocumentData {
   optionsTotals?: { ht: number; ttc: number }
   // Devis signé : postes proposés mais NON retenus par le client (annexe, hors total).
   nonRetenues?: DocumentLeaf[]
+  // Push 5 (Plan 2D) — section « Plan du chantier » (devis uniquement).
+  // Absent/vide = aucun affichage : un devis sans plan est strictement inchangé.
+  planImages?: DocumentPlanImage[]
 }
 
 // ---------------------------------------------------------------------------
@@ -573,6 +585,10 @@ export function buildDevisDocument(opts: {
   client: RawClient
   entreprise: RawEntreprise
   chantier?: RawChantier | null
+  // Push 5 (Plan 2D) — images « Plan du chantier » chargées par l'appelant
+  // via chargerImagesPlansDevis (lib/plan/plan-images). Optionnel : absent
+  // pour un devis sans plan (aucun changement de rendu).
+  planImages?: DocumentPlanImage[]
 }): DocumentData {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
@@ -627,7 +643,7 @@ export function buildDevisDocument(opts: {
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
 
-  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType, options: options.length ? options : undefined, optionsTotals, nonRetenues: nonRetenues.length ? nonRetenues : undefined }
+  return { docType: 'devis', artisan, client, meta, groups, totals, isForfait, clientType, options: options.length ? options : undefined, optionsTotals, nonRetenues: nonRetenues.length ? nonRetenues : undefined, planImages: opts.planImages && opts.planImages.length > 0 ? opts.planImages : undefined }
 }
 
 export function buildFactureDocument(opts: {

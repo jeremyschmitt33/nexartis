@@ -14,9 +14,11 @@ export interface LevelTabsProps {
   onChange: (id: string) => void
   onAjouter: () => void
   onRenommer: (id: string, name: string) => void
+  /** Push 5 — duplique le niveau actif (copie profonde, nouveaux ids). */
+  onDupliquer: (id: string) => void
 }
 
-export default function LevelTabs({ niveaux, actifId, onChange, onAjouter, onRenommer }: LevelTabsProps) {
+export default function LevelTabs({ niveaux, actifId, onChange, onAjouter, onRenommer, onDupliquer }: LevelTabsProps) {
   const [editionId, setEditionId] = useState<string | null>(null)
   const [brouillon, setBrouillon] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -87,6 +89,20 @@ export default function LevelTabs({ niveaux, actifId, onChange, onAjouter, onRen
           </button>
         )
       })}
+      {/* Push 5 — duplication : bouton SÉPARÉ (l'onglet actif est déjà un
+          <button> dédié au renommage, on ne peut pas imbriquer un bouton). */}
+      <button
+        type="button"
+        onClick={() => onDupliquer(actifId)}
+        aria-label="Dupliquer le niveau actif"
+        title="Dupliquer le niveau actif"
+        className="inline-flex items-center rounded-lg px-2 py-1.5 text-gray-500 hover:text-orange transition-colors"
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+          <rect x="9" y="9" width="12" height="12" rx="2.5" />
+          <path strokeLinecap="round" d="M5 15H4.5A1.5 1.5 0 013 13.5v-9A1.5 1.5 0 014.5 3h9A1.5 1.5 0 0115 4.5V5" />
+        </svg>
+      </button>
       <button
         type="button"
         onClick={onAjouter}

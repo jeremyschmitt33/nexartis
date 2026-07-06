@@ -22,6 +22,8 @@ import { insertRow } from '@/lib/hooks'
 import { isAutoEntrepreneur } from '@/lib/helpers'
 import type { PlanData, SourcePlan } from '@/lib/plan/types'
 import { cleDoublon, type LigneProposee } from '@/lib/plan/injection'
+import { genererImagePlanNiveau } from '@/lib/plan/export'
+import type { ImagePlanExport } from '@/lib/plan/plan-images'
 
 /** Statuts de devis dans lesquels l'injection est autorisée (devis modifiable). */
 export const STATUTS_MODIFIABLES = ['brouillon', 'envoye'] as const
@@ -145,7 +147,9 @@ export async function injecterLignes(
   planId: string,
   devisId: string,
   lignes: LigneProposee[],
-  planData: PlanData
+  planData: PlanData,
+  /** Push 5 — niveau d'origine des métrés (sélection de l'image de plan). */
+  niveauId: string | null = null
 ): Promise<ResultatInjection> {
   if (lignes.length === 0) throw new Error('Aucun métré sélectionné.')
   const supabase = createClient()
@@ -206,6 +210,7 @@ export async function injecterLignes(
       roomId: l.roomId,
       metric: l.metric,
       lie: true,
+      niveauId,
     }
     try {
       await insertRow('devis_lignes', {
@@ -234,4 +239,64 @@ export async function injecterLignes(
   }
 
   return { inseres, numero: String(devisRow.numero ?? '') }
+}
+
+/**
+ * Push 5 — Génère le PNG du niveau injecté et le stocke dans
+ * `plans.export_images` (data URL base64, pattern logo). C'est CETTE image
+ * unique que relisent les 4 rendus du devis (parité par construction).
+ *
+ * BEST-EFFORT STRICT : ne lève JAMAIS (un échec de génération/stockage ne
+ * doit pas faire échouer une injection réussie). Une ré-injection régénère
+ * l'image du niveau (remplacement par niveauId) ; les images des autres
+ * niveaux sont conservées telles quelles (pas de régénération silencieuse).
+ */
+export async function stockerImagePlanNiveau(
+  planId: string,
+  planData: PlanData,
+  niveauId: string
+): Promise<void> {
+  try {
+    const niveau = planData.levels.find((n) => n.id === niveauId)
+    if (!niveau) return
+    if (niveau.rooms.length === 0 && niveau.clotures.length === 0) return
+
+    const dataUrl = await genererImagePlanNiveau(planData, niveauId)
+    if (!dataUrl) return
+
+    const supabase = createClient()
+    const { data: auth } = await supabase.auth.getUser()
+    if (!auth.user) return
+
+    const { data: row, error: errLecture } = await supabase
+      .from('plans')
+      .select('export_images')
+      .eq('id', planId)
+      .maybeSingle()
+    if (errLecture) throw new Error(errLecture.message)
+
+    const existantes: ImagePlanExport[] = Array.isArray(row?.export_images)
+      ? (row!.export_images as ImagePlanExport[]).filter(
+          (e) => e && typeof e === 'object' && e.niveauId !== niveauId
+        )
+      : []
+    existantes.push({
+      niveauId,
+      nom: niveau.name,
+      dataUrl,
+      genereLe: new Date().toISOString(),
+    })
+    // Garde-fou taille de ligne : on conserve au plus les 4 niveaux les plus récents.
+    const bornees = existantes.slice(-4)
+
+    const { error } = await supabase
+      .from('plans')
+      .update({ export_images: bornees })
+      .eq('id', planId)
+      .eq('user_id', auth.user.id)
+    if (error) throw new Error(error.message)
+  } catch (_e) {
+    // Best-effort : journalisé côté client uniquement, jamais bloquant.
+    console.error("[plan] image d'export du plan non enregistrée")
+  }
 }

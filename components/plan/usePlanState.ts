@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { Cloture, Niveau, Ouverture, Piece, PlanData, Symbole } from '@/lib/plan/types'
+import type { Cloture, Niveau, Ouverture, Piece, PlanData, PointMm, Symbole } from '@/lib/plan/types'
 import { genId, niveauVide, nomAvecSuffixe } from '@/lib/plan/defaults'
 import {
   purgerOuverturesInvalides,
@@ -64,6 +64,8 @@ export interface PlanStateApi {
   majSymboleSansUndo: (symboleId: string, patch: Partial<Symbole>) => void
   ajouterNiveau: () => void
   renommerNiveau: (niveauId: string, name: string) => void
+  /** Copie profonde d'un niveau (nouveaux ids partout). Retourne le nom créé, ou null. */
+  dupliquerNiveau: (niveauId: string) => string | null
 }
 
 export function usePlanState(initial: PlanData): PlanStateApi {
@@ -383,6 +385,64 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     selectRoom(null)
   }, [muter])
 
+  /**
+   * Push 5 — Duplication d'un niveau : copie PROFONDE (rooms, ouvertures,
+   * clôtures, symboles) avec de NOUVEAUX ids partout et remappage des
+   * références internes :
+   *  - `sharedWith` d'une ouverture -> id de la pièce COPIÉE ; si la référence
+   *    pointe hors du niveau copié (pièce inconnue), elle est nettoyée (null) ;
+   *  - `roomId` d'un symbole -> id de la pièce copiée (null si inconnue).
+   * Un seul cran d'undo (muter), le niveau copié devient actif.
+   */
+  const dupliquerNiveau = useCallback(
+    (id: string): string | null => {
+      const src = dataRef.current.levels.find((n) => n.id === id)
+      if (!src) return null
+      const noms = dataRef.current.levels.map((n) => n.name)
+      const nouveauNom = nomAvecSuffixe(src.name + ' (copie)', noms)
+      const idsPieces = new Map<string, string>()
+      for (const r of src.rooms) idsPieces.set(r.id, genId())
+      const rooms: Piece[] = src.rooms.map((r) => ({
+        ...r,
+        id: idsPieces.get(r.id) as string,
+        vertices: r.vertices.map((p): PointMm => [p[0], p[1]]),
+        openings: r.openings.map((o) => ({
+          ...o,
+          id: genId(),
+          sharedWith: o.sharedWith ? idsPieces.get(o.sharedWith) ?? null : null,
+        })),
+      }))
+      const clotures: Cloture[] = src.clotures.map((c) => ({
+        ...c,
+        id: genId(),
+        points: c.points.map((p): PointMm => [p[0], p[1]]),
+      }))
+      const symbols: Symbole[] = src.symbols.map((s) => ({
+        ...s,
+        id: genId(),
+        position: [s.position[0], s.position[1]] as PointMm,
+        roomId: s.roomId ? idsPieces.get(s.roomId) ?? null : null,
+      }))
+      const ordreMax = dataRef.current.levels.reduce((m, n) => Math.max(m, n.order), -1)
+      const nouveau: Niveau = {
+        id: genId(),
+        name: nouveauNom,
+        order: ordreMax + 1,
+        heightDefault: src.heightDefault,
+        rooms,
+        clotures,
+        symbols,
+      }
+      muter((copie) => {
+        copie.levels.push(nouveau)
+      })
+      setNiveauId(nouveau.id)
+      selectRoom(null)
+      return nouveauNom
+    },
+    [muter, selectRoom]
+  )
+
   const renommerNiveau = useCallback(
     (id: string, name: string) => {
       const propre = name.trim()
@@ -439,5 +499,6 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     majSymboleSansUndo,
     ajouterNiveau,
     renommerNiveau,
+    dupliquerNiveau,
   }
 }

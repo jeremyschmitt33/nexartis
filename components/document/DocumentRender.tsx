@@ -3,9 +3,10 @@
 //         Quand omise, on applique DEFAULT_DOCUMENT_THEME (charte Nexartis historique) -> rendu identique a avant.
 import { Fragment, type CSSProperties } from 'react'
 import './document.css'
-import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentLeaf, DocumentMeta, DocumentTotals } from '@/lib/document-data'
+import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentLeaf, DocumentMeta, DocumentPlanImage, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
 import { TVA_MENTION_10, TVA_MENTION_5_5 } from '@/lib/legal-mentions'
+import { MENTION_PLAN_INDICATIF } from '@/lib/plan/plan-images'
 import { DEFAULT_DOCUMENT_THEME, themeToCssVars, type DocumentTheme } from '@/lib/document-theme'
 import { DEFAULT_LOGO_CONFIG, logoConfigToCssVars, type LogoConfig } from '@/lib/logo-config'
 
@@ -39,6 +40,10 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
           {data.meta.autoliquidationBtp && <AutoliquidationMention />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
           {isDevis && <Signature artisan={data.artisan} />}
+          {/* Push 5 (Plan 2D) — section « Plan du chantier » : uniquement si le
+              devis contient des lignes issues d'un plan (data.planImages).
+              Même image PNG que le PDF (download + email) et /signer. */}
+          {isDevis && data.planImages && data.planImages.length > 0 && <PlanSection images={data.planImages} />}
         </div>
         <PageFootRich artisan={data.artisan} />
       </section>
@@ -482,6 +487,30 @@ function Signature({ artisan }: { artisan: DocumentArtisan }) {
           </div>
         ) : (<div className="dv-sign-hint">Signature &amp; cachet de l&apos;entreprise</div>)}
       </div>
+    </div>
+  )
+}
+
+// Push 5 (Plan 2D) — Section « Plan du chantier » : image(s) PNG générée(s) à
+// l'injection des métrés (une par niveau). Styles inline (comme OptionsBlock)
+// pour ne pas dépendre de document.css. Garde stricte : appelée uniquement si
+// data.planImages est non vide (un devis sans plan reste inchangé).
+function PlanSection({ images }: { images: DocumentPlanImage[] }) {
+  return (
+    <div style={{ margin: '16px 0 4px' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '.6px', textTransform: 'uppercase', color: '#0f1a3a', marginBottom: 8 }}>
+        Plan du chantier
+      </div>
+      {images.map((img, i) => (
+        <div key={`plan-${i}`} style={{ border: '1px solid #d8dce5', borderRadius: 10, overflow: 'hidden', background: '#ffffff', marginBottom: 8 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={img.dataUrl} alt={img.titre ? `Plan du chantier — ${img.titre}` : 'Plan du chantier'} style={{ display: 'block', width: '100%', height: 'auto' }} />
+          {img.titre && (
+            <div style={{ padding: '6px 12px', fontSize: '0.7rem', color: '#5b6473', borderTop: '1px solid #eef0f4' }}>{img.titre}</div>
+          )}
+        </div>
+      ))}
+      <div style={{ fontSize: '0.66rem', color: '#8a93a3' }}>{MENTION_PLAN_INDICATIF}</div>
     </div>
   )
 }
