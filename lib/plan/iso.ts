@@ -32,7 +32,7 @@
  */
 
 import type { CalqueId, Niveau, Ouverture, Piece, PointMm } from './types'
-import { COULEURS_ISO, COULEURS_PLAN } from './defaults'
+import { AVANCEMENT_META, COULEURS_ISO, COULEURS_PLAN, avancementDe } from './defaults'
 import { centreMm, fmtNombreFr } from './geometry'
 import { surfaceSolM2 } from './metrics'
 import { bornesNiveau } from './viewport'
@@ -194,8 +194,17 @@ function solDe(piece: Piece, pts: P2[]): IsoPrim {
  * Construit la scène 3D complète du niveau : deux calques triés
  * (painter's algorithm) + bornes projetées. `quartsDeTour` : 0..3
  * (toute valeur entière est ramenée modulo 4).
+ *
+ * `options.avancementVisible` : superpose sur chaque sol de pièce la teinte
+ * d'avancement (même rgba que la 2D, cf. AVANCEMENT_META) — désactivé par
+ * défaut pour ne rien changer aux rendus existants.
  */
-export function construireScene3d(niveau: Niveau, quartsDeTour: number): IsoScene {
+export function construireScene3d(
+  niveau: Niveau,
+  quartsDeTour: number,
+  options?: { avancementVisible?: boolean },
+): IsoScene {
+  const avancementVisible = options?.avancementVisible === true
   const calques: Record<CalqueId, IsoCalque> = {
     existant: { sols: [], faces: [], etiquettes: [] },
     projet: { sols: [], faces: [], etiquettes: [] },
@@ -238,7 +247,19 @@ export function construireScene3d(niveau: Niveau, quartsDeTour: number): IsoScen
     const n = base.length
     if (n < 3) continue
     const profSol = base.reduce((s, p) => s + p[0] + p[1], 0) / n
-    solsTri[piece.layer].push({ prof: profSol, prim: solDe(piece, base.map((p) => P(p[0], p[1], 0))) })
+    const ptsSol = base.map((p) => P(p[0], p[1], 0))
+    solsTri[piece.layer].push({ prof: profSol, prim: solDe(piece, ptsSol) })
+
+    // Teinte d'avancement (parité avec la 2D) : polygone semi-transparent
+    // superposé au sol, avec la MÊME rgba que AVANCEMENT_META. Poussé juste
+    // après le sol de base et à la même profondeur → le tri stable le garde
+    // au-dessus de son propre sol. Sans bord (le sol de base garde le sien).
+    if (avancementVisible) {
+      const teinte = AVANCEMENT_META[avancementDe(piece)].fill
+      if (teinte) {
+        solsTri[piece.layer].push({ prof: profSol, prim: { prim: 'poly', pts: ptsSol, fill: teinte } })
+      }
+    }
 
     // Zones extérieures : à plat uniquement (pas de murs, pas d'étiquette 3D).
     if (piece.cat !== 'int') continue

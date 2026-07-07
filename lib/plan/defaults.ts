@@ -93,6 +93,43 @@ export function avancementDe(p: { avancement?: EtatAvancement }): EtatAvancement
   return p.avancement ?? 'a_faire'
 }
 
+/** Récapitulatif d'avancement d'un niveau (bandeau éditeur). */
+export interface RecapAvancement {
+  /** Nombre de pièces INTÉRIEURES (les zones ext ne sont pas des « pièces »). */
+  total: number
+  /** Pièces à 100 % (termine + receptionne). */
+  faites: number
+  /** Répartition par état (sur les pièces intérieures). */
+  parEtat: Record<EtatAvancement, number>
+  /** Avancement global 0..100, moyenne pondérée des pctSuggere. */
+  pct: number
+}
+
+/**
+ * Calcule le récap d'avancement d'un niveau. PUR (testable). Ne compte que les
+ * pièces intérieures (`cat === 'int'`). Le pct global pondère chaque pièce par
+ * son pctSuggere (a_faire 0, en_cours 50, termine/receptionne 100), ce qui
+ * reflète honnêtement les pièces « en cours » — pas seulement les terminées.
+ */
+export function recapAvancement(rooms: { cat?: 'int' | 'ext'; avancement?: EtatAvancement }[]): RecapAvancement {
+  const parEtat: Record<EtatAvancement, number> = { a_faire: 0, en_cours: 0, termine: 0, receptionne: 0 }
+  let sommePct = 0
+  let total = 0
+  for (const r of rooms) {
+    if (r.cat !== 'int') continue
+    total += 1
+    const etat = avancementDe(r)
+    parEtat[etat] += 1
+    sommePct += AVANCEMENT_META[etat].pctSuggere
+  }
+  return {
+    total,
+    faites: parEtat.termine + parEtat.receptionne,
+    parEtat,
+    pct: total > 0 ? Math.round(sommePct / total) : 0,
+  }
+}
+
 /**
  * Teintes dérivées pour la VUE 3D isométrique (Push 6) : ombrage plat
  * 3 tons de la famille navy pour les murs (selon l'orientation de la

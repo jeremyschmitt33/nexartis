@@ -38,6 +38,7 @@ import ClotureSheet from './ClotureSheet'
 import DevisDrawer, { type PreSelection } from './DevisDrawer'
 import AddRoomModal, { type DemandePiece } from './AddRoomModal'
 import Iso3dView from './Iso3dView'
+import PlanRecapAvancement from './PlanRecapAvancement'
 import type { VueCalque } from './PlanRender'
 
 export interface PlanEditorProps {
@@ -419,6 +420,11 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
           Hors connexion — vos modifications seront enregistrées au retour du réseau. Ne fermez pas l&apos;onglet.
         </div>
       )}
+
+      {/* Push 9 — bandeau récap d'avancement du niveau courant (lecture seule,
+          additif). Masqué s'il n'y a aucune pièce intérieure (géré dans le
+          composant). Reflète le même code couleur que le plan (2D et 3D). */}
+      <PlanRecapAvancement rooms={etat.niveau.rooms} />
 
       <div className="relative flex min-h-0 flex-1">
         {/* Palette gauche à libellés, filtrée par la vue métier (desktop).

@@ -20,8 +20,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Niveau } from '@/lib/plan/types'
-import { COULEURS_PLAN } from '@/lib/plan/defaults'
+import type { EtatAvancement, Niveau } from '@/lib/plan/types'
+import { AVANCEMENT_META, AVANCEMENT_ORDRE, COULEURS_PLAN, avancementDe } from '@/lib/plan/defaults'
 import {
   construireScene3d,
   ISO_COS,
@@ -199,7 +199,21 @@ export default function Iso3dView({ niveau, nomPlan }: Iso3dViewProps) {
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  const scene = useMemo(() => construireScene3d(niveau, rot), [niveau, rot])
+  const scene = useMemo(
+    () => construireScene3d(niveau, rot, { avancementVisible: true }),
+    [niveau, rot],
+  )
+
+  // États d'avancement RÉELLEMENT présents (hors 'a_faire', qui n'est pas
+  // teinté) → alimente la légende couleurs et l'aria-label de la vue 3D.
+  const etatsPresents = useMemo<EtatAvancement[]>(() => {
+    const vus = new Set<EtatAvancement>()
+    for (const r of niveau.rooms) {
+      const e = avancementDe(r)
+      if (e !== 'a_faire') vus.add(e)
+    }
+    return AVANCEMENT_ORDRE.filter((e) => vus.has(e))
+  }, [niveau])
 
   const vb = useMemo(() => {
     if (!scene.bornes) return null
@@ -250,7 +264,13 @@ export default function Iso3dView({ niveau, nomPlan }: Iso3dViewProps) {
           viewBox={`${r(vb.x)} ${r(vb.y)} ${r(vb.w)} ${r(vb.h)}`}
           className="h-full w-full"
           role="img"
-          aria-label={`Vue 3D du niveau ${niveau.name}`}
+          aria-label={
+            etatsPresents.length > 0
+              ? `Vue 3D du niveau ${niveau.name}. Sols coloriés selon l'avancement : ${etatsPresents
+                  .map((e) => AVANCEMENT_META[e].label.toLowerCase())
+                  .join(', ')}.`
+              : `Vue 3D du niveau ${niveau.name}`
+          }
         >
           <g>
             <CalqueSvg calque={scene.existant} />
@@ -274,6 +294,23 @@ export default function Iso3dView({ niveau, nomPlan }: Iso3dViewProps) {
       <div className="pointer-events-none absolute left-1/2 top-3 z-10 w-max max-w-[92%] -translate-x-1/2 rounded-full border border-gray-200 bg-white/95 px-4 py-1.5 text-center font-hanken text-xs font-semibold text-gray-500 shadow-sm">
         Vue 3D de présentation — les modifications se font en 2D
       </div>
+
+      {/* Légende d'avancement (états présents seulement) : évite des sols
+          colorés « muets » et aide au repérage (daltonisme : texte + pastille). */}
+      {etatsPresents.length > 0 && (
+        <div className="pointer-events-none absolute right-3 top-3 z-10 flex flex-col gap-1 rounded-xl border border-gray-200 bg-white/95 px-3 py-2 shadow-sm">
+          {etatsPresents.map((e) => (
+            <span key={e} className="flex items-center gap-1.5 font-hanken text-[11.5px] font-semibold text-gray-600">
+              <span
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                style={{ backgroundColor: AVANCEMENT_META[e].fill ?? '#e3e9f2' }}
+                aria-hidden="true"
+              />
+              {AVANCEMENT_META[e].court}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Barre flottante : rotation, Avant/Après, capture */}
       <div className="absolute bottom-4 left-1/2 z-10 flex max-w-[95%] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-2.5 py-2 shadow-xl">
