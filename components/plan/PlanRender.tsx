@@ -13,7 +13,7 @@
 import type { Niveau, Ouverture, Piece, PointMm } from '@/lib/plan/types'
 import { aireMm2, centreMm, estDansPolygone, fmtNombreFr, mm2VersM2, mmVersM } from '@/lib/plan/geometry'
 import { perimetreMl, surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
-import { COULEURS_PLAN } from '@/lib/plan/defaults'
+import { AVANCEMENT_META, COULEURS_PLAN } from '@/lib/plan/defaults'
 import { bornesPiece, estRectiligne } from '@/lib/plan/edition'
 import SymboleSvg from './SymboleSvg'
 import ClotureSvg from './ClotureSvg'
@@ -60,7 +60,7 @@ export function PlanDefs({ idPrefix = 'plan' }: { idPrefix?: string }) {
 
 // ── Pièces ──────────────────────────────────────────────────────────────────
 
-function RenduPiece({ piece, idPrefix, interactif }: { piece: Piece; idPrefix: string; interactif: boolean }) {
+function RenduPiece({ piece, idPrefix, interactif, avancementVisible }: { piece: Piece; idPrefix: string; interactif: boolean; avancementVisible: boolean }) {
   const pts = piece.vertices.map((p) => p.join(',')).join(' ')
   const projet = piece.layer === 'projet'
   const ext = piece.cat === 'ext'
@@ -81,19 +81,33 @@ function RenduPiece({ piece, idPrefix, interactif }: { piece: Piece; idPrefix: s
       stroke = C.pelouse
     } else fill = C.blanc
   }
+  // Mode Avancement (Push 7) : teinte de remplissage superposée selon l'état
+  // de la pièce. 'a_faire' (ou champ absent) → aucune teinte. La surcouche est
+  // NON interactive (pointer-events none) pour ne pas voler le clic au polygone
+  // de base qui porte data-room-id. Rendue par PlanRender → visible à l'écran
+  // ET dans l'export PNG/PDF (parité par construction).
+  const teinteAvancement =
+    avancementVisible && piece.avancement && piece.avancement !== 'a_faire'
+      ? AVANCEMENT_META[piece.avancement].fill
+      : null
   return (
-    <polygon
-      data-room-id={interactif ? piece.id : undefined}
-      points={pts}
-      fill={fill}
-      fillOpacity={fillOpacity}
-      stroke={stroke}
-      strokeWidth={ext ? (projet ? 2.4 : 2) : projet ? 4 : 6}
-      strokeDasharray={projet ? '10 6' : undefined}
-      strokeLinejoin="miter"
-      vectorEffect="non-scaling-stroke"
-      style={interactif ? { cursor: 'move' } : undefined}
-    />
+    <>
+      <polygon
+        data-room-id={interactif ? piece.id : undefined}
+        points={pts}
+        fill={fill}
+        fillOpacity={fillOpacity}
+        stroke={stroke}
+        strokeWidth={ext ? (projet ? 2.4 : 2) : projet ? 4 : 6}
+        strokeDasharray={projet ? '10 6' : undefined}
+        strokeLinejoin="miter"
+        vectorEffect="non-scaling-stroke"
+        style={interactif ? { cursor: 'move' } : undefined}
+      />
+      {teinteAvancement && (
+        <polygon points={pts} fill={teinteAvancement} stroke="none" pointerEvents="none" />
+      )}
+    </>
   )
 }
 
@@ -352,6 +366,13 @@ export interface PlanRenderProps {
   idPrefix?: string
   /** Affiche la grille 1 m sous le plan (éditeur). */
   grille?: boolean
+  /**
+   * Affiche la teinte d'avancement des pièces (mode Avancement, Push 7).
+   * true dans l'éditeur et l'export « plan de suivi de chantier ». FALSE pour
+   * toute image destinée à un DEVIS (document pré-travaux, contractuel) : un
+   * devis ne doit JAMAIS montrer une pièce « Terminé » ou « Réceptionné ».
+   */
+  avancementVisible?: boolean
 }
 
 /** Ordre des passes : grille → pièces → sélection → clôtures → ouvertures → cotes → étiquettes → symboles → badges. */
@@ -364,6 +385,7 @@ export default function PlanRender({
   interactif = false,
   idPrefix = 'plan',
   grille = false,
+  avancementVisible = true,
 }: PlanRenderProps) {
   const visibles = niveau.rooms.filter((r) => vue === 'tout' || (vue === 'projet' ? true : r.layer === 'existant'))
   const tri = [...visibles].sort((a, b) => Number(a.layer === 'projet') - Number(b.layer === 'projet'))
@@ -382,7 +404,7 @@ export default function PlanRender({
       {grille && <rect x={-50000} y={-50000} width={100000} height={100000} fill={`url(#${idPrefix}-grille)`} pointerEvents="none" />}
       {tri.map((r) => (
         <g key={r.id} opacity={opacite(r)}>
-          <RenduPiece piece={r} idPrefix={idPrefix} interactif={interactif} />
+          <RenduPiece piece={r} idPrefix={idPrefix} interactif={interactif} avancementVisible={avancementVisible} />
         </g>
       ))}
       {selection && <RenduSelection piece={selection} />}

@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import type { Piece } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
 import { perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
-import { OUVERTURE_DEFAUTS, lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
+import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
 export interface RoomSheetProps {
@@ -123,6 +123,37 @@ export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSu
               Travaux futurs — affichés en orange pointillé sur le plan.
             </p>
           )}
+        </div>
+
+        <div>
+          <Etiquette>Avancement du chantier</Etiquette>
+          <div className="grid grid-cols-2 gap-1 rounded-xl border border-gray-200/60 bg-[#fafbfc] p-1" role="group" aria-label="Avancement de la pièce">
+            {AVANCEMENT_ORDRE.map((key) => {
+              const meta = AVANCEMENT_META[key]
+              const actif = avancementDe(piece) === key
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onMaj({ avancement: key })}
+                  aria-pressed={actif}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 font-hanken text-xs font-bold transition-all ${
+                    actif ? 'bg-white text-navy shadow-[0_2px_6px_rgba(15,26,58,0.08)]' : 'text-gray-500 hover:text-navy'
+                  }`}
+                >
+                  <span
+                    className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-black/10"
+                    style={{ backgroundColor: meta.fill ?? '#e3e9f2' }}
+                    aria-hidden="true"
+                  />
+                  {meta.court}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
+            Colorie la pièce sur le plan. Servira à pré-remplir vos factures de situation.
+          </p>
         </div>
 
         <div>

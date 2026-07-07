@@ -32,6 +32,14 @@ export type CategorieZone = 'int' | 'ext';
 export type TypeExterieur = 'terrasse' | 'piscine' | 'pelouse' | 'autre_ext';
 
 /**
+ * État d'avancement d'une pièce sur le chantier (mode Avancement, Push 7).
+ * Absent sur une pièce = 'a_faire' (rien n'a démarré, plan neutre).
+ * 'termine' et 'receptionne' valent tous deux 100 % ; 'receptionne' marque
+ * en plus l'acceptation du client (utile pour les situations et la preuve).
+ */
+export type EtatAvancement = 'a_faire' | 'en_cours' | 'termine' | 'receptionne';
+
+/**
  * Ouverture (porte, fenêtre...) attachée à une arête d'une pièce.
  * `edgeIndex` : index de l'arête (sommet i -> sommet i+1) dans `vertices`.
  * `offset` : distance en mm du début de l'arête au bord gauche de l'ouverture.
@@ -67,6 +75,12 @@ export interface Piece {
   /** Déduction de surface au sol en m² (trémie d'escalier, poteau...). */
   deductionSolM2?: number;
   openings: Ouverture[];
+  /**
+   * État d'avancement du chantier pour cette pièce (mode Avancement, Push 7).
+   * Optionnel et purement additif : les plans créés avant le Push 7 n'ont pas
+   * ce champ (traités comme 'a_faire'). N'entre PAS dans les métrés (`computed`).
+   */
+  avancement?: EtatAvancement;
 }
 
 /** Clôture / grillage : polyligne OUVERTE (non fermée), métrée en ml. */
@@ -135,3 +149,4 @@ export interface MetresPiece {
   /** Comptage d'ouvertures par type (les mitoyennes comptées UNE fois). */
   ouvertures: Record<TypeOuverture, number>;
 }
+// (Push 7) EtatAvancement ajouté plus haut — voir interface Piece.avancement.

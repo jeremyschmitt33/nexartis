@@ -160,6 +160,10 @@ export function genererSvgExport(data: PlanData, niveauId: string): SvgExport | 
           interactif: false,
           idPrefix: PREFIXE,
           grille: false,
+          // Push 7 : cette image part sur un DEVIS (pré-travaux). On n'y montre
+          // JAMAIS la teinte d'avancement (« Terminé »/« Réceptionné »). La
+          // teinte reviendra explicitement pour le snapshot de facture (7C).
+          avancementVisible: false,
         })
       )
     ),

@@ -14,6 +14,7 @@
 import type {
   CalqueId,
   Cloture,
+  EtatAvancement,
   Niveau,
   Ouverture,
   Piece,
@@ -56,6 +57,41 @@ export const COULEURS_PLAN = {
   /** Fond des piscines : sky à 18 % (maquette V2.1). */
   piscineFond: 'rgba(90, 180, 224, 0.18)',
 } as const
+
+/**
+ * Mode Avancement (Push 7) — méta par état d'avancement d'une pièce :
+ *  - `label` / `court` : libellés d'interface.
+ *  - `fill` : teinte de remplissage superposée au fond de la pièce sur le plan
+ *    (rgba semi-transparent). `null` pour 'a_faire' → aucune teinte, plan neutre.
+ *  - `pctSuggere` : pourcentage d'avancement SUGGÉRÉ (indicatif). ⚠️ Ce n'est
+ *    PAS une base de facturation : le Push 7B ne facturera JAMAIS sur ce chiffre
+ *    sans confirmation explicite de l'artisan (un « en cours » réel va de 10 %
+ *    à 90 %). Le 50 est un point de départ modifiable, pas un montant.
+ *
+ * Couleurs choisies DISTINCTES pour éviter les collisions et aider les
+ * daltoniens (le libellé texte du sélecteur reste la source de vérité) :
+ *  - en_cours = violet (ne se confond pas avec l'orange du calque « projet »),
+ *  - termine  = vert franc (plus saturé que le vert pelouse),
+ *  - receptionne = bleu « validé » (distinct des verts et de la pelouse).
+ * Hex/rgba autorisés ICI uniquement (même règle que COULEURS_PLAN).
+ */
+export const AVANCEMENT_META: Record<
+  EtatAvancement,
+  { label: string; court: string; fill: string | null; pctSuggere: number }
+> = {
+  a_faire: { label: 'À faire', court: 'À faire', fill: null, pctSuggere: 0 },
+  en_cours: { label: 'En cours', court: 'En cours', fill: 'rgba(139, 92, 246, 0.26)', pctSuggere: 50 },
+  termine: { label: 'Terminé', court: 'Terminé', fill: 'rgba(52, 168, 102, 0.34)', pctSuggere: 100 },
+  receptionne: { label: 'Réceptionné', court: 'Réceptionné', fill: 'rgba(37, 99, 235, 0.28)', pctSuggere: 100 },
+} as const
+
+/** Ordre d'affichage du sélecteur d'avancement (du non-démarré au réceptionné). */
+export const AVANCEMENT_ORDRE: readonly EtatAvancement[] = ['a_faire', 'en_cours', 'termine', 'receptionne'] as const
+
+/** État d'avancement effectif d'une pièce (le défaut est 'a_faire'). */
+export function avancementDe(p: { avancement?: EtatAvancement }): EtatAvancement {
+  return p.avancement ?? 'a_faire'
+}
 
 /**
  * Teintes dérivées pour la VUE 3D isométrique (Push 6) : ombrage plat

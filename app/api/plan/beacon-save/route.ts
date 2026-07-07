@@ -117,11 +117,16 @@ function estPlanDataValide(data: unknown): data is PlanData {
   return true
 }
 
+/** États d'avancement acceptés (mode Avancement, Push 7). */
+const ETATS_AVANCEMENT = new Set(['a_faire', 'en_cours', 'termine', 'receptionne'])
+
 /**
  * Durcissement m2 (audit 3a) : REJET DOUX des symboles/clôtures invalides.
  * Une entrée corrompue (position non finie, type manquant) est FILTRÉE au
  * lieu de faire échouer toute la sauvegarde de dernier souffle en 400 —
  * perdre une pose de symbole vaut mieux que perdre tout le plan.
+ * Push 7 : une valeur d'avancement inconnue est effacée sur la pièce (rejet
+ * doux) sans jeter la pièce ni le plan.
  * Retourne un nouvel objet (ne mute pas l'entrée).
  */
 function nettoyerSymbolesEtClotures(data: PlanData): PlanData {
@@ -129,6 +134,15 @@ function nettoyerSymbolesEtClotures(data: PlanData): PlanData {
     ...data,
     levels: data.levels.map((n) => ({
       ...n,
+      rooms: Array.isArray(n.rooms)
+        ? n.rooms.map((r) => {
+            const av = (r as Record<string, unknown>).avancement
+            // Valeur d'avancement inconnue → effacée (undefined = clé omise au JSON).
+            return av !== undefined && !ETATS_AVANCEMENT.has(av as string)
+              ? { ...r, avancement: undefined }
+              : r
+          })
+        : n.rooms,
       symbols: Array.isArray(n.symbols) ? n.symbols.filter(estSymboleValide) : [],
       clotures: Array.isArray(n.clotures) ? n.clotures.filter(estClotureValide) : [],
     })),
