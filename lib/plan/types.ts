@@ -149,4 +149,3 @@ export interface MetresPiece {
   /** Comptage d'ouvertures par type (les mitoyennes comptées UNE fois). */
   ouvertures: Record<TypeOuverture, number>;
 }
-// (Push 7) EtatAvancement ajouté plus haut — voir interface Piece.avancement.

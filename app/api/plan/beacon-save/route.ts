@@ -136,9 +136,10 @@ function nettoyerSymbolesEtClotures(data: PlanData): PlanData {
       ...n,
       rooms: Array.isArray(n.rooms)
         ? n.rooms.map((r) => {
-            const av = (r as Record<string, unknown>).avancement
-            // Valeur d'avancement inconnue → effacée (undefined = clé omise au JSON).
-            return av !== undefined && !ETATS_AVANCEMENT.has(av as string)
+            // `avancement` est typé sur Piece ; on lit directement (pas de cast).
+            // Valeur inconnue (client trafiqué) → effacée (undefined = clé omise au JSON).
+            const av: string | undefined = r.avancement
+            return av !== undefined && !ETATS_AVANCEMENT.has(av)
               ? { ...r, avancement: undefined }
               : r
           })
