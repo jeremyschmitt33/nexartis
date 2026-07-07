@@ -17,6 +17,8 @@ import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 import SituationParLigne, { type SituationParLigneResultat, type LigneDevisMarche } from '@/components/factures/SituationParLigne'
 import { cumulDejaFactureParLigne } from '@/lib/situation'
+import { genererImagePlanNiveau } from '@/lib/plan/export'
+import type { PlanData } from '@/lib/plan/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -128,6 +130,8 @@ export default function NouvelleFacturePage() {
     dejaFacture: Record<string, number>
     etats: Record<string, string>
     noms: Record<string, string>
+    /** Plans du chantier (pour générer le snapshot colorié au save, Push 7C). */
+    plans: Array<{ id: string; name: string; data: PlanData }>
   } | null>(null)
 
   // Client (texte libre ou sélection)
@@ -428,9 +432,10 @@ export default function NouvelleFacturePage() {
         const dejaFacture = cumulDejaFactureParLigne(sitsArr)
         const etats: Record<string, string> = {}
         const noms: Record<string, string> = {}
+        const plansAv: Array<{ id: string; name: string; data: PlanData }> = []
         if (chantierId) {
           const { data: plansRows } = await supabase
-            .from('plans').select('data').eq('user_id', user.id).eq('chantier_id', chantierId).is('deleted_at', null)
+            .from('plans').select('id, name, data').eq('user_id', user.id).eq('chantier_id', chantierId).is('deleted_at', null)
           if (ctrl.signal.aborted) return
           for (const p of plansRows ?? []) {
             const d = (p.data ?? null) as { levels?: Array<{ rooms?: Array<{ id?: string; name?: string; avancement?: string }> }> } | null
@@ -440,9 +445,10 @@ export default function NouvelleFacturePage() {
                 if (room?.id && room.name) noms[room.id] = room.name
               }
             }
+            if (d) plansAv.push({ id: String(p.id), name: String(p.name ?? 'Plan'), data: d as unknown as PlanData })
           }
         }
-        setSituationPlan({ lignes, dejaFacture, etats, noms })
+        setSituationPlan({ lignes, dejaFacture, etats, noms, plans: plansAv })
       } catch {
         setSituationPlan(null)
       }
@@ -785,6 +791,35 @@ export default function NouvelleFacturePage() {
             .map((l) => ({ devis_ligne_id: l.devisLigneId as string, montant_ht: Math.round(l.priceHT * l.qty * 100) / 100 }))
         : []
 
+      // Push 7C — snapshot du plan COLORIÉ (avancement) figé sur la facture de
+      // situation. Best-effort et JAMAIS bloquant (try/catch, image client via
+      // canvas) : une image par niveau qui porte au moins une pièce avancée, capé à 4.
+      let planImagesSnap: Array<{ titre: string; dataUrl: string }> | null = null
+      if (isSit && modeParLigneActif && situationPlan && situationPlan.plans.length > 0) {
+        try {
+          const cibles: Array<{ titre: string; data: PlanData; niveauId: string }> = []
+          for (const pl of situationPlan.plans) {
+            for (const niv of pl.data.levels ?? []) {
+              if (cibles.length >= 4) break
+              const aAvancement = (niv.rooms ?? []).some((r) => r.avancement && r.avancement !== 'a_faire')
+              if (aAvancement) cibles.push({ titre: `${pl.name} — ${niv.name}`, data: pl.data, niveauId: niv.id })
+            }
+          }
+          // Génération EN PARALLÈLE (Promise.all) pour ne pas allonger la sauvegarde.
+          const res = await Promise.all(
+            cibles.map((c) =>
+              genererImagePlanNiveau(c.data, c.niveauId, { avancementVisible: true }).then((u) =>
+                u ? { titre: c.titre, dataUrl: u } : null
+              )
+            )
+          )
+          const imgs = res.filter((x): x is { titre: string; dataUrl: string } => x !== null)
+          planImagesSnap = imgs.length > 0 ? imgs : null
+        } catch {
+          planImagesSnap = null
+        }
+      }
+
       const factureData: Record<string, unknown> = {
         numero,
         statut: statutFinal,
@@ -807,6 +842,8 @@ export default function NouvelleFacturePage() {
           : null,
         // Push 7B — détail par ligne (null si saisie manuelle sans lignes de devis).
         situation_lignes: situationLignesCalc.length > 0 ? situationLignesCalc : null,
+        // Push 7C — snapshot du plan colorié figé (best-effort, peut être null).
+        plan_images: planImagesSnap,
         // V3.0c.18 — Cumul des situations précédentes + reste à facturer (snapshot
         // figé à la création). null si impossible à calculer (pas de devis lié en BDD).
         montant_situation_precedent_ht: isSit ? cumulPrecedentHT : null,

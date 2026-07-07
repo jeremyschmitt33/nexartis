@@ -88,7 +88,11 @@ function texte(
  * Existant / Projet. Retourne null si le niveau est introuvable ou vide,
  * ou hors navigateur (garde SSR).
  */
-export function genererSvgExport(data: PlanData, niveauId: string): SvgExport | null {
+export function genererSvgExport(
+  data: PlanData,
+  niveauId: string,
+  options: { avancementVisible?: boolean } = {}
+): SvgExport | null {
   if (typeof document === 'undefined') return null
   const niveau = data.levels.find((n) => n.id === niveauId)
   if (!niveau) return null
@@ -160,10 +164,10 @@ export function genererSvgExport(data: PlanData, niveauId: string): SvgExport | 
           interactif: false,
           idPrefix: PREFIXE,
           grille: false,
-          // Push 7 : cette image part sur un DEVIS (pré-travaux). On n'y montre
-          // JAMAIS la teinte d'avancement (« Terminé »/« Réceptionné »). La
-          // teinte reviendra explicitement pour le snapshot de facture (7C).
-          avancementVisible: false,
+          // Push 7C : teinte d'avancement masquée par défaut (image de DEVIS,
+          // pré-travaux), activée explicitement pour le snapshot d'une facture de
+          // situation (options.avancementVisible = true).
+          avancementVisible: options.avancementVisible ?? false,
         })
       )
     ),
@@ -252,9 +256,10 @@ export function svgVersPng(
  */
 export async function genererImagePlanNiveau(
   data: PlanData,
-  niveauId: string
+  niveauId: string,
+  options: { avancementVisible?: boolean } = {}
 ): Promise<string | null> {
-  const exporte = genererSvgExport(data, niveauId)
+  const exporte = genererSvgExport(data, niveauId, options)
   if (!exporte) return null
   const grand = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 2, 'jpeg')
   if (grand && grand.length <= TAILLE_MAX_DATAURL) return grand
