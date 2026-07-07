@@ -274,6 +274,9 @@ export function usePlanState(initial: PlanData): PlanStateApi {
         openings: piece.openings.map((o) => ({ ...o, id: genId(), sharedWith: null })),
         // Push 7 : une pièce dupliquée est du travail NEUF — l'avancement repart à zéro.
         avancement: undefined,
+        avancementLe: undefined,
+        avancementPar: undefined,
+        avancementParId: undefined,
       }
       muter((c) => {
         const niv = surNiveau(c)
@@ -415,6 +418,9 @@ export function usePlanState(initial: PlanData): PlanStateApi {
         })),
         // Push 7 : niveau dupliqué = nouveau chantier → avancement remis à zéro.
         avancement: undefined,
+        avancementLe: undefined,
+        avancementPar: undefined,
+        avancementParId: undefined,
       }))
       const clotures: Cloture[] = src.clotures.map((c) => ({
         ...c,

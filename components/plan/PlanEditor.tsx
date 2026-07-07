@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { ModeDeduction, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
+import type { EtatAvancement, ModeDeduction, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
 import { aireMm2, estDansPolygone, fmtNombreFr, fmtSurfaceM2 } from '@/lib/plan/geometry'
 import { OUVERTURE_DEFAUTS, creerCloture, creerPieceL, creerPiecePoly, creerPieceRect, nomAvecSuffixe } from '@/lib/plan/defaults'
 import { positionNouvellePiece, preparerOuverture, projeterSurClotures } from '@/lib/plan/edition'
@@ -72,6 +72,26 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   // canvas (qui reste monté : viewport 2D intact au retour). Palette, panneau,
   // FAB et outils sont masqués ; l'autosave continue (aucune mutation en 3D).
   const [mode3d, setMode3d] = useState(false)
+
+  // Push 7B — auteur du dernier changement d'avancement (indicatif). Id stable
+  // (source d'autorité) + nom affiché (cache), récupérés une fois au montage.
+  const [utilisateur, setUtilisateur] = useState('')
+  const [utilisateurId, setUtilisateurId] = useState('')
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        const u = data.user
+        if (!u) return
+        const m = u.user_metadata || {}
+        const parts = [m.prenom, m.nom].filter((x) => typeof x === 'string' && x.trim())
+        const entreprise = typeof m.entreprise === 'string' ? m.entreprise : ''
+        setUtilisateur(parts.join(' ').trim() || entreprise || u.email || '')
+        setUtilisateurId(u.id)
+      })
+      .catch(() => console.error('[plan] compte non résolu — avancement marqué sans auteur'))
+  }, [])
 
   /** Coefficient de chutes numérique sûr (même garde-fou que le panneau). */
   const chutesBrut = Number(chutes.replace(',', '.').trim())
@@ -338,6 +358,31 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     ? etat.niveau.rooms.find((r) => r.id === etat.symboleSelectionne!.roomId) ?? null
     : null
 
+  // Push 7B — marque l'état + horodatage indicatif + auteur. 'a_faire' efface la
+  // date/auteur (jamais de date fantôme sur une pièce non commencée).
+  const marquerAvancement = useCallback(
+    (av: EtatAvancement) => {
+      const p = etat.pieceSelectionnee
+      if (!p) return
+      if (av === 'a_faire') {
+        etat.majPiece(p.id, {
+          avancement: 'a_faire',
+          avancementLe: undefined,
+          avancementPar: undefined,
+          avancementParId: undefined,
+        })
+        return
+      }
+      etat.majPiece(p.id, {
+        avancement: av,
+        avancementLe: new Date().toISOString(),
+        avancementPar: utilisateur || undefined,
+        avancementParId: utilisateurId || undefined,
+      })
+    },
+    [etat, utilisateur, utilisateurId]
+  )
+
   return (
     <div className="flex h-full flex-col bg-white">
       <PlanTopbar
@@ -443,6 +488,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
               <RoomSheet
                 piece={etat.pieceSelectionnee}
                 onMaj={(patch) => etat.majPiece(etat.pieceSelectionnee!.id, patch)}
+                onAvancement={marquerAvancement}
                 onDupliquer={() => etat.dupliquerPiece(etat.pieceSelectionnee!.id)}
                 onSupprimer={supprimerSelection}
                 onSupprimerOuverture={(oid) => etat.supprimerOuverture(etat.pieceSelectionnee!.id, oid)}

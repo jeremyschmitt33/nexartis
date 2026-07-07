@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { Piece } from '@/lib/plan/types'
+import type { EtatAvancement, Piece } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
 import { perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
@@ -17,6 +17,8 @@ import { toast } from '@/lib/toast'
 export interface RoomSheetProps {
   piece: Piece
   onMaj: (patch: Partial<Piece>) => void
+  /** Change l'état d'avancement (le parent y ajoute la date + l'auteur, Push 7B). */
+  onAvancement: (etat: EtatAvancement) => void
   onDupliquer: () => void
   onSupprimer: () => void
   onSupprimerOuverture: (ouvertureId: string) => void
@@ -29,7 +31,7 @@ function Etiquette({ children }: { children: React.ReactNode }) {
   return <span className="mb-1.5 block font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500">{children}</span>
 }
 
-export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
+export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
   const [nom, setNom] = useState(piece.name)
   const [hsp, setHsp] = useState(mmVersSaisieM(piece.height))
 
@@ -135,7 +137,7 @@ export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSu
                 <button
                   key={key}
                   type="button"
-                  onClick={() => onMaj({ avancement: key })}
+                  onClick={() => onAvancement(key)}
                   aria-pressed={actif}
                   className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 font-hanken text-xs font-bold transition-all ${
                     actif ? 'bg-white text-navy shadow-[0_2px_6px_rgba(15,26,58,0.08)]' : 'text-gray-500 hover:text-navy'
@@ -154,6 +156,12 @@ export default function RoomSheet({ piece, onMaj, onDupliquer, onSupprimer, onSu
           <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
             Colorie la pièce sur le plan. Servira à pré-remplir vos factures de situation.
           </p>
+          {piece.avancement && piece.avancement !== 'a_faire' && piece.avancementLe && (
+            <p className="mt-1 font-hanken text-[11px] leading-snug text-gray-400">
+              Marqué le {new Date(piece.avancementLe).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+              {piece.avancementPar ? ` par ${piece.avancementPar}` : ''}
+            </p>
+          )}
         </div>
 
         <div>

@@ -81,6 +81,16 @@ export interface Piece {
    * ce champ (traités comme 'a_faire'). N'entre PAS dans les métrés (`computed`).
    */
   avancement?: EtatAvancement;
+  /**
+   * Date ISO du dernier changement d'état (Push 7B). INDICATIF (horloge client,
+   * non opposable) : la vraie date de preuve sera posée côté serveur à l'émission
+   * d'une facture de situation (7C). Absent quand l'état repasse à 'a_faire'.
+   */
+  avancementLe?: string;
+  /** Id (UUID stable) du compte ayant marqué le dernier état — source d'autorité. */
+  avancementParId?: string;
+  /** Nom affiché du compte au marquage (cache d'affichage, non autoritaire). */
+  avancementPar?: string;
 }
 
 /** Clôture / grillage : polyligne OUVERTE (non fermée), métrée en ml. */
