@@ -399,7 +399,9 @@ export default function NouvelleFacturePage() {
           .eq('devis_id', devisId)
         if (ctrl.signal.aborted) return
         const lignes: LigneDevisMarche[] = (lignesRows ?? [])
-          .filter((r) => (String(r.type ?? 'line')) === 'line' && (!r.optionnel || r.retenu_par_client))
+          // En base, une ligne facturable a le type 'prestation' (pas 'line', qui est
+          // la représentation front). On ne garde que les prestations réellement dues.
+          .filter((r) => (String(r.type ?? 'prestation')) === 'prestation' && (!r.optionnel || r.retenu_par_client))
           .map((r) => {
             const sp = (r.source_plan ?? null) as { roomId?: string | null } | null
             return {
