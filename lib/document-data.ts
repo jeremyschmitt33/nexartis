@@ -652,6 +652,8 @@ export function buildFactureDocument(opts: {
   client: RawClient
   entreprise: RawEntreprise
   chantier?: RawChantier | null
+  /** Push 7C — snapshot du plan colorié (avancement), facture de situation. */
+  planImages?: DocumentPlanImage[]
 }): DocumentData {
   const artisan = buildArtisan(opts.entreprise)
   const client = buildClient(opts.client)
@@ -710,5 +712,5 @@ export function buildFactureDocument(opts: {
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'
 
-  return { docType: 'facture', artisan, client, meta, groups, totals, isForfait, clientType }
+  return { docType: 'facture', artisan, client, meta, groups, totals, isForfait, clientType, planImages: opts.planImages && opts.planImages.length > 0 ? opts.planImages : undefined }
 }

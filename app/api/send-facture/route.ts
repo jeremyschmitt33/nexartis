@@ -169,6 +169,12 @@ export async function POST(req: NextRequest) {
       autoliquidation_btp: facture.autoliquidation_btp === true,
       // Legacy : ancien champ notes conservé pour rétrocompat
       notes: facture.notes,
+      // Push 7C — snapshot du plan colorié (parité avec /api/download-facture).
+      plan_images: Array.isArray(facture.plan_images)
+        ? (facture.plan_images as Array<Record<string, unknown>>)
+            .map((x) => ({ titre: String(x?.titre ?? 'Plan'), dataUrl: String(x?.dataUrl ?? '') }))
+            .filter((x) => x.dataUrl.startsWith('data:image'))
+        : undefined,
     }, themeFromEntreprise(entreprise))
 
     // Build email body

@@ -40,10 +40,10 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
           {data.meta.autoliquidationBtp && <AutoliquidationMention />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
           {isDevis && <Signature artisan={data.artisan} />}
-          {/* Push 5 (Plan 2D) — section « Plan du chantier » : uniquement si le
-              devis contient des lignes issues d'un plan (data.planImages).
-              Même image PNG que le PDF (download + email) et /signer. */}
-          {isDevis && data.planImages && data.planImages.length > 0 && <PlanSection images={data.planImages} />}
+          {/* Push 5/7C (Plan 2D) — section « Plan du chantier » : devis avec plan
+              (data.planImages) OU facture de situation avec snapshot colorié.
+              Même image que le PDF (download + email) — parité de rendu. */}
+          {data.planImages && data.planImages.length > 0 && <PlanSection images={data.planImages} />}
         </div>
         <PageFootRich artisan={data.artisan} />
       </section>

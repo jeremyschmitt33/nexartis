@@ -139,6 +139,13 @@ export async function buildFactureDataFromDb(
     avoir_impute_montant: facture.avoir_impute_montant ?? undefined,
     autoliquidation_btp: facture.autoliquidation_btp === true,
     notes: facture.notes || undefined,
+    // Push 7C — snapshot du plan colorié (avancement) figé sur une facture de
+    // situation. Miroir du devis : rendu en annexe si présent, sinon PDF inchangé.
+    plan_images: Array.isArray(facture.plan_images)
+      ? (facture.plan_images as Array<Record<string, unknown>>)
+          .map((x) => ({ titre: String(x?.titre ?? 'Plan'), dataUrl: String(x?.dataUrl ?? '') }))
+          .filter((x) => x.dataUrl.startsWith('data:image'))
+      : undefined,
   }
 
   return { data, entreprise: entreprise || {} }

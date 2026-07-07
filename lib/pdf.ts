@@ -177,6 +177,10 @@ export interface FactureData {
   // Note : c'est a l'appelant (route API) de garantir que toutes les lignes ont
   // bien taux_tva=0 quand ce flag est actif (parite HTML).
   autoliquidation_btp?: boolean
+  // Push 7C (Plan 2D) — annexe « Plan du chantier » COLORIÉ par avancement, figé
+  // sur une facture de situation (factures.plan_images). Optionnel : absent =
+  // PDF strictement inchangé (miroir de DevisData.plan_images).
+  plan_images?: PdfPlanImage[]
 }
 
 export const DEFAULT_CONDITIONS_PAIEMENT =
@@ -481,6 +485,13 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     { factureType: data.type, hasSousTraitanceBTP: data.autoliquidation_btp === true },
     palette,
   )
+
+  // 7 bis. Push 7C (Plan 2D) — annexe « Plan du chantier » COLORIÉ par avancement,
+  // pages ajoutées en fin de facture de situation (miroir strict du devis, 8 bis).
+  // Garde stricte : rien si plan_images absent/vide (facture standard inchangée).
+  if (data.plan_images && data.plan_images.length > 0) {
+    drawPlanAnnexe(doc, data.plan_images, palette)
+  }
 
   // 8. Mini-header pages 2+ + footer toutes pages
   drawMiniHeaderPages2Plus(doc, ent, title, data.numero, data.date_emission)

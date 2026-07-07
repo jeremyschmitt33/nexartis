@@ -618,6 +618,17 @@ export default function FactureDetailPage() {
     .print-zone { box-shadow: none !important; border: none !important; margin: 0 !important; }
   }`
 
+  // Push 7C — snapshot du plan colorié (avancement) figé sur la facture de
+  // situation → aperçu HTML, en parité avec les PDF (download + email).
+  const facturePlanImages = (() => {
+    const pi = (facture as unknown as { plan_images?: unknown }).plan_images
+    if (!Array.isArray(pi)) return undefined
+    const imgs = pi
+      .map((x) => ({ titre: String(x?.titre ?? 'Plan'), dataUrl: String(x?.dataUrl ?? '') }))
+      .filter((x) => x.dataUrl.startsWith('data:image'))
+    return imgs.length > 0 ? imgs : undefined
+  })()
+
   // V3.0b — DocumentData unifie pour le rendu visuel (header + cartes + tableau + recap).
   const documentData = buildFactureDocument({
     doc: {
@@ -697,6 +708,7 @@ export default function FactureDetailPage() {
       franchise_tva: (entreprise?.franchise_tva as boolean | undefined) ?? null,
     },
     chantier: null,
+    planImages: facturePlanImages,
   })
 
   return (
