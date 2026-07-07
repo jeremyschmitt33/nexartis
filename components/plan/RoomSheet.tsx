@@ -127,6 +127,14 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
           )}
         </div>
 
+        {piece.layer === 'projet' ? (
+          <div>
+            <Etiquette>Avancement du chantier</Etiquette>
+            <p className="font-hanken text-[11.5px] leading-snug text-gray-500">
+              Disponible une fois la pièce construite. Repassez-la en calque «&nbsp;Existant&nbsp;» pour suivre son avancement.
+            </p>
+          </div>
+        ) : (
         <div>
           <Etiquette>Avancement du chantier</Etiquette>
           <div className="grid grid-cols-2 gap-1 rounded-xl border border-gray-200/60 bg-[#fafbfc] p-1" role="group" aria-label="Avancement de la pièce">
@@ -163,6 +171,7 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
             </p>
           )}
         </div>
+        )}
 
         <div>
           <Etiquette>Hauteur sous plafond</Etiquette>

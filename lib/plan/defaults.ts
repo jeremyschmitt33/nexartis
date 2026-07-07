@@ -77,12 +77,15 @@ export const COULEURS_PLAN = {
  */
 export const AVANCEMENT_META: Record<
   EtatAvancement,
-  { label: string; court: string; fill: string | null; pctSuggere: number }
+  { label: string; court: string; fill: string | null; texte: string; pctSuggere: number }
 > = {
-  a_faire: { label: 'À faire', court: 'À faire', fill: null, pctSuggere: 0 },
-  en_cours: { label: 'En cours', court: 'En cours', fill: 'rgba(139, 92, 246, 0.26)', pctSuggere: 50 },
-  termine: { label: 'Terminé', court: 'Terminé', fill: 'rgba(52, 168, 102, 0.34)', pctSuggere: 100 },
-  receptionne: { label: 'Réceptionné', court: 'Réceptionné', fill: 'rgba(37, 99, 235, 0.28)', pctSuggere: 100 },
+  // `texte` = couleur SOLIDE (lisible) du libellé d'état affiché sur la pièce
+  // (accessibilité daltonisme : la couleur seule ne suffit pas, cf. WCAG 1.4.1).
+  // Alignée sur la palette sombre des badges de SituationParLigne (contraste).
+  a_faire: { label: 'À faire', court: 'À faire', fill: null, texte: '#6b7280', pctSuggere: 0 },
+  en_cours: { label: 'En cours', court: 'En cours', fill: 'rgba(139, 92, 246, 0.26)', texte: '#3C3489', pctSuggere: 50 },
+  termine: { label: 'Terminé', court: 'Terminé', fill: 'rgba(52, 168, 102, 0.34)', texte: '#27500A', pctSuggere: 100 },
+  receptionne: { label: 'Réceptionné', court: 'Réceptionné', fill: 'rgba(37, 99, 235, 0.28)', texte: '#0C447C', pctSuggere: 100 },
 } as const
 
 /** Ordre d'affichage du sélecteur d'avancement (du non-démarré au réceptionné). */
@@ -111,12 +114,16 @@ export interface RecapAvancement {
  * son pctSuggere (a_faire 0, en_cours 50, termine/receptionne 100), ce qui
  * reflète honnêtement les pièces « en cours » — pas seulement les terminées.
  */
-export function recapAvancement(rooms: { cat?: 'int' | 'ext'; avancement?: EtatAvancement }[]): RecapAvancement {
+export function recapAvancement(
+  rooms: { cat?: 'int' | 'ext'; layer?: 'existant' | 'projet'; avancement?: EtatAvancement }[],
+): RecapAvancement {
   const parEtat: Record<EtatAvancement, number> = { a_faire: 0, en_cours: 0, termine: 0, receptionne: 0 }
   let sommePct = 0
   let total = 0
   for (const r of rooms) {
-    if (r.cat !== 'int') continue
+    // Pièces intérieures EXISTANTES seulement : les pièces « projet » (travaux
+    // futurs) ne comptent pas dans l'avancement du chantier existant.
+    if (r.cat !== 'int' || r.layer === 'projet') continue
     total += 1
     const etat = avancementDe(r)
     parEtat[etat] += 1

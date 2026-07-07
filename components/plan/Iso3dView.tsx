@@ -171,6 +171,22 @@ function CalqueSvg({ calque }: { calque: IsoCalque }) {
           >
             {e.aire}
           </text>
+          {e.etat && (
+            <text
+              x={r(e.at[0])}
+              y={r(e.at[1]) + 480}
+              fontFamily={FONT_TXT}
+              fontSize="215"
+              fontWeight="700"
+              fill={e.etat.couleur}
+              textAnchor="middle"
+              paintOrder="stroke"
+              stroke={C.fond}
+              strokeWidth="70"
+            >
+              {e.etat.court}
+            </text>
+          )}
         </g>
       ))}
     </>

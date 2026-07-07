@@ -86,8 +86,11 @@ function RenduPiece({ piece, idPrefix, interactif, avancementVisible }: { piece:
   // NON interactive (pointer-events none) pour ne pas voler le clic au polygone
   // de base qui porte data-room-id. Rendue par PlanRender → visible à l'écran
   // ET dans l'export PNG/PDF (parité par construction).
+  // Une pièce « projet » (travaux futurs) ne montre jamais d'avancement, même
+  // si une donnée héritée en porte un : le rendu est robuste au calque, pas
+  // seulement à la saisie.
   const teinteAvancement =
-    avancementVisible && piece.avancement && piece.avancement !== 'a_faire'
+    avancementVisible && !projet && piece.avancement && piece.avancement !== 'a_faire'
       ? AVANCEMENT_META[piece.avancement].fill
       : null
   return (
@@ -311,12 +314,19 @@ function RenduCotes({ piece, pieces, interactif }: { piece: Piece; pieces: Piece
 
 // ── Étiquettes + badge projet ───────────────────────────────────────────────
 
-function RenduEtiquette({ piece }: { piece: Piece }) {
+function RenduEtiquette({ piece, avancementVisible }: { piece: Piece; avancementVisible: boolean }) {
   const [cx, cy] = centreMm(piece.vertices)
   const b = bornesPiece(piece)
   const petite = Math.min(b.x2 - b.x1, b.y2 - b.y1) < 1500
   const c = couleurCalque(piece.layer)
   const aire = surfaceSolM2(piece)
+  // Libellé d'état en TOUTES LETTRES sur la pièce (accessibilité daltonisme :
+  // ne pas se reposer sur la seule couleur du sol). Masqué sur les rendus
+  // « document » (avancementVisible false) et pour 'a_faire'/absent.
+  const etat =
+    avancementVisible && piece.layer !== 'projet' && piece.avancement && piece.avancement !== 'a_faire'
+      ? AVANCEMENT_META[piece.avancement]
+      : null
   return (
     <g pointerEvents="none">
       <text x={cx} y={cy - 60} fontFamily={FONT_TXT} fontSize={petite ? 230 : 300} fontWeight="700" fill={c} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="60">
@@ -325,8 +335,13 @@ function RenduEtiquette({ piece }: { piece: Piece }) {
       <text x={cx} y={cy + 260} fontFamily={FONT_NUM} fontSize={petite ? 190 : 250} fill={piece.layer === 'projet' ? C.orange : C.navyMid} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="60">
         {fmtNombreFr(aire, 1)} m²
       </text>
+      {etat && (
+        <text x={cx} y={cy + 540} fontFamily={FONT_TXT} fontSize={petite ? 170 : 215} fontWeight="700" fill={etat.texte} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="70">
+          {etat.court}
+        </text>
+      )}
       {piece.extType === 'piscine' && (
-        <text x={cx} y={cy + 540} fontFamily={FONT_NUM} fontSize={petite ? 170 : 220} fill={C.navyMid} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="55">
+        <text x={cx} y={cy + (etat ? 800 : 540)} fontFamily={FONT_NUM} fontSize={petite ? 170 : 220} fill={C.navyMid} textAnchor="middle" paintOrder="stroke" stroke={C.fond} strokeWidth="55">
           {fmtNombreFr(perimetreMl(piece))} ml de périmètre
         </text>
       )}
@@ -427,7 +442,7 @@ export default function PlanRender({
       ))}
       {tri.map((r) => (
         <g key={r.id} opacity={opacite(r)}>
-          <RenduEtiquette piece={r} />
+          <RenduEtiquette piece={r} avancementVisible={avancementVisible} />
         </g>
       ))}
       {symbolesVisibles.map((s) => (

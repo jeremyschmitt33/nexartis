@@ -123,6 +123,8 @@ export interface IsoEtiquette {
   nom: string
   aire: string
   couleur: string
+  /** Libellé d'avancement en toutes lettres (daltonisme), absent si 'a_faire'. */
+  etat?: { court: string; couleur: string }
 }
 
 /** Scène d'un calque : sols triés, faces triées, étiquettes par-dessus. */
@@ -254,7 +256,7 @@ export function construireScene3d(
     // superposé au sol, avec la MÊME rgba que AVANCEMENT_META. Poussé juste
     // après le sol de base et à la même profondeur → le tri stable le garde
     // au-dessus de son propre sol. Sans bord (le sol de base garde le sien).
-    if (avancementVisible) {
+    if (avancementVisible && piece.layer !== 'projet') {
       const teinte = AVANCEMENT_META[avancementDe(piece)].fill
       if (teinte) {
         solsTri[piece.layer].push({ prof: profSol, prim: { prim: 'poly', pts: ptsSol, fill: teinte } })
@@ -352,11 +354,13 @@ export function construireScene3d(
     }
 
     const [ex, ey] = rot(centreMm(piece.vertices))
+    const etatPiece = avancementVisible && piece.layer !== 'projet' ? avancementDe(piece) : 'a_faire'
     sc.etiquettes.push({
       at: P(ex, ey, 0),
       nom: piece.name,
       aire: fmtNombreFr(surfaceSolM2(piece), 1) + ' m²',
       couleur: projet ? C.orange : C.navy,
+      etat: etatPiece !== 'a_faire' ? { court: AVANCEMENT_META[etatPiece].court, couleur: AVANCEMENT_META[etatPiece].texte } : undefined,
     })
   }
 
