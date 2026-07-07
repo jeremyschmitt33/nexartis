@@ -40,7 +40,7 @@ export interface LigneDevisMarche {
 
 export interface SituationParLigneResultat {
   /** Lignes de facture à injecter (une par poste avec avancement > 0). */
-  lignesFacture: Array<{ designation: string; prix_unitaire_ht: number; tva: number }>
+  lignesFacture: Array<{ devisLigneId: string; designation: string; prix_unitaire_ht: number; tva: number }>
   /** Détail à mémoriser sur la facture (colonne situation_lignes). */
   situationLignes: SituationLigneEnregistree[]
   situationHt: number
@@ -158,7 +158,7 @@ export default function SituationParLigne({
     if (resultat.aTropPercu || resultat.situationHt <= 0) return
     const lignesFacture = resultat.lignes
       .filter((l) => l.montantSituationHt > 0)
-      .map((l) => ({ designation: l.designation, prix_unitaire_ht: l.montantSituationHt, tva: l.tauxTva }))
+      .map((l) => ({ devisLigneId: l.id, designation: l.designation, prix_unitaire_ht: l.montantSituationHt, tva: l.tauxTva }))
     const situationLignes: SituationLigneEnregistree[] = resultat.lignes.map((l) => ({
       devis_ligne_id: l.id,
       montant_ht: l.montantSituationHt,

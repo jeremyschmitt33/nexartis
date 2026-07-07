@@ -15,6 +15,8 @@ import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
+import SituationParLigne, { type SituationParLigneResultat, type LigneDevisMarche } from '@/components/factures/SituationParLigne'
+import { cumulDejaFactureParLigne } from '@/lib/situation'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -28,6 +30,8 @@ interface LineItem {
   tva: number
   // V4 — type pour gérer sections/sous-sections/commentaires (parité devis)
   type: 'line' | 'section' | 'subsection' | 'text'
+  // Push 7B — ligne de devis d'origine (situation par ligne). Absent = ligne manuelle.
+  devisLigneId?: string
 }
 
 interface ClientRecord { id: string; nom: string; prenom?: string; civilite?: string; adresse?: string; telephone?: string; email?: string; code_postal?: string; ville?: string }
@@ -117,6 +121,14 @@ export default function NouvelleFacturePage() {
   const [devisTotalTTC, setDevisTotalTTC] = useState<number | null>(null)
   const [devisDateLiee, setDevisDateLiee] = useState<string | null>(null)
   const [situationLookupMsg, setSituationLookupMsg] = useState<string>('')
+  // Push 7B — facturation de situation PAR LIGNE (additif). Le détail par ligne
+  // (situation_lignes) est RECALCULÉ au save depuis les lignes réelles (jamais figé).
+  const [situationPlan, setSituationPlan] = useState<{
+    lignes: LigneDevisMarche[]
+    dejaFacture: Record<string, number>
+    etats: Record<string, string>
+    noms: Record<string, string>
+  } | null>(null)
 
   // Client (texte libre ou sélection)
   const [clientNom, setClientNom] = useState('')
@@ -362,6 +374,96 @@ export default function NouvelleFacturePage() {
     // (on l'utilise en lecture pour décider d'auto-suggérer).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [factureType, devisRef])
+
+  // Push 7B — chargement des données de facturation PAR LIGNE (additif, ne touche
+  // pas au lookup existant) : lignes du devis (+ source_plan), déjà-facturé par ligne
+  // (situations précédentes) et avancement colorié du plan du chantier.
+  useEffect(() => {
+    if (factureType !== 'situation') { setSituationPlan(null); return }
+    const ref = devisRef.trim()
+    if (!ref) { setSituationPlan(null); return }
+    const ctrl = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user || ctrl.signal.aborted) return
+        const { data: devisRow } = await supabase
+          .from('devis').select('id').eq('user_id', user.id).eq('numero', ref).maybeSingle()
+        if (ctrl.signal.aborted) return
+        if (!devisRow) { setSituationPlan(null); return }
+        const devisId = String((devisRow as { id: string }).id)
+        const { data: lignesRows } = await supabase
+          .from('devis_lignes')
+          .select('id, designation, montant_ht, taux_tva, type, optionnel, retenu_par_client, source_plan')
+          .eq('devis_id', devisId)
+        if (ctrl.signal.aborted) return
+        const lignes: LigneDevisMarche[] = (lignesRows ?? [])
+          .filter((r) => (String(r.type ?? 'line')) === 'line' && (!r.optionnel || r.retenu_par_client))
+          .map((r) => {
+            const sp = (r.source_plan ?? null) as { roomId?: string | null } | null
+            return {
+              id: String(r.id),
+              designation: String(r.designation ?? ''),
+              montantMarcheHt: Number(r.montant_ht ?? 0),
+              tauxTva: Number(r.taux_tva ?? 0),
+              roomId: sp?.roomId ?? null,
+            }
+          })
+        const { data: sits } = await supabase
+          .from('factures').select('situation_lignes, montant_ht')
+          .eq('user_id', user.id).eq('type', 'situation').eq('devis_ref', ref)
+        if (ctrl.signal.aborted) return
+        const sitsArr = (sits ?? []) as Array<{ situation_lignes?: { devis_ligne_id: string; montant_ht: number }[] | null; montant_ht?: number | null }>
+        // GARDE-FOU ARGENT : si une situation antérieure a été émise SANS le détail
+        // par ligne (montant > 0 mais situation_lignes vide), le cumul par ligne est
+        // incomplet → on DÉSACTIVE l'écran par ligne pour ne jamais re-facturer du
+        // déjà-encaissé. On retombe sur la saisie manuelle (comportement d'avant).
+        const historiqueIncomplet = sitsArr.some(
+          (s) => Number(s.montant_ht ?? 0) > 0 && !(Array.isArray(s.situation_lignes) && s.situation_lignes.length > 0)
+        )
+        if (historiqueIncomplet) { setSituationPlan(null); return }
+        const dejaFacture = cumulDejaFactureParLigne(sitsArr)
+        const etats: Record<string, string> = {}
+        const noms: Record<string, string> = {}
+        if (chantierId) {
+          const { data: plansRows } = await supabase
+            .from('plans').select('data').eq('user_id', user.id).eq('chantier_id', chantierId).is('deleted_at', null)
+          if (ctrl.signal.aborted) return
+          for (const p of plansRows ?? []) {
+            const d = (p.data ?? null) as { levels?: Array<{ rooms?: Array<{ id?: string; name?: string; avancement?: string }> }> } | null
+            for (const niv of d?.levels ?? []) {
+              for (const room of niv.rooms ?? []) {
+                if (room?.id && room.avancement) etats[room.id] = room.avancement
+                if (room?.id && room.name) noms[room.id] = room.name
+              }
+            }
+          }
+        }
+        setSituationPlan({ lignes, dejaFacture, etats, noms })
+      } catch {
+        setSituationPlan(null)
+      }
+    }, 500)
+    return () => { ctrl.abort(); clearTimeout(timer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [factureType, devisRef, chantierId])
+
+  // Push 7B — « Appliquer » : remplace les lignes de la facture par le détail de la
+  // situation (avec confirmation si des lignes non vides existent déjà).
+  const appliquerSituation = (r: SituationParLigneResultat) => {
+    const aDesDonnees = lines.some((l) => l.type === 'line' && (l.designation.trim() !== '' || l.priceHT > 0))
+    if (aDesDonnees && !window.confirm('Remplacer les lignes actuelles par le détail de la situation ?')) return
+    setLines(r.lignesFacture.map((lf) => ({
+      id: nextId++, designation: lf.designation, qty: 1, unit: 'forfait', priceHT: lf.prix_unitaire_ht, tva: lf.tva, type: 'line' as const, devisLigneId: lf.devisLigneId,
+    })))
+    setPourcentageSituation(r.pourcentageGlobal)
+  }
+
+  // Push 7B — vrai quand l'écran de situation par ligne est disponible (pilote l'UI :
+  // masque l'ancien recap TTC et passe le champ % en lecture seule pour éviter deux
+  // sources de vérité contradictoires).
+  const modeParLigneActif = factureType === 'situation' && !!situationPlan && situationPlan.lignes.length > 0
 
   // Conditions de paiement (pré-remplies) + notes personnalisées (visibles client)
   const [conditions, setConditions] = useState<string>(DEFAULT_CONDITIONS_PAIEMENT)
@@ -672,6 +774,15 @@ export default function NouvelleFacturePage() {
         ? 'payee'
         : statut
 
+      // Push 7B — détail par ligne recalculé depuis les lignes RÉELLES au moment du
+      // save (jamais un snapshot figé) : toute édition manuelle post-Apply est reflétée,
+      // donc le cumul « déjà facturé » des situations suivantes reste exact.
+      const situationLignesCalc = isSit
+        ? lines
+            .filter((l) => l.type === 'line' && l.devisLigneId)
+            .map((l) => ({ devis_ligne_id: l.devisLigneId as string, montant_ht: Math.round(l.priceHT * l.qty * 100) / 100 }))
+        : []
+
       const factureData: Record<string, unknown> = {
         numero,
         statut: statutFinal,
@@ -684,7 +795,16 @@ export default function NouvelleFacturePage() {
         devis_ref: isSit ? (devisRef.trim() || null) : null,
         devis_date: isSit ? (devisDateLiee || null) : null,
         numero_situation: isSit ? numeroSituation : null,
-        pourcentage_situation: isSit ? pourcentageSituation : null,
+        // Push 7B — en mode par ligne, on RECALCULE le % d'avancement au save depuis
+        // les vrais montants (cumul précédent + cette situation) / total du devis, pour
+        // qu'il ne mente jamais sur le PDF même après une édition manuelle des lignes.
+        pourcentage_situation: isSit
+          ? (situationLignesCalc.length > 0 && devisTotalHT && devisTotalHT > 0
+              ? Math.min(100, Math.round((((cumulPrecedentHT ?? 0) + totalHT) / devisTotalHT) * 100))
+              : pourcentageSituation)
+          : null,
+        // Push 7B — détail par ligne (null si saisie manuelle sans lignes de devis).
+        situation_lignes: situationLignesCalc.length > 0 ? situationLignesCalc : null,
         // V3.0c.18 — Cumul des situations précédentes + reste à facturer (snapshot
         // figé à la création). null si impossible à calculer (pas de devis lié en BDD).
         montant_situation_precedent_ht: isSit ? cumulPrecedentHT : null,
@@ -1064,6 +1184,23 @@ export default function NouvelleFacturePage() {
                     <p className="mt-1.5 font-hanken text-[11px] text-[#0f1a3a]/70">{situationLookupMsg}</p>
                   )}
                 </div>
+                {situationPlan && situationPlan.lignes.length > 0 && (
+                  <div className="rounded-2xl border border-[#0f1a3a]/[0.06] bg-white p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="font-hanken text-[10px] font-bold text-[#ff7a1a] bg-[#fff5ec] px-2 py-0.5 rounded uppercase tracking-wider">
+                        Depuis le plan
+                      </span>
+                      <span className="font-hanken text-[12px] text-gray-500">Facturer par ligne selon l&apos;avancement</span>
+                    </div>
+                    <SituationParLigne
+                      lignes={situationPlan.lignes}
+                      dejaFactureParLigne={situationPlan.dejaFacture}
+                      etatsPieces={situationPlan.etats}
+                      nomsPieces={situationPlan.noms}
+                      onAppliquer={appliquerSituation}
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-hanken font-semibold text-[11px] uppercase tracking-wider text-gray-700 mb-2">N° de situation</label>
@@ -1085,8 +1222,12 @@ export default function NouvelleFacturePage() {
                       step={1}
                       value={pourcentageSituation}
                       onChange={e => setPourcentageSituation(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                      className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]'}
+                      readOnly={modeParLigneActif}
+                      className={inputCls + ' font-spline-mono font-medium tracking-[0.5px]' + (modeParLigneActif ? ' opacity-60' : '')}
                     />
+                    {modeParLigneActif && (
+                      <p className="mt-1 font-hanken text-[10.5px] text-gray-400">Calculé depuis le tableau par ligne ci-dessus.</p>
+                    )}
                   </div>
                 </div>
                 {/* V2.3 10/06/2026 — Recap visuel progression chantier.
@@ -1095,7 +1236,7 @@ export default function NouvelleFacturePage() {
                     progression. S'appuie sur devisTotalTTC + cumulPrecedentTTC
                     deja charges. Si les donnees du devis manquent, fallback
                     sur un message d'aide pour saisir un n° de devis. */}
-                {(() => {
+                {!modeParLigneActif && (() => {
                   const devisTotal = devisTotalTTC ?? 0
                   const cumulPrec = cumulPrecedentTTC ?? 0
                   if (devisTotal <= 0) {
