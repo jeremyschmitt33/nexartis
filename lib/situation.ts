@@ -171,3 +171,48 @@ export function calculerSituation(
     aTropPercu,
   }
 }
+
+/** États d'avancement d'une pièce (miroir de lib/plan AVANCEMENT_META — garder en phase). */
+export type EtatAvancementSituation = 'a_faire' | 'en_cours' | 'termine' | 'receptionne'
+
+/**
+ * % d'avancement SUGGÉRÉ (indicatif, modifiable) depuis l'état d'une pièce du plan.
+ * DOIT rester cohérent avec AVANCEMENT_META.pctSuggere (lib/plan/defaults).
+ */
+export function pctSuggereDepuisEtat(etat: string | undefined | null): number {
+  switch (etat) {
+    case 'termine':
+    case 'receptionne':
+      return 100
+    case 'en_cours':
+      return 50
+    default:
+      return 0
+  }
+}
+
+/** Détail par ligne mémorisé sur une facture de situation (colonne factures.situation_lignes). */
+export interface SituationLigneEnregistree {
+  devis_ligne_id: string
+  montant_ht: number
+}
+
+/**
+ * Agrège le HT DÉJÀ FACTURÉ par ligne de devis, en sommant les `situation_lignes`
+ * de toutes les situations précédentes. Robuste aux entrées absentes/corrompues.
+ * Résultat : { [devis_ligne_id]: montant HT cumulé déjà facturé }.
+ */
+export function cumulDejaFactureParLigne(
+  situationsPrecedentes: Array<{ situation_lignes?: SituationLigneEnregistree[] | null }>
+): Record<string, number> {
+  const acc: Record<string, number> = {}
+  for (const s of situationsPrecedentes) {
+    const lignes = Array.isArray(s?.situation_lignes) ? s.situation_lignes : []
+    for (const l of lignes) {
+      if (!l || typeof l.devis_ligne_id !== 'string') continue
+      const m = Number(l.montant_ht)
+      acc[l.devis_ligne_id] = arrondiCentimes((acc[l.devis_ligne_id] ?? 0) + (Number.isFinite(m) ? m : 0))
+    }
+  }
+  return acc
+}
