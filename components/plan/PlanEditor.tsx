@@ -510,6 +510,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
               <SymboleSheet
                 symbole={etat.symboleSelectionne}
                 piece={pieceDuSymbole}
+                onTourner={(delta) => etat.tournerSymbole(etat.symboleSelectionne!.id, delta)}
                 onSupprimer={supprimerSelection}
                 onFermer={() => etat.selectSymbol(null)}
               />

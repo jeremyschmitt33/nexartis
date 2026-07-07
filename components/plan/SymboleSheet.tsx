@@ -13,11 +13,13 @@ export interface SymboleSheetProps {
   symbole: Symbole
   /** Pièce d'appartenance (résolue par l'éditeur), ou null si hors pièce. */
   piece: Piece | null
+  /** Tourne le symbole de deltaDeg degrés (orientation sur le plan, Push 8). */
+  onTourner: (deltaDeg: number) => void
   onSupprimer: () => void
   onFermer: () => void
 }
 
-export default function SymboleSheet({ symbole, piece, onSupprimer, onFermer }: SymboleSheetProps) {
+export default function SymboleSheet({ symbole, piece, onTourner, onSupprimer, onFermer }: SymboleSheetProps) {
   const projet = symbole.layer === 'projet'
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white">
@@ -59,6 +61,46 @@ export default function SymboleSheet({ symbole, piece, onSupprimer, onFermer }: 
           Glissez le symbole sur le plan pour le repositionner — il se rattache automatiquement à la pièce
           qui le contient.
         </p>
+
+        <div>
+          <span className="mb-1.5 block font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500">Orientation</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onTourner(-45)}
+              aria-label="Tourner de 45 degrés vers la gauche"
+              className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken text-[13px] font-bold text-navy transition-colors hover:border-orange"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 1 0 2.5-5.8M4 4v3.5h3.5" />
+              </svg>
+              45°
+            </button>
+            <button
+              type="button"
+              onClick={() => onTourner(-Math.round(symbole.rotation || 0))}
+              aria-label="Remettre l'orientation à zéro"
+              title="Remettre à 0°"
+              className="min-w-[54px] rounded-lg px-1 py-1 text-center font-spline-mono text-[14px] font-semibold text-navy transition-colors hover:bg-gray-50"
+            >
+              {Math.round(symbole.rotation || 0)}°
+            </button>
+            <button
+              type="button"
+              onClick={() => onTourner(45)}
+              aria-label="Tourner de 45 degrés vers la droite"
+              className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-gray-200 bg-white font-hanken text-[13px] font-bold text-navy transition-colors hover:border-orange"
+            >
+              45°
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 12a8 8 0 1 1-2.5-5.8M20 4v3.5h-3.5" />
+              </svg>
+            </button>
+          </div>
+          <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
+            Oriente le symbole sur le plan 2D (le sens d&apos;une prise, d&apos;un radiateur, d&apos;une sortie de câble). Cliquez l&apos;angle pour revenir à 0°.
+          </p>
+        </div>
 
         <div className="border-t border-gray-100 pt-4">
           <button

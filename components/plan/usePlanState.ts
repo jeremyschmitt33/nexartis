@@ -62,6 +62,8 @@ export interface PlanStateApi {
   deplacerSymboleSansUndo: (symboleId: string, dx: number, dy: number) => void
   /** Patch SANS cran d'undo (fin de drag : réaffectation de pièce). */
   majSymboleSansUndo: (symboleId: string, patch: Partial<Symbole>) => void
+  /** Tourne un symbole de deltaDeg degrés (un cran d'undo, normalisé 0..360). */
+  tournerSymbole: (symboleId: string, deltaDeg: number) => void
   ajouterNiveau: () => void
   renommerNiveau: (niveauId: string, name: string) => void
   /** Copie profonde d'un niveau (nouveaux ids partout). Retourne le nom créé, ou null. */
@@ -378,6 +380,21 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     [surNiveau, commit]
   )
 
+  // Push 8 — rotation d'un symbole (orientation sur le plan), un cran d'undo.
+  // Normalisé dans [0, 360). La rotation est déjà appliquée en 2D (SymboleSvg)
+  // et en 3D pour les symboles de sol (iso.ts).
+  const tournerSymbole = useCallback(
+    (symboleId: string, deltaDeg: number) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        const s = niv?.symbols.find((x) => x.id === symboleId)
+        if (!s) return
+        s.rotation = (((Math.round((s.rotation || 0) + deltaDeg)) % 360) + 360) % 360
+      })
+    },
+    [muter, surNiveau]
+  )
+
   const ajouterNiveau = useCallback(() => {
     const noms = dataRef.current.levels.map((n) => n.name)
     let num = 1
@@ -507,6 +524,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     supprimerCloture,
     deplacerSymboleSansUndo,
     majSymboleSansUndo,
+    tournerSymbole,
     ajouterNiveau,
     renommerNiveau,
     dupliquerNiveau,
