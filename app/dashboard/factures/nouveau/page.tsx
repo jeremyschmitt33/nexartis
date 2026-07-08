@@ -503,6 +503,19 @@ export default function NouvelleFacturePage() {
         if (ctrl.signal.aborted) return
         if (!devisRows || devisRows.length !== 1) { setSituationPlan(null); return }
         const devisId = String((devisRows[0] as { id: string }).id)
+
+        // EXCLUSIVITÉ : ce devis a déjà une facture COMPLÈTE → il ne peut pas recevoir
+        // de situation (le trigger refuserait l'écriture). On n'affiche donc pas l'écran
+        // « Facturer par ligne » : proposer une saisie qu'on refusera ensuite est un piège.
+        const { data: dejaLiees } = await supabase
+          .from('factures').select('type')
+          .eq('devis_id', devisId).is('deleted_at', null)
+        if (ctrl.signal.aborted) return
+        const aUneFacturePleine = (dejaLiees ?? []).some(
+          (f) => (f as { type: string | null }).type !== 'situation' && (f as { type: string | null }).type !== 'avoir'
+        )
+        if (aUneFacturePleine) { setSituationPlan(null); return }
+
         const { data: lignesRows } = await supabase
           .from('devis_lignes')
           .select('id, designation, montant_ht, taux_tva, type, optionnel, retenu_par_client, source_plan')

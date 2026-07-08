@@ -114,13 +114,16 @@ BEGIN
       AND f.type = 'situation'
   ) INTO situ_existe;
 
+  -- Messages ACCENTUES : ils sont affiches tels quels a l'artisan (bandeau
+  -- d'erreur de l'ecran facture, toast de la page devis). Le fichier .sql est en
+  -- UTF-8, contrairement aux .bat qui doivent rester sans accents.
   IF type_nouveau = 'situation' AND pleine_existe THEN
-    RAISE EXCEPTION 'Ce devis a deja ete facture en une facture complete : il ne peut pas recevoir de facture de situation.'
+    RAISE EXCEPTION 'Ce devis a déjà été facturé en une facture complète : il ne peut pas recevoir de facture de situation.'
       USING ERRCODE = '23514';
   END IF;
 
   IF type_nouveau <> 'situation' AND situ_existe THEN
-    RAISE EXCEPTION 'Ce devis est facture par situations : il ne peut pas etre converti en une facture complete.'
+    RAISE EXCEPTION 'Ce devis est facturé par situations : il ne peut pas être converti en une facture complète.'
       USING ERRCODE = '23514';
   END IF;
 
@@ -130,7 +133,7 @@ BEGIN
     WHERE f.devis_id = NEW.devis_id AND f.id <> NEW.id AND f.deleted_at IS NULL
       AND COALESCE(f.type, 'standard') NOT IN ('situation', 'avoir')
     ORDER BY f.created_at LIMIT 1;
-    RAISE EXCEPTION 'Ce devis est deja facture (facture %). Un devis ne peut etre converti qu''une seule fois.', COALESCE(numero_pleine, '?')
+    RAISE EXCEPTION 'Ce devis est déjà facturé (facture %). Un devis ne peut être converti qu''une seule fois.', COALESCE(numero_pleine, '?')
       USING ERRCODE = '23514';
   END IF;
 
