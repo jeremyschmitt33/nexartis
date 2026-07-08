@@ -248,6 +248,34 @@ export default function DevisDetailPage() {
   const [relanceTriggered, setRelanceTriggered] = useState(false)
   const [chantierCreating, setChantierCreating] = useState(false)
 
+  /**
+   * ARGENT — EXCLUSIVITÉ DE FACTURATION D'UN DEVIS.
+   * Un devis se facture SOIT en une facture complète (conversion), SOIT par
+   * factures de situation. Jamais les deux, jamais deux fois : le cumul
+   * « déjà facturé » des situations ne compte QUE les factures type='situation',
+   * donc une facture pleine lui est invisible → double facturation possible.
+   * Ici on charge l'état pour masquer le bouton ; la vraie garantie est le
+   * trigger `trg_exclusivite_facturation_devis` (migration 2026-07-08b), qui
+   * s'applique à tous les appelants.
+   */
+  const [convertEnCours, setConvertEnCours] = useState(false)
+  const [factureeEnPlein, setFactureeEnPlein] = useState(false)
+  const [aDesSituations, setADesSituations] = useState(false)
+  useEffect(() => {
+    let annule = false
+    if (!id) return
+    ;(async () => {
+      const { data } = await createClient()
+        .from('factures').select('type')
+        .eq('devis_id', id).is('deleted_at', null)
+      if (annule) return
+      const types = (data ?? []).map((f) => String((f as { type: string | null }).type ?? 'standard'))
+      setFactureeEnPlein(types.some((t) => t !== 'situation' && t !== 'avoir'))
+      setADesSituations(types.some((t) => t === 'situation'))
+    })()
+    return () => { annule = true }
+  }, [id])
+
   // Push 5 (Plan 2D) — images « Plan du chantier » : la MÊME image PNG
   // (plans.export_images, base64) que les 2 PDF et /signer, chargée via le
   // helper partagé à partir des source_plan des lignes. Best-effort : [].
@@ -286,8 +314,32 @@ export default function DevisDetailPage() {
 
   async function handleConvertToFacture(skipConfirm = false) {
     if (!devis) return
+    // Anti double-clic : sans ce garde, deux clics rapides (ou ?convert=1 rejoué)
+    // créaient DEUX factures pleines du même devis. Constaté en prod.
+    if (convertEnCours) return
     if (!skipConfirm && !(await askConfirm({ title: 'Convertir ce devis en facture ?', confirmLabel: 'Convertir' }))) return
+    setConvertEnCours(true)
     try {
+      // ARGENT — revalidation FRAÎCHE juste avant d'écrire (l'état de l'écran peut
+      // dater). Le trigger en base refuserait de toute façon, mais on préfère un
+      // message clair à une erreur serveur.
+      const { data: dejaLiees } = await createClient()
+        .from('factures').select('type, numero')
+        .eq('devis_id', devis.id).is('deleted_at', null)
+      const liees = (dejaLiees ?? []) as Array<{ type: string | null; numero: string | null }>
+      const pleine = liees.find((f) => f.type !== 'situation' && f.type !== 'avoir')
+      const situation = liees.find((f) => f.type === 'situation')
+      if (pleine) {
+        toast.error(`Ce devis est déjà facturé (facture ${pleine.numero ?? ''}). Un devis ne peut être converti qu'une seule fois.`)
+        setFactureeEnPlein(true)
+        return
+      }
+      if (situation) {
+        toast.error('Ce devis est facturé par situations. Il ne peut pas être converti en une facture complète (le cumul serait faussé).')
+        setADesSituations(true)
+        return
+      }
+
       const now = new Date()
       const numero = `F-${now.getFullYear()}-${String(Date.now()).slice(-5)}`
       const facture = await insertRow('factures', {
@@ -325,9 +377,14 @@ export default function DevisDetailPage() {
       // Marquer le devis comme "Facturé"
       await updateRow('devis', devis.id, { statut: 'facture' })
       router.push(`/dashboard/factures/${factureId}`)
+      return // pas de setConvertEnCours(false) : on quitte l'écran
     } catch (err) {
       const msg = err instanceof Error ? err.message : JSON.stringify(err)
-      toast.error('Erreur conversion : ' + msg)
+      // Le trigger d'exclusivité lève un message déjà rédigé pour l'artisan.
+      if (msg.includes('Ce devis')) toast.error(msg)
+      else toast.error('Erreur conversion : ' + msg)
+    } finally {
+      setConvertEnCours(false)
     }
   }
 
@@ -605,9 +662,25 @@ export default function DevisDetailPage() {
           <button onClick={() => router.push(`/dashboard/devis/${id}/modifier`)} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a]">
             <Pencil size={14} /> Modifier
           </button>
-          <button onClick={() => handleConvertToFacture(false)} className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a]">
-            <FileText size={14} /> <span className="hidden xs:inline">Convertir en</span> facture
-          </button>
+          {/* ARGENT — un devis se facture une seule fois, et d'une seule manière.
+              Masqué s'il est déjà facturé (en plein ou par situations). */}
+          {factureeEnPlein ? (
+            <span className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 text-gray-500">
+              <FileText size={14} /> Déjà facturé
+            </span>
+          ) : aDesSituations ? (
+            <span className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold rounded-xl bg-[#fafbfc] border-[1.5px] border-gray-200 text-gray-500">
+              <FileText size={14} /> Facturé par situations
+            </span>
+          ) : (
+            <button
+              onClick={() => handleConvertToFacture(false)}
+              disabled={convertEnCours}
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-sm font-hanken font-semibold bg-white border-[1.5px] border-gray-200 rounded-xl hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all text-[#0f1a3a] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-200"
+            >
+              <FileText size={14} /> {convertEnCours ? 'Conversion…' : (<><span className="hidden xs:inline">Convertir en</span> facture</>)}
+            </button>
+          )}
           {devis.signature_token && devis.statut === 'envoye' && (
             <button
               onClick={() => {

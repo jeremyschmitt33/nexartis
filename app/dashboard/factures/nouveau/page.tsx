@@ -441,8 +441,27 @@ export default function NouvelleFacturePage() {
         // (= numero_situation est resté à 1 ET il y a déjà des situations).
         if (maxN > 0 && numeroSituation === 1) setNumeroSituation(maxN + 1)
 
+        // ARGENT — EXCLUSIVITÉ : ce devis a-t-il déjà une facture COMPLÈTE ?
+        // Le cumul des situations ne compte que les factures type='situation', donc
+        // une facture pleine lui est invisible → on préviendrait trop tard. Le trigger
+        // `trg_exclusivite_facturation_devis` refuse l'écriture ; ici on l'annonce
+        // AVANT la saisie plutôt que de la laisser échouer à l'enregistrement.
+        let facturePleine: string | null = null
+        if (devisIdTrouve) {
+          const { data: liees } = await supabase
+            .from('factures').select('type, numero')
+            .eq('devis_id', devisIdTrouve).is('deleted_at', null)
+          if (ctrl.signal.aborted) return
+          const pleine = (liees ?? []).find(
+            (f) => (f as { type: string | null }).type !== 'situation' && (f as { type: string | null }).type !== 'avoir'
+          )
+          if (pleine) facturePleine = String((pleine as { numero: string | null }).numero ?? '')
+        }
+
         // Message utilisateur
-        if (devisAmbigu) {
+        if (facturePleine) {
+          setSituationLookupMsg(`Ce devis a déjà été facturé en une facture complète (${facturePleine}). Il ne peut pas recevoir de facture de situation.`)
+        } else if (devisAmbigu) {
           setSituationLookupMsg('Plusieurs devis portent ce numéro — impossible de choisir automatiquement. Le cumul reste calculé sur la référence.')
         } else if (devisRow && rows.length === 0) {
           setSituationLookupMsg(`Devis trouvé (${dHT?.toFixed(2) ?? '—'} € HT). Aucune situation antérieure.`)
