@@ -201,9 +201,45 @@ async function purgeCorbeille() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Non connecté')
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  // Supprimer les devis expirés
-  await supabase.from('devis').delete().eq('user_id', user.id).not('deleted_at', 'is', null).lt('deleted_at', sevenDaysAgo)
-  // Supprimer les factures expirées
+
+  // ARGENT — ne pas purger un devis référencé par une facture.
+  // La FK `factures.devis_id` est ON DELETE SET NULL : purger le devis efface le lien
+  // vers ses factures de situation. Le cumul « déjà facturé » ne repart PAS de zéro
+  // pour autant (l'historique est lu par devis_id UNION devis_ref, cf.
+  // factures/nouveau/page.tsx), mais on perd la protection de l'index unique.
+  // On conserve donc le devis quand on peut le vérifier.
+  //
+  // FAIL-CLOSED assumé : la table `factures` est réservée au rôle 'dirigeant' par la
+  // RLS. Un commercial lirait 0 référence et croirait à tort qu'aucun devis n'est
+  // protégé — donc en cas d'erreur de lecture, on ne purge AUCUN devis.
+  // (Un trigger BEFORE DELETE a été écarté : il ferait échouer la suppression de
+  //  compte RGPD, dont les cascades effacent devis et factures dans un ordre
+  //  non garanti. Voir la note D de la migration 2026-07-08.)
+  const { data: candidats } = await supabase
+    .from('devis').select('id')
+    .eq('user_id', user.id).not('deleted_at', 'is', null).lt('deleted_at', sevenDaysAgo)
+  const idsCandidats = (candidats ?? []).map((d) => String((d as { id: string }).id))
+  if (idsCandidats.length > 0) {
+    const { data: references, error: refErr } = await supabase
+      .from('factures').select('devis_id').in('devis_id', idsCandidats)
+    if (!refErr && references) {
+      const proteges = new Set(
+        references.map((f) => String((f as { devis_id: string | null }).devis_id ?? ''))
+      )
+      const aPurger = idsCandidats.filter((id) => !proteges.has(id))
+      if (aPurger.length > 0) {
+        // Un refus du trigger (devis facturé vu par le serveur) ne doit jamais
+        // casser la page corbeille : on ignore l'erreur, rien n'est supprimé.
+        try {
+          await supabase.from('devis').delete().eq('user_id', user.id).in('id', aPurger)
+        } catch { /* refus serveur : devis conservé, comportement voulu */ }
+      }
+    }
+    // refErr → on ne purge AUCUN devis (fail-closed).
+  }
+
+  // Factures expirées : purge sans effet de bord sur le cumul (elles portent
+  // deleted_at, donc elles étaient déjà exclues du déjà-facturé).
   await supabase.from('factures').delete().eq('user_id', user.id).not('deleted_at', 'is', null).lt('deleted_at', sevenDaysAgo)
   clearDataCache()
 }

@@ -16,7 +16,7 @@ import LineCard from '@/components/mobile/LineCard'
 import LineSheet, { type SheetLine } from '@/components/mobile/LineSheet'
 import DesignationAutocomplete from '@/components/DesignationAutocomplete'
 import SituationParLigne, { type SituationParLigneResultat, type LigneDevisMarche } from '@/components/factures/SituationParLigne'
-import { cumulDejaFactureParLigne } from '@/lib/situation'
+import { cumulDejaFactureParLigne, type SituationLigneEnregistree } from '@/lib/situation'
 import { genererImagePlanNiveau } from '@/lib/plan/export'
 import type { PlanData } from '@/lib/plan/types'
 
@@ -76,6 +76,79 @@ function validateClientSiret(raw: string): string | null {
 // V4 light : style input premium (fond #fafbfc, bordure 1.5px, halo orange au focus).
 const inputCls = 'w-full py-2.5 px-4 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] font-hanken font-normal text-[14.5px] text-[#0f1a3a] leading-[1.4] placeholder:text-gray-400 focus:outline-none focus:border-[#ff7a1a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,122,26,0.12),_0_4px_12px_rgba(255,122,26,0.08)] transition-all duration-200'
 
+// ─── ARGENT — lecture de l'historique des situations ──────────────────────────
+
+/** Situation antérieure telle que lue en base. */
+type SituationRow = {
+  id: string
+  numero_situation: number | null
+  montant_ht: number | null
+  montant_ttc: number | null
+  situation_lignes?: SituationLigneEnregistree[] | null
+}
+
+const COLS_SITUATION = 'id, numero_situation, montant_ht, montant_ttc, situation_lignes'
+
+/**
+ * Situations VIVANTES rattachées à un devis. Source unique de vérité du cumul.
+ *
+ * Trois durcissements ARGENT par rapport à l'ancienne requête :
+ *  1. `deleted_at IS NULL` — une situation mise à la corbeille ne doit plus gonfler le
+ *     cumul déjà-facturé (sinon on SOUS-facture la suivante). Bug réel constaté.
+ *  2. AUCUN filtre `user_id` — la RLS de `factures` scope déjà par ENTREPRISE. Filtrer
+ *     sur le créateur rendait deux dirigeants de la même entreprise aveugles l'un à
+ *     l'autre → cumul à zéro → DOUBLE FACTURATION.
+ *  3. Union `devis_id` ∪ `devis_ref` — la FK devis est `ON DELETE SET NULL` et la purge
+ *     de corbeille hard-delete les devis : un devis purgé remet `devis_id` à NULL.
+ *     Chercher AUSSI par référence texte évite de « perdre » des situations, ce qui
+ *     referait facturer le chantier depuis zéro. Deux requêtes fusionnées par id plutôt
+ *     qu'un `.or(...)` : la référence est une saisie libre, l'injecter dans un filtre
+ *     PostgREST serait risqué (virgule, parenthèse).
+ *
+ * Le sens de l'erreur est ASSUMÉ : en cas de doute on ramène trop de situations (on
+ * sous-facture, rattrapable) plutôt que pas assez (on double-facture, grave).
+ */
+async function chargerSituationsDuDevis(
+  sb: ReturnType<typeof createClient>,
+  devisId: string | null,
+  ref: string,
+): Promise<SituationRow[]> {
+  const trouvees = new Map<string, SituationRow>()
+  const avaler = (data: unknown) => {
+    for (const r of ((data ?? []) as SituationRow[])) if (r?.id) trouvees.set(r.id, r)
+  }
+  if (devisId) {
+    const { data, error } = await sb
+      .from('factures').select(COLS_SITUATION)
+      .eq('type', 'situation').is('deleted_at', null).eq('devis_id', devisId)
+    if (error) throw error
+    avaler(data)
+  }
+  if (ref) {
+    const { data, error } = await sb
+      .from('factures').select(COLS_SITUATION)
+      .eq('type', 'situation').is('deleted_at', null).eq('devis_ref', ref)
+    if (error) throw error
+    avaler(data)
+  }
+  return [...trouvees.values()]
+}
+
+/** Cumuls dérivés d'une liste de situations (une seule définition, réutilisée au save). */
+function cumulsDe(rows: SituationRow[]) {
+  return {
+    ht: rows.reduce((a, r) => a + Number(r.montant_ht ?? 0), 0),
+    ttc: rows.reduce((a, r) => a + Number(r.montant_ttc ?? 0), 0),
+    maxNumero: rows.reduce((m, r) => Math.max(m, Number(r.numero_situation ?? 0)), 0),
+    nb: rows.length,
+  }
+}
+
+/** Empreinte stable d'une map { devis_ligne_id: montant } — pour détecter une divergence. */
+function empreinteDejaFacture(m: Record<string, number>): string {
+  return Object.keys(m).sort().map((k) => `${k}:${Math.round((m[k] ?? 0) * 100)}`).join('|')
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function NouvelleFacturePage() {
@@ -123,6 +196,12 @@ export default function NouvelleFacturePage() {
   const [devisTotalTTC, setDevisTotalTTC] = useState<number | null>(null)
   const [devisDateLiee, setDevisDateLiee] = useState<string | null>(null)
   const [situationLookupMsg, setSituationLookupMsg] = useState<string>('')
+  /**
+   * ARGENT — id STABLE du devis lié (uuid). Écrit dans factures.devis_id et utilisé
+   * comme ancre du cumul (le texte devis_ref peut être renommé). null = devis non
+   * retrouvé (ou numéro ambigu) → on retombe sur le seul devis_ref.
+   */
+  const [devisIdLie, setDevisIdLie] = useState<string | null>(null)
   // Push 7B — facturation de situation PAR LIGNE (additif). Le détail par ligne
   // (situation_lignes) est RECALCULÉ au save depuis les lignes réelles (jamais figé).
   const [situationPlan, setSituationPlan] = useState<{
@@ -305,6 +384,7 @@ export default function NouvelleFacturePage() {
       setDevisTotalHT(null)
       setDevisTotalTTC(null)
       setDevisDateLiee(null)
+      setDevisIdLie(null)
       setSituationLookupMsg('')
       return
     }
@@ -315,6 +395,7 @@ export default function NouvelleFacturePage() {
       setDevisTotalHT(null)
       setDevisTotalTTC(null)
       setDevisDateLiee(null)
+      setDevisIdLie(null)
       setSituationLookupMsg('')
       return
     }
@@ -325,33 +406,32 @@ export default function NouvelleFacturePage() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user || ctrl.signal.aborted) return
 
-        // 1. Devis lié (pour totalHT/TTC + date)
-        const { data: devisRow } = await supabase
+        // 1. Devis lié : id STABLE + totalHT/TTC + date.
+        //    Pas de filtre user_id (la RLS scope déjà par entreprise). `limit(2)` au lieu
+        //    de maybeSingle : deux dirigeants d'une même entreprise peuvent porter un devis
+        //    de même numéro — on REFUSE de choisir au hasard, on traite le cas en ambigu.
+        const { data: devisRows } = await supabase
           .from('devis')
-          .select('montant_ht, montant_ttc, date_emission')
-          .eq('user_id', user.id)
+          .select('id, montant_ht, montant_ttc, date_emission')
           .eq('numero', ref)
-          .maybeSingle()
+          .limit(2)
         if (ctrl.signal.aborted) return
+        const devisAmbigu = (devisRows ?? []).length > 1
+        const devisRow = devisAmbigu ? null : ((devisRows ?? [])[0] ?? null)
+        const devisIdTrouve = devisRow ? String(devisRow.id) : null
         const dHT = devisRow ? Number(devisRow.montant_ht ?? 0) : null
         const dTTC = devisRow ? Number(devisRow.montant_ttc ?? 0) : null
         const dDate = devisRow ? (devisRow.date_emission as string | null) : null
         setDevisTotalHT(dHT)
         setDevisTotalTTC(dTTC)
         setDevisDateLiee(dDate)
+        setDevisIdLie(devisIdTrouve)
 
-        // 2. Factures de situation déjà émises sur ce devis_ref
-        const { data: situations } = await supabase
-          .from('factures')
-          .select('numero_situation, montant_ht, montant_ttc')
-          .eq('user_id', user.id)
-          .eq('type', 'situation')
-          .eq('devis_ref', ref)
+        // 2. Situations VIVANTES déjà émises sur ce devis (cf. chargerSituationsDuDevis :
+        //    deleted_at exclu, portée entreprise, ancrage devis_id ∪ devis_ref).
+        const rows = await chargerSituationsDuDevis(supabase, devisIdTrouve, ref)
         if (ctrl.signal.aborted) return
-        const rows = (situations ?? []) as Array<{ numero_situation: number | null; montant_ht: number | null; montant_ttc: number | null }>
-        const cumulHT = rows.reduce((acc, r) => acc + Number(r.montant_ht ?? 0), 0)
-        const cumulTTC = rows.reduce((acc, r) => acc + Number(r.montant_ttc ?? 0), 0)
-        const maxN = rows.reduce((m, r) => Math.max(m, Number(r.numero_situation ?? 0)), 0)
+        const { ht: cumulHT, ttc: cumulTTC, maxNumero: maxN } = cumulsDe(rows)
         setCumulPrecedentHT(cumulHT)
         setCumulPrecedentTTC(cumulTTC)
         // Suggestion numéro suivant — uniquement si l'artisan n'a pas déjà personnalisé
@@ -359,7 +439,9 @@ export default function NouvelleFacturePage() {
         if (maxN > 0 && numeroSituation === 1) setNumeroSituation(maxN + 1)
 
         // Message utilisateur
-        if (devisRow && rows.length === 0) {
+        if (devisAmbigu) {
+          setSituationLookupMsg('Plusieurs devis portent ce numéro — impossible de choisir automatiquement. Le cumul reste calculé sur la référence.')
+        } else if (devisRow && rows.length === 0) {
           setSituationLookupMsg(`Devis trouvé (${dHT?.toFixed(2) ?? '—'} € HT). Aucune situation antérieure.`)
         } else if (devisRow && rows.length > 0) {
           setSituationLookupMsg(`${rows.length} situation${rows.length > 1 ? 's' : ''} antérieure${rows.length > 1 ? 's' : ''} trouvée${rows.length > 1 ? 's' : ''} (cumul ${cumulHT.toFixed(2)} € HT). Suggéré : situation N°${maxN + 1}.`)
@@ -392,11 +474,13 @@ export default function NouvelleFacturePage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user || ctrl.signal.aborted) return
-        const { data: devisRow } = await supabase
-          .from('devis').select('id').eq('user_id', user.id).eq('numero', ref).maybeSingle()
+        // Portée entreprise (pas de filtre user_id). Numéro ambigu (2 devis) → on
+        // désactive l'écran par ligne plutôt que de deviner : garde-fou ARGENT.
+        const { data: devisRows } = await supabase
+          .from('devis').select('id').eq('numero', ref).limit(2)
         if (ctrl.signal.aborted) return
-        if (!devisRow) { setSituationPlan(null); return }
-        const devisId = String((devisRow as { id: string }).id)
+        if (!devisRows || devisRows.length !== 1) { setSituationPlan(null); return }
+        const devisId = String((devisRows[0] as { id: string }).id)
         const { data: lignesRows } = await supabase
           .from('devis_lignes')
           .select('id, designation, montant_ht, taux_tva, type, optionnel, retenu_par_client, source_plan')
@@ -416,11 +500,8 @@ export default function NouvelleFacturePage() {
               roomId: sp?.roomId ?? null,
             }
           })
-        const { data: sits } = await supabase
-          .from('factures').select('situation_lignes, montant_ht')
-          .eq('user_id', user.id).eq('type', 'situation').eq('devis_ref', ref)
+        const sitsArr = await chargerSituationsDuDevis(supabase, devisId, ref)
         if (ctrl.signal.aborted) return
-        const sitsArr = (sits ?? []) as Array<{ situation_lignes?: { devis_ligne_id: string; montant_ht: number }[] | null; montant_ht?: number | null }>
         // GARDE-FOU ARGENT : si une situation antérieure a été émise SANS le détail
         // par ligne (montant > 0 mais situation_lignes vide), le cumul par ligne est
         // incomplet → on DÉSACTIVE l'écran par ligne pour ne jamais re-facturer du
@@ -428,7 +509,19 @@ export default function NouvelleFacturePage() {
         const historiqueIncomplet = sitsArr.some(
           (s) => Number(s.montant_ht ?? 0) > 0 && !(Array.isArray(s.situation_lignes) && s.situation_lignes.length > 0)
         )
-        if (historiqueIncomplet) { setSituationPlan(null); return }
+        // GARDE-FOU ARGENT (2) : détail par ligne PÉRIMÉ. L'écran « modifier » met à
+        // jour le montant d'une situation mais ne recalcule PAS `situation_lignes`.
+        // Un détail dont la somme ne colle plus au montant de la facture ne peut pas
+        // servir de base au « déjà facturé » par ligne (une ligne serait re-facturée
+        // ou oubliée). On le DÉTECTE au lieu d'effacer la donnée, et on retombe sur la
+        // saisie manuelle. Invariant vérifié en prod : somme(lignes) == montant_ht.
+        const detailIncoherent = sitsArr.some((s) => {
+          const lgs = Array.isArray(s.situation_lignes) ? s.situation_lignes : []
+          if (lgs.length === 0) return false // déjà couvert par historiqueIncomplet
+          const somme = lgs.reduce((a, l) => a + Number(l?.montant_ht ?? 0), 0)
+          return Math.abs(somme - Number(s.montant_ht ?? 0)) > 0.01
+        })
+        if (historiqueIncomplet || detailIncoherent) { setSituationPlan(null); return }
         const dejaFacture = cumulDejaFactureParLigne(sitsArr)
         const etats: Record<string, string> = {}
         const noms: Record<string, string> = {}
@@ -741,11 +834,49 @@ export default function NouvelleFacturePage() {
       // V3.0c.18 — Pré-remplissage intelligent (situation) :
       // cumul HT/TTC déjà facturé + reste à facturer (uniquement si devis lié trouvé).
       const isSit = factureType === 'situation'
-      const resteHT = (isSit && devisTotalHT !== null && cumulPrecedentHT !== null)
-        ? Math.max(devisTotalHT - cumulPrecedentHT - totalHT, 0)
+      const refDevis = devisRef.trim()
+
+      // ── ARGENT — REVALIDATION AU SAVE (anti double-facturation) ─────────────────
+      // Le cumul affiché a été lu au debounce ; une autre situation du même devis a pu
+      // être émise depuis (2e appareil, associé, onglet dupliqué). On RELIT la base ici
+      // et, si le cumul, le détail par ligne ou le numéro ont bougé, on REFUSE d'écrire.
+      // Jamais de rattrapage silencieux sur de l'argent : on bloque, on explique, et on
+      // ne détruit RIEN (la saisie de l'artisan reste intacte à l'écran).
+      // NB : il subsiste une micro-fenêtre entre cette relecture et l'INSERT ; elle est
+      // fermée côté base par l'index unique partiel (devis_id, numero_situation),
+      // dont la violation 23505 est rattrapée plus bas en message clair.
+      let cumulFraisHT = cumulPrecedentHT
+      let cumulFraisTTC = cumulPrecedentTTC
+      if (isSit && refDevis) {
+        const sbFrais = createClient()
+        const fraiches = await chargerSituationsDuDevis(sbFrais, devisIdLie, refDevis)
+        const f = cumulsDe(fraiches)
+        const cumulBouge = Math.abs(f.ht - (cumulPrecedentHT ?? 0)) > 0.005
+        const numeroDejaPris = f.maxNumero >= numeroSituation
+        const lignesBougent =
+          modeParLigneActif && situationPlan
+            ? empreinteDejaFacture(cumulDejaFactureParLigne(fraiches)) !== empreinteDejaFacture(situationPlan.dejaFacture)
+            : false
+        if (cumulBouge || numeroDejaPris || lignesBougent) {
+          setSaving(false)
+          setError(
+            numeroDejaPris && !cumulBouge && !lignesBougent
+              ? `La situation n°${numeroSituation} existe déjà pour ce devis (la dernière émise porte le n°${f.maxNumero}). ` +
+                  'Rien n’a été enregistré et votre saisie est conservée. Choisissez un numéro supérieur pour ne pas re-facturer un palier déjà émis.'
+              : 'Le cumul de ce devis a changé depuis l’ouverture de l’écran : une autre facture de situation a été enregistrée entre-temps. ' +
+                  'Rien n’a été enregistré et votre saisie est conservée. Rechargez la page pour repartir du cumul à jour.'
+          )
+          return
+        }
+        cumulFraisHT = f.ht
+        cumulFraisTTC = f.ttc
+      }
+
+      const resteHT = (isSit && devisTotalHT !== null && cumulFraisHT !== null)
+        ? Math.max(devisTotalHT - cumulFraisHT - totalHT, 0)
         : null
-      const resteTTC = (isSit && devisTotalTTC !== null && cumulPrecedentTTC !== null)
-        ? Math.max(devisTotalTTC - cumulPrecedentTTC - totalTTC, 0)
+      const resteTTC = (isSit && devisTotalTTC !== null && cumulFraisTTC !== null)
+        ? Math.max(devisTotalTTC - cumulFraisTTC - totalTTC, 0)
         : null
 
       // V2 imputation — REVALIDATION au moment d'enregistrer (anti double-usage) :
@@ -829,7 +960,19 @@ export default function NouvelleFacturePage() {
         // Si la colonne n'existe pas en DB (migration non executee), on retombe
         // sur le catch 42703 plus bas pour ne pas planter l'insertion.
         autoliquidation_btp: autoliquidationBtp,
-        devis_ref: isSit ? (devisRef.trim() || null) : null,
+        devis_ref: isSit ? (refDevis || null) : null,
+        // ARGENT — ancre STABLE vers le devis (le texte devis_ref peut être renommé).
+        // Alimente l'index unique partiel anti double-facturation.
+        //
+        // ⚠️ RISQUE RÉSIDUEL CONNU : si le devis est introuvable ou AMBIGU (deux devis
+        // de même numéro chez deux dirigeants — `devis.numero` n'est unique que par
+        // user_id), devisIdLie vaut null. L'index partiel étant `WHERE devis_id IS NOT
+        // NULL`, il ne protège alors plus rien : seule la revalidation applicative
+        // ci-dessus couvre le cas, et elle ne ferme pas la concurrence vraie (deux
+        // saves simultanés). Un index sur `devis_ref` est impossible (collision
+        // cross-entreprise). Cas rare, assumé et documenté — à trancher si le
+        // multi-dirigeant se généralise (piste : désambiguïser par chantier_id).
+        devis_id: isSit ? devisIdLie : null,
         devis_date: isSit ? (devisDateLiee || null) : null,
         numero_situation: isSit ? numeroSituation : null,
         // Push 7B — en mode par ligne, on RECALCULE le % d'avancement au save depuis
@@ -837,7 +980,7 @@ export default function NouvelleFacturePage() {
         // qu'il ne mente jamais sur le PDF même après une édition manuelle des lignes.
         pourcentage_situation: isSit
           ? (situationLignesCalc.length > 0 && devisTotalHT && devisTotalHT > 0
-              ? Math.min(100, Math.round((((cumulPrecedentHT ?? 0) + totalHT) / devisTotalHT) * 100))
+              ? Math.min(100, Math.round((((cumulFraisHT ?? 0) + totalHT) / devisTotalHT) * 100))
               : pourcentageSituation)
           : null,
         // Push 7B — détail par ligne (null si saisie manuelle sans lignes de devis).
@@ -846,8 +989,8 @@ export default function NouvelleFacturePage() {
         plan_images: planImagesSnap,
         // V3.0c.18 — Cumul des situations précédentes + reste à facturer (snapshot
         // figé à la création). null si impossible à calculer (pas de devis lié en BDD).
-        montant_situation_precedent_ht: isSit ? cumulPrecedentHT : null,
-        montant_situation_precedent_ttc: isSit ? cumulPrecedentTTC : null,
+        montant_situation_precedent_ht: isSit ? cumulFraisHT : null,
+        montant_situation_precedent_ttc: isSit ? cumulFraisTTC : null,
         reste_a_facturer_ht: resteHT,
         reste_a_facturer_ttc: resteTTC,
         date_emission: dateFacture,
@@ -947,6 +1090,19 @@ export default function NouvelleFacturePage() {
       } catch (e) {
         const msg = (e as { message?: string; code?: string })?.message || ''
         const code = (e as { code?: string })?.code || ''
+        // ARGENT — filet de sécurité base : l'index unique partiel
+        // (devis_id, numero_situation) a refusé un doublon de situation. C'est la
+        // micro-fenêtre de concurrence restée ouverte après la revalidation.
+        // On rattrape 23505 en message clair — jamais l'erreur Postgres brute.
+        if (code === '23505' || msg.includes('23505') || msg.includes('factures_situation_unique_par_devis')) {
+          await rollbackImpute()
+          setSaving(false)
+          setError(
+            'Une facture de situation portant ce numéro vient d’être enregistrée pour ce devis. ' +
+              'Rien n’a été enregistré. Rechargez la page pour repartir du cumul à jour.'
+          )
+          return
+        }
         if (msg.includes('autoliquidation_btp') || code === '42703' || msg.includes('42703')) {
           const fallback = { ...factureData }
           delete fallback.autoliquidation_btp
@@ -1000,7 +1156,7 @@ export default function NouvelleFacturePage() {
       setError((err as Error).message)
       setSaving(false)
     }
-  }, [clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee, autoliquidationBtp, avoirChoisi, selectedClientId])
+  }, [clientCivilite, clientSiret, clientNom, clientPrenom, clientAdresse, clientCodePostal, clientVille, clientTelephone, clientEmail, dateFacture, dateEcheance, objet, chantierId, conditions, notesPerso, acompteActive, acomptePourcent, acompteHTcalc, acompteTTCcalc, acompteLabel, totalHT, totalTVA, totalTTC, globalTvaRate, lines, router, factureType, devisRef, numeroSituation, pourcentageSituation, cumulPrecedentHT, cumulPrecedentTTC, devisTotalHT, devisTotalTTC, devisDateLiee, autoliquidationBtp, avoirChoisi, selectedClientId, devisIdLie, modeParLigneActif, situationPlan])
 
   return (
     <div className="min-h-screen">

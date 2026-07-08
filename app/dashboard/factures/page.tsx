@@ -321,6 +321,14 @@ export default function FacturesListPage() {
         'rembourse_montant', 'rembourse_mode',
         // V2 imputation : une copie ne doit jamais heriter d'une imputation d'avoir.
         'avoir_impute_id', 'avoir_impute_numero', 'avoir_impute_montant', 'avoir_montant_impute',
+        // ARGENT — `type` est déjà exclu (la copie redevient standard), donc elle ne doit
+        // porter AUCUN marqueur de situation : sinon on obtient une facture standard avec
+        // un numero_situation, un devis_id et un détail par ligne fantômes (données
+        // polluées, rendus PDF ambigus, et un devis_id qui bloquerait la purge).
+        'devis_id', 'devis_ref', 'devis_date', 'numero_situation', 'pourcentage_situation',
+        'situation_lignes', 'plan_images',
+        'montant_situation_precedent_ht', 'montant_situation_precedent_ttc',
+        'reste_a_facturer_ht', 'reste_a_facturer_ttc',
       ])
       const newFacture: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(source)) {

@@ -571,6 +571,14 @@ export default function ModifierFacturePage() {
       } catch (e) {
         const msg = (e as { message?: string; code?: string })?.message || ''
         const code = (e as { code?: string })?.code || ''
+        // ARGENT — l'index unique partiel (devis_id, numero_situation) refuse deux
+        // situations de même numéro sur un même devis. Message clair, jamais l'erreur
+        // Postgres brute à l'écran.
+        if (code === '23505' || msg.includes('23505') || msg.includes('factures_situation_unique_par_devis')) {
+          throw new Error(
+            'Une autre facture de situation porte déjà ce numéro pour ce devis. Choisissez un autre numéro de situation.'
+          )
+        }
         if (msg.includes('autoliquidation_btp') || code === '42703' || msg.includes('42703')) {
           const fallback = { ...factureData }
           delete fallback.autoliquidation_btp
