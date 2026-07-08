@@ -131,7 +131,10 @@ async function chargerSituationsDuDevis(
     if (error) throw error
     avaler(data)
   }
-  return [...trouvees.values()]
+  // Array.from et NON [...trouvees.values()] : le tsconfig du projet ne fixe pas de
+  // `target`, donc TS retombe sur ES5 et refuse d'étaler un itérateur de Map/Set
+  // (« can only be iterated through when using the --downlevelIteration flag »).
+  return Array.from(trouvees.values())
 }
 
 /** Cumuls dérivés d'une liste de situations (une seule définition, réutilisée au save). */
