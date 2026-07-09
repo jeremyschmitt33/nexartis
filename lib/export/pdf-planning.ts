@@ -17,6 +17,7 @@ import { downloadPdfBlob, type PdfDownloadResult } from '@/lib/download-pdf'
 import {
   type PlanningExportData,
   type PlanningExportRow,
+  type PlanningExportEntreprise,
   horaireLabel,
   typeLabel,
   sortRows,
@@ -69,7 +70,7 @@ function firstRowDate(data: PlanningExportData): Date {
 
 // ---- En-tete commun ----
 function drawHeader(doc: jsPDF, data: PlanningExportData, count: number): number {
-  const ent = data.entreprise || {}
+  const ent: PlanningExportEntreprise = data.entreprise || {}
   let titleX = M
   if (ent.logo_url && String(ent.logo_url).startsWith('data:image')) {
     try {

@@ -1281,7 +1281,7 @@ function PlanningPageInner() {
   // Construit les lignes normalisees pour la periode choisie a partir des
   // donnees deja en memoire (planningData + maps). Bornes calculees depuis
   // la semaine affichee (weekStart).
-  const buildExportRows = useCallback((period: PlanningPeriodType): { rows: PlanningExportRow[]; label: string } => {
+  const buildExportRows = useCallback((period: PlanningPeriodType): { rows: PlanningExportRow[]; label: string; startIso: string; endIso: string } => {
     const base = new Date(weekStart)
     let start: Date, end: Date, label: string
     if (period === 'week') {
@@ -1352,7 +1352,7 @@ function PlanningPageInner() {
 
   const runExport = (format: 'pdf' | 'csv' | 'ics') => {
     const { rows, label, startIso, endIso } = buildExportRows(exportPeriod)
-    const ent = (entreprise as R) || {}
+    const ent = (entreprise ?? {}) as R
     const data = {
       rows, periodType: exportPeriod, periodeLabel: label,
       periodStart: startIso, periodEnd: endIso,
