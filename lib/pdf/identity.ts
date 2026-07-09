@@ -33,11 +33,11 @@ interface IdentityClient {
 }
 
 const CARD_W = 84
-const CARD_H = 50 // parite stricte avec ADRESSE A (50mm)
+const CARD_H = 44 // V3.3 : raccourci (50 -> 44mm) suite retour client
 const CARD_R = 5
 const PAD_X = 6
-const PAD_TOP = 10
-const PAD_BOTTOM = 6 // V3.0c.13 : +2mm pour remonter SIRET/TVA et reduire le gap mail-SIRET
+const PAD_TOP = 11 // place le label + le nom sous le label inline
+const PAD_BOTTOM = 5
 const BADGE_W = 28
 const BADGE_H = 5
 const BADGE_R = 2.5
@@ -117,25 +117,27 @@ function drawEmetteurCard(
   setDraw(doc, P.border)
   doc.setLineWidth(0.3)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
-  drawBadge(doc, 'ÉMETTEUR', x + 10, y, P)
 
-  // V3.0c.11 : top (nom + coordonnees bold) ancre haut, bottom (SIRET/TVA 8pt normal)
-  // ancre bas. Carte agrandie a 58mm pour avoir un gap naturel ~4mm entre les deux.
-  // V3.0d : couleur de texte = P.emetteurInk (auto blanc/navy selon luminance fond).
+  // V3.3 : label simple A L'INTERIEUR de la carte (fini le badge "a cheval").
+  // Couleur = ink de la carte -> toujours lisible quel que soit le theme (fini
+  // le "rose sur rose" invisible du badge accent).
   const ink = P.emetteurInk
+  font(doc, 'Hanken Grotesk', 'semibold', 6, ink)
+  doc.text('ÉMETTEUR', x + PAD_X, y + 5.5, { charSpace: 0.5 })
+
   const top: ContentLine[] = []
-  if (ent.nom) top.push({ text: ent.nom, size: 13, weight: 'extrabold', color: ink, marginAfter: GAP_NAME_AFTER })
-  if (ent.adresse) top.push({ text: ent.adresse, size: 9, weight: 'bold', color: ink })
+  if (ent.nom) top.push({ text: ent.nom, size: 11.5, weight: 'extrabold', color: ink, marginAfter: GAP_NAME_AFTER })
+  if (ent.adresse) top.push({ text: ent.adresse, size: 8, weight: 'bold', color: ink })
   const ville = `${ent.code_postal || ''} ${ent.ville || ''}`.trim()
-  if (ville) top.push({ text: ville, size: 9, weight: 'bold', color: ink })
-  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 9, weight: 'bold', color: ink })
-  if (ent.email) top.push({ text: ent.email, size: 9, weight: 'bold', color: ink })
+  if (ville) top.push({ text: ville, size: 8, weight: 'bold', color: ink })
+  if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 8, weight: 'bold', color: ink })
+  if (ent.email) top.push({ text: ent.email, size: 8, weight: 'bold', color: ink })
 
   // Bloc BAS (SIRET + TVA) ancre en bas, 8pt normal (mentions legales, plus discret)
   const bottom: ContentLine[] = []
-  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 8, weight: 'normal', color: ink })
+  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 7.5, weight: 'normal', color: ink })
   if (ent.tva_intracommunautaire) {
-    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 8, weight: 'normal', color: ink })
+    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 7.5, weight: 'normal', color: ink })
   }
 
   renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
@@ -157,23 +159,21 @@ function drawAddresseCard(
   // P.navyDeep est calcule via cadreAdresse hex, donc deja correct.
   setFill(doc, P.adresse)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
-  drawBadge(doc, 'ADRESSÉ À', x + 10, y, P)
 
-  // V3.0c.11 : top (nom + coordonnees) ancre haut, bottom (SIRET/TVA) ancre bas.
-  // Parite stricte avec EMETTEUR.
-  // V3.0d : si P.adresseInk est blanc (fond fonce) on conserve l'effet "softWhite"
-  // historique sur les lignes secondaires ; sinon on passe tout en ink calcule.
-  // Cela preserve un rendu pixel-identique a la charte Nexartis (whiteSoft sur secondaires).
   const isDarkBg = P.adresseInk[0] === 255 && P.adresseInk[1] === 255 && P.adresseInk[2] === 255
   const inkMain = P.adresseInk
   const inkSecondary = isDarkBg ? P.whiteSoft : P.adresseInk
+  // V3.3 : label simple a l'interieur de la carte (fini le badge "a cheval"),
+  // couleur = ink -> lisible sur tout theme.
+  font(doc, 'Hanken Grotesk', 'semibold', 6, inkMain)
+  doc.text('ADRESSÉ À', x + PAD_X, y + 5.5, { charSpace: 0.5 })
   const top: ContentLine[] = []
-  top.push({ text: client.clientNom || '—', size: 13, weight: 'extrabold', color: inkMain, marginAfter: GAP_NAME_AFTER })
+  top.push({ text: client.clientNom || '—', size: 11.5, weight: 'extrabold', color: inkMain, marginAfter: GAP_NAME_AFTER })
   if (client.clientAdresse) {
     const parts = client.clientAdresse.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean)
     for (const p of parts) {
       const text = looksLikePhone(p) ? formatPhone(p) : p
-      top.push({ text, size: 9, weight: 'bold', color: inkSecondary })
+      top.push({ text, size: 8, weight: 'bold', color: inkSecondary })
     }
   }
 
@@ -182,10 +182,10 @@ function drawAddresseCard(
   if (client.clientSiret) {
     // Libelle adaptatif : SIREN si 9 chiffres, SIRET sinon (parite stricte avec DocumentRender).
     const idLabel = client.clientSiret.replace(/\D/g, '').length === 9 ? 'SIREN' : 'SIRET'
-    bottom.push({ text: `${idLabel} ${client.clientSiret}`, size: 8, weight: 'normal', color: inkSecondary })
+    bottom.push({ text: `${idLabel} ${client.clientSiret}`, size: 7.5, weight: 'normal', color: inkSecondary })
   }
   if (client.clientTvaIntra) {
-    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 8, weight: 'normal', color: inkSecondary })
+    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 7.5, weight: 'normal', color: inkSecondary })
   }
 
   renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)

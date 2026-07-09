@@ -397,7 +397,18 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
 function RecapDevis({ data }: { data: DocumentData }) {
   const { totals, meta } = data
   const hasAcompte = totals.acomptePct > 0
-  const conditionsLibres = meta.conditionsPaiement?.trim()
+  // Dedoublonne les lignes (certaines conditions sont stockees dupliquees en base).
+  const conditionsLibres = (() => {
+    const raw = meta.conditionsPaiement?.trim()
+    if (!raw) return raw
+    const seen = new Set<string>()
+    return raw.split('\n').filter(l => {
+      const k = l.trim().toLowerCase()
+      if (k && seen.has(k)) return false
+      if (k) seen.add(k)
+      return true
+    }).join('\n')
+  })()
   const hasTvaReduite = totals.tvaLignes.some(l => l.taux === 5.5 || l.taux === 10)
   return (
     <div className="dv-recap">

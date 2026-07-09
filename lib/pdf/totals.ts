@@ -120,9 +120,24 @@ function drawAvoirEncart(doc: jsPDF, yStart: number, P: Palette): number {
 // ===========================================================================
 // CONDITIONS DE PAIEMENT (gauche)
 // ===========================================================================
+// Supprime les lignes en doublon : certaines conditions ont ete enregistrees
+// dupliquees en base ("A\nB\nA\nB"). On dedoublonne a l'affichage, ce qui repare
+// tous les devis deja affectes sans re-sauvegarde.
+function dedupeLines(txt: string): string {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of txt.split('\n')) {
+    const key = raw.trim().toLowerCase()
+    if (key && seen.has(key)) continue
+    if (key) seen.add(key)
+    out.push(raw)
+  }
+  return out.join('\n')
+}
+
 function drawConditions(doc: jsPDF, data: TotalsData, yStart: number, P: Palette): number {
-  const txt = (data.conditions_paiement && data.conditions_paiement.trim())
-    || DEFAULT_CONDITIONS_PAIEMENT
+  const txt = dedupeLines((data.conditions_paiement && data.conditions_paiement.trim())
+    || DEFAULT_CONDITIONS_PAIEMENT)
   font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
   doc.text('CONDITIONS DE PAIEMENT', LEFT_X, yStart, { charSpace: 0.6 })
 
