@@ -22,18 +22,29 @@ export const dynamic = 'force-dynamic'
 const MAX_BYTES = 10 * 1024 * 1024 // 10 Mo : limite par fichier
 const QUOTA_BYTES = 200 * 1024 * 1024 // 200 Mo : quota coffre-fort par artisan
 
-// Whitelist MIME -> extension. Pas de SVG (vecteur d'XSS), pas d'executables.
-const MIME_EXT: Record<string, string> = {
-  'application/pdf': 'pdf',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/heic': 'heic',
-  'image/heif': 'heif',
-  'application/msword': 'doc',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-  'application/vnd.ms-excel': 'xls',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+// Liste blanche par EXTENSION (source de verite). On valide sur l'extension du
+// nom de fichier plutot que sur le type MIME, car les navigateurs renvoient un
+// MIME vide ou incoherent pour beaucoup de fichiers (typiquement le CSV, vu
+// comme '' ou 'application/vnd.ms-excel' selon l'OS). Pas de SVG/HTML (vecteurs
+// XSS) ni d'executables.
+const ALLOWED_EXT = new Set<string>([
+  // Documents
+  'pdf', 'doc', 'docx', 'odt', 'rtf', 'txt',
+  // Tableurs & donnees
+  'xls', 'xlsx', 'csv', 'tsv', 'ods',
+  // Presentations
+  'ppt', 'pptx', 'odp',
+  // Images & scans
+  'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'gif', 'bmp', 'tif', 'tiff',
+  // Archives (ex : catalogue fournisseur)
+  'zip',
+])
+
+// Extrait l'extension en minuscules du nom de fichier ('facture.CSV' -> 'csv').
+function extFromName(name: string): string {
+  const i = name.lastIndexOf('.')
+  if (i < 0 || i === name.length - 1) return ''
+  return name.slice(i + 1).toLowerCase()
 }
 
 export async function POST(req: NextRequest) {
@@ -46,9 +57,10 @@ export async function POST(req: NextRequest) {
   let body: { filename?: string; mime_type?: string; size?: number }
   try { body = await req.json() } catch { return secureError('Requete invalide') }
 
-  const mime = String(body.mime_type || '')
-  const ext = MIME_EXT[mime]
-  if (!ext) return secureError('Type de fichier non autorise (PDF, image ou document Office uniquement)')
+  const ext = extFromName(String(body.filename || ''))
+  if (!ext || !ALLOWED_EXT.has(ext)) {
+    return secureError('Type de fichier non autorise (PDF, Word, Excel, CSV, image, ZIP...).')
+  }
 
   const taille = Number(body.size) || 0
   if (taille <= 0) return secureError('Fichier vide')

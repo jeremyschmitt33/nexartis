@@ -176,13 +176,13 @@ export default function CoffreFortSection({ devis, clients }: Props) {
             {uploading ? 'Televersement...' : 'Glisser-deposer ou cliquer pour ajouter'}
           </span>
           <span className="font-manrope text-xs text-gray-400">
-            PDF, image, scan ou document Office &mdash; 10 Mo maximum
+            PDF, image, scan, Office, CSV, ZIP &mdash; 10 Mo maximum
           </span>
         </button>
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.doc,.docx,.xls,.xlsx,application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+          accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.csv,.tsv,.ods,.ppt,.pptx,.odp,.jpg,.jpeg,.png,.webp,.heic,.heif,.gif,.bmp,.tif,.tiff,.zip"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
