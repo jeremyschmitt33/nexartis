@@ -987,6 +987,8 @@ export const EXCEL_CONFIG: SourceConfig = {
         { sourceColumn: 'Email|E-mail|Mail|Courriel|Email address|Adresse email|Adresse e-mail', targetField: 'email', transform: normalizeString },
         { sourceColumn: 'Téléphone|Telephone|Phone|Tel|Tél|Mobile|Portable|GSM|Numéro de téléphone|Phone number', targetField: 'telephone', transform: normalizeString },
         { sourceColumn: 'SIRET|SIREN|Siret|Siren|N° SIRET|Numéro SIRET|Tax ID', targetField: 'siret', transform: normalizeString },
+        { sourceColumn: 'Pays|Country|Nation', targetField: 'pays', transform: normalizeString },
+        { sourceColumn: 'Num. TVA|N° TVA|N° TVA intracommunautaire|Numéro TVA|Numero TVA|TVA intra|TVA intracommunautaire|Numéro de TVA intracommunautaire|VAT|VAT number', targetField: 'tva_intra', transform: normalizeString },
         { sourceColumn: 'Notes|Observations|Remarques|Comments|Notes internes|Mémo|Memo|Commentaire client', targetField: 'notes_internes', transform: normalizeString },
       ],
       requiredColumns: ['Nom'],
@@ -1072,11 +1074,13 @@ export const EXCEL_CONFIG: SourceConfig = {
     prestations: {
       possibleFileNames: ['prestations.csv', 'services.csv', 'catalog.csv', 'price_list.csv'],
       columnMappings: [
-        { sourceColumn: 'Désignation|Designation|Description|Libellé|Libelle|Intitulé|Intitule|Nom|Nom du produit|Nom de la prestation|Produit|Prestation|Service|Article|Item|Label', targetField: 'designation', transform: normalizeString },
+        { sourceColumn: 'Désignation|Designation|Libellé|Libelle|Intitulé|Intitule|Nom|Nom du produit|Nom de la prestation|Produit|Prestation|Service|Article|Item|Label|Description', targetField: 'designation', transform: normalizeString },
         { sourceColumn: 'Unité|Unite|Unit|U|UM|Unité de vente', targetField: 'unite', transform: normalizeString },
         { sourceColumn: 'Prix|Prix HT|Prix unitaire|Prix unitaire HT|PU HT|PU|Tarif|Tarif HT|Unit price|Price|Cost', targetField: 'prix_unitaire_ht', transform: parseAmount },
         { sourceColumn: 'TVA|TVA %|Taux TVA|Taux de TVA|Tax|Tax rate|VAT', targetField: 'taux_tva', transform: parseTVARate },
         { sourceColumn: 'Catégorie|Categorie|Category|Type|Famille|Groupe|Rubrique', targetField: 'categorie', transform: normalizeString },
+        { sourceColumn: 'Code|Référence|Reference|Réf|Ref|Code article|Code produit', targetField: 'reference', transform: normalizeString },
+        { sourceColumn: 'Commentaire|Commentaires|Description|Détail|Detail|Note|Notes|Remarque|Remarques|Observation|Observations|Complément', targetField: 'description', transform: normalizeString },
       ],
       requiredColumns: ['Désignation'],
     },

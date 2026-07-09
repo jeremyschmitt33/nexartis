@@ -211,6 +211,7 @@ const IMPORT_COLUMN_ALLOWLIST: Record<string, Set<string>> = {
     'user_id',
     'adresse', 'code_postal', 'email', 'nom', 'notes_internes',
     'prenom', 'raison_sociale', 'siret', 'telephone', 'ville',
+    'pays', 'tva_intra',
   ]),
   devis: new Set([
     'user_id', 'client_id', 'chantier_id',
@@ -242,6 +243,7 @@ const IMPORT_COLUMN_ALLOWLIST: Record<string, Set<string>> = {
   prestations: new Set([
     'user_id',
     'categorie', 'designation', 'prix_unitaire_ht', 'taux_tva', 'unite',
+    'reference', 'description',
   ]),
   fournisseurs: new Set([
     'user_id',
