@@ -14,17 +14,24 @@ import { useEffect, useState } from 'react'
 //   • la couleur de l'item actif dans la nav mobile
 // -------------------------------------------------------------------
 
-// Palette de 7 thèmes principaux pour la sidebar.
-// Choix volontairement limité à des couleurs lisibles sur fond clair.
-// Le blanc est exclu (illisible sur fond blanc), le noir est rendu en
-// "ardoise" (slate-700) pour rester sobre sans être agressif.
+// Palette de 14 thèmes pour la sidebar.
+// Choix volontairement limité à des couleurs lisibles sur fond clair (le fond
+// de la sidebar est ensuite assombri à 75%, donc chaque couleur reste sobre).
+// Le blanc est exclu (illisible), le noir est rendu en "ardoise" (slate).
 export const SIDEBAR_THEMES = [
   { id: 'orange', label: 'Orange (défaut)', color: '#e87a2a' },
   { id: 'blue', label: 'Bleu', color: '#2563eb' },
-  { id: 'red', label: 'Rouge', color: '#dc2626' },
-  { id: 'yellow', label: 'Jaune', color: '#ca8a04' },
+  { id: 'sky', label: 'Ciel', color: '#0284c7' },
+  { id: 'teal', label: 'Turquoise', color: '#0d9488' },
   { id: 'green', label: 'Vert', color: '#059669' },
+  { id: 'yellow', label: 'Jaune', color: '#ca8a04' },
+  { id: 'red', label: 'Rouge', color: '#dc2626' },
+  { id: 'rose', label: 'Rose', color: '#db2777' },
+  { id: 'fuchsia', label: 'Fuchsia', color: '#c026d3' },
   { id: 'violet', label: 'Violet', color: '#8b5cf6' },
+  { id: 'indigo', label: 'Indigo', color: '#4f46e5' },
+  { id: 'brown', label: 'Marron', color: '#8b5a2b' },
+  { id: 'slate', label: 'Gris', color: '#475569' },
   { id: 'black', label: 'Noir', color: '#1e293b' },
 ] as const
 
@@ -130,7 +137,9 @@ export default function ThemeSelector() {
           Le choix est sauvegarde sur ton appareil.
         </p>
       </div>
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
+      {/* Carrés compacts qui s'enroulent sur 2 lignes si besoin, sans prendre
+          plus de place que l'ancienne rangée unique de grands carrés. */}
+      <div className="flex flex-wrap gap-2.5">
         {SIDEBAR_THEMES.map(theme => {
           const isActive = current === theme.id
           return (
@@ -140,12 +149,12 @@ export default function ThemeSelector() {
               onClick={() => onSelect(theme.id)}
               title={theme.label}
               aria-label={`Choisir le theme ${theme.label}`}
-              className={`relative aspect-square rounded-xl border-2 transition-all ${isActive ? 'border-[#1a1a2e] shadow-md scale-105' : 'border-transparent hover:border-gray-300 hover:scale-105'}`}
+              className={`relative w-11 h-11 rounded-lg border-2 transition-all ${isActive ? 'border-[#1a1a2e] shadow-md scale-105' : 'border-transparent hover:border-gray-300 hover:scale-105'}`}
               style={{ backgroundColor: theme.color }}
             >
               {isActive && (
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-white drop-shadow" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </span>
