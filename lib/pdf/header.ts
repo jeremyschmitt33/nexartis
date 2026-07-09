@@ -194,14 +194,17 @@ export function drawHeader(
   textCentered(doc, title, zoneRightCenter, yTitle)
 
   // V3.1.5 : pastille suit le titre (6mm sous la baseline)
-  font(doc, 'Hanken Grotesk', 'bold', 10.5, P.navy)
+  // Le numero est en BLANC pour ressortir sur la pastille accent (orange par
+  // defaut, mais rose/autre selon le theme de l'artisan) — sinon invisible quand
+  // le texte et l'accent sont proches.
+  font(doc, 'Hanken Grotesk', 'bold', 10.5, P.white)
   const numeroW = doc.getTextWidth(numero)
   const pillW = Math.max(numeroW + 10, 32)
   const pillH = 9
   const pillX = zoneRightCenter - pillW / 2
   const pillY = yTitle + 6
   roundedFill(doc, pillX, pillY, pillW, pillH, 3, P.orange)
-  font(doc, 'Hanken Grotesk', 'bold', 10.5, P.navy)
+  font(doc, 'Hanken Grotesk', 'bold', 10.5, P.white)
   textCentered(doc, numero, zoneRightCenter, pillY + 6.5)
 
   // === Dates : V3.1.5 mode adaptatif (single line si chevauchement) ===

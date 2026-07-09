@@ -509,12 +509,11 @@ function NouveauDevisPage() {
   const [dechetsCollecteType, setDechetsCollecteType] = useState('Déchetterie')
   const [dechetsCout, setDechetsCout] = useState('')
   const [dechetsInclureCout, setDechetsInclureCout] = useState(false)
-  // Gestion des déchets optionnelle : défaut = réglage entreprise (afficher_dechets).
-  const [afficherDechets, setAfficherDechets] = useState(true)
-  const entrepriseDechetsDefault = entreprise ? (entreprise as unknown as Record<string, unknown>).afficher_dechets !== false : undefined
-  useEffect(() => {
-    if (entrepriseDechetsDefault !== undefined) setAfficherDechets(entrepriseDechetsDefault)
-  }, [entrepriseDechetsDefault])
+  // Gestion des déchets (loi AGEC) : DÉCOCHÉE par défaut sur chaque nouveau devis.
+  // L'artisan coche la case uniquement s'il veut déclarer ses déchets. Décision
+  // 09/07 : pas de réglage dans les paramètres. Quand décochée, la section
+  // n'apparaît pas dans le PDF (gating afficher_dechets côté routes download/send).
+  const [afficherDechets, setAfficherDechets] = useState(false)
   const [dechetteriesProches, setDechetteriesProches] = useState<{nom:string;adresse:string;code_postal:string;commune:string;distance_km:number;accepte_pro:string;accepte_construction:boolean;accepte_deee:boolean}[]>([])
   const [loadingDechetteries, setLoadingDechetteries] = useState(false)
 
