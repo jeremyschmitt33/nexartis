@@ -62,6 +62,39 @@ const parsePercentage = (value: string): number | null => {
 
 const normalizeString = (value: string): string => value.trim();
 
+// Normalise l'unite vers la liste AUTORISEE en base (contrainte CHECK :
+// U, Fft, m², ml, h, kg, ens, lot, j). Toute valeur inconnue -> null : la
+// colonne est nullable, l'import ne casse donc pas (au lieu de rejeter la ligne).
+const mapUnite = (value: string): string | null => {
+  const v = (value || '').toLowerCase().trim();
+  if (!v) return null;
+  const map: Record<string, string> = {
+    'u': 'U', 'unité': 'U', 'unite': 'U', 'unités': 'U', 'unites': 'U',
+    'article': 'U', 'articles': 'U', 'pièce': 'U', 'piece': 'U', 'pièces': 'U', 'pieces': 'U', 'pce': 'U', 'pc': 'U',
+    'fft': 'Fft', 'ff': 'Fft', 'forfait': 'Fft', 'forfaitaire': 'Fft',
+    'm²': 'm²', 'm2': 'm²', 'mètre carré': 'm²', 'metre carre': 'm²',
+    'ml': 'ml', 'mètre linéaire': 'ml', 'metre lineaire': 'ml', 'mètre': 'ml', 'metre': 'ml', 'm': 'ml',
+    'h': 'h', 'heure': 'h', 'heures': 'h', 'hr': 'h',
+    'kg': 'kg', 'kilo': 'kg', 'kilogramme': 'kg',
+    'ens': 'ens', 'ensemble': 'ens',
+    'lot': 'lot', 'lots': 'lot',
+    'j': 'j', 'jour': 'j', 'jours': 'j', 'journée': 'j', 'journee': 'j',
+  };
+  return map[v] || null;
+};
+
+// Normalise la categorie de prestation vers la liste AUTORISEE en base
+// (fournitures, main_oeuvre, ouvrages, deplacements). Inconnue -> null (nullable).
+const mapPrestationCategorie = (value: string): string | null => {
+  const v = (value || '').toLowerCase().trim();
+  if (!v) return null;
+  if (['fournitures', 'fourniture', 'produit', 'produits', 'matériel', 'materiel', 'matériaux', 'materiaux', 'article', 'articles'].indexOf(v) !== -1) return 'fournitures';
+  if (['main_oeuvre', "main d'oeuvre", "main d'œuvre", 'main-oeuvre', 'mo', 'service', 'services', 'prestation', 'prestations', 'pose', 'travaux'].indexOf(v) !== -1) return 'main_oeuvre';
+  if (['ouvrages', 'ouvrage', 'forfait'].indexOf(v) !== -1) return 'ouvrages';
+  if (['deplacements', 'deplacement', 'déplacement', 'déplacements', 'transport', 'trajet'].indexOf(v) !== -1) return 'deplacements';
+  return null;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _detectClientType = (data: Record<string, string>): 'particulier' | 'professionnel' => {
   const raisonSociale = Object.values(data).some(v => v && v.length > 20);
@@ -1075,10 +1108,10 @@ export const EXCEL_CONFIG: SourceConfig = {
       possibleFileNames: ['prestations.csv', 'services.csv', 'catalog.csv', 'price_list.csv'],
       columnMappings: [
         { sourceColumn: 'Désignation|Designation|Libellé|Libelle|Intitulé|Intitule|Nom|Nom du produit|Nom de la prestation|Produit|Prestation|Service|Article|Item|Label|Description', targetField: 'designation', transform: normalizeString },
-        { sourceColumn: 'Unité|Unite|Unit|U|UM|Unité de vente', targetField: 'unite', transform: normalizeString },
+        { sourceColumn: 'Unité|Unite|Unit|U|UM|Unité de vente', targetField: 'unite', transform: mapUnite },
         { sourceColumn: 'Prix|Prix HT|Prix unitaire|Prix unitaire HT|PU HT|PU|Tarif|Tarif HT|Unit price|Price|Cost', targetField: 'prix_unitaire_ht', transform: parseAmount },
         { sourceColumn: 'TVA|TVA %|Taux TVA|Taux de TVA|Tax|Tax rate|VAT', targetField: 'taux_tva', transform: parseTVARate },
-        { sourceColumn: 'Catégorie|Categorie|Category|Type|Famille|Groupe|Rubrique', targetField: 'categorie', transform: normalizeString },
+        { sourceColumn: 'Catégorie|Categorie|Category|Type|Famille|Groupe|Rubrique', targetField: 'categorie', transform: mapPrestationCategorie },
         { sourceColumn: 'Code|Référence|Reference|Réf|Ref|Code article|Code produit', targetField: 'reference', transform: normalizeString },
         { sourceColumn: 'Commentaire|Commentaires|Description|Détail|Detail|Note|Notes|Remarque|Remarques|Observation|Observations|Complément', targetField: 'description', transform: normalizeString },
       ],
