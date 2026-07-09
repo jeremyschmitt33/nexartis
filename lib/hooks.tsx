@@ -654,6 +654,9 @@ function useDeletedCertifications() { return useSupabaseQuery<Row>('certificatio
 function useFacturesRecues() { return useSupabaseQuery<Row>('factures_recues', { orderBy: 'date_emission' }) }
 function usePaiements() { return useSupabaseQuery<Row>('paiements', { orderBy: 'date_paiement' }) }
 function usePlanning() { return useSupabaseQuery<Row>('planning_interventions', { orderBy: 'date_debut', ascending: true }) }
+// Indisponibilites (conges / maladie / vacances / formation) — 2026-07-09.
+// Absences posees par nom (intervenant_id OU nom_libre). Soft delete via deleted_at.
+function useIndisponibilites() { return useSupabaseQuery<Row>('indisponibilites', { orderBy: 'date_debut', ascending: true }) }
 // Session 8 (28/05/2026) — table jonction multi-intervenants par intervention.
 // Schéma : { id, user_id, intervention_id, intervenant_id, role: 'referent' | 'equipier' }.
 // Retourne la liste complète (filtrée user_id côté RLS + côté hook).
@@ -778,6 +781,7 @@ export {
   useFacturesRecues,
   usePaiements,
   usePlanning,
+  useIndisponibilites,
   useInterventionIntervenants,
   useChantierNotes,
   useSousTraitantPaiements,

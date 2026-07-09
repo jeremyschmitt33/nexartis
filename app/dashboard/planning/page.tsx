@@ -7,7 +7,7 @@ import {
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
   MoreHorizontal, Phone, Navigation, Rows3, Rows4,
-  CheckCircle2
+  CheckCircle2, Download
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -15,6 +15,10 @@ import {
   useInterventionIntervenants,
   insertRow, updateRow, deleteRow, LoadingSkeleton, useEntreprise,
 } from '@/lib/hooks'
+import { downloadPlanningPdf } from '@/lib/export/pdf-planning'
+import { downloadPlanningCsv } from '@/lib/export/csv-planning'
+import { downloadPlanningIcs } from '@/lib/export/ics-planning'
+import type { PlanningExportRow, PlanningPeriodType } from '@/lib/export/planning-export'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -262,6 +266,9 @@ function PlanningPageInner() {
   // ── State ──
   const [viewPreset, setViewPreset] = useState<ViewPreset>('complete')
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()))
+  // Export planning (PDF / CSV / ICS) — popover periode/format
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportPeriod, setExportPeriod] = useState<PlanningPeriodType>('month')
   const [annualCollapsed, setAnnualCollapsed] = useState(false)
   const [detailCollapsed, setDetailCollapsed] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -1268,6 +1275,88 @@ function PlanningPageInner() {
       }
     }
     setShowModal(true)
+  }
+
+  // ── Export du planning (PDF / CSV / ICS) ──────────────────────────
+  // Construit les lignes normalisees pour la periode choisie a partir des
+  // donnees deja en memoire (planningData + maps). Bornes calculees depuis
+  // la semaine affichee (weekStart).
+  const buildExportRows = useCallback((period: PlanningPeriodType): { rows: PlanningExportRow[]; label: string } => {
+    const base = new Date(weekStart)
+    let start: Date, end: Date, label: string
+    if (period === 'week') {
+      start = getMonday(base); end = new Date(start); end.setDate(end.getDate() + 6)
+      label = `Semaine du ${start.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} au ${end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}`
+    } else if (period === 'year') {
+      start = new Date(base.getFullYear(), 0, 1); end = new Date(base.getFullYear(), 11, 31)
+      label = `Année ${base.getFullYear()}`
+    } else {
+      start = new Date(base.getFullYear(), base.getMonth(), 1); end = new Date(base.getFullYear(), base.getMonth() + 1, 0)
+      label = base.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    }
+    const startIso = fmtISO(start), endIso = fmtISO(end)
+    const rows: PlanningExportRow[] = []
+    for (const pi of (planningData as R[])) {
+      const dd = String(pi.date_debut ?? '').split('T')[0]
+      if (!dd || dd < startIso || dd > endIso) continue
+      // Client (fiche ou libre) + adresse
+      let clientNom = '', adresse = ''
+      if (pi.client_id) {
+        const cl = clientMap.get(pi.client_id as string) as R | undefined
+        if (cl) {
+          clientNom = String(cl.raison_sociale || `${cl.prenom ?? ''} ${cl.nom ?? ''}`.trim())
+          adresse = [cl.adresse, cl.code_postal, cl.ville].filter(Boolean).join(' ')
+        }
+      } else if (pi.client_libre) {
+        clientNom = String(pi.client_libre)
+        adresse = [pi.client_libre_adresse, pi.client_libre_code_postal, pi.client_libre_ville].filter(Boolean).join(' ')
+      }
+      // Chantier (fiche ou libre)
+      let chantierNom = ''
+      if (pi.chantier_id) {
+        const ch = chantierMap.get(pi.chantier_id as string) as R | undefined
+        if (ch) chantierNom = String(ch.titre ?? '')
+      } else if (pi.chantier_libre) {
+        chantierNom = String(pi.chantier_libre)
+      }
+      // Intervenant(s) : via table jonction, fallback legacy
+      const liaisons = (interventionIntervenantsData as R[]).filter(li => li.intervention_id === pi.id)
+      let noms: string[] = []
+      if (liaisons.length > 0) {
+        noms = liaisons
+          .map(li => { const iv = intervenantMap.get(li.intervenant_id as string) as R | undefined; return iv ? `${iv.prenom ?? ''} ${iv.nom ?? ''}`.trim() : '' })
+          .filter(Boolean)
+      } else if (pi.intervenant_id) {
+        const iv = intervenantMap.get(pi.intervenant_id as string) as R | undefined
+        if (iv) noms = [`${iv.prenom ?? ''} ${iv.nom ?? ''}`.trim()]
+      }
+      rows.push({
+        id: String(pi.id),
+        date_debut: dd,
+        date_fin: pi.date_fin ? String(pi.date_fin).split('T')[0] : null,
+        heure_debut: (pi.heure_debut as string) || null,
+        heure_fin: (pi.heure_fin as string) || null,
+        creneau: (pi.creneau as string) || null,
+        titre: (pi.titre as string) || null,
+        type_intervention: (pi.type_intervention as string) || null,
+        statut: (pi.statut as string) || null,
+        client: clientNom || null,
+        chantier: chantierNom || null,
+        adresse: adresse || null,
+        intervenants: noms.join(', ') || null,
+        notes: (pi.notes as string) || null,
+      })
+    }
+    return { rows, label }
+  }, [weekStart, planningData, clientMap, chantierMap, intervenantMap, interventionIntervenantsData])
+
+  const runExport = (format: 'pdf' | 'csv' | 'ics') => {
+    const { rows, label } = buildExportRows(exportPeriod)
+    const data = { rows, periodType: exportPeriod, periodeLabel: label }
+    if (format === 'pdf') downloadPlanningPdf(data)
+    else if (format === 'csv') downloadPlanningCsv(data)
+    else downloadPlanningIcs(data)
+    setExportOpen(false)
   }
 
   // ── Open modal in EDIT mode ──
@@ -2281,6 +2370,31 @@ function PlanningPageInner() {
               )}
             </div>
 
+            {/* Export planning — periode + format */}
+            <div className="relative">
+              <button onClick={() => setExportOpen(o => !o)}
+                className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white text-[#0f1a3a] font-hanken text-xs sm:text-sm font-bold hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200">
+                <Download className="w-4 h-4" /><span className="hidden sm:inline">Exporter</span>
+              </button>
+              {exportOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white border border-[#e6ecf2] rounded-xl shadow-lg z-50 p-3">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-[#7b8ba3] mb-1.5">Période</div>
+                  <div className="flex gap-1 mb-3">
+                    {(([['week', 'Semaine'], ['month', 'Mois'], ['year', 'An']]) as [PlanningPeriodType, string][]).map(([p, lbl]) => (
+                      <button key={p} onClick={() => setExportPeriod(p)}
+                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${exportPeriod === p ? 'bg-[#ff7a1a] text-white' : 'bg-[#f6f8fb] text-[#64748b] hover:text-[#0f1a3a]'}`}>{lbl}</button>
+                    ))}
+                  </div>
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-[#7b8ba3] mb-1.5">Format</div>
+                  <div className="flex flex-col gap-1.5">
+                    <button onClick={() => runExport('pdf')} className="w-full px-3 py-2 rounded-lg text-sm font-semibold text-[#0f1a3a] bg-[#f6f8fb] hover:bg-[#fff1e6] hover:text-[#e8590c] text-left transition-all">PDF (imprimable)</button>
+                    <button onClick={() => runExport('csv')} className="w-full px-3 py-2 rounded-lg text-sm font-semibold text-[#0f1a3a] bg-[#f6f8fb] hover:bg-[#fff1e6] hover:text-[#e8590c] text-left transition-all">CSV (Excel)</button>
+                    <button onClick={() => runExport('ics')} className="w-full px-3 py-2 rounded-lg text-sm font-semibold text-[#0f1a3a] bg-[#f6f8fb] hover:bg-[#fff1e6] hover:text-[#e8590c] text-left transition-all">Agenda (.ics)</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* CTA principal Nouvelle intervention — gradient orange V4 */}
             <button onClick={() => openModal()}
               className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white font-hanken text-xs sm:text-sm font-bold shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all duration-200">
@@ -2747,7 +2861,7 @@ function PlanningPageInner() {
                               const isEmpty = interventions.length === 0
                               return (
                                 <div key={cellKey}
-                                  className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#ff7a1a]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#ff7a1a]/10 outline-2 outline-dashed outline-[#ff7a1a] outline-offset-[-2px]' : ''}`}
+                                  className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#ff7a1a]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#ff7a1a]/10 outline-2 outline-dashed outline-[#ff7a1a] outline-offset-[-2px]' : ''} ${isEmpty ? 'cursor-pointer hover:bg-[#fff8f2]' : ''}`}
                                   onDragOver={e => {
                                     // Fix #4 (Vague 2) : preventDefault autorise aussi le drop chip → case.
                                     e.preventDefault()
@@ -2768,8 +2882,14 @@ function PlanningPageInner() {
                                       return
                                     }
                                     handleDrop(ivId, day.dateStr)
-                                  }}>
+                                  }}
+                                  onClick={isEmpty ? () => openModal(day.dateStr) : undefined}>
 
+                                  {isEmpty && (
+                                    <span className="pointer-events-none absolute inset-0 hidden group-hover:flex items-center justify-center text-[#ff7a1a]/40">
+                                      <Plus className="w-4 h-4" />
+                                    </span>
+                                  )}
                                   <div className="flex flex-col gap-0.5">
                                     {interventions.filter(isFiltered).map(item => {
                                       const rec = item as R
@@ -2967,7 +3087,7 @@ function PlanningPageInner() {
 
                         return (
                           <button key={dateStr}
-                            onClick={() => { goToWeek(day); if (viewPreset === 'annual') setViewPreset('complete') }}
+                            onClick={() => { goToWeek(day); if (viewPreset === 'annual') setViewPreset('complete'); if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                             className={`h-[18px] rounded-[3px] flex items-center justify-center text-[8px] font-bold transition-all hover:ring-1 hover:ring-[#ff7a1a] ${bgCls} ${isToday ? 'ring-2 ring-[#ff7a1a] text-[#ff7a1a]' : 'text-[#64748b]'} ${hasConflict ? 'ring-2 ring-[#ef4444]' : ''}`}
                             title={hasConflict ? `⚠ Conflit — ${count} interventions` : count > 0 ? `${count} intervention${count > 1 ? 's' : ''}` : undefined}>
                             {hasConflict ? '⚠' : day.getDate()}
