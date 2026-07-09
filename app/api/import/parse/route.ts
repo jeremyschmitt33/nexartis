@@ -167,6 +167,53 @@ function applyColumnMapping(
   })
 }
 
+// Recupere la valeur brute de la 1re colonne du fichier dont l'en-tete
+// correspond (exact d'abord, puis sous-chaine) a l'un des noms proposes.
+function pickRawValue(row: ParsedRow, headers: string[], names: string[]): string {
+  const lower = names.map(n => n.toLowerCase())
+  const h =
+    headers.find(hd => lower.some(n => hd.toLowerCase().trim() === n)) ||
+    headers.find(hd => lower.some(n => hd.toLowerCase().includes(n)))
+  if (!h) return ''
+  const v = row[h]
+  return v == null ? '' : String(v).trim()
+}
+
+// Prestations : la base n'a pas de champ "commentaire"/"description" ni "code".
+// Pour ne rien perdre, on replie ces infos dans la designation (elles restent
+// ainsi visibles, notamment sur les devis).
+function enrichPrestations(mapped: ParsedRow[], rawRows: ParsedRow[], headers: string[]): void {
+  mapped.forEach((mr, i) => {
+    const raw = rawRows[i] || {}
+    const commentaire = pickRawValue(raw, headers, ['commentaire', 'commentaires', 'description', 'détail', 'detail', 'note', 'notes', 'remarque', 'observation', 'observations'])
+    const code = pickRawValue(raw, headers, ['code', 'référence', 'reference', 'réf', 'ref', 'code article', 'code produit'])
+    let desig = mr.designation ? String(mr.designation).trim() : ''
+    if (!desig) desig = commentaire || code
+    if (commentaire && desig && !desig.toLowerCase().includes(commentaire.toLowerCase())) {
+      desig = `${desig} — ${commentaire}`
+    }
+    if (code) desig = `${desig} (réf. ${code})`
+    if (desig) mr.designation = desig
+  })
+}
+
+// Clients : la base n'a pas de colonne "pays" ni "n° TVA intracommunautaire".
+// On les conserve dans les notes internes pour ne rien perdre.
+function enrichClients(mapped: ParsedRow[], rawRows: ParsedRow[], headers: string[]): void {
+  mapped.forEach((mr, i) => {
+    const raw = rawRows[i] || {}
+    const pays = pickRawValue(raw, headers, ['pays', 'country'])
+    const tva = pickRawValue(raw, headers, ['num. tva', 'n° tva', 'numéro tva', 'numero tva', 'tva intra', 'tva intracommunautaire', 'numéro de tva intracommunautaire', 'vat', 'vat number'])
+    const extra: string[] = []
+    if (tva) extra.push(`N° TVA : ${tva}`)
+    if (pays && pays.toLowerCase() !== 'france') extra.push(`Pays : ${pays}`)
+    if (extra.length > 0) {
+      const base = mr.notes_internes ? String(mr.notes_internes).trim() : ''
+      mr.notes_internes = base ? `${base} — ${extra.join(' — ')}` : extra.join(' — ')
+    }
+  })
+}
+
 function generateWarnings(preview: Record<DataCategory, CategoryPreview>): string[] {
   const warnings: string[] = []
 
@@ -435,12 +482,25 @@ export async function POST(req: NextRequest) {
 
         const mappedRows = applyColumnMapping(sheet.rows, sheet.headers, categoryConfig, detectedSource)
 
+        // Conservation "zero perte" : certaines colonnes (commentaire, code,
+        // pays, n° TVA...) n'ont pas de champ dedie en base. On les replie dans
+        // un champ texte proche pour ne rien perdre a l'import.
+        if (category === 'prestations') {
+          enrichPrestations(mappedRows, sheet.rows, sheet.headers)
+        } else if (category === 'clients') {
+          enrichClients(mappedRows, sheet.rows, sheet.headers)
+        }
+
         if (!preview[category].columns || preview[category].columns.length === 0) {
           preview[category].columns = sheet.headers
         }
 
+        // ⚠ On conserve TOUTES les lignes : l'import final (execute) lit
+        // preview.data comme source de verite. L'ancien code tronquait a 5
+        // lignes (slice(0, 5 - ...)), ce qui plafonnait tout import Excel/CSV a
+        // 5 enregistrements. L'aperçu visuel se limite de lui-meme cote UI.
         preview[category].count += mappedRows.length
-        preview[category].data.push(...mappedRows.slice(0, 5 - preview[category].data.length))
+        preview[category].data = preview[category].data.concat(mappedRows)
       }
     }
 

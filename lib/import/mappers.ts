@@ -978,16 +978,16 @@ export const EXCEL_CONFIG: SourceConfig = {
     clients: {
       possibleFileNames: ['clients.csv', 'clients.xlsx', 'contacts.csv'],
       columnMappings: [
-        { sourceColumn: 'Prénom|Prenom|First name|Firstname', targetField: 'prenom', transform: normalizeString },
-        { sourceColumn: 'Nom|Nom du client|Nom client|Nom du tiers|Nom complet|Last name|Lastname|Surname', targetField: 'nom', transform: normalizeString },
-        { sourceColumn: 'Raison sociale|Societe|Société|Company|Company name', targetField: 'raison_sociale', transform: normalizeString },
-        { sourceColumn: 'Adresse|Address|Rue', targetField: 'adresse', transform: normalizeString },
-        { sourceColumn: 'Code postal|CP|Code_postal|Postal code|ZIP', targetField: 'code_postal', transform: normalizeString },
-        { sourceColumn: 'Ville|City|Localité|Commune', targetField: 'ville', transform: normalizeString },
-        { sourceColumn: 'Email|E-mail|Mail|Email address', targetField: 'email', transform: normalizeString },
-        { sourceColumn: 'Téléphone|Telephone|Phone|Tel|Mobile', targetField: 'telephone', transform: normalizeString },
-        { sourceColumn: 'SIRET|SIREN|Siret|Siren|Tax ID', targetField: 'siret', transform: normalizeString },
-        { sourceColumn: 'Notes|Observations|Remarques|Comments|Notes internes', targetField: 'notes_internes', transform: normalizeString },
+        { sourceColumn: 'Prénom|Prenom|First name|Firstname|Given name', targetField: 'prenom', transform: normalizeString },
+        { sourceColumn: 'Nom|Nom du client|Nom client|Nom du tiers|Nom complet|Nom et prénom|Nom contact|Contact|Last name|Lastname|Surname|Family name', targetField: 'nom', transform: normalizeString },
+        { sourceColumn: 'Raison sociale|Société|Societe|Entreprise|Enseigne|Nom commercial|Company|Company name|Organisation|Organization', targetField: 'raison_sociale', transform: normalizeString },
+        { sourceColumn: 'Adresse|Address|Rue|Adresse 1|Adresse ligne 1|Adresse postale|Street', targetField: 'adresse', transform: normalizeString },
+        { sourceColumn: 'Code postal|CP|Code_postal|Code Postal|Postal code|ZIP|Zip code', targetField: 'code_postal', transform: normalizeString },
+        { sourceColumn: 'Ville|City|Localité|Localite|Commune|Town', targetField: 'ville', transform: normalizeString },
+        { sourceColumn: 'Email|E-mail|Mail|Courriel|Email address|Adresse email|Adresse e-mail', targetField: 'email', transform: normalizeString },
+        { sourceColumn: 'Téléphone|Telephone|Phone|Tel|Tél|Mobile|Portable|GSM|Numéro de téléphone|Phone number', targetField: 'telephone', transform: normalizeString },
+        { sourceColumn: 'SIRET|SIREN|Siret|Siren|N° SIRET|Numéro SIRET|Tax ID', targetField: 'siret', transform: normalizeString },
+        { sourceColumn: 'Notes|Observations|Remarques|Comments|Notes internes|Mémo|Memo|Commentaire client', targetField: 'notes_internes', transform: normalizeString },
       ],
       requiredColumns: ['Nom'],
     },
@@ -1072,11 +1072,11 @@ export const EXCEL_CONFIG: SourceConfig = {
     prestations: {
       possibleFileNames: ['prestations.csv', 'services.csv', 'catalog.csv', 'price_list.csv'],
       columnMappings: [
-        { sourceColumn: 'Désignation|Designation|Description|Service|Item|Article', targetField: 'designation', transform: normalizeString },
-        { sourceColumn: 'Unité|Unite|Unit|U|UM', targetField: 'unite', transform: normalizeString },
-        { sourceColumn: 'Prix|Prix HT|Unit price|Tarif|Price|Cost', targetField: 'prix_unitaire_ht', transform: parseAmount },
-        { sourceColumn: 'TVA|TVA %|Tax|Tax rate|Taux TVA', targetField: 'taux_tva', transform: parseTVARate },
-        { sourceColumn: 'Catégorie|Categorie|Category|Type|Famille', targetField: 'categorie', transform: normalizeString },
+        { sourceColumn: 'Désignation|Designation|Description|Libellé|Libelle|Intitulé|Intitule|Nom|Nom du produit|Nom de la prestation|Produit|Prestation|Service|Article|Item|Label', targetField: 'designation', transform: normalizeString },
+        { sourceColumn: 'Unité|Unite|Unit|U|UM|Unité de vente', targetField: 'unite', transform: normalizeString },
+        { sourceColumn: 'Prix|Prix HT|Prix unitaire|Prix unitaire HT|PU HT|PU|Tarif|Tarif HT|Unit price|Price|Cost', targetField: 'prix_unitaire_ht', transform: parseAmount },
+        { sourceColumn: 'TVA|TVA %|Taux TVA|Taux de TVA|Tax|Tax rate|VAT', targetField: 'taux_tva', transform: parseTVARate },
+        { sourceColumn: 'Catégorie|Categorie|Category|Type|Famille|Groupe|Rubrique', targetField: 'categorie', transform: normalizeString },
       ],
       requiredColumns: ['Désignation'],
     },
@@ -1259,6 +1259,26 @@ export function detectSource(headers: string[]): SourceType {
 export function detectCategory(headers: string[], source: SourceType): DataCategory | null {
   const headerLower = headers.map(h => h.toLowerCase().trim());
   const config = SOURCE_CONFIGS[source];
+
+  // Desambiguisation "catalogue de produits/prestations" (source generique).
+  // Beaucoup de logiciels nomment la colonne du produit "nom"/"libellé" au lieu
+  // de "désignation", ce qui faisait passer un catalogue pour des CLIENTS (la
+  // colonne "nom" declenchait la categorie clients). Un catalogue se reconnait
+  // a : une colonne de PRIX + un libellé, SANS colonnes de contact client,
+  // SANS quantité et SANS numéro de devis/facture (sinon c'est une ligne de
+  // devis/facture).
+  if (source === 'excel') {
+    const has = (keys: string[]) =>
+      keys.some(k => headerLower.some(h => h === k || h.includes(k)));
+    const hasPrix = has(['prix', 'tarif', 'unit price', 'price']);
+    const hasLibelle = has(['désignation', 'designation', 'nom', 'libellé', 'libelle', 'intitulé', 'intitule', 'article', 'produit', 'prestation', 'service']);
+    const hasContactClient = has(['email', 'e-mail', 'mail', 'adresse', 'ville', 'téléphone', 'telephone', 'code postal', 'siret']);
+    const hasQuantite = has(['quantité', 'quantite', 'qty', 'qte']);
+    const hasNumPiece = has(['n° devis', 'numéro devis', 'numero devis', 'n° facture', 'numéro facture', 'devis', 'facture']);
+    if (hasPrix && hasLibelle && !hasContactClient && !hasQuantite && !hasNumPiece) {
+      return 'prestations';
+    }
+  }
 
   let matches: { category: DataCategory; matchCount: number }[] = [];
 
