@@ -68,17 +68,26 @@ export default function ThemeTemplateGallery({
             >
               {/* Mini preview : bandeau coloré + bande accent en biais */}
               <div className="relative h-14 w-full overflow-hidden">
-                {/* Fond = bandeauHaut */}
+                {/* Zone DROITE (variante bandeauHautDroite) = fond principal,
+                    c'est la grande zone "DEVIS" du vrai document. */}
                 <div
                   className="absolute inset-0"
-                  style={{ backgroundColor: preset.theme.bandeauHaut }}
+                  style={{ backgroundColor: preset.theme.bandeauHautDroite }}
                 />
-                {/* Bande diagonale = accent (rappelle le devis) */}
+                {/* Zone GAUCHE (bandeauHaut, foncee) en trapeze, cote logo/emetteur */}
                 <div
-                  className="absolute right-0 top-0 h-full w-12"
+                  className="absolute inset-y-0 left-0 w-[62%]"
+                  style={{
+                    backgroundColor: preset.theme.bandeauHaut,
+                    clipPath: 'polygon(0 0, 100% 0, 74% 100%, 0 100%)',
+                  }}
+                />
+                {/* Barre accent (doree) en biais, a la separation des 2 zones */}
+                <div
+                  className="absolute inset-y-0 left-[55%] w-1.5"
                   style={{
                     backgroundColor: preset.theme.accent,
-                    clipPath: 'polygon(40% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                    transform: 'skewX(-20deg)',
                   }}
                 />
                 {/* Mini "carte" blanche pour rappeler la carte Émetteur */}
@@ -126,6 +135,11 @@ export default function ThemeTemplateGallery({
                   <span
                     className="h-3 w-3 rounded-full border border-slate-200"
                     style={{ backgroundColor: preset.theme.bandeauHaut }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="h-3 w-3 rounded-full border border-slate-200"
+                    style={{ backgroundColor: preset.theme.bandeauHautDroite }}
                     aria-hidden="true"
                   />
                   <span
