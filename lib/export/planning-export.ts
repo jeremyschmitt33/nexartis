@@ -41,7 +41,22 @@ export interface PlanningExportData {
   rows: PlanningExportRow[]
   periodType: PlanningPeriodType
   periodeLabel: string // ex "Juillet 2026" / "Semaine du 14 au 20 juil. 2026" / "Année 2026"
+  periodStart?: string // YYYY-MM-DD (borne debut de la periode exportee)
+  periodEnd?: string   // YYYY-MM-DD (borne fin)
   entreprise?: PlanningExportEntreprise
+}
+
+// Regroupe les lignes par jour (cle YYYY-MM-DD) pour le rendu calendaire.
+export function rowsByDate(rows: PlanningExportRow[]): Map<string, PlanningExportRow[]> {
+  const map = new Map<string, PlanningExportRow[]>()
+  for (const r of sortRows(rows)) {
+    const k = (r.date_debut || '').slice(0, 10)
+    if (!k) continue
+    const arr = map.get(k)
+    if (arr) arr.push(r)
+    else map.set(k, [r])
+  }
+  return map
 }
 
 const STATUT_LABEL: Record<string, string> = {

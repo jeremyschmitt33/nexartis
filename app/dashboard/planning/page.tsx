@@ -1347,14 +1347,15 @@ function PlanningPageInner() {
         notes: (pi.notes as string) || null,
       })
     }
-    return { rows, label }
+    return { rows, label, startIso, endIso }
   }, [weekStart, planningData, clientMap, chantierMap, intervenantMap, interventionIntervenantsData])
 
   const runExport = (format: 'pdf' | 'csv' | 'ics') => {
-    const { rows, label } = buildExportRows(exportPeriod)
+    const { rows, label, startIso, endIso } = buildExportRows(exportPeriod)
     const ent = (entreprise as R) || {}
     const data = {
       rows, periodType: exportPeriod, periodeLabel: label,
+      periodStart: startIso, periodEnd: endIso,
       entreprise: {
         nom: (ent.nom as string) ?? null,
         metier: (ent.metier as string) ?? null,
