@@ -1352,7 +1352,21 @@ function PlanningPageInner() {
 
   const runExport = (format: 'pdf' | 'csv' | 'ics') => {
     const { rows, label } = buildExportRows(exportPeriod)
-    const data = { rows, periodType: exportPeriod, periodeLabel: label }
+    const ent = (entreprise as R) || {}
+    const data = {
+      rows, periodType: exportPeriod, periodeLabel: label,
+      entreprise: {
+        nom: (ent.nom as string) ?? null,
+        metier: (ent.metier as string) ?? null,
+        logo_url: (ent.logo_url as string) ?? null,
+        adresse: (ent.adresse as string) ?? null,
+        code_postal: (ent.code_postal as string) ?? null,
+        ville: (ent.ville as string) ?? null,
+        telephone: (ent.telephone as string) ?? null,
+        email: (ent.email as string) ?? null,
+        siret: (ent.siret as string) ?? null,
+      },
+    }
     if (format === 'pdf') downloadPlanningPdf(data)
     else if (format === 'csv') downloadPlanningCsv(data)
     else downloadPlanningIcs(data)

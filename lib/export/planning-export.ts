@@ -24,10 +24,24 @@ export interface PlanningExportRow {
   notes?: string | null
 }
 
+// Fiche entreprise (pour l'en-tete PDF : logo + coordonnees de l'artisan).
+export interface PlanningExportEntreprise {
+  nom?: string | null
+  metier?: string | null
+  logo_url?: string | null // data:image/... (base64)
+  adresse?: string | null
+  code_postal?: string | null
+  ville?: string | null
+  telephone?: string | null
+  email?: string | null
+  siret?: string | null
+}
+
 export interface PlanningExportData {
   rows: PlanningExportRow[]
   periodType: PlanningPeriodType
   periodeLabel: string // ex "Juillet 2026" / "Semaine du 14 au 20 juil. 2026" / "Année 2026"
+  entreprise?: PlanningExportEntreprise
 }
 
 const STATUT_LABEL: Record<string, string> = {
