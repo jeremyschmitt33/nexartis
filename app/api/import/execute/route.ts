@@ -360,6 +360,23 @@ function resolveFK(
     delete insertData.facture_numero
   }
 
+  // Clients : garantir un 'nom' non vide (colonne NOT NULL en base). Beaucoup
+  // d'exports (compta type Clementine, etc.) ne remplissent que la raison
+  // sociale pour les professionnels et laissent la colonne "Nom" vide. Sans ce
+  // repli, l'INSERT plante avec "null value in column nom" ET fait echouer tout
+  // le lot. On retombe donc sur raison_sociale, puis sur la partie locale de
+  // l'email.
+  if (table === 'clients') {
+    const nomVide = !insertData.nom || String(insertData.nom).trim() === ''
+    if (nomVide) {
+      const rs = insertData.raison_sociale ? String(insertData.raison_sociale).trim() : ''
+      const email = typeof insertData.email === 'string' ? insertData.email : ''
+      const emailLocal = email.includes('@') ? email.split('@')[0].trim() : ''
+      const fallback = rs || emailLocal
+      if (fallback) insertData.nom = fallback
+    }
+  }
+
   // ✅ SÉCURITÉ (R1-007) : ne conserver que les colonnes autorisees pour cette
   // categorie (cf. IMPORT_COLUMN_ALLOWLIST), apres resolution des FK. Bloque
   // l'injection de colonnes non mappees (deleted_at, created_at, id, etc.).
@@ -491,7 +508,26 @@ async function insertRecords(
         .select('*')
 
       if (error) {
-        errors.push(`Erreur insert ${table} (batch ${i}-${i + chunk.length}): ${error.message}`)
+        // Un INSERT groupe est atomique : si UNE ligne du lot est invalide
+        // (ex : contrainte NOT NULL), tout le lot echoue. Plutot que de perdre
+        // 500 lignes valides a cause d'une seule, on reinsere ligne par ligne
+        // en secours pour importer le MAXIMUM. Seules les lignes reellement
+        // fautives sont ignorees (et tracees).
+        for (const single of chunk) {
+          const { data: d1, error: e1 } = await supabase
+            .from(table)
+            .insert(single)
+            .select('*')
+          if (e1) {
+            errors.push(`Ligne ignoree dans ${table} : ${e1.message}`)
+            continue
+          }
+          if (d1 && d1[0]) {
+            importedCount += 1
+            const key = naturalKey(d1[0] as ImportedRow)
+            if (key) lastInsertIds.set(key, (d1[0] as any).id)
+          }
+        }
         continue
       }
 

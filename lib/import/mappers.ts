@@ -979,7 +979,7 @@ export const EXCEL_CONFIG: SourceConfig = {
       possibleFileNames: ['clients.csv', 'clients.xlsx', 'contacts.csv'],
       columnMappings: [
         { sourceColumn: 'Prénom|Prenom|First name|Firstname', targetField: 'prenom', transform: normalizeString },
-        { sourceColumn: 'Nom|Last name|Lastname|Surname', targetField: 'nom', transform: normalizeString },
+        { sourceColumn: 'Nom|Nom du client|Nom client|Nom du tiers|Nom complet|Last name|Lastname|Surname', targetField: 'nom', transform: normalizeString },
         { sourceColumn: 'Raison sociale|Societe|Société|Company|Company name', targetField: 'raison_sociale', transform: normalizeString },
         { sourceColumn: 'Adresse|Address|Rue', targetField: 'adresse', transform: normalizeString },
         { sourceColumn: 'Code postal|CP|Code_postal|Postal code|ZIP', targetField: 'code_postal', transform: normalizeString },

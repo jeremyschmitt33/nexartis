@@ -140,9 +140,16 @@ function applyColumnMapping(
       const sourceColumns = mapping.sourceColumn.split('|').map((c: string) => c.trim())
       let value: unknown = null
 
-      const matchedHeader = headers.find(h =>
-        sourceColumns.some((sc: string) => h.toLowerCase() === sc.toLowerCase() || h.toLowerCase().includes(sc.toLowerCase()))
-      )
+      // On privilegie une correspondance EXACTE de l'en-tete avant de se
+      // rabattre sur une correspondance partielle (sous-chaine). Sans ca,
+      // "Nom" attrapait par erreur la colonne "Prenom" ("prenom".includes("nom")).
+      const matchedHeader =
+        headers.find(h =>
+          sourceColumns.some((sc: string) => h.toLowerCase().trim() === sc.toLowerCase())
+        ) ||
+        headers.find(h =>
+          sourceColumns.some((sc: string) => h.toLowerCase().includes(sc.toLowerCase()))
+        )
 
       if (matchedHeader && row[matchedHeader] !== undefined && row[matchedHeader] !== '') {
         value = row[matchedHeader]
