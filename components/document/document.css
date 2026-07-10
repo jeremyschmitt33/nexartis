@@ -116,7 +116,7 @@
 .dv-headD .dv-d-card--from { background:var(--dv-c-emetteur, #fff); color:var(--dv-c-emetteur-ink, var(--ink)); border:1px solid var(--line); }
 .dv-headD .dv-d-card--from::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--dv-c-accent, #e87a2a); }
 .dv-headD .dv-d-card--to { background:var(--dv-c-adresse, #0f1a3a); color:var(--dv-c-adresse-ink, #fff); }
-.dv-headD .dv-d-chip { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.14em;
+.dv-headD .dv-d-chip { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.14em;
   text-transform:uppercase; padding:4px 11px; border-radius:6px; white-space:nowrap;
   background:var(--dv-c-bandeau, #0f1a3a); color:var(--dv-c-bandeau-ink, #fff); margin-bottom:11px; }
 .dv-headD .dv-d-chip--accent { background:var(--dv-c-accent, #e87a2a); color:var(--accent2-ink); }

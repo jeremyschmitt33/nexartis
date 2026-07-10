@@ -209,12 +209,12 @@ function drawBadge(doc: jsPDF, label: string, badgeX: number, cardY: number, P: 
 // Pastille de libellé DANS la carte (parité chip du dashboard).
 // bg = fond de la pastille, textColor = couleur du texte (tuples RGB).
 function drawChip(doc: jsPDF, label: string, x: number, yTop: number, bg: typeof C.white, textColor: typeof C.white): void {
-  font(doc, 'Hanken Grotesk', 'semibold', 5.5, textColor)
-  const w = doc.getTextWidth(label) + 4
-  const h = 4.2
+  font(doc, 'Hanken Grotesk', 'semibold', 6.2, textColor)
+  const w = doc.getTextWidth(label) + 4.4
+  const h = 4.6
   setFill(doc, bg)
-  doc.roundedRect(x, yTop, w, h, 1.2, 1.2, 'F')
-  font(doc, 'Hanken Grotesk', 'semibold', 5.5, textColor)
+  doc.roundedRect(x, yTop, w, h, 1.3, 1.3, 'F')
+  font(doc, 'Hanken Grotesk', 'semibold', 6.2, textColor)
   doc.text(label, x + w / 2, yTop + h / 2, { align: 'center', baseline: 'middle' })
 }
 
