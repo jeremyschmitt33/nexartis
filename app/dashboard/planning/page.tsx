@@ -3013,9 +3013,16 @@ function PlanningPageInner() {
                               // quadrillé". Les cellules avec intervention(s)
                               // gardent leur fond couleur intervenant.
                               const isEmpty = interventions.length === 0
+                              // Absences de CE membre ce jour (bandeaux + teinte de case).
+                              const cellAbs = absencesForDay(indispoList, day.dateStr).filter(a => a.intervenant_id === ivId)
+                              const cellFerie = feriesLookup[day.dateStr]
+                              // Une absence "journée entière" teinte toute la case (lecture immédiate).
+                              const fullDayAbs = cellAbs.find(a => !a.demi_journee)
+                              const cellAbsMeta = fullDayAbs ? absenceTypeMeta(fullDayAbs.type) : null
                               return (
                                 <div key={cellKey}
                                   className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#ff7a1a]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#ff7a1a]/10 outline-2 outline-dashed outline-[#ff7a1a] outline-offset-[-2px]' : ''} ${isEmpty ? 'cursor-pointer hover:bg-[#fff8f2]' : ''}`}
+                                  style={cellAbsMeta ? { backgroundColor: cellAbsMeta.bg, backgroundImage: `repeating-linear-gradient(45deg, ${cellAbsMeta.color}14, ${cellAbsMeta.color}14 6px, transparent 6px, transparent 12px)` } : undefined}
                                   onDragOver={e => {
                                     // Fix #4 (Vague 2) : preventDefault autorise aussi le drop chip → case.
                                     e.preventDefault()
@@ -3044,23 +3051,25 @@ function PlanningPageInner() {
                                       <Plus className="w-4 h-4" />
                                     </span>
                                   )}
-                                  {(() => {
-                                    const dayAbs = absencesForDay(indispoList, day.dateStr).filter(a => a.intervenant_id === ivId)
-                                    const ferie = feriesLookup[day.dateStr]
-                                    if (dayAbs.length === 0 && !ferie) return null
-                                    return (
-                                      <div className="flex flex-col gap-[2px] mb-0.5">
-                                        {ferie && (
-                                          <div className="px-1 py-[1px] rounded text-[8px] font-semibold truncate leading-tight" style={{ backgroundColor: '#f1f5f9', color: '#64748b' }} title={`Férié : ${ferie}`}>Férié</div>
-                                        )}
-                                        {dayAbs.slice(0, 2).map(a => {
-                                          const meta = absenceTypeMeta(a.type)
-                                          return <div key={a.id} className="px-1 py-[1px] rounded text-[8px] font-semibold truncate leading-tight" style={{ backgroundColor: meta.bg, color: meta.color }} title={`${absenceLabelFull(a)} - ${meta.label}`}>{absenceLabelFull(a)}</div>
-                                        })}
-                                        {dayAbs.length > 2 && <div className="text-[8px] text-gray-400 px-1 leading-tight">+{dayAbs.length - 2}</div>}
-                                      </div>
-                                    )
-                                  })()}
+                                  {(cellAbs.length > 0 || cellFerie) && (
+                                    <div className="flex flex-col gap-[2px] mb-0.5">
+                                      {cellFerie && (
+                                        <div className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: '#64748b', color: '#fff' }} title={`Férié : ${cellFerie}`}>
+                                          <ShieldCheck className="w-2.5 h-2.5 flex-shrink-0" />Férié
+                                        </div>
+                                      )}
+                                      {cellAbs.slice(0, 2).map(a => {
+                                        const meta = absenceTypeMeta(a.type)
+                                        return (
+                                          <div key={a.id} className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: meta.color, color: '#fff' }} title={`${meta.label} — ${absenceLabelFull(a)}`}>
+                                            <CalendarOff className="w-2.5 h-2.5 flex-shrink-0" />
+                                            <span className="truncate">{meta.label}{demiJourneeLabel(a.demi_journee)}</span>
+                                          </div>
+                                        )
+                                      })}
+                                      {cellAbs.length > 2 && <div className="text-[9px] text-gray-500 font-semibold px-1 leading-tight">+{cellAbs.length - 2} absence{cellAbs.length - 2 > 1 ? 's' : ''}</div>}
+                                    </div>
+                                  )}
                                   <div className="flex flex-col gap-0.5">
                                     {interventions.filter(isFiltered).map(item => {
                                       const rec = item as R
