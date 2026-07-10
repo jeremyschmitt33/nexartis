@@ -773,7 +773,7 @@ export default function ModifierDevisPage() {
                   <div key={line.id} className="grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-2 bg-[#fafbfc] border-l-4 border-[#ff7a1a] border-b border-gray-100">
                     <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_6]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
                     <span className="text-sm font-bold text-[#0f1a3a] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
-                    <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-center"><Trash2 size={14} /></button>
+                    <button onClick={() => removeLine(line.id)} className="p-1 pr-0.5 text-gray-500 hover:text-red-500 justify-self-end"><Trash2 size={15} /></button>
                   </div>
                 )
               }
@@ -782,7 +782,7 @@ export default function ModifierDevisPage() {
                   <div key={line.id} className="grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-2 bg-white border-l-4 border-[#ff7a1a]/60 border-b border-gray-100">
                     <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_6]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
                     <span className="text-sm font-semibold text-[#0f1a3a] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
-                    <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-center"><Trash2 size={14} /></button>
+                    <button onClick={() => removeLine(line.id)} className="p-1 pr-0.5 text-gray-500 hover:text-red-500 justify-self-end"><Trash2 size={15} /></button>
                   </div>
                 )
               }
@@ -790,7 +790,7 @@ export default function ModifierDevisPage() {
                 return (
                   <div key={line.id} className="grid grid-cols-[1fr_36px] min-w-[500px] items-center px-4 py-2 bg-gray-50 border-b border-gray-100">
                     <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm italic text-gray-600 border border-gray-200 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 h-9" placeholder="Texte libre (note, remarque...)" />
-                    <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 justify-self-center"><Trash2 size={14} /></button>
+                    <button onClick={() => removeLine(line.id)} className="p-1 pr-0.5 text-gray-500 hover:text-red-500 justify-self-end"><Trash2 size={15} /></button>
                   </div>
                 )
               }
@@ -826,7 +826,7 @@ export default function ModifierDevisPage() {
                     {TVA_RATES.map(r => <option key={r} value={r}>{r === 0 ? '0%' : r === 5.5 ? '5,5%' : `${r}%`}</option>)}
                   </select>
                   <span className="text-sm font-semibold text-right">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '—'}</span>
-                  <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 justify-self-center"><Trash2 size={14} /></button>
+                  <button onClick={() => removeLine(line.id)} className="p-1 pr-0.5 text-gray-500 hover:text-red-500 justify-self-end"><Trash2 size={15} /></button>
                 </div>
               )
             })}
