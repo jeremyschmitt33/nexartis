@@ -1347,7 +1347,7 @@ function NouveauDevisPage() {
               {lines.map(line => (
                 <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#fafbfc] border-l-4 border-l-[#ff7a1a]' : line.type === 'subsection' ? 'bg-white border-l-2 border-l-[#ff7a1a]/60' : ''}`}>
                   {line.type === 'line' ? (
-                    <div className="mr-2">
+                    <div className="mr-2 flex items-start gap-1.5">
                       <DesignationAutocomplete
                         value={line.designation}
                         onChange={v => updateLine(line.id, 'designation', v)}
@@ -1360,11 +1360,9 @@ function NouveauDevisPage() {
                         suggestions={prestationSuggestions}
                         placeholder="Désignation..."
                         rows={1}
-                        className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[38px]"
+                        className="flex-1 min-w-0 text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[38px]"
                       />
-                      <div className="mt-1.5">
-                        <LineStatutSelect value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
-                      </div>
+                      <LineStatutSelect compact value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
                     </div>
                   ) : (
                     <textarea

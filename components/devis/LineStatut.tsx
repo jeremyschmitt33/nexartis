@@ -37,11 +37,35 @@ export default function LineStatutSelect({
   value,
   onChange,
   size = 'sm',
+  compact = false,
 }: {
   value: InclusionStatut
   onChange: (s: InclusionStatut) => void
   size?: 'sm' | 'lg'
+  compact?: boolean
 }) {
+  // Variante compacte : petit menu déroulant coloré, à poser EN LIGNE à droite
+  // de la désignation (au lieu du bandeau 3 boutons sous la ligne).
+  if (compact) {
+    const bg = value === 'ferme'
+      ? 'bg-[#0f1a3a] text-white border-[#0f1a3a]'
+      : value === 'facultatif'
+        ? 'bg-[#e87a2a] text-white border-[#e87a2a]'
+        : 'bg-[#2f6fb0] text-white border-[#2f6fb0]'
+    return (
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value as InclusionStatut)}
+        aria-label="Statut de la ligne"
+        title="Statut : Ferme (toujours inclus) · Facultatif (le client peut retirer) · Option + (le client peut ajouter)"
+        className={`font-hanken font-semibold text-[11px] rounded-md border px-1.5 py-[7px] outline-none cursor-pointer ${bg}`}
+      >
+        <option value="ferme">Ferme</option>
+        <option value="facultatif">Facultatif</option>
+        <option value="option">Option +</option>
+      </select>
+    )
+  }
   return (
     <div
       className="inline-flex rounded-lg border border-gray-200 overflow-hidden"

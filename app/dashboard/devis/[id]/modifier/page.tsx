@@ -797,25 +797,25 @@ export default function ModifierDevisPage() {
               return (
                 <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
                   <div className="mr-2">
-                    <DesignationAutocomplete
-                      value={line.designation}
-                      onChange={v => updateLine(line.id, 'designation', v)}
-                      onPick={s => {
-                        updateLine(line.id, 'designation', s.designation)
-                        updateLine(line.id, 'unit', s.unite)
-                        updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
-                        updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
-                      }}
-                      suggestions={prestationSuggestions}
-                      placeholder="Désignation..."
-                      rows={1}
-                      className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
-                    />
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                      <LineStatutSelect value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
-                      {/* Push 4 — badge « vient du plan » (lié / lien rompu) */}
-                      {line.sourcePlan ? <SourcePlanBadge sourcePlan={sourcePlanEffectif(line) ?? line.sourcePlan} /> : null}
+                    <div className="flex items-start gap-1.5">
+                      <DesignationAutocomplete
+                        value={line.designation}
+                        onChange={v => updateLine(line.id, 'designation', v)}
+                        onPick={s => {
+                          updateLine(line.id, 'designation', s.designation)
+                          updateLine(line.id, 'unit', s.unite)
+                          updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
+                          updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
+                        }}
+                        suggestions={prestationSuggestions}
+                        placeholder="Désignation..."
+                        rows={1}
+                        className="flex-1 min-w-0 text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
+                      />
+                      <LineStatutSelect compact value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
                     </div>
+                    {/* Push 4 — badge « vient du plan » (lié / lien rompu) */}
+                    {line.sourcePlan ? <div className="mt-1"><SourcePlanBadge sourcePlan={sourcePlanEffectif(line) ?? line.sourcePlan} /></div> : null}
                   </div>
                   <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1" min={0} />
                   <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1 w-full">
