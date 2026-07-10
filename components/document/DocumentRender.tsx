@@ -5,6 +5,7 @@ import { Fragment, type CSSProperties } from 'react'
 import './document.css'
 import type { DocumentArtisan, DocumentClient, DocumentData, DocumentGroup, DocumentLeaf, DocumentMeta, DocumentPlanImage, DocumentTotals } from '@/lib/document-data'
 import { eur, tauxLabel } from '@/lib/document-data'
+import { buildDechetsText } from '@/lib/dechets-parts'
 import { TVA_MENTION_10, TVA_MENTION_5_5 } from '@/lib/legal-mentions'
 import { MENTION_PLAN_INDICATIF } from '@/lib/plan/plan-images'
 import { DEFAULT_DOCUMENT_THEME, themeToCssVars, type DocumentTheme } from '@/lib/document-theme'
@@ -38,6 +39,7 @@ export default function DocumentRender({ data, theme, logoConfig }: { data: Docu
           {isDevis && data.nonRetenues && data.nonRetenues.length > 0 && <NonRetenuesBlock items={data.nonRetenues} />}
           {/* 2026-06-10 — Mention autoliquidation BTP en pied de doc (art. 283-2 nonies CGI) */}
           {data.meta.autoliquidationBtp && <AutoliquidationMention />}
+          {isDevis && <DechetsBand data={data} />}
           {isDevis ? <LegalDevis data={data} /> : <LegalFacture data={data} />}
           {isDevis && <Signature artisan={data.artisan} />}
           {/* Push 5/7C (Plan 2D) — section « Plan du chantier » : devis avec plan
@@ -429,21 +431,25 @@ function RecapDevis({ data }: { data: DocumentData }) {
             )}
           </div>
         )}
-        {meta.dechets && (
-          <div className="dv-dechets">
-            <div className="dv-dechets-k">Gestion des déchets (AGEC)</div>
-            <div className="dv-dechets-text">
-              {[
-                meta.dechets.nature && `Nature : ${meta.dechets.nature}`,
-                meta.dechets.responsable,
-                meta.dechets.tri && `Tri : ${meta.dechets.tri}`,
-                meta.dechets.collecteNom && `Collecte : ${meta.dechets.collecteNom}${meta.dechets.collecteType ? ` (${meta.dechets.collecteType})` : ''}`,
-              ].filter(Boolean).join(' · ')}
-            </div>
-          </div>
-        )}
+        {/* Déchets (AGEC) : déplacé en pleine largeur avant les mentions légales — voir <DechetsBand/>. */}
       </div>
       <TotalsBox totals={totals} docType="devis" meta={meta} />
+    </div>
+  )
+}
+
+// Encadré « Gestion des déchets (AGEC) » — pleine largeur, style compact (pastille
+// + titre + ligne dense). Texte assemblé par le helper partagé (parité PDF).
+function DechetsBand({ data }: { data: DocumentData }) {
+  const text = buildDechetsText(data.meta.dechets)
+  if (!text) return null
+  return (
+    <div className="dv-dechets2">
+      <div className="dv-dechets2-head">
+        <span className="dv-dechets2-pill">AGEC</span>
+        <span className="dv-dechets2-title">Gestion des déchets</span>
+      </div>
+      <div className="dv-dechets2-text">{text}</div>
     </div>
   )
 }

@@ -111,10 +111,14 @@ export interface DocumentMeta {
   penalitesCustom?: string
   dechets?: {
     nature?: string
+    quantite?: string
     responsable?: string
     tri?: string
     collecteNom?: string
+    collecteAdresse?: string
     collecteType?: string
+    cout?: number
+    coutInclus?: boolean
   }
   // V3.0c.18 — Métadonnées factures de situation
   // Permettent à DocumentRender d'afficher le titre "FACTURE DE SITUATION #N"
@@ -191,10 +195,14 @@ export interface RawDevis {
   acompte_pourcent?: number | null
   conditions_paiement?: string | null
   dechets_nature?: string | null
+  dechets_quantite?: string | null
   dechets_responsable?: string | null
   dechets_tri?: string | null
   dechets_collecte_nom?: string | null
+  dechets_collecte_adresse?: string | null
   dechets_collecte_type?: string | null
+  dechets_cout?: number | null
+  dechets_inclure_cout?: boolean | null
   // Gestion des déchets optionnelle : si false, le bloc déchets n'est pas affiché.
   afficher_dechets?: boolean | null
   // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance). Optionnel + nullable
@@ -617,15 +625,20 @@ export function buildDevisDocument(opts: {
   const optionsTotals = options.length ? computeOptionsTotals(options, isAutoliq) : undefined
   const nonRetenues: DocumentLeaf[] = nonRetenuesLignes.map((l, i) => leafFromRaw({ ...l, optionnel: false }, String(i + 1)))
 
+  // Garde-fou aligné sur les 4 rendus (helper hasDechets) : nature OU point de
+  // collecte. La nature est toujours renseignée via l'UI (select sans vide).
   const dechets = (opts.doc.afficher_dechets !== false) &&
-                  (opts.doc.dechets_nature || opts.doc.dechets_responsable ||
-                  opts.doc.dechets_tri || opts.doc.dechets_collecte_nom)
+                  (opts.doc.dechets_nature || opts.doc.dechets_collecte_nom)
     ? {
         nature: opts.doc.dechets_nature ?? undefined,
+        quantite: opts.doc.dechets_quantite ?? undefined,
         responsable: opts.doc.dechets_responsable ?? undefined,
         tri: opts.doc.dechets_tri ?? undefined,
         collecteNom: opts.doc.dechets_collecte_nom ?? undefined,
+        collecteAdresse: opts.doc.dechets_collecte_adresse ?? undefined,
         collecteType: opts.doc.dechets_collecte_type ?? undefined,
+        cout: opts.doc.dechets_cout ?? undefined,
+        coutInclus: opts.doc.dechets_inclure_cout ?? undefined,
       }
     : undefined
 

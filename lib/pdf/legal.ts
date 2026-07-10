@@ -17,6 +17,7 @@ import {
   type LegalContext,
   type LegalMention,
 } from '@/lib/legal-mentions'
+import { buildDechetsText } from '@/lib/dechets-parts'
 
 export interface LegalEntreprise {
   nom?: string
@@ -53,10 +54,14 @@ export interface LegalClient {
 
 export interface LegalDechets {
   nature?: string
+  quantite?: string
   responsable?: string
   tri?: string
   collecte_nom?: string
+  collecte_adresse?: string
   collecte_type?: string
+  cout?: number
+  inclure_cout?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -202,18 +207,31 @@ export function drawLegal(
     doc.line(M, y, M + W, y)
     y += 5 // padding apres le trait
 
+    // Pastille "AGEC" (fond bandeau, texte blanc) + titre, alignes verticalement.
+    const pillW = 11.5, pillH = 4.4
+    const midY = y + pillH / 2
+    setFill(doc, P.navy)
+    doc.roundedRect(M, y, pillW, pillH, 1, 1, 'F')
+    font(doc, 'Hanken Grotesk', 'bold', 6.5, P.white)
+    doc.text('AGEC', M + pillW / 2, midY, { align: 'center', baseline: 'middle' })
     font(doc, 'Hanken Grotesk', 'semibold', 7, P.muted)
-    doc.text('GESTION DES DÉCHETS (AGEC)', M, y, { charSpace: 0.6 })
-    y += 4
+    doc.text('Gestion des déchets', M + pillW + 3, midY, { baseline: 'middle' })
+    y = y + pillH + 3
+
+    // Texte dense — MEME helper que le rendu HTML (parite stricte des 4 rendus).
     font(doc, 'Hanken Grotesk', 'normal', 8, P.navy)
-    const parts: string[] = []
-    if (opts.dechets.nature) parts.push(`Nature : ${opts.dechets.nature}`)
-    if (opts.dechets.responsable) parts.push(opts.dechets.responsable)
-    if (opts.dechets.tri) parts.push(`Tri : ${opts.dechets.tri}`)
-    if (opts.dechets.collecte_nom) {
-      parts.push(`Collecte : ${opts.dechets.collecte_nom}${opts.dechets.collecte_type ? ` (${opts.dechets.collecte_type})` : ''}`)
-    }
-    const split = doc.splitTextToSize(parts.join('   ·   '), W)
+    const dechetsText = buildDechetsText({
+      nature: opts.dechets.nature,
+      quantite: opts.dechets.quantite,
+      responsable: opts.dechets.responsable,
+      tri: opts.dechets.tri,
+      collecteNom: opts.dechets.collecte_nom,
+      collecteAdresse: opts.dechets.collecte_adresse,
+      collecteType: opts.dechets.collecte_type,
+      cout: opts.dechets.cout,
+      coutInclus: opts.dechets.inclure_cout,
+    })
+    const split = doc.splitTextToSize(dechetsText, W)
     doc.text(split, M, y)
     y += split.length * 3.2 + 4 // padding apres
   }
