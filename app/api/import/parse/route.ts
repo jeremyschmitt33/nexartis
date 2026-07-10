@@ -422,7 +422,7 @@ export async function POST(req: NextRequest) {
       // Pipeline STANDARD (autres formats)
       // ═══════════════════════════════════════════════════════════
       for (const sheet of parsedSheets) {
-        const category = detectCategory(sheet.headers, detectedSource)
+        const category = detectCategory(sheet.headers, detectedSource, sheet.sheet)
 
         if (!category) {
           continue

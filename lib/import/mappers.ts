@@ -1293,9 +1293,28 @@ export function detectSource(headers: string[]): SourceType {
   return 'excel';
 }
 
-export function detectCategory(headers: string[], source: SourceType): DataCategory | null {
+export function detectCategory(headers: string[], source: SourceType, sheetName?: string): DataCategory | null {
   const headerLower = headers.map(h => h.toLowerCase().trim());
   const config = SOURCE_CONFIGS[source];
+
+  // ─── PRIORITE AU NOM DE FICHIER ───
+  // Si le fichier porte un nom explicite (fournisseurs.csv, clients.csv,
+  // prestations.csv, suppliers.csv...), on route directement vers la categorie
+  // correspondante. Indispensable pour les FOURNISSEURS : leurs colonnes sont
+  // identiques a celles des clients, donc sur la seule detection par en-tetes,
+  // "clients" l'emporte toujours a egalite. Les listes possibleFileNames
+  // existent deja par categorie ; on les exploite enfin ici.
+  // Non-cassant : ne s'active QUE si le nom correspond exactement a une entree
+  // possibleFileNames ; sinon on retombe sur la detection par en-tetes.
+  if (sheetName) {
+    const stripExt = (s: string) => s.toLowerCase().trim().replace(/\.(csv|xlsx|xls)$/, '');
+    const fstem = stripExt(sheetName);
+    for (const [category, categoryConfig] of Object.entries(config.categories) as [DataCategory, CategoryConfig][]) {
+      if (categoryConfig.possibleFileNames.some(n => stripExt(n) === fstem)) {
+        return category;
+      }
+    }
+  }
 
   // Desambiguisation "catalogue de produits/prestations" (source generique).
   // Beaucoup de logiciels nomment la colonne du produit "nom"/"libellé" au lieu
