@@ -114,6 +114,19 @@ async function findDevisIdByNumero(supabase: any, user_id: string, numero: strin
   return devisList && devisList.length > 0 ? devisList[0].id : null
 }
 
+async function findFactureIdByNumero(supabase: any, user_id: string, numero: string): Promise<string | null> {
+  if (!numero) return null
+
+  const { data: facturesList } = await supabase
+    .from('factures')
+    .select('id')
+    .eq('user_id', user_id)
+    .eq('numero', numero)
+    .limit(1)
+
+  return facturesList && facturesList.length > 0 ? facturesList[0].id : null
+}
+
 async function findChantierIdByName(supabase: any, user_id: string, chantierName: string): Promise<string | null> {
   if (!chantierName) return null
 
@@ -293,6 +306,7 @@ function resolveFK(
   fournisseurIdMap?: Map<string, string>,
   intervenantIdMap?: Map<string, string>,
   prestationIdMap?: Map<string, string>,
+  factureIdMap?: Map<string, string>,
 ): ImportedRow {
   // Pour les tables enfant (devis_lignes, facture_lignes, paiements),
   // ne pas ajouter user_id : ces tables ne l'ont pas en colonne et
@@ -326,7 +340,10 @@ function resolveFK(
     if (prestationId) insertData.prestation_id = prestationId
   }
   if (table === 'facture_lignes' && row.facture_numero) {
-    // facture_id non résolu (pas de factureIdMap exporté) — on supprime juste la clé temp
+    if (factureIdMap) {
+      const factureId = factureIdMap.get(String(row.facture_numero))
+      if (factureId) insertData.facture_id = factureId
+    }
     delete insertData.facture_numero
   }
   if (table === 'planning') {
@@ -406,13 +423,61 @@ async function insertRecords(
   chantierIdMap?: Map<string, string>,
   fournisseurIdMap?: Map<string, string>,
   intervenantIdMap?: Map<string, string>,
-  prestationIdMap?: Map<string, string>
+  prestationIdMap?: Map<string, string>,
+  factureIdMap?: Map<string, string>
 ): Promise<{ imported: number; skipped: number; errors: string[]; lastInsertIds?: Map<string, string> }> {
   const errors: string[] = []
   const lastInsertIds = new Map<string, string>()
 
   if (!rows || rows.length === 0) {
     return { imported: 0, skipped: 0, errors, lastInsertIds }
+  }
+
+  // ── PHASE 0 : enrichir les maps depuis la BASE (rattachement cross-lot) ──
+  // Les documents importes (devis/factures/lignes/achats) peuvent referencer
+  // des clients/chantiers/devis/factures/fournisseurs crees lors d'une session
+  // PRECEDENTE, donc absents des maps en memoire (qui ne contiennent que le lot
+  // courant). On complete les maps par une recherche en base. Sans ca, un import
+  // de documents seuls arriverait SANS rattachement. On ne requete que les
+  // references absentes de la map (les imports "tout en un" restent inchanges).
+  // La cle de map utilisee est identique a celle lue par resolveFK (String brut).
+  if (table === 'devis' || table === 'factures') {
+    for (const row of rows) {
+      const cn = row.client_name != null ? String(row.client_name) : ''
+      if (cn && clientIdMap && !clientIdMap.has(cn)) {
+        const id = await findClientIdByName(supabase, user_id, cn.trim())
+        if (id) clientIdMap.set(cn, id)
+      }
+      const chn = row.chantier_name != null ? String(row.chantier_name) : ''
+      if (chn && chantierIdMap && !chantierIdMap.has(chn)) {
+        const id = await findChantierIdByName(supabase, user_id, chn.trim())
+        if (id) chantierIdMap.set(chn, id)
+      }
+    }
+  } else if (table === 'devis_lignes') {
+    for (const row of rows) {
+      const dn = row.devis_numero != null ? String(row.devis_numero) : ''
+      if (dn && devisIdMap && !devisIdMap.has(dn)) {
+        const id = await findDevisIdByNumero(supabase, user_id, dn.trim())
+        if (id) devisIdMap.set(dn, id)
+      }
+    }
+  } else if (table === 'facture_lignes') {
+    for (const row of rows) {
+      const fn = row.facture_numero != null ? String(row.facture_numero) : ''
+      if (fn && factureIdMap && !factureIdMap.has(fn)) {
+        const id = await findFactureIdByNumero(supabase, user_id, fn.trim())
+        if (id) factureIdMap.set(fn, id)
+      }
+    }
+  } else if (table === 'achats') {
+    for (const row of rows) {
+      const sn = row.fournisseur_name != null ? String(row.fournisseur_name) : ''
+      if (sn && fournisseurIdMap && !fournisseurIdMap.has(sn)) {
+        const id = await findFournisseurIdByName(supabase, user_id, sn.trim())
+        if (id) fournisseurIdMap.set(sn, id)
+      }
+    }
   }
 
   // ── PHASE 1 : préparer toutes les rows (résolution FK en mémoire) ──
@@ -423,6 +488,7 @@ async function insertRecords(
       table, row, user_id,
       clientIdMap, devisIdMap, chantierIdMap,
       fournisseurIdMap, intervenantIdMap, prestationIdMap,
+      factureIdMap,
     ))
   }
 
@@ -625,6 +691,7 @@ export async function POST(req: NextRequest) {
     const fournisseurIdMap = new Map<string, string>()
     const intervenantIdMap = new Map<string, string>()
     const prestationIdMap = new Map<string, string>()
+    const factureIdMap = new Map<string, string>()
 
     const insertOrder: DataCategory[] = [
       'clients',
@@ -664,6 +731,8 @@ export async function POST(req: NextRequest) {
         idMap = intervenantIdMap
       } else if (category === 'prestations') {
         idMap = prestationIdMap
+      } else if (category === 'factures') {
+        idMap = factureIdMap
       }
 
       const result = await insertRecords(
@@ -677,7 +746,8 @@ export async function POST(req: NextRequest) {
         chantierIdMap,
         fournisseurIdMap,
         intervenantIdMap,
-        prestationIdMap
+        prestationIdMap,
+        factureIdMap
       )
 
       imported[category] = result.imported
