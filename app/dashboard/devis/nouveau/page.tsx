@@ -1393,7 +1393,7 @@ function NouveauDevisPage() {
                       <span className="text-sm font-semibold text-right mt-1.5">{line.priceHT > 0 ? formatCurrency(line.qty * line.priceHT) : '--'}</span>
                     </>
                   ) : (line.type === 'section' || line.type === 'subsection') ? (<><span /><span /><span /><span /><span className="text-sm font-bold text-right mt-1.5 text-[#0f1a3a]">{formatCurrency(computeSubtotal(lines.indexOf(line)))}</span></>) : <><span /><span /><span /><span /><span /></>}
-                  <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 mt-1.5"><Trash2 size={14} /></button>
+                  <button onClick={() => removeLine(line.id)} className="p-1 text-gray-300 hover:text-red-500 self-center justify-self-center"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>
