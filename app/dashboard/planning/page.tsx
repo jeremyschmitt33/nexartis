@@ -1650,7 +1650,7 @@ function PlanningPageInner() {
     const alreadySelected = new Set(mIntervenants.map(x => x.id))
     const source = isSociete
       ? intervenants.filter(iv => (iv as R).actif !== false)
-      : intervenants.filter(iv => (iv as R).actif !== false && (iv as R).type_contrat === 'sous-traitant')
+      : intervenants.filter(iv => (iv as R).actif !== false && (iv as R).is_self !== true)
     const filtered = source.filter(iv => !alreadySelected.has((iv as R).id as string))
     // Tri : self en tête (forcé en mode Société).
     filtered.sort((a, b) => {
@@ -2263,8 +2263,15 @@ function PlanningPageInner() {
     const explicitSelf = intervenants.find(iv => (iv as R).is_self === true) as R | undefined
     const legacySelf = explicitSelf ?? (intervenants.find(iv => (iv as R).type_contrat !== 'sous-traitant') as R | undefined)
     const selfArr = legacySelf ? [legacySelf] : []
-    const subcontractors = intervenants.filter(iv => (iv as R).type_contrat === 'sous-traitant' && (iv as R).actif !== false)
-    return [...selfArr, ...subcontractors]
+    const selfId = legacySelf ? (legacySelf as R).id : null
+    // Le dirigeant Solo doit voir TOUTE son équipe sur le planning (salariés,
+    // apprentis, intérimaires, sous-traitants...), pas seulement les sous-traitants.
+    const others = intervenants.filter(iv =>
+      (iv as R).actif !== false &&
+      (iv as R).is_self !== true &&
+      (iv as R).id !== selfId
+    )
+    return [...selfArr, ...others]
   }, [intervenants, isSociete])
 
   // S2 — filtrage par chips intervenants : on retire ceux masqués via la barre de chips
@@ -3236,9 +3243,14 @@ function PlanningPageInner() {
 
                       {/* ── Ligne « Autres absences » : absences en nom libre (sans membre d'équipe) ── */}
                       {(() => {
-                        const freeAbs = indispoList.filter(a => !a.intervenant_id)
-                        const weekHasFree = week.days.some(day => absencesForDay(freeAbs, day.dateStr).length > 0)
-                        if (!weekHasFree) return null
+                        // Catch-all : absences dont la ligne intervenant n'est PAS affichée
+                        // dans la grille — nom libre (intervenant_id null) OU membre non rendu
+                        // (mode Solo qui n'affiche pas les sous-traitants, filtre, membre retiré).
+                        // Évite qu'une absence "tombe dans un trou" et n'apparaisse nulle part.
+                        const shownIvIds = new Set(orderedIntervenants.map(iv => String((iv as R).id)))
+                        const orphanAbs = indispoList.filter(a => !a.intervenant_id || !shownIvIds.has(String(a.intervenant_id)))
+                        const weekHasOrphan = week.days.some(day => absencesForDay(orphanAbs, day.dateStr).length > 0)
+                        if (!weekHasOrphan) return null
                         return (
                           <div className="contents">
                             {(isSociete || soloHasSubcontractors) && (
@@ -3250,7 +3262,7 @@ function PlanningPageInner() {
                               </div>
                             )}
                             {week.days.map(day => {
-                              const dayFree = absencesForDay(freeAbs, day.dateStr)
+                              const dayFree = absencesForDay(orphanAbs, day.dateStr)
                               return (
                                 <div key={`autres-${wi}-${day.dateStr}`} className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative ${day.isToday ? 'bg-[#ff7a1a]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : ''}`}>
                                   {dayFree.length > 0 && (
@@ -3258,11 +3270,12 @@ function PlanningPageInner() {
                                       {dayFree.slice(0, 3).map(a => {
                                         const meta = absenceTypeMeta(a.type)
                                         const half = a.demi_journee === 'matin' ? 'AM' : a.demi_journee === 'apres_midi' ? 'PM' : ''
+                                        const who = a.nom_libre || (a.intervenant_id ? intervenantNom(a.intervenant_id) : '') || meta.label
                                         return (
-                                          <div key={a.id} className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: meta.color, color: '#fff' }} title={`${meta.label}${demiJourneeLabel(a.demi_journee)} — ${a.nom_libre || 'Absence'}`}>
+                                          <div key={a.id} className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: meta.color, color: '#fff' }} title={`${meta.label}${demiJourneeLabel(a.demi_journee)} — ${who}`}>
                                             <CalendarOff className="w-2.5 h-2.5 flex-shrink-0" />
                                             {half && <span className="bg-white/25 rounded px-1 leading-none flex-shrink-0">{half}</span>}
-                                            <span className="truncate">{a.nom_libre || meta.label}</span>
+                                            <span className="truncate">{who}</span>
                                           </div>
                                         )
                                       })}
