@@ -59,7 +59,7 @@ export function drawHeader(
 ): number {
   const P = palette
   const pageW = 210
-  const headerH = 43.5 // V3.2 : reduit de 50 a 43.5mm (~13% moins haut)
+  const headerH = 41 // V3.4 : reduit 43.5 -> 41mm (retour client : bandeau plus compact)
 
   // === Zone GAUCHE (navy) - trapeze : largeur 137 en haut, oblique 20mm a droite ===
   setFill(doc, P.navy)

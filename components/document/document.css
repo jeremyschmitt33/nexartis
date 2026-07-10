@@ -29,7 +29,7 @@
    le bandeau s'adapte naturellement a son contenu, comme avant les tentatives ratees. */
 .dv-headD .dv-d-band { position:relative; background:var(--accent);
   /* V3.2 : bandeau ~13% moins haut (top 40->34, bottom 76->66). */
-  padding:34px 54px 54px;
+  padding:30px 54px 50px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
 /* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
    par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
@@ -118,7 +118,7 @@
 .dv-headD .dv-d-card--to { background:var(--dv-c-adresse, #0f1a3a); color:var(--dv-c-adresse-ink, #fff); }
 .dv-headD .dv-d-chip { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.14em;
   text-transform:uppercase; padding:4px 11px; border-radius:6px; white-space:nowrap;
-  background:var(--dv-c-bandeau, #0f1a3a); color:var(--dv-c-bandeau-ink, #fff); margin-bottom:9px; }
+  background:var(--dv-c-bandeau, #0f1a3a); color:var(--dv-c-bandeau-ink, #fff); margin-bottom:11px; }
 .dv-headD .dv-d-chip--accent { background:var(--dv-c-accent, #e87a2a); color:var(--accent2-ink); }
 .dv-headD .dv-d-cardname { display:block; font-size:16px; font-weight:700; letter-spacing:-.01em; }
 .dv-headD .dv-d-card--from .dv-d-cardname { color:var(--ink); }

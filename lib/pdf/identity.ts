@@ -33,10 +33,10 @@ interface IdentityClient {
 }
 
 const CARD_W = 84
-const CARD_H = 44 // V3.3 : raccourci (50 -> 44mm) suite retour client
+const CARD_H = 42 // V3.4 : raccourci (44 -> 42mm) suite retour client
 const CARD_R = 4
 const PAD_X = 6
-const PAD_TOP = 11 // place le label + le nom sous le label inline
+const PAD_TOP = 12 // marge pastille -> nom (plus d'air demandé)
 const PAD_BOTTOM = 5
 const BADGE_W = 28
 const BADGE_H = 5
@@ -65,12 +65,12 @@ export function drawIdentityCards(
 ): number {
   const leftX = 18
   const rightX = 108
-  const yCard = yStart + 2
+  const yCard = yStart + 0.5
 
   drawEmetteurCard(doc, ent, leftX, yCard, palette)
   drawAddresseCard(doc, client, rightX, yCard, palette)
 
-  return yCard + CARD_H + 5
+  return yCard + CARD_H + 4
 }
 
 /**
@@ -124,7 +124,7 @@ function drawEmetteurCard(
 
   const ink = P.emetteurInk
   // Pastille "ÉMETTEUR" (fond bandeau, texte blanc) — style carte dashboard.
-  drawChip(doc, 'ÉMETTEUR', x + PAD_X, y + 2.8, P.navy, P.white)
+  drawChip(doc, 'ÉMETTEUR', x + PAD_X, y + 2.2, P.navy, P.white)
 
   const top: ContentLine[] = []
   if (ent.nom) top.push({ text: ent.nom, size: 11.5, weight: 'extrabold', color: ink, marginAfter: GAP_NAME_AFTER })
@@ -169,7 +169,7 @@ function drawAddresseCard(
   // V3.3 : label simple a l'interieur de la carte (fini le badge "a cheval"),
   // couleur = ink -> lisible sur tout theme.
   // Pastille "CLIENT" (fond orange, texte navy) — style carte dashboard.
-  drawChip(doc, 'CLIENT', x + PAD_X, y + 2.8, P.orange, P.navy)
+  drawChip(doc, 'CLIENT', x + PAD_X, y + 2.2, P.orange, P.navy)
   const top: ContentLine[] = []
   top.push({ text: client.clientNom || '—', size: 11.5, weight: 'extrabold', color: inkMain, marginAfter: GAP_NAME_AFTER })
   if (client.clientAdresse) {
