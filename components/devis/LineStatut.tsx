@@ -58,7 +58,7 @@ export default function LineStatutSelect({
         onChange={e => onChange(e.target.value as InclusionStatut)}
         aria-label="Statut de la ligne"
         title="Statut : Ferme (toujours inclus) · Facultatif (le client peut retirer) · Option + (le client peut ajouter)"
-        className={`font-hanken font-semibold text-[11px] rounded-md border px-1.5 py-[7px] outline-none cursor-pointer ${bg}`}
+        className={`w-full font-hanken font-semibold text-[11px] rounded-md border px-1 py-[7px] outline-none cursor-pointer ${bg}`}
       >
         <option value="ferme">Ferme</option>
         <option value="facultatif">Facultatif</option>

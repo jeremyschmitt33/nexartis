@@ -758,8 +758,8 @@ export default function ModifierDevisPage() {
 
           <div className="hidden sm:block overflow-x-auto">
             {/* V2.5 — Colonne TVA par ligne (parite Obat) */}
-            <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-hanken font-semibold uppercase">
-              <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
+            <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-3 text-xs font-hanken font-semibold uppercase">
+              <span>Désignation</span><span className="text-center">Statut</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
             </div>
             {lines.length === 0 && (
               <div className="px-4 py-8 text-center border-b border-gray-100">
@@ -770,8 +770,8 @@ export default function ModifierDevisPage() {
             {lines.map((line, idx) => {
               if (line.type === 'section') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-[#fafbfc] border-l-4 border-[#ff7a1a] border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_5]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
+                  <div key={line.id} className="grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-2 bg-[#fafbfc] border-l-4 border-[#ff7a1a] border-b border-gray-100">
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-bold text-[#0f1a3a] uppercase border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_6]" placeholder="Nom de la section (ex : Démolition, Maçonnerie...)" />
                     <span className="text-sm font-bold text-[#0f1a3a] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-end"><Trash2 size={14} /></button>
                   </div>
@@ -779,8 +779,8 @@ export default function ModifierDevisPage() {
               }
               if (line.type === 'subsection') {
                 return (
-                  <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 bg-white border-l-4 border-[#ff7a1a]/60 border-b border-gray-100">
-                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_5]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
+                  <div key={line.id} className="grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-2 bg-white border-l-4 border-[#ff7a1a]/60 border-b border-gray-100">
+                    <input type="text" value={line.designation} onChange={e => updateLine(line.id, 'designation', e.target.value)} className="text-sm font-semibold text-[#0f1a3a] border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white/60 focus:border-[#ff7a1a] px-2 h-9 placeholder-gray-400 [grid-column:span_6]" placeholder="Nom de la sous-section (ex : Cuisine, Plomberie...)" />
                     <span className="text-sm font-semibold text-[#0f1a3a] text-right pr-1 whitespace-nowrap">{formatCurrency(subtotalAt(idx))}</span>
                     <button onClick={() => removeLine(line.id)} className="p-1 text-gray-400 hover:text-red-500 justify-self-end"><Trash2 size={14} /></button>
                   </div>
@@ -795,28 +795,27 @@ export default function ModifierDevisPage() {
                 )
               }
               return (
-                <div key={line.id} className="grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-2 border-b border-gray-100">
+                <div key={line.id} className="grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-2 border-b border-gray-100">
                   <div className="mr-2">
-                    <div className="flex items-start gap-1.5">
-                      <DesignationAutocomplete
-                        value={line.designation}
-                        onChange={v => updateLine(line.id, 'designation', v)}
-                        onPick={s => {
-                          updateLine(line.id, 'designation', s.designation)
-                          updateLine(line.id, 'unit', s.unite)
-                          updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
-                          updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
-                        }}
-                        suggestions={prestationSuggestions}
-                        placeholder="Désignation..."
-                        rows={1}
-                        className="flex-1 min-w-0 text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
-                      />
-                      <LineStatutSelect compact value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
-                    </div>
+                    <DesignationAutocomplete
+                      value={line.designation}
+                      onChange={v => updateLine(line.id, 'designation', v)}
+                      onPick={s => {
+                        updateLine(line.id, 'designation', s.designation)
+                        updateLine(line.id, 'unit', s.unite)
+                        updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
+                        updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
+                      }}
+                      suggestions={prestationSuggestions}
+                      placeholder="Désignation..."
+                      rows={1}
+                      className="w-full text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[36px]"
+                    />
                     {/* Push 4 — badge « vient du plan » (lié / lien rompu) */}
                     {line.sourcePlan ? <div className="mt-1"><SourcePlanBadge sourcePlan={sourcePlanEffectif(line) ?? line.sourcePlan} /></div> : null}
                   </div>
+                  {/* Colonne STATUT — case fixe, juste avant la quantité */}
+                  <div className="mr-1 mt-0.5"><LineStatutSelect compact value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} /></div>
                   <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1" min={0} />
                   <select value={line.unit} onChange={e => updateLine(line.id, 'unit', e.target.value)} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mx-1 w-full">
                     {UNIT_SUGGESTIONS.map(u => <option key={u} value={u}>{u}</option>)}

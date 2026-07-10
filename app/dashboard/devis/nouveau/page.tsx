@@ -1335,8 +1335,8 @@ function NouveauDevisPage() {
             {/* ── Desktop : table classique (≥ sm) ── */}
             <div className="hidden sm:block overflow-x-auto">
               {/* V2.5 — Colonne TVA par ligne (parite Obat). 7 colonnes au lieu de 6. */}
-              <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-center px-4 py-3 text-xs font-hanken font-semibold uppercase">
-                <span>Désignation</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
+              <div className="bg-[#0f1a3a] text-white grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-center px-4 py-3 text-xs font-hanken font-semibold uppercase">
+                <span>Désignation</span><span className="text-center">Statut</span><span className="text-center">Qté</span><span className="text-center">Unité</span><span className="text-right">Prix U. HT</span><span className="text-center">TVA</span><span className="text-right">Total HT</span><span />
               </div>
               {lines.length === 0 && (
                 <div className="px-4 py-8 text-center border-b border-gray-100">
@@ -1345,25 +1345,22 @@ function NouveauDevisPage() {
                 </div>
               )}
               {lines.map(line => (
-                <div key={line.id} className={`grid grid-cols-[1fr_70px_90px_100px_80px_100px_36px] min-w-[580px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#fafbfc] border-l-4 border-l-[#ff7a1a]' : line.type === 'subsection' ? 'bg-white border-l-2 border-l-[#ff7a1a]/60' : ''}`}>
+                <div key={line.id} className={`grid grid-cols-[1fr_92px_70px_90px_100px_80px_100px_36px] min-w-[660px] items-start px-4 py-2 border-b border-gray-100 ${line.type === 'section' ? 'bg-[#fafbfc] border-l-4 border-l-[#ff7a1a]' : line.type === 'subsection' ? 'bg-white border-l-2 border-l-[#ff7a1a]/60' : ''}`}>
                   {line.type === 'line' ? (
-                    <div className="mr-2 flex items-start gap-1.5">
-                      <DesignationAutocomplete
-                        value={line.designation}
-                        onChange={v => updateLine(line.id, 'designation', v)}
-                        onPick={s => {
-                          updateLine(line.id, 'designation', s.designation)
-                          updateLine(line.id, 'unit', s.unite)
-                          updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
-                          updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
-                        }}
-                        suggestions={prestationSuggestions}
-                        placeholder="Désignation..."
-                        rows={1}
-                        className="flex-1 min-w-0 text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[38px]"
-                      />
-                      <LineStatutSelect compact value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} />
-                    </div>
+                    <DesignationAutocomplete
+                      value={line.designation}
+                      onChange={v => updateLine(line.id, 'designation', v)}
+                      onPick={s => {
+                        updateLine(line.id, 'designation', s.designation)
+                        updateLine(line.id, 'unit', s.unite)
+                        updateLine(line.id, 'priceHT', s.prix_unitaire_ht)
+                        updateLine(line.id, 'tva', autoEntrepreneur ? 0 : s.taux_tva)
+                      }}
+                      suggestions={prestationSuggestions}
+                      placeholder="Désignation..."
+                      rows={1}
+                      className="w-full mr-2 text-sm font-hanken border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] px-2 py-1.5 resize-none overflow-hidden min-h-[38px]"
+                    />
                   ) : (
                     <textarea
                       value={line.designation}
@@ -1373,6 +1370,10 @@ function NouveauDevisPage() {
                       rows={1}
                     />
                   )}
+                  {/* Colonne STATUT — case fixe, juste avant la quantité (lignes seulement) */}
+                  {line.type === 'line'
+                    ? <div className="mr-1 mt-0.5"><LineStatutSelect compact value={line.inclusion} onChange={s => updateLine(line.id, 'inclusion', s)} /></div>
+                    : <span />}
                   {line.type === 'line' ? (
                     <>
                       <input type="number" value={line.qty} onChange={e => updateLine(line.id, 'qty', Number(e.target.value))} className="text-sm text-center border border-gray-200 hover:border-gray-300 rounded-md outline-none bg-white focus:border-[#ff7a1a] h-9 mt-0.5 mx-1" min={0} />
