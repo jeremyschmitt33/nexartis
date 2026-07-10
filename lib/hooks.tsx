@@ -53,7 +53,8 @@ function useSupabaseQuery<T>(
 
     // Corbeille : par défaut on exclut les éléments supprimés
     // Les tables avec deleted_at : devis, factures, intervenants (D3 - 2026-06-08)
-    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants', 'factures_recues', 'documents_types', 'documents_stockes', 'certifications']
+    // + indisponibilites (absences planning, 2026-07-09)
+    const SOFT_DELETE_TABLES = ['devis', 'factures', 'intervenants', 'factures_recues', 'documents_types', 'documents_stockes', 'certifications', 'indisponibilites']
     if (SOFT_DELETE_TABLES.includes(table)) {
       if (options?.includeDeleted) {
         // Mode corbeille : uniquement les supprimés

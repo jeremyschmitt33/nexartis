@@ -7,18 +7,21 @@ import {
   MapPin, Eye, Maximize2, Minimize2, Check, Trash2, Pencil,
   Coffee, Handshake, Ruler, ShieldCheck, Wrench, Settings,
   MoreHorizontal, Phone, Navigation, Rows3, Rows4,
-  CheckCircle2, Download
+  CheckCircle2, Download, CalendarOff
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   usePlanning, useIntervenants, useClients, useChantiers, useDevis,
-  useInterventionIntervenants,
-  insertRow, updateRow, deleteRow, LoadingSkeleton, useEntreprise,
+  useInterventionIntervenants, useIndisponibilites,
+  insertRow, updateRow, deleteRow, softDeleteRow, LoadingSkeleton, useEntreprise,
 } from '@/lib/hooks'
 import { downloadPlanningPdf } from '@/lib/export/pdf-planning'
 import { downloadPlanningCsv } from '@/lib/export/csv-planning'
 import { downloadPlanningIcs } from '@/lib/export/ics-planning'
 import type { PlanningExportRow, PlanningPeriodType } from '@/lib/export/planning-export'
+import AbsenceModal, { type AbsencePayload } from '@/components/planning/AbsenceModal'
+import { absencesForDay, absenceTypeMeta, demiJourneeLabel, indispoOverlapsRange, absenceConflictsWithCreneau, absenceRangeLabel, type Indispo } from '@/lib/planning-absences'
+import { feriesMap } from '@/lib/holidays-fr'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -243,6 +246,7 @@ function PlanningPageInner() {
   // Session 8 : table jonction multi-intervenants. On reflète aussi son
   // refetch dans le refetch global du planning (cf. saveLiaisons).
   const { data: interventionIntervenantsData, refetch: refetchLiaisons } = useInterventionIntervenants()
+  const { data: indisponibilites, refetch: refetchIndispos } = useIndisponibilites()
 
   // ── Horaires de travail par défaut (depuis Paramètres > Entreprise) ──
   // Si non renseigné en BDD, fallback aux valeurs historiques 08:00-12:00 / 13:00-17:00.
@@ -269,6 +273,10 @@ function PlanningPageInner() {
   // Export planning (PDF / CSV / ICS) — popover periode/format
   const [exportOpen, setExportOpen] = useState(false)
   const [exportPeriod, setExportPeriod] = useState<PlanningPeriodType>('month')
+  // Absences (indisponibilites)
+  const [showAbsenceModal, setShowAbsenceModal] = useState(false)
+  const [savingAbsence, setSavingAbsence] = useState(false)
+  const [showAllAbsences, setShowAllAbsences] = useState(false)
   const [annualCollapsed, setAnnualCollapsed] = useState(false)
   const [detailCollapsed, setDetailCollapsed] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -1374,6 +1382,73 @@ function PlanningPageInner() {
     setExportOpen(false)
   }
 
+  // ── Absences (indisponibilites) ───────────────────────────────────
+  const indispoList = useMemo(() => (indisponibilites as unknown as Indispo[]) || [], [indisponibilites])
+
+  const intervenantNom = useCallback((id: string): string => {
+    const iv = intervenantMap.get(id) as R | undefined
+    return iv ? (`${iv.prenom ?? ''} ${iv.nom ?? ''}`.trim() || 'Intervenant') : 'Ancien membre'
+  }, [intervenantMap])
+
+  const intervenantsForAbsence = useMemo(
+    () => (intervenants as R[]).map(iv => ({ id: String(iv.id), label: `${iv.prenom ?? ''} ${iv.nom ?? ''}`.trim() || 'Intervenant' })),
+    [intervenants],
+  )
+
+  const absenceLabelFull = useCallback((a: Indispo): string => {
+    const nom = a.intervenant_id ? intervenantNom(a.intervenant_id) : (a.nom_libre || 'Absent')
+    return nom + demiJourneeLabel(a.demi_journee)
+  }, [intervenantNom])
+
+  // Jours feries des annees couvertes par la vue 5 semaines.
+  const feriesLookup = useMemo(() => {
+    const y1 = weekStart.getFullYear()
+    const y2 = new Date(weekStart.getFullYear(), weekStart.getMonth() + 2, 1).getFullYear()
+    return feriesMap(y1 === y2 ? [y1] : [y1, y2])
+  }, [weekStart])
+
+  const saveAbsence = async (payload: AbsencePayload) => {
+    setSavingAbsence(true)
+    try {
+      await insertRow('indisponibilites', payload as unknown as Record<string, unknown>)
+      setShowAbsenceModal(false)
+      refetchIndispos()
+      showToast('Absence enregistrée')
+    } catch {
+      showToast('Impossible d’enregistrer l’absence. Réessayez.')
+    } finally {
+      setSavingAbsence(false)
+    }
+  }
+
+  // Absences chevauchant la fenêtre 5 semaines actuellement affichée (encart
+  // « Qui est absent »), triées par date de début.
+  const absencesInWindow = useMemo(() => {
+    const start = fmtISO(weekStart)
+    const endD = new Date(weekStart); endD.setDate(endD.getDate() + 34)
+    const end = fmtISO(endD)
+    return indispoList
+      .filter(a => indispoOverlapsRange(a, start, end))
+      .sort((a, b) => a.date_debut.localeCompare(b.date_debut))
+  }, [indispoList, weekStart])
+
+  const deleteAbsence = async (a: Indispo) => {
+    const ok = await askConfirm({
+      title: 'Supprimer cette absence',
+      message: `Retirer l’absence de ${absenceLabelFull(a)} (${absenceRangeLabel(a)}) ?`,
+      variant: 'danger',
+      confirmLabel: 'Supprimer',
+    })
+    if (!ok) return
+    try {
+      await softDeleteRow('indisponibilites', a.id)
+      refetchIndispos()
+      showToast('Absence supprimée')
+    } catch {
+      showToast('Suppression impossible. Réessayez.')
+    }
+  }
+
   // ── Open modal in EDIT mode ──
   const openEditModal = (intervention: R) => {
     const dateDebut = ((intervention.date_debut as string) ?? '').split('T')[0]
@@ -1841,6 +1916,31 @@ function PlanningPageInner() {
     } else {
       startTime = mCreneau === 'apres_midi' ? horaires.debutAm : horaires.debutMatin
       endTime = mCreneau === 'matin' ? horaires.finMatin : horaires.finAm
+    }
+
+    // ── Verifier les ABSENCES des intervenants AVANT d'enregistrer ──
+    // Si un intervenant assigné est en indisponibilité (congé, maladie...) sur
+    // la période de l'intervention, on avertit via le MÊME dialogue de
+    // confirmation que les conflits horaires (l'utilisateur peut forcer).
+    if (!showConflitConfirm) {
+      const finRange = mDateFin || mDate
+      for (const member of effectiveIntervenants) {
+        const abs = indispoList.find(a =>
+          a.intervenant_id === member.id &&
+          indispoOverlapsRange(a, mDate, finRange) &&
+          absenceConflictsWithCreneau(a.demi_journee, mCreneau)
+        )
+        if (abs) {
+          const ivRec = intervenantMap.get(member.id) as R | undefined
+          const nom = (ivRec ? `${ivRec.prenom ?? ''} ${ivRec.nom ?? ''}`.trim() : '') || 'L\'intervenant'
+          const meta = absenceTypeMeta(abs.type)
+          setConflitConfirmMessage(
+            `${nom} est en absence (${meta.label.toLowerCase()}${demiJourneeLabel(abs.demi_journee)}) sur cette période. Voulez-vous quand même ${editMode ? 'modifier' : 'créer'} cette intervention ?`
+          )
+          setShowConflitConfirm(true)
+          return
+        }
+      }
     }
 
     // ── Verifier les conflits horaires AVANT d'enregistrer ──
@@ -2385,6 +2485,12 @@ function PlanningPageInner() {
               )}
             </div>
 
+            {/* Ajouter une absence */}
+            <button onClick={() => setShowAbsenceModal(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white text-[#0f1a3a] font-hanken text-xs sm:text-sm font-bold hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200">
+              <CalendarOff className="w-4 h-4" /><span className="hidden sm:inline">Absence</span>
+            </button>
+
             {/* Export planning — periode + format */}
             <div className="relative">
               <button onClick={() => setExportOpen(o => !o)}
@@ -2448,6 +2554,39 @@ function PlanningPageInner() {
       </header>
 
       <div className="px-3 sm:px-6 py-3 sm:py-4 space-y-4">
+
+        {/* ── Encart « Qui est absent » (absences sur la période affichée) ── */}
+        {absencesInWindow.length > 0 && (
+          <div className="rounded-2xl border border-[#e6ecf2] bg-white px-3 sm:px-4 py-3">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#fff1e6] text-[#ff7a1a]">
+                <CalendarOff className="w-3.5 h-3.5" />
+              </span>
+              <h3 className="font-hanken font-bold text-sm text-[#0f1a3a]">Qui est absent</h3>
+              <span className="font-hanken text-[11px] font-semibold text-[#7b8ba3]">· {absencesInWindow.length} sur la période affichée</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(showAllAbsences ? absencesInWindow : absencesInWindow.slice(0, 10)).map(a => {
+                const meta = absenceTypeMeta(a.type)
+                return (
+                  <div key={a.id} className="inline-flex items-center gap-1.5 rounded-lg border border-[#e6ecf2] bg-[#fafbfc] pl-1.5 pr-1 py-1">
+                    <span className="px-1.5 py-[1px] rounded text-[10px] font-bold" style={{ backgroundColor: meta.bg, color: meta.color }}>{meta.label}</span>
+                    <span className="font-hanken text-xs font-semibold text-[#0f1a3a]">{absenceLabelFull(a)}</span>
+                    <span className="font-hanken text-[11px] text-[#7b8ba3]">{absenceRangeLabel(a)}</span>
+                    <button onClick={() => deleteAbsence(a)} aria-label="Supprimer l’absence" className="ml-0.5 rounded p-0.5 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+            {absencesInWindow.length > 10 && (
+              <button onClick={() => setShowAllAbsences(v => !v)} className="mt-2 font-hanken text-[11px] font-semibold text-[#ff7a1a] hover:underline">
+                {showAllAbsences ? 'Voir moins' : `+${absencesInWindow.length - 10} autre${absencesInWindow.length - 10 > 1 ? 's' : ''}`}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* ════════════════════════════════════════════════════════════
             Session 13 V2 (29/05/2026) — Le bandeau orange "Êtes-vous
@@ -2905,6 +3044,23 @@ function PlanningPageInner() {
                                       <Plus className="w-4 h-4" />
                                     </span>
                                   )}
+                                  {(() => {
+                                    const dayAbs = absencesForDay(indispoList, day.dateStr).filter(a => a.intervenant_id === ivId)
+                                    const ferie = feriesLookup[day.dateStr]
+                                    if (dayAbs.length === 0 && !ferie) return null
+                                    return (
+                                      <div className="flex flex-col gap-[2px] mb-0.5">
+                                        {ferie && (
+                                          <div className="px-1 py-[1px] rounded text-[8px] font-semibold truncate leading-tight" style={{ backgroundColor: '#f1f5f9', color: '#64748b' }} title={`Férié : ${ferie}`}>Férié</div>
+                                        )}
+                                        {dayAbs.slice(0, 2).map(a => {
+                                          const meta = absenceTypeMeta(a.type)
+                                          return <div key={a.id} className="px-1 py-[1px] rounded text-[8px] font-semibold truncate leading-tight" style={{ backgroundColor: meta.bg, color: meta.color }} title={`${absenceLabelFull(a)} - ${meta.label}`}>{absenceLabelFull(a)}</div>
+                                        })}
+                                        {dayAbs.length > 2 && <div className="text-[8px] text-gray-400 px-1 leading-tight">+{dayAbs.length - 2}</div>}
+                                      </div>
+                                    )
+                                  })()}
                                   <div className="flex flex-col gap-0.5">
                                     {interventions.filter(isFiltered).map(item => {
                                       const rec = item as R
@@ -3604,6 +3760,16 @@ function PlanningPageInner() {
           </>
         )
       })()}
+
+      {/* ── MODAL: Ajouter une absence ── */}
+      {showAbsenceModal && (
+        <AbsenceModal
+          intervenants={intervenantsForAbsence}
+          onClose={() => setShowAbsenceModal(false)}
+          onSave={saveAbsence}
+          saving={savingAbsence}
+        />
+      )}
 
       {/* ── MODAL: New Intervention — restylé V4 (backdrop + radius + header Hanken) ── */}
       {showModal && (
