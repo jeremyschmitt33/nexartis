@@ -277,6 +277,7 @@ function PlanningPageInner() {
   const [showAbsenceModal, setShowAbsenceModal] = useState(false)
   const [savingAbsence, setSavingAbsence] = useState(false)
   const [showAllAbsences, setShowAllAbsences] = useState(false)
+  const [editingAbsence, setEditingAbsence] = useState<Indispo | null>(null)
   const [annualCollapsed, setAnnualCollapsed] = useState(false)
   const [detailCollapsed, setDetailCollapsed] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -1407,13 +1408,20 @@ function PlanningPageInner() {
     return feriesMap(y1 === y2 ? [y1] : [y1, y2])
   }, [weekStart])
 
+  const openAbsenceModal = (a: Indispo | null) => { setEditingAbsence(a); setShowAbsenceModal(true) }
+  const closeAbsenceModal = () => { setShowAbsenceModal(false); setEditingAbsence(null) }
+
   const saveAbsence = async (payload: AbsencePayload) => {
     setSavingAbsence(true)
     try {
-      await insertRow('indisponibilites', payload as unknown as Record<string, unknown>)
-      setShowAbsenceModal(false)
+      if (editingAbsence) {
+        await updateRow('indisponibilites', editingAbsence.id, payload as unknown as Record<string, unknown>)
+      } else {
+        await insertRow('indisponibilites', payload as unknown as Record<string, unknown>)
+      }
+      closeAbsenceModal()
       refetchIndispos()
-      showToast('Absence enregistrée')
+      showToast(editingAbsence ? 'Absence modifiée' : 'Absence enregistrée')
     } catch {
       showToast('Impossible d’enregistrer l’absence. Réessayez.')
     } finally {
@@ -2486,7 +2494,7 @@ function PlanningPageInner() {
             </div>
 
             {/* Ajouter une absence */}
-            <button onClick={() => setShowAbsenceModal(true)} aria-label="Ajouter une absence" title="Ajouter une absence"
+            <button onClick={() => openAbsenceModal(null)} aria-label="Ajouter une absence" title="Ajouter une absence"
               className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white text-[#0f1a3a] font-hanken text-xs sm:text-sm font-bold hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200">
               <CalendarOff className="w-4 h-4" /><span className="hidden sm:inline">Absence</span>
             </button>
@@ -2573,7 +2581,10 @@ function PlanningPageInner() {
                     <span className="px-2 py-[2px] rounded-full text-[10px] font-bold" style={{ backgroundColor: meta.color, color: '#fff' }}>{meta.label}</span>
                     <span className="font-hanken text-xs font-semibold text-[#0f1a3a]">{absenceLabelFull(a)}</span>
                     <span className="font-hanken text-[11px] text-[#7b8ba3]">{absenceRangeLabel(a)}</span>
-                    <button onClick={() => deleteAbsence(a)} aria-label={`Supprimer l’absence de ${absenceLabelFull(a)}`} className="ml-0.5 flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                    <button onClick={() => openAbsenceModal(a)} aria-label={`Modifier l’absence de ${absenceLabelFull(a)}`} className="ml-0.5 flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full text-gray-400 hover:text-[#ff7a1a] hover:bg-[#fff1e6] transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => deleteAbsence(a)} aria-label={`Supprimer l’absence de ${absenceLabelFull(a)}`} className="flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -3222,6 +3233,48 @@ function PlanningPageInner() {
                           </div>
                         )
                       })}
+
+                      {/* ── Ligne « Autres absences » : absences en nom libre (sans membre d'équipe) ── */}
+                      {(() => {
+                        const freeAbs = indispoList.filter(a => !a.intervenant_id)
+                        const weekHasFree = week.days.some(day => absencesForDay(freeAbs, day.dateStr).length > 0)
+                        if (!weekHasFree) return null
+                        return (
+                          <div className="contents">
+                            {(isSociete || soloHasSubcontractors) && (
+                              <div className={`${isCompact ? 'px-2 py-1.5' : 'px-3 py-2.5'} border-r border-b border-[#e6ecf2] bg-[#f0f2f7]/50 flex items-center gap-2`}>
+                                <div className={`${isCompact ? 'w-5 h-5' : 'w-7 h-7'} rounded-md flex items-center justify-center text-white flex-shrink-0`} style={{ background: '#94a3b8' }}>
+                                  <CalendarOff className={isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
+                                </div>
+                                <div className={`${isCompact ? 'text-[12px]' : 'text-sm'} font-hanken font-bold text-[#0f1a3a] truncate`}>Autres absences</div>
+                              </div>
+                            )}
+                            {week.days.map(day => {
+                              const dayFree = absencesForDay(freeAbs, day.dateStr)
+                              return (
+                                <div key={`autres-${wi}-${day.dateStr}`} className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative ${day.isToday ? 'bg-[#ff7a1a]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : ''}`}>
+                                  {dayFree.length > 0 && (
+                                    <div className="flex flex-col gap-[2px]">
+                                      {dayFree.slice(0, 3).map(a => {
+                                        const meta = absenceTypeMeta(a.type)
+                                        const half = a.demi_journee === 'matin' ? 'AM' : a.demi_journee === 'apres_midi' ? 'PM' : ''
+                                        return (
+                                          <div key={a.id} className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: meta.color, color: '#fff' }} title={`${meta.label}${demiJourneeLabel(a.demi_journee)} — ${a.nom_libre || 'Absence'}`}>
+                                            <CalendarOff className="w-2.5 h-2.5 flex-shrink-0" />
+                                            {half && <span className="bg-white/25 rounded px-1 leading-none flex-shrink-0">{half}</span>}
+                                            <span className="truncate">{a.nom_libre || meta.label}</span>
+                                          </div>
+                                        )
+                                      })}
+                                      {dayFree.length > 3 && <div className="text-[9px] text-gray-500 font-semibold px-1 leading-tight">+{dayFree.length - 3}</div>}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )
@@ -3797,7 +3850,9 @@ function PlanningPageInner() {
       {showAbsenceModal && (
         <AbsenceModal
           intervenants={intervenantsForAbsence}
-          onClose={() => setShowAbsenceModal(false)}
+          initial={editingAbsence}
+          editing={!!editingAbsence}
+          onClose={closeAbsenceModal}
           onSave={saveAbsence}
           saving={savingAbsence}
         />

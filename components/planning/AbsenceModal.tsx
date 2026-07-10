@@ -27,6 +27,9 @@ interface Props {
   onClose: () => void
   onSave: (payload: AbsencePayload) => void
   saving?: boolean
+  // Mode édition : valeurs initiales à pré-remplir (sinon création vierge).
+  initial?: { intervenant_id?: string | null; nom_libre?: string | null; date_debut?: string; date_fin?: string; demi_journee?: string | null; type?: string | null; motif?: string | null } | null
+  editing?: boolean
 }
 
 function todayIso(): string {
@@ -35,14 +38,14 @@ function todayIso(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-export default function AbsenceModal({ intervenants, onClose, onSave, saving }: Props) {
-  const [personId, setPersonId] = useState<string>(intervenants[0]?.id ?? '__libre__')
-  const [nomLibre, setNomLibre] = useState('')
-  const [dateDebut, setDateDebut] = useState(todayIso())
-  const [dateFin, setDateFin] = useState(todayIso())
-  const [demiJournee, setDemiJournee] = useState<string>('')
-  const [type, setType] = useState('conge')
-  const [motif, setMotif] = useState('')
+export default function AbsenceModal({ intervenants, onClose, onSave, saving, initial, editing }: Props) {
+  const [personId, setPersonId] = useState<string>(initial ? (initial.intervenant_id ?? '__libre__') : (intervenants[0]?.id ?? '__libre__'))
+  const [nomLibre, setNomLibre] = useState(initial?.nom_libre ?? '')
+  const [dateDebut, setDateDebut] = useState((initial?.date_debut ?? '').slice(0, 10) || todayIso())
+  const [dateFin, setDateFin] = useState((initial?.date_fin ?? '').slice(0, 10) || todayIso())
+  const [demiJournee, setDemiJournee] = useState<string>(initial?.demi_journee ?? '')
+  const [type, setType] = useState(initial?.type ?? 'conge')
+  const [motif, setMotif] = useState(initial?.motif ?? '')
   const [error, setError] = useState('')
 
   // Accessibilité : fermeture au clavier via Échap.
@@ -83,7 +86,7 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fff1e6] text-[#ff7a1a]">
               <CalendarOff size={18} />
             </span>
-            <h3 id="absence-modal-title" className="font-hanken font-extrabold text-lg text-[#0f1a3a]">Ajouter une absence</h3>
+            <h3 id="absence-modal-title" className="font-hanken font-extrabold text-lg text-[#0f1a3a]">{editing ? 'Modifier l’absence' : 'Ajouter une absence'}</h3>
           </div>
           <button onClick={onClose} aria-label="Fermer" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-[#0f1a3a]">
             <X size={18} />
@@ -171,7 +174,7 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-hanken font-bold text-sm text-white bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] shadow-[0_8px_20px_rgba(255,122,26,0.35)] hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:translate-y-0"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <CalendarOff size={16} />}
-            Enregistrer l’absence
+            {editing ? 'Enregistrer les modifications' : 'Enregistrer l’absence'}
           </button>
         </div>
       </div>
