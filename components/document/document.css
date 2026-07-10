@@ -29,7 +29,7 @@
    le bandeau s'adapte naturellement a son contenu, comme avant les tentatives ratees. */
 .dv-headD .dv-d-band { position:relative; background:var(--accent);
   /* V3.2 : bandeau ~13% moins haut (top 40->34, bottom 76->66). */
-  padding:30px 54px 50px;
+  padding:30px 54px 22px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
 /* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
    par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
@@ -110,7 +110,7 @@
   color:rgba(255,255,255,.5); font-weight:600; }
 .dv-headD .dv-d-metaline strong { color:#fff; font-weight:600; }
 .dv-headD .dv-d-parties { display:grid; grid-template-columns:1fr 1fr; gap:16px;
-  padding:0 54px; margin-top:-46px; position:relative; z-index:3; }
+  padding:0 54px; margin-top:8px; position:relative; z-index:3; }
 .dv-headD .dv-d-card { border-radius:var(--card-radius); padding:12px 16px;
   position:relative; overflow:hidden; box-shadow:0 8px 20px rgba(18,28,46,.14); }
 .dv-headD .dv-d-card--from { background:var(--dv-c-emetteur, #fff); color:var(--dv-c-emetteur-ink, var(--ink)); border:1px solid var(--line); }
@@ -287,7 +287,7 @@
   .dv-headD .dv-d-parties {
     grid-template-columns:1fr;
     padding:0 16px;
-    margin-top:-40px;
+    margin-top:8px;
     gap:14px;
   }
   .dv-headD .dv-d-card { padding:16px 18px; }
