@@ -135,7 +135,7 @@ function CardFrom({ artisan }: { artisan: DocumentArtisan }) {
         {artisan.adresseLine2 && <div>{artisan.adresseLine2}</div>}
         {artisan.tel && <div>{formatPhone(artisan.tel)}</div>}
         {artisan.email && <div>{artisan.email}</div>}
-        {artisan.siret && <div>SIRET {artisan.siret}</div>}
+        {artisan.siret && <div className="dv-cardrow-legal">SIRET {artisan.siret}</div>}
         {artisan.tvaIntra && <div>TVA {artisan.tvaIntra}</div>}
       </div>
     </div>
@@ -145,7 +145,7 @@ function CardFrom({ artisan }: { artisan: DocumentArtisan }) {
 function CardTo({ client }: { client: DocumentClient }) {
   return (
     <div className="dv-d-card dv-d-card--to">
-      <span className="dv-d-chip dv-d-chip--accent">Adressé à</span>
+      <span className="dv-d-chip dv-d-chip--accent">Client</span>
       <span className="dv-d-cardname">{client.nom || '—'}</span>
       <div className="dv-d-cardrows">
         {client.adresseLine1 && <div>{client.adresseLine1}</div>}
@@ -230,7 +230,7 @@ function GroupRows({ group }: { group: DocumentGroup }) {
     <>
       {hasGroupLabel && (
         <tr className="dv-row dv-row--group">
-          <td className="dv-c-num">{group.n}</td>
+          <td className="dv-c-num"><span className="dv-num-circle">{group.n}</span></td>
           <td className="dv-c-desg" colSpan={4}>{group.designation}</td>
           <td className="dv-c-tot">{eur(group.total)}</td>
         </tr>

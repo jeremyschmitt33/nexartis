@@ -34,7 +34,7 @@ interface IdentityClient {
 
 const CARD_W = 84
 const CARD_H = 44 // V3.3 : raccourci (50 -> 44mm) suite retour client
-const CARD_R = 5
+const CARD_R = 4
 const PAD_X = 6
 const PAD_TOP = 11 // place le label + le nom sous le label inline
 const PAD_BOTTOM = 5
@@ -64,12 +64,12 @@ export function drawIdentityCards(
 ): number {
   const leftX = 18
   const rightX = 108
-  const yCard = yStart + 2.5
+  const yCard = yStart + 2
 
   drawEmetteurCard(doc, ent, leftX, yCard, palette)
   drawAddresseCard(doc, client, rightX, yCard, palette)
 
-  return yCard + CARD_H + 8
+  return yCard + CARD_H + 5
 }
 
 /**
@@ -111,19 +111,19 @@ function drawEmetteurCard(
   y: number,
   P: Palette,
 ): void {
-  setFill(doc, [230, 232, 235])
-  doc.roundedRect(x + 1, y + 1, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
+  setFill(doc, [210, 214, 222])
+  doc.roundedRect(x + 0.8, y + 0.8, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
   setFill(doc, P.emetteur)
   setDraw(doc, P.border)
   doc.setLineWidth(0.3)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'FD')
+  // Barre orange verticale à gauche (parité carte dashboard).
+  setFill(doc, P.orange)
+  doc.rect(x + 0.4, y + 3, 1.2, CARD_H - 6, 'F')
 
-  // V3.3 : label simple A L'INTERIEUR de la carte (fini le badge "a cheval").
-  // Couleur = ink de la carte -> toujours lisible quel que soit le theme (fini
-  // le "rose sur rose" invisible du badge accent).
   const ink = P.emetteurInk
-  font(doc, 'Hanken Grotesk', 'semibold', 6, ink)
-  doc.text('ÉMETTEUR', x + PAD_X, y + 5.5, { charSpace: 0.5 })
+  // Pastille "ÉMETTEUR" (fond bandeau, texte blanc) — style carte dashboard.
+  drawChip(doc, 'ÉMETTEUR', x + PAD_X, y + 2.8, P.navy, P.white)
 
   const top: ContentLine[] = []
   if (ent.nom) top.push({ text: ent.nom, size: 11.5, weight: 'extrabold', color: ink, marginAfter: GAP_NAME_AFTER })
@@ -157,6 +157,9 @@ function drawAddresseCard(
   // V3.0d : on garde navyDeep (legerement plus sombre que navy) comme couleur
   // visuelle quand pas de theme custom, sinon on utilise la couleur du theme.
   // P.navyDeep est calcule via cadreAdresse hex, donc deja correct.
+  // Ombre douce (parité carte dashboard).
+  setFill(doc, [210, 214, 222])
+  doc.roundedRect(x + 0.8, y + 0.8, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
   setFill(doc, P.adresse)
   doc.roundedRect(x, y, CARD_W, CARD_H, CARD_R, CARD_R, 'F')
 
@@ -165,8 +168,8 @@ function drawAddresseCard(
   const inkSecondary = isDarkBg ? P.whiteSoft : P.adresseInk
   // V3.3 : label simple a l'interieur de la carte (fini le badge "a cheval"),
   // couleur = ink -> lisible sur tout theme.
-  font(doc, 'Hanken Grotesk', 'semibold', 6, inkMain)
-  doc.text('ADRESSÉ À', x + PAD_X, y + 5.5, { charSpace: 0.5 })
+  // Pastille "CLIENT" (fond orange, texte navy) — style carte dashboard.
+  drawChip(doc, 'CLIENT', x + PAD_X, y + 2.8, P.orange, P.navy)
   const top: ContentLine[] = []
   top.push({ text: client.clientNom || '—', size: 11.5, weight: 'extrabold', color: inkMain, marginAfter: GAP_NAME_AFTER })
   if (client.clientAdresse) {
@@ -203,6 +206,18 @@ function drawBadge(doc: jsPDF, label: string, badgeX: number, cardY: number, P: 
   // On garde P.navy (= bandeauHaut hex) qui restera contraste correct dans la majorite des cas.
   font(doc, 'Hanken Grotesk', 'semibold', 6.5, P.navy)
   textCentered(doc, label, badgeX + BADGE_W / 2, badgeY + BADGE_H / 2 + 1.1)
+}
+
+// Pastille de libellé DANS la carte (parité chip du dashboard).
+// bg = fond de la pastille, textColor = couleur du texte (tuples RGB).
+function drawChip(doc: jsPDF, label: string, x: number, yTop: number, bg: typeof C.white, textColor: typeof C.white): void {
+  font(doc, 'Hanken Grotesk', 'semibold', 5.5, textColor)
+  const w = doc.getTextWidth(label) + 4
+  const h = 4.2
+  setFill(doc, bg)
+  doc.roundedRect(x, yTop, w, h, 1.2, 1.2, 'F')
+  font(doc, 'Hanken Grotesk', 'semibold', 5.5, textColor)
+  doc.text(label, x + w / 2, yTop + h / 2, { align: 'center', baseline: 'middle' })
 }
 
 function renderLinesTop(

@@ -10,7 +10,7 @@
   --accent-droite-ink:var(--dv-c-bandeau-droite-ink, #ffffff);
   --accent2:var(--dv-c-accent, #e87a2a);
   --accent2-ink:#1c1304; --accent-soft:#f1f3f7; --ink:#19202b; --mute:#6b7480;
-  --line:#e7e9ee; --title-size:41px; --card-radius:24px;
+  --line:#e7e9ee; --title-size:41px; --card-radius:16px;
   --stone-bg:#f5f3ee; --stone-border:#e2ddd1; --stone-ink:#3a3329; --stone-mute:#857a68; --stone-rule:#d6cfc0;
   --group-bg:#fcf3ed; --sub-bg:#f4f5f8;
   font-family: var(--font-hanken, 'Hanken Grotesk'), system-ui, sans-serif;
@@ -20,7 +20,7 @@
 .dv-page { width:100%; max-width:794px; background:var(--paper); position:relative;
   display:flex; flex-direction:column; margin:0 auto; }
 .dv-page + .dv-page { margin-top:28px; }
-.dv-body { flex:1; padding:0 54px 36px; }
+.dv-body { flex:1; padding:0 54px 22px; }
 .dv-party { display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--mute); }
 .dv-headD { position:relative; }
 /* V3.1.4 : RESTAURATION fondations d'origine qui marchaient (commit b9455df).
@@ -29,7 +29,7 @@
    le bandeau s'adapte naturellement a son contenu, comme avant les tentatives ratees. */
 .dv-headD .dv-d-band { position:relative; background:var(--accent);
   /* V3.2 : bandeau ~13% moins haut (top 40->34, bottom 76->66). */
-  padding:34px 54px 66px;
+  padding:34px 54px 54px;
   display:flex; justify-content:space-between; align-items:flex-start; overflow:hidden; }
 /* V3.1 : zone droite du bandeau avec sa propre couleur, clipee diagonalement
    par la barre doree. La forme polygon suit exactement la barre .dv-d-geo2. */
@@ -109,23 +109,23 @@
 .dv-headD .dv-d-metaline > div:not(:last-child)::after { content:"\00B7"; margin-left:8px;
   color:rgba(255,255,255,.5); font-weight:600; }
 .dv-headD .dv-d-metaline strong { color:#fff; font-weight:600; }
-.dv-headD .dv-d-parties { display:grid; grid-template-columns:1fr 1fr; gap:20px;
+.dv-headD .dv-d-parties { display:grid; grid-template-columns:1fr 1fr; gap:16px;
   padding:0 54px; margin-top:-46px; position:relative; z-index:3; }
-.dv-headD .dv-d-card { border-radius:var(--card-radius); padding:20px 22px;
-  position:relative; overflow:hidden; box-shadow:0 14px 34px rgba(18,28,46,.18); }
+.dv-headD .dv-d-card { border-radius:var(--card-radius); padding:14px 16px;
+  position:relative; overflow:hidden; box-shadow:0 8px 20px rgba(18,28,46,.14); }
 .dv-headD .dv-d-card--from { background:var(--dv-c-emetteur, #fff); color:var(--dv-c-emetteur-ink, var(--ink)); border:1px solid var(--line); }
 .dv-headD .dv-d-card--from::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--dv-c-accent, #e87a2a); }
 .dv-headD .dv-d-card--to { background:var(--dv-c-adresse, #0f1a3a); color:var(--dv-c-adresse-ink, #fff); }
 .dv-headD .dv-d-chip { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.14em;
   text-transform:uppercase; padding:4px 11px; border-radius:6px; white-space:nowrap;
-  background:var(--dv-c-bandeau, #0f1a3a); color:var(--dv-c-bandeau-ink, #fff); margin-bottom:13px; }
+  background:var(--dv-c-bandeau, #0f1a3a); color:var(--dv-c-bandeau-ink, #fff); margin-bottom:9px; }
 .dv-headD .dv-d-chip--accent { background:var(--dv-c-accent, #e87a2a); color:var(--accent2-ink); }
-.dv-headD .dv-d-cardname { display:block; font-size:17px; font-weight:700; letter-spacing:-.01em; }
+.dv-headD .dv-d-cardname { display:block; font-size:16px; font-weight:700; letter-spacing:-.01em; }
 .dv-headD .dv-d-card--from .dv-d-cardname { color:var(--ink); }
 .dv-headD .dv-d-cardrows { display:flex; flex-direction:column; gap:2px; margin-top:8px; font-size:12px; }
 .dv-headD .dv-d-card--from .dv-d-cardrows { color:var(--mute); }
 .dv-headD .dv-d-card--to .dv-d-cardrows { color:rgba(255,255,255,.72); }
-.dv-dir-D .dv-objet { margin-top:30px; }
+.dv-dir-D .dv-objet { margin-top:18px; }
 .dv-dir-D .dv-recap-net { background:var(--dv-c-netpayer, #e87a2a); color:var(--dv-c-netpayer-ink, var(--accent2-ink)); }
 .dv-dir-D .dv-row--group .dv-c-num { color:var(--accent2); }
 .dv-objet { background:#f0f7fc; border-left:3px solid #e87a2a; border-radius:4px;
@@ -167,6 +167,11 @@
   background:var(--group-bg); border-bottom:1px solid var(--line); }
 .dv-row--group .dv-c-desg { font-weight:700; font-size:13.5px; color:var(--ink); }
 .dv-row--group .dv-c-num { font-weight:700; color:var(--accent2); }
+/* Numéro de section en pastille ronde (parité PDF). */
+.dv-num-circle { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+  border-radius:50%; background:var(--accent2); color:var(--dv-c-bandeau, #0f1a3a); font-weight:700; font-size:11px; line-height:1; }
+/* Aération avant le SIRET/TVA dans la carte émetteur. */
+.dv-d-cardrows .dv-cardrow-legal { margin-top:6px; }
 .dv-row--group .dv-c-tot { font-weight:700; color:var(--ink); }
 .dv-row--sub td { padding-top:10px; padding-bottom:6px; background:var(--sub-bg); }
 .dv-row--sub .dv-c-desg { font-weight:600; color:var(--ink); font-size:12.5px; }
@@ -242,7 +247,7 @@
 .dv-dechets2-title { font-size:10px; font-weight:600; letter-spacing:.02em; color:var(--mute); }
 .dv-dechets2-text { font-size:10.5px; line-height:1.5; color:var(--ink); }
 .dv-page-foot-rich { display:flex; flex-direction:column; align-items:center;
-  padding:18px 54px 22px; background:var(--dv-c-footer, #0f1a3a); color:rgba(255,255,255,.78);
+  padding:14px 54px 16px; background:var(--dv-c-footer, #0f1a3a); color:rgba(255,255,255,.78);
   font-size:10.5px; line-height:1.55; text-align:center; gap:3px;
   border-top:3px solid var(--dv-c-accent, #e87a2a); }
 .dv-page-foot-rich strong { color:var(--dv-c-footer-ink, #fff); font-weight:600; }
@@ -298,6 +303,7 @@
   .dv-table { font-size:11.5px; }
   .dv-table thead th { padding:0 6px 7px; letter-spacing:.06em; }
   .dv-c-num { width:26px; }
+  .dv-num-circle { width:19px; height:19px; font-size:10px; }
   .dv-c-qte { width:auto; min-width:48px; }
   .dv-c-pu { width:auto; min-width:68px; }
   .dv-c-tva { width:auto; min-width:38px; }
