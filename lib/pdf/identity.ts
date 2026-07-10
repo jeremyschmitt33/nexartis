@@ -41,7 +41,8 @@ const PAD_BOTTOM = 5
 const BADGE_W = 28
 const BADGE_H = 5
 const BADGE_R = 2.5
-const GAP_NAME_AFTER = 2.5
+const GAP_NAME_AFTER = 1.0
+const GAP_BEFORE_LEGAL = 1.8 // marge nette avant le bloc SIRET/TVA
 
 interface ContentLine {
   text: string
@@ -133,15 +134,14 @@ function drawEmetteurCard(
   if (ent.telephone) top.push({ text: formatPhone(ent.telephone), size: 8, weight: 'bold', color: ink })
   if (ent.email) top.push({ text: ent.email, size: 8, weight: 'bold', color: ink })
 
-  // Bloc BAS (SIRET + TVA) ancre en bas, 8pt normal (mentions legales, plus discret)
-  const bottom: ContentLine[] = []
-  if (ent.siret) bottom.push({ text: `SIRET ${ent.siret}`, size: 7.5, weight: 'normal', color: ink })
-  if (ent.tva_intracommunautaire) {
-    bottom.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 7.5, weight: 'normal', color: ink })
-  }
+  const legal: ContentLine[] = []
+  if (ent.siret) legal.push({ text: `SIRET ${ent.siret}`, size: 7.5, weight: 'normal', color: ink })
+  if (ent.tva_intracommunautaire) legal.push({ text: `TVA ${ent.tva_intracommunautaire}`, size: 7.5, weight: 'normal', color: ink })
 
-  renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
-  renderLinesBottom(doc, bottom, x + PAD_X, y + CARD_H - PAD_BOTTOM, CARD_W - PAD_X * 2)
+  // Flux UNIQUE top-ancré (parité dashboard) : interlignes réguliers + marge
+  // nette avant SIRET/TVA (qui restent groupés). Fini le double-ancrage/le vide en bas.
+  if (legal.length && top.length) top[top.length - 1].marginAfter = GAP_BEFORE_LEGAL
+  renderLinesTop(doc, [...top, ...legal], x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
 }
 
 // ===========================================================================
@@ -180,19 +180,17 @@ function drawAddresseCard(
     }
   }
 
-  // Bloc BAS (SIRET + TVA) 8pt normal
-  const bottom: ContentLine[] = []
+  const legal: ContentLine[] = []
   if (client.clientSiret) {
     // Libelle adaptatif : SIREN si 9 chiffres, SIRET sinon (parite stricte avec DocumentRender).
     const idLabel = client.clientSiret.replace(/\D/g, '').length === 9 ? 'SIREN' : 'SIRET'
-    bottom.push({ text: `${idLabel} ${client.clientSiret}`, size: 7.5, weight: 'normal', color: inkSecondary })
+    legal.push({ text: `${idLabel} ${client.clientSiret}`, size: 7.5, weight: 'normal', color: inkSecondary })
   }
-  if (client.clientTvaIntra) {
-    bottom.push({ text: `TVA ${client.clientTvaIntra}`, size: 7.5, weight: 'normal', color: inkSecondary })
-  }
+  if (client.clientTvaIntra) legal.push({ text: `TVA ${client.clientTvaIntra}`, size: 7.5, weight: 'normal', color: inkSecondary })
 
-  renderLinesTop(doc, top, x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
-  renderLinesBottom(doc, bottom, x + PAD_X, y + CARD_H - PAD_BOTTOM, CARD_W - PAD_X * 2)
+  // Flux UNIQUE top-ancré (parité dashboard).
+  if (legal.length && top.length) top[top.length - 1].marginAfter = GAP_BEFORE_LEGAL
+  renderLinesTop(doc, [...top, ...legal], x + PAD_X, y + PAD_TOP, CARD_W - PAD_X * 2)
 }
 
 // ===========================================================================
@@ -233,7 +231,7 @@ function renderLinesTop(
     const split = doc.splitTextToSize(l.text, maxW)
     for (const part of split) {
       doc.text(part, x, cursorY)
-      cursorY += l.size * 0.4 + 1.4
+      cursorY += l.size * 0.4 + 0.8
     }
     if (l.marginAfter) cursorY += l.marginAfter
   }
