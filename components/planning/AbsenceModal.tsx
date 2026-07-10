@@ -8,7 +8,7 @@
 // via onSave ; la persistance Supabase est geree par la page planning.
 // -------------------------------------------------------------------
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Loader2, CalendarOff } from 'lucide-react'
 import { ABSENCE_TYPES } from '@/lib/planning-absences'
 
@@ -45,6 +45,13 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
   const [motif, setMotif] = useState('')
   const [error, setError] = useState('')
 
+  // Accessibilité : fermeture au clavier via Échap.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const isLibre = personId === '__libre__'
   const multiJours = dateFin > dateDebut
 
@@ -69,14 +76,14 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
 
   return (
     <div className="fixed inset-0 bg-[#0f1a3a]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="absence-modal-title" className="w-full max-w-lg bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* En-tete */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#e6ecf2]">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fff1e6] text-[#ff7a1a]">
               <CalendarOff size={18} />
             </span>
-            <h3 className="font-hanken font-extrabold text-lg text-[#0f1a3a]">Ajouter une absence</h3>
+            <h3 id="absence-modal-title" className="font-hanken font-extrabold text-lg text-[#0f1a3a]">Ajouter une absence</h3>
           </div>
           <button onClick={onClose} aria-label="Fermer" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-[#0f1a3a]">
             <X size={18} />
@@ -87,18 +94,23 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
           {/* Qui */}
           <div>
             <label className={labelCls}>Personne</label>
-            <select value={personId} onChange={e => setPersonId(e.target.value)} className={`${inputCls} cursor-pointer`}>
+            <select autoFocus value={personId} onChange={e => { setPersonId(e.target.value); setError('') }} className={`${inputCls} cursor-pointer`}>
               {intervenants.map(iv => <option key={iv.id} value={iv.id}>{iv.label}</option>)}
               <option value="__libre__">Autre (saisir un nom)…</option>
             </select>
             {isLibre && (
-              <input
-                type="text"
-                value={nomLibre}
-                onChange={e => setNomLibre(e.target.value)}
-                placeholder="Ex : Renfort intérim Paul"
-                className={`${inputCls} mt-2`}
-              />
+              <>
+                <input
+                  type="text"
+                  value={nomLibre}
+                  onChange={e => { setNomLibre(e.target.value); setError('') }}
+                  placeholder="Ex : Renfort intérim Paul"
+                  className={`${inputCls} mt-2`}
+                />
+                <p className="mt-1.5 font-hanken text-[11px] text-[#7b8ba3] leading-snug">
+                  Ce nom apparaîtra dans la liste « Qui est absent », mais pas dans les lignes du planning (réservées aux membres de l’équipe).
+                </p>
+              </>
             )}
           </div>
 
@@ -106,11 +118,11 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Du</label>
-              <input type="date" value={dateDebut} onChange={e => { setDateDebut(e.target.value); if (dateFin < e.target.value) setDateFin(e.target.value) }} className={inputCls} />
+              <input type="date" value={dateDebut} onChange={e => { setDateDebut(e.target.value); if (dateFin < e.target.value) setDateFin(e.target.value); setError('') }} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Au</label>
-              <input type="date" value={dateFin} min={dateDebut} onChange={e => setDateFin(e.target.value)} className={inputCls} />
+              <input type="date" value={dateFin} min={dateDebut} onChange={e => { setDateFin(e.target.value); setError('') }} className={inputCls} />
             </div>
           </div>
 
@@ -147,7 +159,7 @@ export default function AbsenceModal({ intervenants, onClose, onSave, saving }: 
             <input type="text" value={motif} onChange={e => setMotif(e.target.value)} placeholder="Précision éventuelle…" className={inputCls} />
           </div>
 
-          {error && <p className="text-sm font-hanken text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm font-hanken text-red-600">{error}</p>}
         </div>
 
         {/* Actions */}

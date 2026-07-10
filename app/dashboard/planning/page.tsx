@@ -20,7 +20,7 @@ import { downloadPlanningCsv } from '@/lib/export/csv-planning'
 import { downloadPlanningIcs } from '@/lib/export/ics-planning'
 import type { PlanningExportRow, PlanningPeriodType } from '@/lib/export/planning-export'
 import AbsenceModal, { type AbsencePayload } from '@/components/planning/AbsenceModal'
-import { absencesForDay, absenceTypeMeta, demiJourneeLabel, indispoOverlapsRange, absenceConflictsWithCreneau, absenceRangeLabel, type Indispo } from '@/lib/planning-absences'
+import { absencesForDay, absenceTypeMeta, demiJourneeLabel, indispoOverlapsRange, absenceConflictsWithCreneau, absenceRangeLabel, ABSENCE_LEGEND, type Indispo } from '@/lib/planning-absences'
 import { feriesMap } from '@/lib/holidays-fr'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -2486,7 +2486,7 @@ function PlanningPageInner() {
             </div>
 
             {/* Ajouter une absence */}
-            <button onClick={() => setShowAbsenceModal(true)}
+            <button onClick={() => setShowAbsenceModal(true)} aria-label="Ajouter une absence" title="Ajouter une absence"
               className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-[1.5px] border-gray-200 bg-white text-[#0f1a3a] font-hanken text-xs sm:text-sm font-bold hover:border-[#ff7a1a] hover:bg-[#fafbfc] transition-all duration-200">
               <CalendarOff className="w-4 h-4" /><span className="hidden sm:inline">Absence</span>
             </button>
@@ -2569,12 +2569,12 @@ function PlanningPageInner() {
               {(showAllAbsences ? absencesInWindow : absencesInWindow.slice(0, 10)).map(a => {
                 const meta = absenceTypeMeta(a.type)
                 return (
-                  <div key={a.id} className="inline-flex items-center gap-1.5 rounded-lg border border-[#e6ecf2] bg-[#fafbfc] pl-1.5 pr-1 py-1">
-                    <span className="px-1.5 py-[1px] rounded text-[10px] font-bold" style={{ backgroundColor: meta.bg, color: meta.color }}>{meta.label}</span>
+                  <div key={a.id} className="inline-flex items-center gap-1.5 rounded-full border border-[#e6ecf2] bg-[#fafbfc] pl-1 pr-1 py-0.5">
+                    <span className="px-2 py-[2px] rounded-full text-[10px] font-bold" style={{ backgroundColor: meta.color, color: '#fff' }}>{meta.label}</span>
                     <span className="font-hanken text-xs font-semibold text-[#0f1a3a]">{absenceLabelFull(a)}</span>
                     <span className="font-hanken text-[11px] text-[#7b8ba3]">{absenceRangeLabel(a)}</span>
-                    <button onClick={() => deleteAbsence(a)} aria-label="Supprimer l’absence" className="ml-0.5 rounded p-0.5 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                      <Trash2 className="w-3 h-3" />
+                    <button onClick={() => deleteAbsence(a)} aria-label={`Supprimer l’absence de ${absenceLabelFull(a)}`} className="ml-0.5 flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )
@@ -2585,6 +2585,16 @@ function PlanningPageInner() {
                 {showAllAbsences ? 'Voir moins' : `+${absencesInWindow.length - 10} autre${absencesInWindow.length - 10 > 1 ? 's' : ''}`}
               </button>
             )}
+            {/* Légende des couleurs (clé de lecture des cases du planning) */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 pt-2.5 border-t border-[#e6ecf2]">
+              <span className="font-hanken text-[11px] font-bold uppercase tracking-wide text-[#7b8ba3]">Légende</span>
+              {ABSENCE_LEGEND.map(l => (
+                <span key={l.key} className="inline-flex items-center gap-1.5 font-hanken text-[11px] font-semibold text-[#7b8ba3]">
+                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: l.color }} />
+                  {l.label}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
@@ -3016,13 +3026,24 @@ function PlanningPageInner() {
                               // Absences de CE membre ce jour (bandeaux + teinte de case).
                               const cellAbs = absencesForDay(indispoList, day.dateStr).filter(a => a.intervenant_id === ivId)
                               const cellFerie = feriesLookup[day.dateStr]
-                              // Une absence "journée entière" teinte toute la case (lecture immédiate).
+                              // Teinte de la case selon les absences du jour :
+                              //  - journée entière (ou matin + après-midi) → hachures sur toute la case
+                              //  - demi-journée → teinte de la moitié concernée (haut = matin, bas = après-midi)
                               const fullDayAbs = cellAbs.find(a => !a.demi_journee)
-                              const cellAbsMeta = fullDayAbs ? absenceTypeMeta(fullDayAbs.type) : null
+                              const matinAbs = cellAbs.find(a => a.demi_journee === 'matin')
+                              const apremAbs = cellAbs.find(a => a.demi_journee === 'apres_midi')
+                              const primaryAbs = fullDayAbs || matinAbs || apremAbs
+                              const primaryMeta = primaryAbs ? absenceTypeMeta(primaryAbs.type) : null
+                              const cellTintStyle = !primaryMeta ? undefined
+                                : (fullDayAbs || (matinAbs && apremAbs))
+                                  ? { backgroundColor: primaryMeta.bg, backgroundImage: `repeating-linear-gradient(45deg, ${primaryMeta.color}14, ${primaryMeta.color}14 6px, transparent 6px, transparent 12px)` }
+                                  : matinAbs
+                                    ? { backgroundImage: `linear-gradient(to bottom, ${primaryMeta.bg} 50%, transparent 50%)` }
+                                    : { backgroundImage: `linear-gradient(to top, ${primaryMeta.bg} 50%, transparent 50%)` }
                               return (
                                 <div key={cellKey}
                                   className={`${cellMinHeightClass} ${cellPaddingClass} min-w-0 overflow-hidden border-r border-b border-[#e6ecf2] last:border-r-0 relative group transition-all ${day.isToday ? 'bg-[#ff7a1a]/[.03]' : day.isWeekend ? 'bg-[#fafbfd]' : isEmpty ? 'bg-gray-50' : ''} ${isDragOver ? 'bg-[#ff7a1a]/10 outline-2 outline-dashed outline-[#ff7a1a] outline-offset-[-2px]' : ''} ${isEmpty ? 'cursor-pointer hover:bg-[#fff8f2]' : ''}`}
-                                  style={cellAbsMeta ? { backgroundColor: cellAbsMeta.bg, backgroundImage: `repeating-linear-gradient(45deg, ${cellAbsMeta.color}14, ${cellAbsMeta.color}14 6px, transparent 6px, transparent 12px)` } : undefined}
+                                  style={cellTintStyle}
                                   onDragOver={e => {
                                     // Fix #4 (Vague 2) : preventDefault autorise aussi le drop chip → case.
                                     e.preventDefault()
@@ -3060,10 +3081,12 @@ function PlanningPageInner() {
                                       )}
                                       {cellAbs.slice(0, 2).map(a => {
                                         const meta = absenceTypeMeta(a.type)
+                                        const half = a.demi_journee === 'matin' ? 'AM' : a.demi_journee === 'apres_midi' ? 'PM' : ''
                                         return (
-                                          <div key={a.id} className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: meta.color, color: '#fff' }} title={`${meta.label} — ${absenceLabelFull(a)}`}>
+                                          <div key={a.id} className="px-1.5 py-[2px] rounded text-[9px] font-bold truncate leading-tight flex items-center gap-1" style={{ backgroundColor: meta.color, color: '#fff' }} title={`${meta.label}${demiJourneeLabel(a.demi_journee)} — ${absenceLabelFull(a)}`}>
                                             <CalendarOff className="w-2.5 h-2.5 flex-shrink-0" />
-                                            <span className="truncate">{meta.label}{demiJourneeLabel(a.demi_journee)}</span>
+                                            {half && <span className="bg-white/25 rounded px-1 leading-none flex-shrink-0">{half}</span>}
+                                            <span className="truncate">{meta.label}</span>
                                           </div>
                                         )
                                       })}

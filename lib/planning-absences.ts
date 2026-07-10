@@ -77,6 +77,16 @@ export function absenceTypeMeta(type?: string | null): { label: string; color: s
   return (type && ABSENCE_TYPE_META[type]) || ABSENCE_TYPE_META.autre
 }
 
+// Légende des couleurs affichée sous l'encart du planning (ordre logique ;
+// 'autre' partage le style de 'conge' donc n'est pas listé séparément).
+export const ABSENCE_LEGEND: { key: string; label: string; color: string }[] = [
+  { key: 'conge', label: 'Congé', color: ABSENCE_TYPE_META.conge.color },
+  { key: 'maladie', label: 'Maladie', color: ABSENCE_TYPE_META.maladie.color },
+  { key: 'vacances', label: 'Vacances', color: ABSENCE_TYPE_META.vacances.color },
+  { key: 'formation', label: 'Formation', color: ABSENCE_TYPE_META.formation.color },
+  { key: 'ferie', label: 'Férié', color: ABSENCE_TYPE_META.ferie.color },
+]
+
 // Libelle demi-journee lisible.
 export function demiJourneeLabel(dj?: string | null): string {
   if (dj === 'matin') return ' (matin)'
