@@ -50,6 +50,16 @@ const parseAmount = (value: string): number | null => {
 
 const parseTVARate = (value: string): number | null => {
   if (!value) return null;
+  // Marqueurs explicites de NON-TVA (franchise en base, exoneration) -> 0 %.
+  // IMPORTANT : renvoyer 0 et non null. Un null est ignore a l'import (cf.
+  // applyColumnMapping) et la colonne prend alors son DEFAUT en base (10 %),
+  // ce qui appliquerait une TVA a tort a un artisan en franchise.
+  const low = value.toString().toLowerCase();
+  if (low.indexOf('hors') !== -1 || low.indexOf('exoner') !== -1
+    || low.indexOf('exonér') !== -1 || low.indexOf('non applicable') !== -1
+    || low.indexOf('293') !== -1 || low.indexOf('franchise') !== -1) {
+    return 0;
+  }
   const num = parseFloat(value.toString().replace(/,/g, '.').replace('%', '').trim());
   return isNaN(num) ? null : num;
 };

@@ -734,6 +734,48 @@ export async function POST(req: NextRequest) {
     const prestationIdMap = new Map<string, string>()
     const factureIdMap = new Map<string, string>()
 
+    // Regime TVA de l'entreprise : sert de defaut aux lignes/prestations sans
+    // taux explicite. Sans ca, la colonne prend son defaut en base (10 %), ce
+    // qui appliquerait une TVA a tort a un artisan en FRANCHISE (ou franchise_tva
+    // = true => tva_defaut = 0). On respecte ainsi le regime reel de chacun.
+    let tvaDefautEntreprise: number | null = null
+    {
+      const { data: ent } = await supabase
+        .from('entreprises')
+        .select('tva_defaut')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (ent && ent.tva_defaut !== null && ent.tva_defaut !== undefined) {
+        tvaDefautEntreprise = Number(ent.tva_defaut)
+      }
+    }
+
+    // PRIORITE AUX DONNEES IMPORTEES pour la TVA des lignes : on deduit le taux
+    // de CHAQUE document importe a partir de son rapport HT/TTC (montants du
+    // fichier). Ainsi une ligne sans taux explicite herite du taux REEL de son
+    // document (0 si HT=TTC), et NON d'un reglage entreprise potentiellement mal
+    // configure. Le taux entreprise ne sert qu'en dernier recours (aucune info).
+    const docTvaByNumero = new Map<string, number>()
+    {
+      const deriveTva = (ht: unknown, ttc: unknown): number | null => {
+        const h = Number(ht)
+        const t = Number(ttc)
+        if (!isFinite(h) || !isFinite(t) || h <= 0) return null
+        if (Math.abs(t - h) < 0.01) return 0
+        return Math.round(((t - h) / h) * 10000) / 100
+      }
+      const collect = (arr: unknown): void => {
+        if (!Array.isArray(arr)) return
+        for (const d of arr as ImportedRow[]) {
+          if (!d || d.numero === undefined || d.numero === null) continue
+          const rate = deriveTva(d.montant_ht, d.montant_ttc)
+          if (rate !== null) docTvaByNumero.set(String(d.numero), rate)
+        }
+      }
+      collect(data.devis)
+      collect(data.factures)
+    }
+
     const insertOrder: DataCategory[] = [
       'clients',
       'fournisseurs',
@@ -756,6 +798,30 @@ export async function POST(req: NextRequest) {
         imported[category] = 0
         skipped[category] = 0
         continue
+      }
+
+      // TVA des lignes/catalogue sans taux explicite : PRIORITE AUX DONNEES.
+      // 1) une LIGNE herite du taux deduit de SON document (HT/TTC importes) →
+      //    tout colle aux documents d'origine, quel que soit le reglage fiche ;
+      // 2) a defaut (catalogue, ou document sans montants) → taux par defaut de
+      //    l'entreprise ;
+      // On ne SURCHARGE JAMAIS un taux fourni explicitement par le fichier.
+      if (category === 'devis_lignes' || category === 'facture_lignes' || category === 'prestations') {
+        for (const r of rows as ImportedRow[]) {
+          if (!r) continue
+          const sansTaux = r.taux_tva === undefined || r.taux_tva === null || (r.taux_tva as unknown) === ''
+          if (!sansTaux) continue
+          let taux: number | null = null
+          if (category === 'devis_lignes' && r.devis_numero !== undefined && r.devis_numero !== null) {
+            const v = docTvaByNumero.get(String(r.devis_numero))
+            if (v !== undefined) taux = v
+          } else if (category === 'facture_lignes' && r.facture_numero !== undefined && r.facture_numero !== null) {
+            const v = docTvaByNumero.get(String(r.facture_numero))
+            if (v !== undefined) taux = v
+          }
+          if (taux === null) taux = tvaDefautEntreprise
+          if (taux !== null) r.taux_tva = taux
+        }
       }
 
       let idMap: Map<string, string> | undefined
