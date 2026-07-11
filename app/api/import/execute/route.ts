@@ -109,6 +109,7 @@ async function findDevisIdByNumero(supabase: any, user_id: string, numero: strin
     .select('id')
     .eq('user_id', user_id)
     .eq('numero', numero)
+    .is('deleted_at', null)
     .limit(1)
 
   return devisList && devisList.length > 0 ? devisList[0].id : null
@@ -122,6 +123,7 @@ async function findFactureIdByNumero(supabase: any, user_id: string, numero: str
     .select('id')
     .eq('user_id', user_id)
     .eq('numero', numero)
+    .is('deleted_at', null)
     .limit(1)
 
   return facturesList && facturesList.length > 0 ? facturesList[0].id : null
@@ -239,12 +241,12 @@ const IMPORT_COLUMN_ALLOWLIST: Record<string, Set<string>> = {
   ]),
   devis_lignes: new Set([
     'devis_id', 'prestation_id',
-    'designation', 'montant_ht', 'ordre', 'prix_unitaire_ht',
+    'designation', 'ordre', 'prix_unitaire_ht',
     'quantite', 'taux_tva', 'unite',
   ]),
   facture_lignes: new Set([
     'facture_id',
-    'designation', 'montant_ht', 'ordre', 'prix_unitaire_ht',
+    'designation', 'ordre', 'prix_unitaire_ht',
     'quantite', 'taux_tva', 'unite',
   ]),
   chantiers: new Set([
@@ -379,6 +381,25 @@ function resolveFK(
     delete insertData.facture_numero
   }
 
+  // Lignes (devis/facture) : montant_ht est une colonne GENEREE en base
+  // (quantite * prix_unitaire_ht). L'ECRIRE fait ECHOUER l'INSERT (Postgres
+  // refuse une valeur non-DEFAULT sur une colonne generee) -> la ligne serait
+  // perdue silencieusement. On la retire donc systematiquement. Et si l'export
+  // ne fournit QUE le montant total (sans prix unitaire), on en deduit le prix
+  // unitaire pour que le total reste exact (rien de perdu).
+  if (table === 'devis_lignes' || table === 'facture_lignes') {
+    const qNum = Number(insertData.quantite)
+    const qte = qNum && qNum > 0 ? qNum : 1
+    const puRaw = insertData.prix_unitaire_ht
+    const hasPU = puRaw !== undefined && puRaw !== null && String(puRaw).trim() !== '' && Number(puRaw) !== 0
+    const mtRaw = insertData.montant_ht
+    const hasMT = mtRaw !== undefined && mtRaw !== null && String(mtRaw).trim() !== '' && !isNaN(Number(mtRaw))
+    if (!hasPU && hasMT) {
+      insertData.prix_unitaire_ht = Number(mtRaw) / qte
+    }
+    delete insertData.montant_ht
+  }
+
   // Clients : garantir un 'nom' non vide (colonne NOT NULL en base). Beaucoup
   // d'exports (compta type Clementine, etc.) ne remplissent que la raison
   // sociale pour les professionnels et laissent la colonne "Nom" vide. Sans ce
@@ -445,12 +466,32 @@ async function insertRecords(
     for (const row of rows) {
       const cn = row.client_name != null ? String(row.client_name) : ''
       if (cn && clientIdMap && !clientIdMap.has(cn)) {
-        const id = await findClientIdByName(supabase, user_id, cn.trim())
+        let id = await findClientIdByName(supabase, user_id, cn.trim())
+        if (!id) {
+          // AUTO-CREATION : le document reference un client absent du fichier
+          // clients. Plutot que de perdre le lien (document orphelin), on cree
+          // un client minimal (nom). L'artisan completera sa fiche plus tard.
+          const { data: created } = await supabase
+            .from('clients')
+            .insert({ user_id, nom: cn.trim() })
+            .select('id')
+            .single()
+          if (created && created.id) id = created.id
+        }
         if (id) clientIdMap.set(cn, id)
       }
       const chn = row.chantier_name != null ? String(row.chantier_name) : ''
       if (chn && chantierIdMap && !chantierIdMap.has(chn)) {
-        const id = await findChantierIdByName(supabase, user_id, chn.trim())
+        let id = await findChantierIdByName(supabase, user_id, chn.trim())
+        if (!id) {
+          // AUTO-CREATION du chantier manquant (titre uniquement).
+          const { data: created } = await supabase
+            .from('chantiers')
+            .insert({ user_id, titre: chn.trim() })
+            .select('id')
+            .single()
+          if (created && created.id) id = created.id
+        }
         if (id) chantierIdMap.set(chn, id)
       }
     }
