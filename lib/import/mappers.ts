@@ -1294,18 +1294,28 @@ export function detectSource(headers: string[]): SourceType {
 }
 
 export function detectCategory(headers: string[], source: SourceType, sheetName?: string): DataCategory | null {
-  const headerLower = headers.map(h => h.toLowerCase().trim());
   const config = SOURCE_CONFIGS[source];
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // EXCEL / CSV GENERIQUE  →  moteur de detection SEMANTIQUE multi-signaux.
+  // C'est la source "fourre-tout" utilisee pour tous les exports qu'on ne
+  // reconnait pas comme Obat/Tolteck/Henrri/Batappli. On ne peut donc PAS se
+  // fier au seul nom des colonnes : on raisonne sur la STRUCTURE (present /
+  // absent) via des familles de synonymes FR + EN, singulier + pluriel, avec
+  // et sans accents. Le nom de fichier ne fait que RENFORCER le score.
+  // ═══════════════════════════════════════════════════════════════════════
+  if (source === 'excel') {
+    return detectCategoryExcel(headers, sheetName, config);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SOURCES SPECIFIQUES (obat, obat_comptable, tolteck, henrri, batappli)
+  // Comportement HISTORIQUE inchange : nom de fichier exact, puis scoring par
+  // requiredColumns. On ne touche a rien ici (non-cassant garanti).
+  // ═══════════════════════════════════════════════════════════════════════
+  const headerLower = headers.map(h => h.toLowerCase().trim());
+
   // ─── PRIORITE AU NOM DE FICHIER ───
-  // Si le fichier porte un nom explicite (fournisseurs.csv, clients.csv,
-  // prestations.csv, suppliers.csv...), on route directement vers la categorie
-  // correspondante. Indispensable pour les FOURNISSEURS : leurs colonnes sont
-  // identiques a celles des clients, donc sur la seule detection par en-tetes,
-  // "clients" l'emporte toujours a egalite. Les listes possibleFileNames
-  // existent deja par categorie ; on les exploite enfin ici.
-  // Non-cassant : ne s'active QUE si le nom correspond exactement a une entree
-  // possibleFileNames ; sinon on retombe sur la detection par en-tetes.
   if (sheetName) {
     const stripExt = (s: string) => s.toLowerCase().trim().replace(/\.(csv|xlsx|xls)$/, '');
     const fstem = stripExt(sheetName);
@@ -1313,26 +1323,6 @@ export function detectCategory(headers: string[], source: SourceType, sheetName?
       if (categoryConfig.possibleFileNames.some(n => stripExt(n) === fstem)) {
         return category;
       }
-    }
-  }
-
-  // Desambiguisation "catalogue de produits/prestations" (source generique).
-  // Beaucoup de logiciels nomment la colonne du produit "nom"/"libellé" au lieu
-  // de "désignation", ce qui faisait passer un catalogue pour des CLIENTS (la
-  // colonne "nom" declenchait la categorie clients). Un catalogue se reconnait
-  // a : une colonne de PRIX + un libellé, SANS colonnes de contact client,
-  // SANS quantité et SANS numéro de devis/facture (sinon c'est une ligne de
-  // devis/facture).
-  if (source === 'excel') {
-    const has = (keys: string[]) =>
-      keys.some(k => headerLower.some(h => h === k || h.includes(k)));
-    const hasPrix = has(['prix', 'tarif', 'unit price', 'price']);
-    const hasLibelle = has(['désignation', 'designation', 'nom', 'libellé', 'libelle', 'intitulé', 'intitule', 'article', 'produit', 'prestation', 'service']);
-    const hasContactClient = has(['email', 'e-mail', 'mail', 'adresse', 'ville', 'téléphone', 'telephone', 'code postal', 'siret']);
-    const hasQuantite = has(['quantité', 'quantite', 'qty', 'qte']);
-    const hasNumPiece = has(['n° devis', 'numéro devis', 'numero devis', 'n° facture', 'numéro facture', 'devis', 'facture']);
-    if (hasPrix && hasLibelle && !hasContactClient && !hasQuantite && !hasNumPiece) {
-      return 'prestations';
     }
   }
 
@@ -1353,4 +1343,352 @@ export function detectCategory(headers: string[], source: SourceType, sheetName?
 
   matches.sort((a, b) => b.matchCount - a.matchCount);
   return matches[0].category;
+}
+
+// ─── Normalise un nom de fichier / d'onglet en "stem" (sans extension) ───
+function normalizeFileStem(sheetName?: string): string {
+  return (sheetName || '').toLowerCase().trim().replace(/\.(csv|xlsx|xls|tsv)$/, '');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DETECTION SEMANTIQUE POUR LA SOURCE 'excel'
+//
+// Principe : un fichier est range d'apres ce que ses COLONNES revelent, pas
+// d'apres un nom exact. On calcule des "flags" structurels (familles de
+// synonymes), puis :
+//   1) une REGLE DURE distingue une LIGNE (quantite + designation, SANS
+//      contact) d'un DOCUMENT — c'est LE correctif du bug (64 lignes de
+//      factures importees comme faux devis) ;
+//   2) le nom de fichier exact reste un raccourci non-cassant ;
+//   3) sinon un SCORING pondere tranche, le nom de fichier ajoutant un bonus.
+//
+// Contraintes techniques : tsconfig sans `target` → PAS de spread d'iterateur
+// (on reste sur des tableaux + boucles). Familles de synonymes accentuees ET
+// non accentuees (pas de .normalize a l'execution). Aucune regex a flags ES6.
+// ═══════════════════════════════════════════════════════════════════════════
+function detectCategoryExcel(headers: string[], sheetName: string | undefined, config: SourceConfig): DataCategory | null {
+  const H = headers.map(h => (h || '').toLowerCase().trim()).filter(h => h.length > 0);
+  if (H.length === 0) return null;
+
+  const fstem = normalizeFileStem(sheetName);
+
+  // Un token est cherche en "contient" (robuste aux prefixes/suffixes du type
+  // "date d'emission", "n° facture"...) ou en "egal" (pour les tokens tres
+  // courts/ambigus comme "nom", "u", "site" qu'on ne veut pas voir matcher
+  // "prenom" ou "worksite").
+  const containsAny = (tokens: string[]): boolean =>
+    tokens.some(t => H.some(h => h.indexOf(t) !== -1));
+  const exactAny = (tokens: string[]): boolean =>
+    tokens.some(t => H.some(h => h === t));
+
+  // ─────────────────────────── FLAGS STRUCTURELS ───────────────────────────
+  // Quantite PAR LIGNE : signal le plus discriminant (un document n'en a pas).
+  const hasQuantite = containsAny(['quantité', 'quantite', 'quantity', 'qty', 'qté', 'qte']);
+
+  // Designation d'un article/prestation.
+  const hasDesignationStrong = containsAny([
+    'désignation', 'designation', 'libellé', 'libelle', 'intitulé', 'intitule',
+    'article', 'produit', 'prestation', 'item',
+  ]);
+  const hasDesignationAny = hasDesignationStrong
+    || exactAny(['nom', 'name', 'description', 'label', 'service', 'détail', 'detail']);
+
+  // Infos de CONTACT (email/adresse/ville/CP/tel/SIRET) → identifie un TIERS.
+  const hasEmail = containsAny(['email', 'e-mail', 'courriel', 'mail']);
+  const hasAdresse = containsAny(['adresse', 'address', 'rue', 'street']);
+  const hasVille = containsAny(['ville', 'city', 'localité', 'localite', 'commune', 'town']);
+  const hasCP = containsAny(['code postal', 'code_postal', 'postal code', 'zip']) || exactAny(['cp']);
+  const hasTel = containsAny(['téléphone', 'telephone', 'phone', 'mobile', 'portable', 'gsm']) || exactAny(['tel', 'tél']);
+  const hasSiret = containsAny(['siret', 'siren']);
+  const hasContact = hasEmail || hasAdresse || hasVille || hasCP || hasTel || hasSiret;
+
+  // Reference au DOCUMENT PARENT (indispensable pour trancher une LIGNE).
+  const refFacture = containsAny(['numéro facture', 'numero facture', 'n° facture', 'n°facture', 'invoice number', 'facture', 'invoice']);
+  const refDevis = containsAny(['numéro devis', 'numero devis', 'n° devis', 'n°devis', 'quote number', 'devis', 'quote']);
+
+  // Numero de piece / reference generique.
+  // NB : 'number' en MOT EXACT uniquement (sinon "phone number" ferait un faux
+  // positif de numero de piece via la sous-chaine "number").
+  const hasNumero = containsAny(['numéro', 'numero'])
+    || exactAny(['number', 'n°', 'ref', 'réf', 'reference', 'référence']);
+
+  // Nom du client rattache (present dans un document ; PAS une info de contact).
+  const hasClient = exactAny(['client', 'customer', 'clients', 'customers'])
+    || containsAny(['nom client', 'nom du client', 'customer name', 'client name']);
+
+  const hasDate = containsAny(['date', 'échéance', 'echeance', 'due']);
+  const hasDateDebutFin = containsAny(['date début', 'date debut', 'date fin', 'start date', 'end date'])
+    || exactAny(['début', 'debut', 'fin']);
+
+  // Montants de DOCUMENT (totaux) vs total generique.
+  const hasMontantHT = containsAny(['montant ht', 'total ht', 'net amount']) || exactAny(['subtotal', 'net']);
+  const hasMontantTTC = containsAny(['montant ttc', 'total ttc']) || exactAny(['gross', 'gross amount']);
+  const hasMontantDoc = hasMontantHT || hasMontantTTC;
+  const hasMontantGeneric = hasMontantDoc || exactAny(['montant', 'amount', 'somme', 'total']);
+
+  const hasPrix = containsAny(['prix', 'tarif', 'unit price', 'price', 'cost']) || exactAny(['pu', 'pu ht']);
+
+  // Signaux propres a la FACTURE.
+  const hasEcheance = containsAny(['échéance', 'echeance', 'due date']);
+  const hasPaiementInfo = containsAny(['payé', 'paye', 'paid', 'réglé', 'regle', 'date paiement', 'payment date', 'date règlement', 'date reglement']);
+  // 'avoir' exige en MOT EXACT : sinon "pouvoir"/"savoir"/"avoirs" declencheraient
+  // un faux signal facture via la sous-chaine "avoir".
+  const hasAvoirSituation = exactAny(['avoir']) || containsAny(['situation']);
+  const factureSignal = refFacture || hasEcheance || hasPaiementInfo || hasAvoirSituation;
+
+  // Signaux propres au DEVIS.
+  const hasValidite = containsAny(['validité', 'validite', 'valid until', 'validity']);
+  const hasAcompte = containsAny(['acompte', 'deposit', 'advance']);
+  const hasAccepteRefuse = containsAny(['accepté', 'accepte', 'refusé', 'refuse', 'accepted', 'refused']);
+  const hasObjet = exactAny(['objet', 'sujet', 'subject']);
+  const devisSignal = refDevis || hasValidite || hasAcompte || hasAccepteRefuse || hasObjet;
+
+  const hasNom = exactAny(['nom', 'name', 'raison sociale'])
+    || containsAny(['raison sociale', 'last name', 'lastname', 'surname', 'nom complet', 'nom du tiers', 'société', 'societe', 'entreprise']);
+  const hasPrenom = containsAny(['prénom', 'prenom', 'first name', 'firstname', 'given name']);
+  const hasTitre = exactAny(['titre', 'title', 'dénomination', 'denomination']);
+
+  const hasChantierCol = containsAny(['chantier', 'worksite', 'projet', 'project']) || exactAny(['site', 'sites']);
+
+  const hasMetier = containsAny(['métier', 'metier', 'trade', 'profession']) || exactAny(['job']);
+  const hasContrat = containsAny(['contrat', 'contract', 'employment']);
+  const hasTauxHoraire = containsAny(['taux horaire', 'tarif horaire', 'hourly rate']);
+  const hasIntervenantCol = containsAny(['intervenant', 'ouvrier', 'worker']) || exactAny(['employee', 'employé', 'employe']);
+
+  const hasCreneau = containsAny(['créneau', 'creneau', 'time slot']) || exactAny(['slot']);
+  const hasHeure = containsAny(['heure', 'start time', 'end time']);
+
+  const hasMethode = containsAny(['méthode', 'methode', 'payment method', 'mode de paiement', 'mode de règlement', 'mode de reglement']) || exactAny(['method', 'mode']);
+
+  const hasFournisseurWord = containsAny(['fournisseur', 'supplier', 'vendor']);
+  const hasAchatWord = containsAny(['achat', 'purchase', 'commande']) || exactAny(['order', 'orders']);
+
+  const hasUnite = exactAny(['unité', 'unite', 'unit', 'u', 'um']) || containsAny(['unité de vente', 'unit of measure']);
+  const hasReference = containsAny(['référence', 'reference', 'code article', 'code produit']) || exactAny(['code', 'ref', 'réf']);
+  const hasCategorie = containsAny(['catégorie', 'categorie', 'category', 'famille', 'rubrique']) || exactAny(['type', 'groupe', 'group']);
+  const hasTvaRate = containsAny(['tva', 'taux tva', 'taux de tva', 'vat', 'tax rate', 'tax']);
+
+  // ─────────────────── 1) REGLE DURE : LIGNE vs DOCUMENT ────────────────────
+  // Une LIGNE de devis/facture = quantite PAR LIGNE + designation, et AUCUNE
+  // info de contact. Un document (devis/facture) n'a jamais de quantite par
+  // ligne ; un catalogue (prestations) n'a jamais de quantite. Donc :
+  //   quantite + designation + pas de contact  ⇒  c'est une LIGNE.
+  // On choisit ensuite le sous-type via le document parent, puis le nom de
+  // fichier, puis les signaux, avec devis_lignes en repli historique.
+  // 0) RACCOURCI CATALOGUE : un catalogue de prestations peut legitimement avoir
+  // une colonne "quantite" (quantite par defaut). Si le NOM DE FICHIER evoque un
+  // catalogue/tarif ET qu'aucune reference a un document parent n'est presente,
+  // c'est un catalogue de prestations, pas des lignes de devis. On tranche AVANT
+  // la regle dure LIGNE pour eviter un faux classement en devis_lignes.
+  const prestaFileHint = ['catalog', 'catalogue', 'prestation', 'tarif', 'price', 'service']
+    .some(s => fstem.indexOf(s) !== -1);
+  if (prestaFileHint && !refFacture && !refDevis) return 'prestations';
+
+  // Une LIGNE de devis/facture = quantite PAR LIGNE + designation, et AUCUNE
+  // info de contact NI mot-cle fournisseur. Le mot "fournisseur" n'est PAS un
+  // contact : sans cette garde, un bon de commande "achats.csv" [Fournisseur,
+  // Chantier, Date, Article, Quantite, Montant HT] serait pris pour des lignes de
+  // devis. On l'exclut donc de la regle dure pour le laisser retomber sur le nom
+  // de fichier / le scoring (ou 'achats' gagne).
+  if (hasQuantite && hasDesignationAny && !hasContact && !hasFournisseurWord) {
+    if (refFacture && !refDevis) return 'facture_lignes';
+    if (refDevis && !refFacture) return 'devis_lignes';
+    if (fstem.indexOf('facture') !== -1 || fstem.indexOf('invoice') !== -1) return 'facture_lignes';
+    if (fstem.indexOf('devis') !== -1 || fstem.indexOf('quote') !== -1) return 'devis_lignes';
+    if (factureSignal && !devisSignal) return 'facture_lignes';
+    if (devisSignal && !factureSignal) return 'devis_lignes';
+    return 'devis_lignes'; // repli unique LIGNE = devis_lignes (coherent avec le scoring)
+  }
+
+  // ─────────── 2) NOM DE FICHIER EXACT (raccourci non-cassant) ───────────────
+  // Garantit que clients.csv / prestations.csv / fournisseurs.csv / devis.csv /
+  // factures.csv / devis_lignes.csv continuent d'etre routes exactement comme
+  // avant. Place APRES la regle dure : un fichier de lignes mal nomme (ex.
+  // "factures.csv" contenant en fait des lignes) est deja intercepte ci-dessus.
+  const stripExt = (s: string) => s.toLowerCase().trim().replace(/\.(csv|xlsx|xls|tsv)$/, '');
+  if (fstem) {
+    for (const [category, categoryConfig] of Object.entries(config.categories) as [DataCategory, CategoryConfig][]) {
+      if (categoryConfig.possibleFileNames.some(n => stripExt(n) === fstem)) {
+        return category;
+      }
+    }
+  }
+
+  // ─────────────────────────── 3) SCORING PONDERE ───────────────────────────
+  const scores: Record<DataCategory, number> = {
+    clients: 0, devis: 0, factures: 0, devis_lignes: 0, facture_lignes: 0,
+    chantiers: 0, prestations: 0, fournisseurs: 0, intervenants: 0,
+    planning: 0, paiements: 0, achats: 0,
+  };
+
+  // clients : identite + contact, mais NI prix, NI quantite, NI document.
+  if (hasEmail) scores.clients += 2;
+  if (hasAdresse) scores.clients += 1;
+  if (hasVille) scores.clients += 1;
+  if (hasCP) scores.clients += 1;
+  if (hasTel) scores.clients += 1;
+  if (hasSiret) scores.clients += 2;
+  if (hasNom) scores.clients += 1;
+  if (hasPrenom) scores.clients += 1;
+  if (hasPrix) scores.clients -= 3;
+  if (hasQuantite) scores.clients -= 4;
+  if (refFacture || refDevis) scores.clients -= 3;
+  if (hasMontantDoc) scores.clients -= 2;
+  if (hasMetier) scores.clients -= 2;
+
+  // fournisseurs : meme profil de contact + mot-cle "fournisseur/supplier".
+  // Sans mot-cle, fournisseurs reste sous clients → clients par defaut.
+  if (hasEmail) scores.fournisseurs += 2;
+  if (hasAdresse) scores.fournisseurs += 1;
+  if (hasVille) scores.fournisseurs += 1;
+  if (hasCP) scores.fournisseurs += 1;
+  if (hasTel) scores.fournisseurs += 1;
+  if (hasSiret) scores.fournisseurs += 2;
+  if (hasNom) scores.fournisseurs += 1;
+  if (hasFournisseurWord) scores.fournisseurs += 5;
+  if (hasPrix) scores.fournisseurs -= 2;
+  if (hasQuantite) scores.fournisseurs -= 4;
+  if (refFacture || refDevis) scores.fournisseurs -= 3;
+
+  // prestations (catalogue) : designation + prix, SANS quantite/contact/doc/date.
+  if (hasDesignationStrong) scores.prestations += 3;
+  else if (hasDesignationAny) scores.prestations += 1;
+  if (hasPrix) scores.prestations += 3;
+  if (hasUnite) scores.prestations += 1;
+  if (hasTvaRate) scores.prestations += 1;
+  if (hasReference) scores.prestations += 1;
+  if (hasCategorie) scores.prestations += 1;
+  if (hasQuantite) scores.prestations -= 5;
+  if (hasContact) scores.prestations -= 3;
+  if (refFacture || refDevis) scores.prestations -= 3;
+  if (hasDate) scores.prestations -= 2;
+  if (hasMontantDoc) scores.prestations -= 2;
+  if (hasClient) scores.prestations -= 2;
+
+  // devis (document) : numero + client + date + montants, SANS quantite/ligne.
+  if (hasNumero) scores.devis += 2;
+  if (hasClient) scores.devis += 2;
+  if (hasDate) scores.devis += 1;
+  if (hasMontantDoc) scores.devis += 2;
+  else if (hasMontantGeneric) scores.devis += 1;
+  if (devisSignal) scores.devis += 3;
+  if (hasQuantite) scores.devis -= 5;
+  if (factureSignal && !devisSignal) scores.devis -= 2;
+  if (hasContact) scores.devis -= 1;
+
+  // factures (document) : idem devis mais signaux facture (echeance/paye/...).
+  if (hasNumero) scores.factures += 2;
+  if (hasClient) scores.factures += 2;
+  if (hasDate) scores.factures += 1;
+  if (hasMontantDoc) scores.factures += 2;
+  else if (hasMontantGeneric) scores.factures += 1;
+  if (factureSignal) scores.factures += 4;
+  if (hasQuantite) scores.factures -= 5;
+  if (devisSignal && !factureSignal) scores.factures -= 2;
+  if (hasContact) scores.factures -= 1;
+
+  // lignes (repli du scoring ; la regle dure les capte en priorite).
+  const lineBase = (hasDesignationAny ? 2 : 0) + (hasQuantite ? 4 : 0)
+    + (hasPrix ? 1 : 0) - (hasContact ? 4 : 0) - (hasMontantDoc ? 2 : 0);
+  scores.devis_lignes += lineBase + (refDevis ? 3 : 0) + (devisSignal ? 1 : 0);
+  scores.facture_lignes += lineBase + (refFacture ? 3 : 0) + (factureSignal ? 1 : 0);
+
+  // chantiers : titre + client + adresse chantier + dates, mot-cle chantier.
+  if (hasChantierCol) scores.chantiers += 3;
+  if (hasTitre) scores.chantiers += 2;
+  if (hasClient) scores.chantiers += 1;
+  if (hasAdresse) scores.chantiers += 1;
+  if (hasDateDebutFin) scores.chantiers += 1;
+  if (hasPrix) scores.chantiers -= 2;
+  if (hasQuantite) scores.chantiers -= 3;
+  if (refFacture || refDevis) scores.chantiers -= 2;
+  if (hasMontantDoc) scores.chantiers -= 2;
+
+  // intervenants : prenom/nom + metier + contrat + taux horaire.
+  if (hasMetier) scores.intervenants += 3;
+  if (hasContrat) scores.intervenants += 2;
+  if (hasTauxHoraire) scores.intervenants += 2;
+  if (hasPrenom) scores.intervenants += 1;
+  if (hasNom) scores.intervenants += 1;
+  if (hasMontantDoc) scores.intervenants -= 3;
+  if (refFacture || refDevis) scores.intervenants -= 3;
+  if (hasQuantite) scores.intervenants -= 3;
+
+  // planning : chantier + intervenant + dates/heures/creneau.
+  if (hasCreneau) scores.planning += 3;
+  if (hasHeure) scores.planning += 2;
+  if (hasIntervenantCol) scores.planning += 2;
+  if (hasChantierCol) scores.planning += 1;
+  if (hasTitre) scores.planning += 1;
+  if (hasDateDebutFin) scores.planning += 1;
+  if (hasPrix) scores.planning -= 2;
+  if (hasMontantDoc) scores.planning -= 2;
+  if (hasQuantite) scores.planning -= 2;
+
+  // paiements : reference facture + montant + date paiement + methode.
+  if (hasMethode) scores.paiements += 3;
+  if (hasMontantGeneric) scores.paiements += 2;
+  if (hasPaiementInfo) scores.paiements += 2;
+  if (hasDate) scores.paiements += 1;
+  if (refFacture || hasNumero) scores.paiements += 1;
+  if (hasQuantite) scores.paiements -= 3;
+  if (hasDesignationStrong) scores.paiements -= 2;
+  if (hasContact) scores.paiements -= 2;
+
+  // achats : fournisseur + date + montant (+ chantier) ; refere un fournisseur.
+  if (hasFournisseurWord) scores.achats += 3;
+  if (hasAchatWord) scores.achats += 2;
+  if (hasMontantDoc) scores.achats += 2;
+  if (hasDate) scores.achats += 1;
+  if (hasChantierCol) scores.achats += 1;
+  if (hasDesignationAny) scores.achats += 1;
+  if (hasFournisseurWord && hasMontantDoc && !hasContact) scores.achats += 2;
+  if (hasQuantite) scores.achats -= 2;
+  if (hasClient && !hasFournisseurWord) scores.achats -= 2;
+  if (refDevis) scores.achats -= 2;
+
+  // ─────────── Bonus NOM DE FICHIER (conforte, ne decide pas seul) ───────────
+  if (fstem) {
+    const nameHas = (subs: string[]): boolean => subs.some(s => fstem.indexOf(s) !== -1);
+    const isLineName = nameHas(['ligne', 'detail', 'détail', 'lines', 'line', 'article', 'item']);
+    if (isLineName && nameHas(['facture', 'invoice'])) scores.facture_lignes += 6;
+    else if (isLineName && nameHas(['devis', 'quote'])) scores.devis_lignes += 6;
+    if (nameHas(['fournisseur', 'supplier', 'vendor'])) scores.fournisseurs += 6;
+    if (nameHas(['prestation', 'service', 'catalog', 'catalogue', 'price', 'tarif', 'articles'])) scores.prestations += 5;
+    if (nameHas(['client', 'customer'])) scores.clients += 5;
+    if (nameHas(['contact']) && !nameHas(['fournisseur'])) scores.clients += 2;
+    if (!isLineName && nameHas(['devis', 'quote', 'estimate'])) scores.devis += 5;
+    if (!isLineName && nameHas(['facture', 'invoice'])) scores.factures += 5;
+    if (nameHas(['achat', 'purchase', 'commande', 'order'])) scores.achats += 5;
+    if (nameHas(['chantier', 'projet', 'project', 'worksite', 'site'])) scores.chantiers += 5;
+    if (nameHas(['intervenant', 'worker', 'employee', 'salarie', 'salarié', 'ouvrier', 'team', 'equipe', 'équipe'])) scores.intervenants += 5;
+    if (nameHas(['planning', 'schedule', 'calendar', 'calendrier', 'agenda'])) scores.planning += 5;
+    if (nameHas(['paiement', 'payment', 'reglement', 'règlement', 'transaction'])) scores.paiements += 5;
+  }
+
+  // ─── Argmax avec ordre de priorite en cas d'egalite stricte ───
+  // On exige au moins 1 point de "preuve" (sinon on rend null, comme l'ancien
+  // code rendait null sans requiredColumns). L'ordre place les categories
+  // structurellement specifiques AVANT les generiques (clients = repli ultime).
+  // Ordre de priorite en cas d'EGALITE stricte de score :
+  //  - 'devis_lignes' AVANT 'facture_lignes' : repli unique des lignes ambigues
+  //    (coherent avec la regle dure qui replie aussi sur devis_lignes).
+  //  - 'clients' AVANT 'fournisseurs' : a profil de contact identique et SANS
+  //    mot-cle fournisseur, un tiers pro est un CLIENT. 'fournisseurs' ne gagne
+  //    que par un vrai signal (+5 mot-cle / +6 nom de fichier), jamais par egalite.
+  const priority: DataCategory[] = [
+    'devis_lignes', 'facture_lignes', 'paiements', 'achats', 'planning',
+    'intervenants', 'chantiers', 'prestations', 'clients', 'devis',
+    'factures', 'fournisseurs',
+  ];
+  let best: DataCategory | null = null;
+  let bestScore = 0;
+  for (let i = 0; i < priority.length; i++) {
+    const cat = priority[i];
+    if (scores[cat] > bestScore) {
+      bestScore = scores[cat];
+      best = cat;
+    }
+  }
+  return best;
 }
