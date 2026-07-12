@@ -121,6 +121,42 @@ interface FactureRecord {
 const DEFAULT_CONDITIONS_PAIEMENT =
   'Méthodes de paiement acceptées : Virement bancaire, Chèque.'
 
+// ── LOT1 banque (12/07/2026) — encaissements via RPC transactionnelle ────────
+// La table `paiements` est la source de vérité des encaissements ;
+// factures.montant_paye n'est plus qu'un CACHE maintenu par la RPC
+// rpc_enregistrer_paiement (cf. sql/2026-07-12-banque-06-paiements-rpc-backfill.sql).
+// La RPC renvoie un JSONB { paiement_id, facture_id, montant_paye, statut,
+// reste_du } et lève des exceptions préfixées ('PREFIXE: détail') que l'on
+// mappe ici vers des messages français clairs pour l'artisan.
+interface PaiementRpcResult {
+  paiement_id: string
+  facture_id: string
+  montant_paye: number
+  statut: string
+  reste_du: number
+}
+
+const PAIEMENT_RPC_MESSAGES: Record<string, string> = {
+  MONTANT_INVALIDE: 'Le montant doit être supérieur à zéro.',
+  FACTURE_INTROUVABLE: 'Facture introuvable ou inaccessible.',
+  FACTURE_SUPPRIMEE: 'Cette facture est dans la corbeille : restaurez-la avant d\'enregistrer un paiement.',
+  FACTURE_AVOIR: 'Un avoir ne peut pas recevoir de paiement.',
+  MONTANT_TROP_ELEVE: 'Ce montant dépasse ce qu\'il reste à encaisser sur cette facture.',
+  MOUVEMENT_INTROUVABLE: 'Le mouvement bancaire lié est introuvable.',
+  MOUVEMENT_PAS_UN_CREDIT: 'Le mouvement bancaire lié n\'est pas un encaissement (crédit).',
+  MOUVEMENT_DEPASSE: 'Le mouvement bancaire lié est déjà entièrement affecté à d\'autres paiements.',
+  PAIEMENT_INTROUVABLE: 'Paiement introuvable ou inaccessible.',
+  PAIEMENT_DEJA_ANNULE: 'Ce paiement a déjà été annulé.',
+}
+
+function mapPaiementRpcError(message: string | null | undefined): string {
+  const prefixe = (message ?? '').split(':')[0]?.trim() ?? ''
+  return (
+    PAIEMENT_RPC_MESSAGES[prefixe] ??
+    'Impossible d\'enregistrer le paiement. Réessayez, puis rechargez la page si le problème persiste.'
+  )
+}
+
 interface ClientRecord {
   id: string
   nom: string
@@ -181,7 +217,12 @@ export default function FactureDetailPage() {
   const router = useRouter()
   const id = params.id as string
 
-  const { data: facture, loading: loadingFacture } = useSupabaseRecord<FactureRecord>('factures', id)
+  const { data: factureRow, loading: loadingFacture } = useSupabaseRecord<FactureRecord>('factures', id)
+  // LOT1 banque : patch local appliqué par-dessus la ligne chargée, alimenté
+  // par la réponse JSONB des RPC paiement (montant_paye / statut recalculés en
+  // base) — plus aucun recalcul du cache à la main côté client.
+  const [facturePatch, setFacturePatch] = useState<Partial<FactureRecord>>({})
+  const facture: FactureRecord | null = factureRow ? { ...factureRow, ...facturePatch } : null
   const { data: lignesRaw, loading: loadingLignes } = useFactureLignes(id)
   const { data: client, loading: loadingClient } = useSupabaseRecord<ClientRecord>('clients', facture?.client_id ?? null)
   const { data: devisSource } = useSupabaseRecord<{ notes_client?: string }>('devis', facture?.devis_id ?? null)
@@ -396,13 +437,33 @@ export default function FactureDetailPage() {
     try {
       // V2 imputation : "Marquer payee" enregistre le CASH reellement recu, sans
       // jamais compter la part deja reglee par un avoir impute (sinon on gonflerait
-      // l'encaisse). montant_paye = TTC - avoir impute (le complement cash).
-      const cashAVerser = Math.max(0, (facture.montant_ttc || 0) - (facture.avoir_impute_montant ?? 0))
-      await updateRow('factures', facture.id, {
-        statut: 'payee',
-        montant_paye: cashAVerser,
-        date_paiement: new Date().toISOString(),
-      })
+      // l'encaisse). Plafond cash = TTC - avoir impute.
+      const cashMax = Math.max(0, (facture.montant_ttc || 0) - (facture.avoir_impute_montant ?? 0))
+      // LOT1 banque : montant a encaisser = plafond cash - deja paye (cache
+      // aligne sur la table paiements). Arrondi 2 decimales comme la RPC.
+      const resteAEncaisser = Math.round(Math.max(0, cashMax - (facture.montant_paye ?? 0)) * 100) / 100
+      if (resteAEncaisser > 0) {
+        // Source de verite = table paiements : la RPC insere le paiement puis
+        // recalcule montant_paye + date_paiement + statut dans la MEME
+        // transaction (plus d'ecriture directe du cache montant_paye).
+        const supabase = createClient()
+        const { data, error } = await supabase.rpc('rpc_enregistrer_paiement', {
+          p_facture_id: facture.id,
+          p_montant: resteAEncaisser,
+          p_date_paiement: new Date().toISOString().split('T')[0],
+        })
+        if (error) throw new Error(mapPaiementRpcError(error.message))
+        // Rafraichissement local depuis la reponse JSONB (pas de recalcul main).
+        const res = data as PaiementRpcResult
+        setFacturePatch((prev) => ({ ...prev, montant_paye: res.montant_paye, statut: res.statut }))
+      } else {
+        // Cas limite : plus rien a encaisser (facture entierement couverte par
+        // un avoir impute, ou deja soldee en cash). La RPC refuserait un
+        // montant nul (MONTANT_INVALIDE) : on ne touche que le statut, sans
+        // creer de paiement ni reecrire le cache montant_paye.
+        await updateRow('factures', facture.id, { statut: 'payee' })
+        setFacturePatch((prev) => ({ ...prev, statut: 'payee' }))
+      }
       setToastMsg('Facture marquée comme payée !')
       setTimeout(() => setToastMsg(null), 3000)
       router.refresh()
@@ -1250,11 +1311,11 @@ export default function FactureDetailPage() {
         <PaymentModal
           resteAPayer={resteAPayer}
           factureId={facture.id}
-          currentPaye={totalPaye}
-          totalTTC={totalTTC}
-          avoirImpute={avoirImpute}
           onClose={() => setPaymentModalOpen(false)}
-          onSuccess={() => {
+          onSuccess={(res) => {
+            // LOT1 banque : montant_paye + statut rafraichis depuis la reponse
+            // JSONB de la RPC (calcul fait en base, pas a la main).
+            setFacturePatch((prev) => ({ ...prev, montant_paye: res.montant_paye, statut: res.statut }))
             setToastMsg('Paiement enregistré !')
             setTimeout(() => setToastMsg(null), 3000)
             router.refresh()
@@ -1281,9 +1342,9 @@ export default function FactureDetailPage() {
 }
 
 function PaymentModal({
-  resteAPayer, factureId, currentPaye, totalTTC, avoirImpute = 0, onClose, onSuccess,
+  resteAPayer, factureId, onClose, onSuccess,
 }: {
-  resteAPayer: number; factureId: string; currentPaye: number; totalTTC: number; avoirImpute?: number; onClose: () => void; onSuccess: () => void
+  resteAPayer: number; factureId: string; onClose: () => void; onSuccess: (result: PaiementRpcResult) => void
 }) {
   const [montant, setMontant] = useState(resteAPayer.toFixed(2))
   const [datePaiement, setDatePaiement] = useState(new Date().toISOString().split('T')[0])
@@ -1292,23 +1353,29 @@ function PaymentModal({
   const [error, setError] = useState<string | null>(null)
 
   const handleConfirm = async () => {
-    const amount = parseFloat(montant)
+    // LOT1 banque : arrondi 2 decimales AVANT l'appel RPC (l'input accepte
+    // "10.555" malgre step=0.01) — meme arrondi que la RPC et que le bouton
+    // « Marquer payee », pour que montant envoye = montant stocke au centime.
+    const amount = Math.round(parseFloat(montant) * 100) / 100
     if (isNaN(amount) || amount <= 0) { setError('Montant invalide'); return }
     setSaving(true); setError(null)
     try {
-      // V2 imputation : le CASH ne doit jamais "manger" la part deja reglee par
-      // un avoir impute. Plafond cash = TTC - avoir impute. La facture est soldee
-      // quand cash + avoir impute >= TTC.
-      const cashMax = Math.max(0, totalTTC - avoirImpute)
-      const newPaye = Math.min(currentPaye + amount, cashMax)
-      const newStatut = (newPaye + avoirImpute) >= totalTTC - 0.01 ? 'payee' : 'partiellement_payee'
-      await updateRow('factures', factureId, {
-        montant_paye: newPaye,
-        date_paiement: datePaiement,
-        mode_paiement: mode,
-        statut: newStatut,
+      // LOT1 banque : la RPC insere le paiement (source de verite = table
+      // paiements) et recalcule montant_paye + date_paiement + mode_paiement +
+      // statut ('payee' si cash + avoir impute >= TTC - 0.01, sinon
+      // 'partiellement_payee') dans la MEME transaction. Le plafond cash
+      // (TTC - avoir impute - deja paye) est verifie en base : plus aucun
+      // recalcul a la main ici. La methode 'Carte bancaire' etc. est
+      // normalisee par la RPC vers le CHECK strict de paiements.methode.
+      const supabase = createClient()
+      const { data, error: rpcError } = await supabase.rpc('rpc_enregistrer_paiement', {
+        p_facture_id: factureId,
+        p_montant: amount,
+        p_date_paiement: datePaiement,
+        p_methode: mode,
       })
-      onSuccess()
+      if (rpcError) throw new Error(mapPaiementRpcError(rpcError.message))
+      onSuccess(data as PaiementRpcResult)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur')
       setSaving(false)

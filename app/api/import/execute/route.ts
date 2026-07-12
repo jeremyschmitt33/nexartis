@@ -675,6 +675,107 @@ async function insertRecords(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// LOT1 banque (12/07/2026) — paiements synthetiques a l'import
+// ═══════════════════════════════════════════════════════════════════
+// La table `paiements` est desormais LA source de verite des encaissements
+// (cf. sql/2026-07-12-banque-06-paiements-rpc-backfill.sql, patch (a)).
+// L'import ecrit factures.montant_paye DIRECTEMENT — c'est VOULU (numeros et
+// dates historiques figes, pas de RPC ici) — mais sans ligne `paiements`
+// correspondante, le premier appel a rpc_enregistrer_paiement sur une facture
+// importee repartirait d'un total paye de 0 et ecraserait l'historique.
+// On materialise donc, apres le lot factures, UN paiement synthetique par
+// facture a montant_paye > 0 (hors avoirs), exactement comme le backfill de
+// la migration 06. Idempotent : rien si la facture a deja un paiement actif.
+
+// Normalisation methode : paiements.methode a un CHECK strict en minuscules
+// ('virement','cheque','cb','especes','autre') — MEME mapping que la
+// migration 06 (vide/absent -> 'virement', inconnu -> 'autre').
+function normaliserMethodePaiement(raw: unknown): string {
+  const v = String(raw ?? '').trim().toLowerCase()
+  if (v === '') return 'virement'
+  switch (v) {
+    case 'virement': return 'virement'
+    case 'cheque':
+    case 'chèque': return 'cheque'
+    case 'cb':
+    case 'carte':
+    case 'carte bancaire': return 'cb'
+    case 'especes':
+    case 'espèces': return 'especes'
+    default: return 'autre'
+  }
+}
+
+async function creerPaiementsSynthetiques(
+  supabase: any,
+  factureIds: string[],
+): Promise<string[]> {
+  const errors: string[] = []
+  if (factureIds.length === 0) return errors
+
+  for (let i = 0; i < factureIds.length; i += BATCH_SIZE) {
+    const chunk = factureIds.slice(i, i + BATCH_SIZE)
+
+    const { data: factures, error: selErr } = await supabase
+      .from('factures')
+      .select('id, user_id, montant_paye, date_paiement, date_emission, mode_paiement, type, deleted_at')
+      .in('id', chunk)
+    if (selErr) {
+      errors.push(`Paiements des factures importees : lecture impossible (${selErr.message})`)
+      continue
+    }
+
+    const candidates = ((factures ?? []) as ImportedRow[]).filter(f =>
+      Number(f.montant_paye) > 0 &&
+      String(f.type ?? 'standard') !== 'avoir' &&
+      !f.deleted_at
+    )
+    if (candidates.length === 0) continue
+
+    // Idempotence : ne rien creer si la facture a deja un paiement actif
+    // (re-import, ou facture existante deja couverte par le backfill).
+    const { data: existants, error: exErr } = await supabase
+      .from('paiements')
+      .select('facture_id')
+      .in('facture_id', candidates.map(f => String(f.id)))
+      .is('deleted_at', null)
+    if (exErr) {
+      errors.push(`Paiements des factures importees : controle d'idempotence impossible (${exErr.message})`)
+      continue
+    }
+    const dejaCouvertes = new Set(((existants ?? []) as ImportedRow[]).map(p => String(p.facture_id)))
+
+    const aujourdHui = new Date().toISOString().split('T')[0]
+    const rows = candidates
+      .filter(f => !dejaCouvertes.has(String(f.id)))
+      .map(f => ({
+        // user_id NOT NULL sur paiements : repris de la facture.
+        user_id: f.user_id,
+        facture_id: f.id,
+        montant: Math.round(Number(f.montant_paye) * 100) / 100,
+        date_paiement: f.date_paiement
+          ? String(f.date_paiement).split('T')[0]
+          : (f.date_emission ? String(f.date_emission).split('T')[0] : aujourdHui),
+        methode: normaliserMethodePaiement(f.mode_paiement),
+        notes: 'Paiement repris à l\'import',
+      }))
+    if (rows.length === 0) continue
+
+    const { error: insErr } = await supabase.from('paiements').insert(rows)
+    if (insErr) {
+      // Meme filet que les lots d'import : un INSERT groupe est atomique, on
+      // reinsere ligne par ligne pour ne perdre QUE les lignes fautives.
+      for (const r of rows) {
+        const { error: e1 } = await supabase.from('paiements').insert(r)
+        if (e1) errors.push(`Paiement non repris pour une facture importee : ${e1.message}`)
+      }
+    }
+  }
+
+  return errors
+}
+
 export async function POST(req: NextRequest) {
   try {
     const cookieStore = cookies()
@@ -866,6 +967,25 @@ export async function POST(req: NextRequest) {
           idMap.set(key, id)
         }
       }
+
+    }
+
+    // LOT1 banque : APRES TOUTES les categories (donc apres 'paiements'),
+    // materialiser les paiements synthetiques des factures importees avec
+    // montant_paye > 0 (source de verite paiements alignee sur le cache,
+    // comme le backfill migration 06). L'ordre est CRITIQUE : si le fichier
+    // importe contient lui-meme des paiements pour ces factures, ils sont
+    // deja inseres ici, et le controle d'idempotence de
+    // creerPaiementsSynthetiques (« un paiement actif existe deja ») les voit
+    // et NE cree PAS de synthetique par-dessus — sinon la table paiements
+    // compterait le double du cache montant_paye (meme semantique que le
+    // NOT EXISTS du backfill : on fait confiance aux paiements existants).
+    if (factureIdMap.size > 0) {
+      const paiementErrs = await creerPaiementsSynthetiques(
+        supabase,
+        Array.from(factureIdMap.values()),
+      )
+      errors.push(...paiementErrs)
     }
 
     return NextResponse.json({
