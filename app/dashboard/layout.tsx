@@ -985,6 +985,33 @@ export default function DashboardLayout({
     }
   }, [])
 
+  // Lot 2b banque — badge « N à pointer » sur l'entrée Dépenses & Banque.
+  // Volontairement léger : un simple count (head:true) au chargement et à
+  // chaque navigation (pas de realtime). Si la table n'existe pas encore ou
+  // que la RLS refuse (rôle non dirigeant), le badge reste simplement à 0.
+  const [banqueAPointer, setBanqueAPointer] = useState(0)
+  useEffect(() => {
+    if (roleLoading) return
+    if (role !== null && role !== 'dirigeant') return
+    let annule = false
+    async function compter() {
+      try {
+        const supabase = createClient()
+        const { count, error } = await supabase
+          .from('banque_mouvements')
+          .select('id', { count: 'exact', head: true })
+          .eq('statut_pointage', 'a_pointer')
+          .eq('est_prive', false)
+          .is('deleted_at', null)
+        if (!annule && !error && typeof count === 'number') setBanqueAPointer(count)
+      } catch {
+        /* table absente ou accès refusé : pas de badge */
+      }
+    }
+    void compter()
+    return () => { annule = true }
+  }, [pathname, role, roleLoading])
+
   // QW2 -- Badges sidebar
   const sidebarBadges: Record<string, number> = useMemo(() => {
     const now = Date.now()
@@ -1011,8 +1038,10 @@ export default function DashboardLayout({
     return {
       '/dashboard/devis': devisEnAttenteVieux,
       '/dashboard/factures': facturesEnRetard,
+      // Lot 2b banque — « N à pointer » (opérations bancaires à trier)
+      '/dashboard/banque': banqueAPointer,
     }
-  }, [devisData, facturesData])
+  }, [devisData, facturesData, banqueAPointer])
 
   // QW4 -- showBack
   const showBack = useMemo(() => {

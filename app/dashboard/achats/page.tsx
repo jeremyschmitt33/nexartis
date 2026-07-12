@@ -6,7 +6,6 @@ import {
   Search,
   Plus,
   X,
-  Upload,
   Paperclip,
   ShoppingCart,
   Euro,
@@ -25,10 +24,15 @@ import {
   useFacturesRecues,
   insertRow,
   updateRow,
-  deleteRow,
+  softDeleteRow,
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+// Lot 2b banque — vrai upload de justificatif (bucket privé « justificatifs »,
+// conversion HEIC→JPEG + compression côté navigateur, URL signée à l'affichage).
+import JustificatifUpload from '@/components/dashboard/JustificatifUpload'
+import { uploaderJustificatif, urlSigneeJustificatif, JustificatifError } from '@/lib/banque/justificatifs'
+import { createClient } from '@/lib/supabase/client'
 import FacturesRecuesTab from '@/components/dashboard/FacturesRecuesTab'
 import ExportComptableModal from '@/components/dashboard/ExportComptableModal'
 import { downloadAchatsPdf } from '@/lib/export/pdf-achats'
@@ -90,6 +94,10 @@ function AchatsPageInner() {
   const [modalTva, setModalTva] = useState('20')
   const [modalDescription, setModalDescription] = useState('')
   const [modalChantier, setModalChantier] = useState('')
+  // Justificatif : path déjà en base (édition) / fichier en attente (création,
+  // uploadé APRÈS l'insert pour respecter la convention {entite}-{entite_id}).
+  const [modalJustifPath, setModalJustifPath] = useState<string | null>(null)
+  const [modalJustifFile, setModalJustifFile] = useState<File | null>(null)
 
   const resetModal = () => {
     setModalFournisseur('')
@@ -98,6 +106,8 @@ function AchatsPageInner() {
     setModalTva('20')
     setModalDescription('')
     setModalChantier('')
+    setModalJustifPath(null)
+    setModalJustifFile(null)
     setEditingId(null)
   }
 
@@ -165,7 +175,9 @@ function AchatsPageInner() {
     const map: Record<string, string> = {}
     for (const c of chantiers) {
       const rec = c as Record<string, unknown>
-      map[rec.id as string] = (rec.nom ?? rec.name ?? '') as string
+      // Lot 2b : la table chantiers nomme ses chantiers via `titre`
+      // (l'ancien `rec.nom` n'existe pas → la colonne affichait toujours « — »).
+      map[rec.id as string] = (rec.titre ?? rec.nom ?? rec.name ?? '') as string
     }
     return map
   }, [chantiers])
@@ -243,18 +255,44 @@ function AchatsPageInner() {
     if (!modalMontant || !modalDate) return
     setSaving(true)
     try {
+      const ht = parseFloat(modalMontant)
+      const tvaTaux = parseFloat(modalTva)
       const values: Record<string, unknown> = {
         fournisseur_id: modalFournisseur || null,
         date_achat: modalDate,
-        montant_ht: parseFloat(modalMontant),
-        taux_tva: parseFloat(modalTva),
+        montant_ht: ht,
+        taux_tva: tvaTaux,
+        // Lot 2b : montant_ttc est désormais rempli par le pointage bancaire
+        // (achat créé depuis un mouvement). Sans cette ligne, modifier le HT ici
+        // laisserait un montant_ttc obsolète en base — et « Par chantier » lit
+        // montant_ttc en priorité. On garde donc le cache TTC cohérent.
+        montant_ttc: Math.round(ht * (1 + tvaTaux / 100) * 100) / 100,
         description: modalDescription,
         chantier_id: modalChantier || null,
       }
       if (editingId) {
         await updateRow('achats', editingId, values)
       } else {
-        await insertRow('achats', values)
+        const inserted = (await insertRow('achats', values)) as Record<string, unknown>
+        // Justificatif choisi AVANT la création : uploadé maintenant, avec le
+        // vrai id (convention de chemins achat-{id} du bucket privé).
+        if (modalJustifFile && inserted?.id) {
+          try {
+            const supabase = createClient()
+            const path = await uploaderJustificatif(supabase, {
+              file: modalJustifFile,
+              entite: 'achat',
+              entiteId: inserted.id as string,
+            })
+            await updateRow('achats', inserted.id as string, { justificatif_url: path })
+          } catch (e) {
+            toast.error(
+              e instanceof JustificatifError
+                ? `Achat enregistré, mais le justificatif n'a pas pu être joint : ${e.message}`
+                : "Achat enregistré, mais le justificatif n'a pas pu être joint. Rouvrez l'achat pour réessayer.",
+            )
+          }
+        }
       }
       refetchAchats()
       setShowModal(false)
@@ -274,6 +312,8 @@ function AchatsPageInner() {
     setModalTva(String(achat.taux_tva ?? '20'))
     setModalDescription((achat.description ?? '') as string)
     setModalChantier((achat.chantier_id ?? '') as string)
+    setModalJustifPath((achat.justificatif_url as string | null) ?? null)
+    setModalJustifFile(null)
     closeActionMenu()
     setShowModal(true)
   }
@@ -281,12 +321,31 @@ function AchatsPageInner() {
   const handleDelete = async (id: string) => {
     if (!(await askConfirm({ title: 'Supprimer cet achat ?', variant: 'danger', confirmLabel: 'Supprimer' }))) return
     try {
-      await deleteRow('achats', id)
+      // Soft delete (convention projet — colonne ajoutée par sql/2026-07-12-banque-05) :
+      // l'achat disparaît des listes (filtre deleted_at IS NULL) sans perdre
+      // le lien mouvement bancaire ↔ achat ni le justificatif.
+      await softDeleteRow('achats', id)
       refetchAchats()
     } catch (err) {
       toast.error((err as Error).message)
     }
     closeActionMenu()
+  }
+
+  // Ouvre le justificatif d'un achat dans un nouvel onglet (URL signée
+  // temporaire : le bucket « justificatifs » est privé).
+  const handleVoirJustificatif = async (path: string) => {
+    try {
+      const supabase = createClient()
+      const url = await urlSigneeJustificatif(supabase, path)
+      if (!url) {
+        toast.error("Impossible d'ouvrir le justificatif. Réessayez.")
+        return
+      }
+      window.open(url, '_blank', 'noopener')
+    } catch {
+      toast.error("Impossible d'ouvrir le justificatif. Réessayez.")
+    }
   }
 
   // Téléchargement PDF des achats (client-side, données déjà chargées via useAchats).
@@ -485,10 +544,14 @@ function AchatsPageInner() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {!!achat.justificatif_url && (
-                      <span className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-[#ff7a1a]">
+                      <button
+                        onClick={() => void handleVoirJustificatif(achat.justificatif_url as string)}
+                        className="inline-flex items-center gap-1 font-hanken text-xs font-semibold text-[#ff7a1a] hover:underline"
+                        aria-label="Voir le justificatif"
+                      >
                         <Paperclip size={12} />
                         Justificatif
-                      </span>
+                      </button>
                     )}
                   </div>
                   <div>
@@ -555,9 +618,14 @@ function AchatsPageInner() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     {achat.justificatif_url ? (
-                      <span className="inline-flex items-center gap-1 text-[#ff7a1a]" title="Justificatif joint">
+                      <button
+                        onClick={() => void handleVoirJustificatif(achat.justificatif_url as string)}
+                        className="inline-flex items-center gap-1 text-[#ff7a1a] hover:text-[#0f1a3a] transition-colors"
+                        title="Voir le justificatif"
+                        aria-label="Voir le justificatif"
+                      >
                         <Paperclip size={14} />
-                      </span>
+                      </button>
                     ) : (
                       <span className="font-spline-mono text-sm text-gray-300">—</span>
                     )}
@@ -669,22 +737,30 @@ function AchatsPageInner() {
                 const rec = c as Record<string, unknown>
                 return (
                   <option key={String(rec.id)} value={String(rec.id)}>
-                    {String(rec.nom ?? rec.name ?? '')}
+                    {String(rec.titre ?? rec.nom ?? rec.name ?? '')}
                   </option>
                 )
               })}
             </PremiumSelect>
 
-            {/* Upload justificatif — wrapping V4 (logique d'upload non touchée). */}
+            {/* Justificatif — VRAI upload (Lot 2b) vers le bucket privé
+                « justificatifs ». Création : fichier gardé en mémoire puis
+                uploadé après l'INSERT (id requis par la convention de chemins).
+                Édition : upload immédiat + écriture du path en base. */}
             <div>
               <FieldLabel>Justificatif</FieldLabel>
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-[#ff7a1a] hover:bg-[#fff5ec]/30 transition-all cursor-pointer">
-                <Upload size={24} className="mx-auto text-gray-400 mb-2" />
-                <p className="font-hanken text-sm text-gray-600">
-                  Glisser un fichier ou <span className="text-[#ff7a1a] font-semibold">parcourir</span>
-                </p>
-                <p className="font-hanken text-xs text-gray-400 mt-1">PDF, JPG, PNG (max 5 Mo)</p>
-              </div>
+              <JustificatifUpload
+                path={modalJustifPath}
+                entite="achat"
+                entiteId={editingId}
+                onPathChange={async (path) => {
+                  if (editingId) await updateRow('achats', editingId, { justificatif_url: path })
+                  setModalJustifPath(path)
+                  refetchAchats()
+                }}
+                onFileSelected={(file) => setModalJustifFile(file)}
+                libelle="📎 Ajouter le ticket ou la facture (photo ou PDF)"
+              />
             </div>
 
             {/* Actions : Annuler (outline) + Enregistrer (CTA orange) */}

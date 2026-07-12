@@ -28,14 +28,17 @@ function parserMontantSaisi(brut: string): number | null {
 export default function CompteModal({
   onClose,
   onCreated,
+  typeInitial = 'bancaire',
 }: {
   onClose: () => void
   onCreated: () => void
+  /** Pré-sélection du type (ex. « Démarrer ma caisse » ouvre en mode caisse). */
+  typeInitial?: TypeCompte
 }) {
   const supabase = useRef(createClient()).current
 
-  const [type, setType] = useState<TypeCompte>('bancaire')
-  const [nom, setNom] = useState('')
+  const [type, setType] = useState<TypeCompte>(typeInitial)
+  const [nom, setNom] = useState(typeInitial === 'caisse' ? 'Caisse espèces' : '')
   const [banqueNom, setBanqueNom] = useState('')
   const [iban4, setIban4] = useState('')
   const [fondCaisse, setFondCaisse] = useState('')

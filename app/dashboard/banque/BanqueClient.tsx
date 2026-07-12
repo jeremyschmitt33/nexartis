@@ -1,86 +1,55 @@
 'use client'
 
 // ============================================================================
-// BanqueClient — contenu de l'onglet « Dépenses & Banque » (Lot 2a)
+// BanqueClient — contenu de l'onglet « Dépenses & Banque » (Lot 2a + 2b)
 // ----------------------------------------------------------------------------
-// Périmètre V1 validé par jeremy (SPEC §6, décision n°2) :
+// Périmètre V1 validé par jeremy (SPEC §6) :
 //   - Opérations = l'argent qui bouge (banque + caisse) UNIQUEMENT,
-//   - AUCUN solde bancaire affiché (décision C5),
-//   - pas de chantier sur les mouvements (décision n°3),
+//   - AUCUN solde bancaire affiché (décision C5) — le solde de CAISSE, lui,
+//     est affiché dans l'onglet Caisse (seule exception autorisée),
+//   - pas de chantier sur les mouvements (décision n°3) : le rattachement
+//     passe par l'achat créé au pointage (mouvement → achat → chantier),
 //   - les dépenses saisies à la main → onglet Achats.
-// Sous-onglets Caisse et Par chantier : placeholders (Lot 2b).
-// Le clic sur une opération ouvre un panneau latéral placeholder (Lot 2b).
+// Lot 2b : pointage complet (PanneauPointage, file enchaînée), justificatifs,
+// transformation débit → achat, rapprochement crédit → facture (RPC),
+// onglet Caisse (CaisseTab) et onglet Par chantier (ParChantierTab).
 // ============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from '@/lib/toast'
 import CompteModal from './CompteModal'
 import ImportReleveModal from './ImportReleveModal'
 import AideReleveModal from './AideReleveModal'
+import PanneauPointage from './PanneauPointage'
+import CaisseTab from './CaisseTab'
+import ParChantierTab from './ParChantierTab'
+import {
+  euros,
+  grouperParMois,
+  libelleMois,
+  LigneOperation,
+  MOUVEMENT_COLONNES,
+  type Categorie,
+  type CompteTresorerie,
+  type Mouvement,
+} from './commun'
 import {
   ArrowDownToLine,
   Camera,
+  Check,
   PencilLine,
   Search,
-  Paperclip,
-  X,
   Plus,
   Loader2,
 } from 'lucide-react'
 
-// ---------------------------------------------------------------------------
-// Types des données lues (schéma : sql/2026-07-12-banque-03 et -04)
-// ---------------------------------------------------------------------------
-
-export interface CompteTresorerie {
-  id: string
-  nom: string
-  type: 'bancaire' | 'caisse'
-  banque_nom: string | null
-  iban_masque: string | null
-}
-
-interface Mouvement {
-  id: string
-  compte_id: string
-  date_operation: string
-  libelle_banque: string
-  libelle_perso: string | null
-  montant: number
-  statut_pointage: 'a_pointer' | 'pointe' | 'ignore'
-  nature: 'normal' | 'remboursement' | 'virement_interne'
-  est_prive: boolean
-  categorie_id: string | null
-  justificatif_path: string | null
-  source: string
-}
-
-interface Categorie {
-  id: string
-  label: string
-  groupe: 'recette' | 'depense' | 'neutre'
-}
+export type { CompteTresorerie } from './commun'
+export { euros } from './commun'
 
 type Periode = 'mois' | 'dernier' | '3mois' | 'annee'
 type Onglet = 'operations' | 'caisse' | 'chantiers'
-
-// ---------------------------------------------------------------------------
-// Helpers d'affichage
-// ---------------------------------------------------------------------------
-
-const formateurEuros = new Intl.NumberFormat('fr-FR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-export function euros(valeur: number): string {
-  return `${formateurEuros.format(valeur)} €`
-}
-
-function montantSigne(valeur: number): string {
-  return valeur >= 0 ? `+ ${euros(valeur)}` : `− ${euros(Math.abs(valeur))}`
-}
 
 function bornesPeriode(periode: Periode): { debut: string; fin: string | null } {
   const maintenant = new Date()
@@ -100,29 +69,6 @@ function bornesPeriode(periode: Periode): { debut: string; fin: string | null } 
   }
 }
 
-function libelleMois(cle: string): string {
-  const [annee, mois] = cle.split('-').map(Number)
-  const brut = new Date(annee, mois - 1, 1).toLocaleDateString('fr-FR', {
-    month: 'long',
-    year: 'numeric',
-  })
-  return brut.charAt(0).toUpperCase() + brut.slice(1)
-}
-
-function jourMois(dateIso: string): string {
-  const [, m, j] = dateIso.split('-')
-  return `${j}/${m}`
-}
-
-/** Pastille (emoji) selon la nature / le sens du mouvement — fidèle à la maquette. */
-function pastille(mouvement: Mouvement, categorie: Categorie | undefined): { emoji: string; fond: string } {
-  if (mouvement.nature === 'virement_interne') return { emoji: '🔄', fond: 'bg-gray-100' }
-  if (mouvement.est_prive) return { emoji: '👤', fond: 'bg-gray-100' }
-  if (mouvement.montant > 0) return { emoji: '💶', fond: 'bg-green-100' }
-  if (categorie?.groupe === 'neutre') return { emoji: '🔄', fond: 'bg-gray-100' }
-  return { emoji: '⚡', fond: 'bg-sky/15' }
-}
-
 // ---------------------------------------------------------------------------
 // Composant principal
 // ---------------------------------------------------------------------------
@@ -135,6 +81,7 @@ export default function BanqueClient() {
   const [comptes, setComptes] = useState<CompteTresorerie[]>([])
   const [mouvements, setMouvements] = useState<Mouvement[]>([])
   const [categories, setCategories] = useState<Map<string, Categorie>>(new Map())
+  const [franchiseTva, setFranchiseTva] = useState(false)
 
   const [onglet, setOnglet] = useState<Onglet>('operations')
   const [periode, setPeriode] = useState<Periode>('3mois')
@@ -142,9 +89,15 @@ export default function BanqueClient() {
   const [compteFiltre, setCompteFiltre] = useState<string>('tous')
 
   const [importOuvert, setImportOuvert] = useState(false)
-  const [compteModalOuvert, setCompteModalOuvert] = useState(false)
+  const [compteModal, setCompteModal] = useState<{ type: 'bancaire' | 'caisse' } | null>(null)
   const [aideOuverte, setAideOuverte] = useState(false)
-  const [mouvementOuvert, setMouvementOuvert] = useState<Mouvement | null>(null)
+
+  // ── File de tri (pointage enchaîné) ──
+  // file = snapshots des mouvements à trier, dans l'ordre ; [0] = le courant.
+  const [panneau, setPanneau] = useState<{ file: Mouvement[]; modeFile: boolean } | null>(null)
+  const [finTri, setFinTri] = useState(false)
+  // Incrémenté après chaque pointage : CaisseTab recharge sa liste.
+  const [rafraichirCaisse, setRafraichirCaisse] = useState(0)
 
   // ── Chargement des données ──
   const chargerDonnees = useCallback(async () => {
@@ -153,27 +106,27 @@ export default function BanqueClient() {
     try {
       const bornes = bornesPeriode(periode)
 
-      const [resComptes, resCategories] = await Promise.all([
+      const [resComptes, resCategories, resEntreprise] = await Promise.all([
         supabase
           .from('comptes_tresorerie')
-          .select('id, nom, type, banque_nom, iban_masque')
+          .select('id, nom, type, banque_nom, iban_masque, solde_initial, solde_initial_date')
           .is('deleted_at', null)
           .eq('actif', true)
           .order('created_at', { ascending: true }),
         supabase
           .from('depense_categories')
-          .select('id, label, groupe')
+          .select('id, code, label, groupe')
           .is('deleted_at', null)
-          .eq('actif', true),
+          .eq('actif', true)
+          .order('ordre', { ascending: true }),
+        supabase.from('entreprises').select('franchise_tva').limit(1).maybeSingle(),
       ])
       if (resComptes.error) throw resComptes.error
       if (resCategories.error) throw resCategories.error
 
       let requete = supabase
         .from('banque_mouvements')
-        .select(
-          'id, compte_id, date_operation, libelle_banque, libelle_perso, montant, statut_pointage, nature, est_prive, categorie_id, justificatif_path, source',
-        )
+        .select(MOUVEMENT_COLONNES)
         .is('deleted_at', null)
         .gte('date_operation', bornes.debut)
         .order('date_operation', { ascending: false })
@@ -183,11 +136,17 @@ export default function BanqueClient() {
       const resMouvements = await requete
       if (resMouvements.error) throw resMouvements.error
 
-      setComptes((resComptes.data ?? []) as CompteTresorerie[])
+      setComptes(
+        ((resComptes.data ?? []) as (CompteTresorerie & { solde_initial: unknown })[]).map((c) => ({
+          ...c,
+          solde_initial: Number(c.solde_initial ?? 0),
+        })),
+      )
       setMouvements((resMouvements.data ?? []) as Mouvement[])
       const mapCategories = new Map<string, Categorie>()
       for (const c of (resCategories.data ?? []) as Categorie[]) mapCategories.set(c.id, c)
       setCategories(mapCategories)
+      setFranchiseTva(Boolean((resEntreprise.data as { franchise_tva?: boolean } | null)?.franchise_tva))
     } catch (e) {
       console.error('Chargement Dépenses & Banque impossible', e)
       setErreurChargement('Impossible de charger vos opérations. Rechargez la page.')
@@ -201,7 +160,12 @@ export default function BanqueClient() {
   }, [chargerDonnees])
 
   // ── Données dérivées ──
-  const comptesCaisse = useMemo(() => new Set(comptes.filter((c) => c.type === 'caisse').map((c) => c.id)), [comptes])
+  const comptesCaisse = useMemo(
+    () => new Set(comptes.filter((c) => c.type === 'caisse').map((c) => c.id)),
+    [comptes],
+  )
+  const compteCaisse = useMemo(() => comptes.find((c) => c.type === 'caisse') ?? null, [comptes])
+  const categoriesListe = useMemo(() => Array.from(categories.values()), [categories])
 
   const mouvementsFiltres = useMemo(() => {
     const terme = recherche.trim().toLowerCase()
@@ -214,16 +178,7 @@ export default function BanqueClient() {
     })
   }, [mouvements, compteFiltre, recherche, categories])
 
-  const parMois = useMemo(() => {
-    const groupes = new Map<string, Mouvement[]>()
-    for (const m of mouvementsFiltres) {
-      const cle = m.date_operation.slice(0, 7)
-      const liste = groupes.get(cle)
-      if (liste) liste.push(m)
-      else groupes.set(cle, [m])
-    }
-    return Array.from(groupes.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1))
-  }, [mouvementsFiltres])
+  const parMois = useMemo(() => grouperParMois(mouvementsFiltres), [mouvementsFiltres])
 
   // Entrées / Sorties de la période : les virements internes et le perso
   // sont EXCLUS (maquette : « Mouvement interne — exclu des Entrées/Sorties »).
@@ -232,7 +187,7 @@ export default function BanqueClient() {
     let sorties = 0
     let aTrier = 0
     for (const m of mouvementsFiltres) {
-      if (m.statut_pointage === 'a_pointer') aTrier++
+      if (m.statut_pointage === 'a_pointer' && !m.est_prive) aTrier++
       if (m.nature === 'virement_interne' || m.est_prive) continue
       if (m.montant > 0) entrees += m.montant
       else sorties += -m.montant
@@ -250,11 +205,109 @@ export default function BanqueClient() {
 
   const aucuneDonnee = !chargement && mouvements.length === 0 && recherche === '' && compteFiltre === 'tous'
 
+  // ── File de tri ──
+  const remplacerMouvement = useCallback((maj: Mouvement) => {
+    setMouvements((prec) => {
+      const existe = prec.some((m) => m.id === maj.id)
+      return existe ? prec.map((m) => (m.id === maj.id ? maj : m)) : prec
+    })
+  }, [])
+
+  const ouvrirMouvement = useCallback(
+    (m: Mouvement) => {
+      setFinTri(false)
+      if (m.statut_pointage === 'a_pointer') {
+        // La cliquée passe en tête de file, les autres « à trier » suivent.
+        const autres = mouvementsFiltres.filter(
+          (x) => x.id !== m.id && x.statut_pointage === 'a_pointer' && !x.est_prive,
+        )
+        setPanneau({ file: [m, ...autres], modeFile: true })
+      } else {
+        setPanneau({ file: [m], modeFile: false })
+      }
+    },
+    [mouvementsFiltres],
+  )
+
+  const ouvrirFile = useCallback(() => {
+    const aTrier = mouvementsFiltres.filter((m) => m.statut_pointage === 'a_pointer' && !m.est_prive)
+    if (aTrier.length === 0) {
+      toast.info('Tout est déjà trié ✓')
+      return
+    }
+    setFinTri(false)
+    setPanneau({ file: aTrier, modeFile: true })
+  }, [mouvementsFiltres])
+
+  const surPointe = useCallback(
+    (maj: Mouvement) => {
+      remplacerMouvement(maj)
+      setRafraichirCaisse((n) => n + 1)
+      setPanneau((prec) => {
+        if (!prec) return null
+        const reste = prec.file.slice(1)
+        if (reste.length === 0) {
+          if (prec.modeFile) setFinTri(true)
+          return null
+        }
+        return { ...prec, file: reste }
+      })
+    },
+    [remplacerMouvement],
+  )
+
+  const surMaj = useCallback(
+    (maj: Mouvement) => {
+      remplacerMouvement(maj)
+      setPanneau((prec) => {
+        if (!prec) return prec
+        return { ...prec, file: [maj, ...prec.file.slice(1)] }
+      })
+    },
+    [remplacerMouvement],
+  )
+
+  const surPasser = useCallback(() => {
+    setPanneau((prec) => {
+      if (!prec) return prec
+      if (prec.file.length <= 1) {
+        toast.info('Il ne reste que celle-ci — autant la trier maintenant 😉')
+        return prec
+      }
+      const [tete, ...reste] = prec.file
+      return { ...prec, file: [...reste, tete] }
+    })
+  }, [])
+
+  const fermerPanneau = useCallback(() => {
+    setPanneau(null)
+    setFinTri(false)
+  }, [])
+
+  /** Après déclaration d'un mouvement de caisse : il rejoint la liste et part au tri. */
+  const surMouvementCaisseDeclare = useCallback((m: Mouvement) => {
+    setMouvements((prec) => {
+      const liste = [m, ...prec]
+      liste.sort((a, b) =>
+        a.date_operation === b.date_operation ? 0 : a.date_operation < b.date_operation ? 1 : -1,
+      )
+      return liste
+    })
+    setFinTri(false)
+    setPanneau({ file: [m], modeFile: true })
+  }, [])
+
+  const mouvementCourant = panneau?.file[0] ?? null
+
   // ── Rendu ──
   return (
     <div className="max-w-5xl mx-auto">
       {/* Sous-onglets */}
-      <div className="flex items-center gap-1 border-b border-navy/[0.08] mb-6" role="tablist" aria-label="Sections Dépenses et Banque">
+      <div
+        className="flex items-center gap-1 border-b border-navy/[0.08] mb-6"
+        role="tablist"
+        aria-label="Sections Dépenses et Banque"
+      >
         {(
           [
             { id: 'operations', label: 'Opérations' },
@@ -288,18 +341,29 @@ export default function BanqueClient() {
         </div>
       )}
 
-      {onglet !== 'operations' ? (
-        <PlaceholderOnglet onglet={onglet} />
+      {onglet === 'caisse' ? (
+        <CaisseTab
+          compteCaisse={compteCaisse}
+          categories={categories}
+          onCreerCaisse={() => setCompteModal({ type: 'caisse' })}
+          onOuvrirMouvement={ouvrirMouvement}
+          onMouvementDeclare={surMouvementCaisseDeclare}
+          rafraichir={rafraichirCaisse}
+        />
+      ) : onglet === 'chantiers' ? (
+        <ParChantierTab
+          onOuvrirTri={() => {
+            setOnglet('operations')
+            ouvrirFile()
+          }}
+        />
       ) : chargement ? (
         <div className="flex items-center justify-center py-24 text-gray-400" role="status" aria-live="polite">
           <Loader2 size={22} className="animate-spin mr-2" aria-hidden="true" />
           <span className="text-sm font-semibold">Chargement de vos opérations…</span>
         </div>
       ) : aucuneDonnee ? (
-        <EtatVide
-          onImporter={() => setImportOuvert(true)}
-          onAide={() => setAideOuverte(true)}
-        />
+        <EtatVide onImporter={() => setImportOuvert(true)} onAide={() => setAideOuverte(true)} />
       ) : (
         <>
           {/* Rappel du périmètre (décision validée : banque + caisse uniquement) */}
@@ -328,7 +392,7 @@ export default function BanqueClient() {
             </div>
           )}
 
-          {/* Cartes de synthèse — AUCUN solde affiché (décision C5) */}
+          {/* Cartes de synthèse — AUCUN solde bancaire affiché (décision C5) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Entrées</p>
@@ -338,25 +402,25 @@ export default function BanqueClient() {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Sorties</p>
               <p className="font-semibold text-xl text-red-700/80 tabular-nums">− {euros(totaux.sorties)}</p>
             </div>
-            <div
-              className={`bg-white rounded-2xl px-5 py-4 shadow-sm ${
-                totaux.aTrier > 0 ? 'border-2 border-orange/60' : 'border border-navy/[0.06]'
-              }`}
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-orange mb-1">À trier</p>
-              <p className="font-syne font-bold text-xl text-navy">
-                {totaux.aTrier === 0 ? (
-                  <>Tout est trié ✓</>
-                ) : (
-                  <>
-                    {totaux.aTrier} opération{totaux.aTrier > 1 ? 's' : ''}{' '}
-                    <span className="text-[12px] font-manrope font-semibold text-orange">
-                      → le tri arrive au prochain lot
-                    </span>
-                  </>
-                )}
-              </p>
-            </div>
+            {totaux.aTrier > 0 ? (
+              <button
+                onClick={ouvrirFile}
+                className="bg-white rounded-2xl border-2 border-orange/60 shadow-sm px-5 py-4 text-left hover:bg-orange/[0.04] transition"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-orange mb-1">À trier</p>
+                <p className="font-syne font-bold text-xl text-navy">
+                  {totaux.aTrier} opération{totaux.aTrier > 1 ? 's' : ''}{' '}
+                  <span className="text-[12px] font-manrope font-semibold text-orange">
+                    → Commencer le tri
+                  </span>
+                </p>
+              </button>
+            ) : (
+              <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm px-5 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-orange mb-1">À trier</p>
+                <p className="font-syne font-bold text-xl text-navy">Tout est trié ✓</p>
+              </div>
+            )}
           </div>
 
           {/* Filtres période + compte + recherche + actions */}
@@ -424,7 +488,7 @@ export default function BanqueClient() {
               <ArrowDownToLine size={16} aria-hidden="true" /> Importer un relevé
             </button>
             <Link
-              href="/dashboard/achats"
+              href="/dashboard/achats?new=1"
               className="h-10 px-4 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold text-sm transition inline-flex items-center gap-1.5"
             >
               <Plus size={16} aria-hidden="true" /> Dépense
@@ -463,7 +527,7 @@ export default function BanqueClient() {
                           mouvement={m}
                           categorie={m.categorie_id ? categories.get(m.categorie_id) : undefined}
                           estCaisse={comptesCaisse.has(m.compte_id)}
-                          onClick={() => setMouvementOuvert(m)}
+                          onClick={() => ouvrirMouvement(m)}
                         />
                       ))}
                     </div>
@@ -484,106 +548,81 @@ export default function BanqueClient() {
             setImportOuvert(false)
             void chargerDonnees()
           }}
-          onCreerCompte={() => setCompteModalOuvert(true)}
+          onCreerCompte={() => setCompteModal({ type: 'bancaire' })}
           onAide={() => setAideOuverte(true)}
         />
       )}
-      {compteModalOuvert && (
+      {compteModal && (
         <CompteModal
-          onClose={() => setCompteModalOuvert(false)}
+          typeInitial={compteModal.type}
+          onClose={() => setCompteModal(null)}
           onCreated={() => {
-            setCompteModalOuvert(false)
+            setCompteModal(null)
             void chargerDonnees()
           }}
         />
       )}
       {aideOuverte && <AideReleveModal onClose={() => setAideOuverte(false)} />}
-      {mouvementOuvert && (
-        <PanneauPointagePlaceholder
-          mouvement={mouvementOuvert}
-          categorie={mouvementOuvert.categorie_id ? categories.get(mouvementOuvert.categorie_id) : undefined}
-          onClose={() => setMouvementOuvert(null)}
+
+      {mouvementCourant && panneau && (
+        <PanneauPointage
+          key={mouvementCourant.id}
+          mouvement={mouvementCourant}
+          compte={comptes.find((c) => c.id === mouvementCourant.compte_id)}
+          categories={categoriesListe}
+          franchiseTva={franchiseTva}
+          resteATrier={panneau.modeFile ? panneau.file.length : 0}
+          modeFile={panneau.modeFile}
+          onClose={fermerPanneau}
+          onMaj={surMaj}
+          onPointe={surPointe}
+          onPasser={surPasser}
         />
       )}
+
+      {finTri && <PanneauToutTrie onClose={() => setFinTri(false)} />}
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Ligne d'opération
+// Fin de file : « Tout est trié ✓ »
 // ---------------------------------------------------------------------------
 
-function LigneOperation({
-  mouvement,
-  categorie,
-  estCaisse,
-  onClick,
-}: {
-  mouvement: Mouvement
-  categorie: Categorie | undefined
-  estCaisse: boolean
-  onClick: () => void
-}) {
-  const { emoji, fond } = pastille(mouvement, categorie)
-  const titre = mouvement.libelle_perso || mouvement.libelle_banque
-  const griser = mouvement.est_prive || mouvement.nature === 'virement_interne'
-
-  let sousTitre: string
-  if (mouvement.est_prive) sousTitre = 'Perso — rien à voir avec l’entreprise'
-  else if (mouvement.nature === 'virement_interne') sousTitre = 'Mouvement interne — exclu des Entrées/Sorties'
-  else if (categorie && mouvement.statut_pointage === 'a_pointer')
-    sousTitre = `Catégorie proposée : ${categorie.label}`
-  else if (categorie) sousTitre = categorie.label
-  else if (mouvement.montant > 0 && mouvement.statut_pointage === 'a_pointer')
-    sousTitre = 'Virement reçu — à rapprocher d’une facture'
-  else if (mouvement.statut_pointage === 'a_pointer') sousTitre = 'À trier'
-  else sousTitre = ''
+function PanneauToutTrie({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const auClavier = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', auClavier)
+    return () => document.removeEventListener('keydown', auClavier)
+  }, [onClose])
 
   return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition ${
-        mouvement.est_prive ? 'opacity-60' : ''
-      }`}
-    >
-      <span
-        className={`w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 ${fond}`}
-        aria-hidden="true"
+    <>
+      <div className="fixed inset-0 bg-navy/40 z-40" onClick={onClose} aria-hidden="true" />
+      <aside
+        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col items-center justify-center px-8 text-center"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tri terminé"
       >
-        {emoji}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-bold text-[14px] text-navy truncate">{titre}</span>
-        <span className="block text-[12px] text-gray-500 truncate mt-px">
-          {sousTitre}
-          {estCaisse && (
-            <span className="ml-1.5 inline-flex items-center px-2 py-px rounded-full bg-cream text-navy/70 text-[11px] font-semibold">
-              Espèces
-            </span>
-          )}
-        </span>
-      </span>
-      <span className="flex items-center gap-2.5 flex-shrink-0">
-        <span className="hidden sm:inline text-[11px] text-gray-400 tabular-nums">
-          {jourMois(mouvement.date_operation)}
-        </span>
-        <span
-          className={`text-sm tabular-nums ${
-            griser ? 'text-gray-400' : mouvement.montant > 0 ? 'text-green-700' : 'text-navy'
-          }`}
+        <div
+          className="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mb-4"
+          aria-hidden="true"
         >
-          {montantSigne(mouvement.montant)}
-        </span>
-        {mouvement.justificatif_path && (
-          <Paperclip size={14} className="text-orange" role="img" aria-label="Justificatif joint" />
-        )}
-        {mouvement.statut_pointage === 'a_pointer' && !mouvement.est_prive && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange/10 text-orange text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange" aria-hidden="true" />À trier
-          </span>
-        )}
-      </span>
-    </button>
+          <Check size={28} />
+        </div>
+        <p className="font-syne font-bold text-xl text-navy mb-2">Tout est trié ✓</p>
+        <p className="text-[13px] text-gray-500 mb-5">Plus rien à vérifier. Vos chiffres sont à jour.</p>
+        <button
+          onClick={onClose}
+          className="h-11 px-6 rounded-xl bg-navy text-white font-bold hover:bg-navy-mid transition"
+        >
+          Fermer
+        </button>
+      </aside>
+    </>
   )
 }
 
@@ -621,21 +660,21 @@ function EtatVide({ onImporter, onAide }: { onImporter: () => void; onAide: () =
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
         {/* Porte 1 : photo — renvoie vers Achats pour l'instant */}
         <Link
-          href="/dashboard/achats"
+          href="/dashboard/achats?new=1"
           className="group bg-white rounded-2xl border-2 border-orange p-5 shadow-sm hover:-translate-y-0.5 transition text-left block"
         >
           <span className="w-11 h-11 rounded-xl bg-orange/10 text-orange flex items-center justify-center mb-3">
             <Camera size={24} aria-hidden="true" />
           </span>
           <p className="font-syne font-bold text-[15px] text-navy mb-1">Photographier un ticket</p>
-          <p className="text-[13px] text-gray-500 leading-snug">Le plus rapide. On lit le montant pour vous.</p>
+          <p className="text-[13px] text-gray-500 leading-snug">Le plus rapide. Le ticket est gardé avec la dépense.</p>
           <span className="inline-block mt-3 text-[12.5px] font-bold text-orange group-hover:underline">
             Via la page Achats →
           </span>
         </Link>
         {/* Porte 2 : saisie manuelle — renvoie vers Achats */}
         <Link
-          href="/dashboard/achats"
+          href="/dashboard/achats?new=1"
           className="group bg-white rounded-2xl border border-navy/[0.08] p-5 shadow-sm hover:-translate-y-0.5 hover:border-sky transition text-left block"
         >
           <span className="w-11 h-11 rounded-xl bg-sky/15 text-navy flex items-center justify-center mb-3">
@@ -670,122 +709,5 @@ function EtatVide({ onImporter, onAide }: { onImporter: () => void; onAide: () =
         Où télécharger mon relevé&nbsp;?
       </button>
     </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Placeholders des sous-onglets Caisse / Par chantier (Lot 2b)
-// ---------------------------------------------------------------------------
-
-function PlaceholderOnglet({ onglet }: { onglet: Onglet }) {
-  const contenu =
-    onglet === 'caisse'
-      ? {
-          emoji: '💶',
-          fond: 'bg-gold/20',
-          titre: 'Vous encaissez ou payez parfois en liquide ?',
-          texte:
-            'La caisse espèces arrive au prochain lot : fond de caisse, argent reçu, argent dépensé — tout au même endroit.',
-        }
-      : {
-          emoji: '🏠',
-          fond: 'bg-sky/15',
-          titre: 'Est-ce que vos chantiers vous rapportent ?',
-          texte:
-            'La rentabilité par chantier arrive au prochain lot : facturé, dépensé, et ce que chaque chantier vous a vraiment rapporté.',
-        }
-  return (
-    <div className="max-w-md mx-auto text-center pt-12 pb-10">
-      <div
-        className={`w-16 h-16 rounded-2xl ${contenu.fond} text-navy flex items-center justify-center mx-auto mb-5 text-3xl`}
-        aria-hidden="true"
-      >
-        {contenu.emoji}
-      </div>
-      <h2 className="font-syne font-bold text-xl sm:text-2xl text-navy mb-3">{contenu.titre}</h2>
-      <p className="text-gray-600 mb-6">{contenu.texte}</p>
-      <span className="inline-flex items-center px-4 py-2 rounded-full bg-cream border border-gold/50 text-[13px] font-bold text-navy">
-        Bientôt disponible
-      </span>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Panneau latéral placeholder — le pointage arrive au Lot 2b
-// ---------------------------------------------------------------------------
-
-function PanneauPointagePlaceholder({
-  mouvement,
-  categorie,
-  onClose,
-}: {
-  mouvement: Mouvement
-  categorie: Categorie | undefined
-  onClose: () => void
-}) {
-  useEffect(() => {
-    const auClavier = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', auClavier)
-    return () => document.removeEventListener('keydown', auClavier)
-  }, [onClose])
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-navy/40 z-40" onClick={onClose} aria-hidden="true" />
-      <aside
-        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Détail de l’opération"
-      >
-        <div className="px-5 pt-5 pb-4 border-b border-gray-100 flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <p
-              className={`font-syne font-bold text-[28px] leading-tight ${
-                mouvement.montant > 0 ? 'text-green-700' : 'text-navy'
-              }`}
-            >
-              {montantSigne(mouvement.montant)}
-            </p>
-            <p className="text-[15px] font-bold text-navy mt-1">
-              {mouvement.libelle_perso || mouvement.libelle_banque}
-            </p>
-            <p className="text-[11px] text-gray-400 mt-0.5 break-words">{mouvement.libelle_banque}</p>
-            <p className="text-[12px] text-gray-500 mt-1">
-              {mouvement.date_operation.split('-').reverse().join('/')}
-              {categorie ? ` · Catégorie proposée : ${categorie.label}` : ''}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center flex-shrink-0"
-            aria-label="Fermer le panneau"
-          >
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-cream text-navy flex items-center justify-center text-2xl mb-4" aria-hidden="true">
-            🗂️
-          </div>
-          <p className="font-syne font-bold text-lg text-navy mb-2">Pointage — arrive au prochain lot</p>
-          <p className="text-[13px] text-gray-500">
-            Bientôt&nbsp;: catégorie, rattachement à un chantier ou à une facture, justificatif photo, «&nbsp;c’est
-            perso&nbsp;»… tout se fera ici, en quelques secondes.
-          </p>
-        </div>
-        <div className="border-t border-gray-100 p-4">
-          <button
-            onClick={onClose}
-            className="w-full h-12 rounded-xl bg-navy text-white font-bold hover:bg-navy-mid transition"
-          >
-            Fermer
-          </button>
-        </div>
-      </aside>
-    </>
   )
 }
