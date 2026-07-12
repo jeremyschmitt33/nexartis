@@ -38,7 +38,9 @@ L'utilisateur est intransigeant sur la qualité : il ne veut **plus jamais** voi
 - Doc complète : voir `MAINTENANCE_MODE.md` à la racine.
 
 ### Base de données
-- Toutes les tables sensibles doivent avoir RLS activée + policies SELECT/INSERT/UPDATE/DELETE avec filtre `user_id = auth.uid()`.
+- Toutes les tables sensibles doivent avoir RLS activée + policies SELECT/INSERT/UPDATE/DELETE.
+- ⚠️ **Pattern RLS à jour (12/07/2026, vérifié en prod)** : les tables financières (achats, paiements, factures, factures_recues, comptes_tresorerie, banque_*) utilisent `entreprise_of_user(user_id) IN (SELECT current_entreprise_ids()) AND current_role_in(entreprise_of_user(user_id)) = 'dirigeant'` — PAS le vieux `user_id = auth.uid()` seul. Toute nouvelle table financière réplique ce pattern (modèle : les policies live de `achats`).
+- Les encaissements de factures passent par les RPC `rpc_enregistrer_paiement` / `rpc_annuler_paiement` (source de vérité = table `paiements`, `factures.montant_paye` = simple cache). Ne jamais écrire `montant_paye` directement dans du NOUVEAU code (3 écritures legacy encore à migrer : factures/[id]/page.tsx ×2, lib/services/cop-facture.ts, route d'import).
 - Soft delete via colonne `deleted_at TIMESTAMPTZ` + filtre `WHERE deleted_at IS NULL` côté code.
 - Architecture détaillée : voir `ARCHITECTURE_LIAISONS.md`.
 

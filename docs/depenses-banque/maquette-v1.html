@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Maquette de validation — Dépenses &amp; Banque | Nexartis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:   { DEFAULT: '#0f1a3a', mid: '#1a2d5a' },
+        sky:    { DEFAULT: '#5ab4e0', light: '#7dcbf5' },
+        orange: { DEFAULT: '#e87a2a', hover: '#f09050' },
+        gold:   '#f5c842',
+        cream:  '#f0ede4',
+      },
+      fontFamily: {
+        syne:    ['Syne', 'sans-serif'],
+        manrope: ['Manrope', 'sans-serif'],
+        mono:    ['Manrope', 'sans-serif'], /* comme le site : montants en Manrope */
+      },
+    },
+  },
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+  .card-shadow { box-shadow: 0 8px 24px rgba(15,26,58,.06), 0 1px 4px rgba(15,26,58,.04); }
+
+  /* ---- Écrans (transitions douces) ---- */
+  .screen { display: none; animation: fadein .25s ease; }
+  .screen.on { display: block; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- Panneau de pointage (drawer) ---- */
+  #drawer { transform: translateX(100%); transition: transform .3s ease; }
+  #drawer.open { transform: none; }
+
+  /* ---- Puces (chips) ---- */
+  .chip { cursor: pointer; user-select: none; transition: all .15s ease; }
+  .chip.sel { background: #0f1a3a !important; color: #fff !important; border-color: #0f1a3a !important; }
+
+  /* ---- Vue mobile 375 px ---- */
+  #maquette-app { min-height: calc(100vh - 44px); }
+  body.mobile { background: #dfe3ec; }
+  body.mobile #maquette-app {
+    width: 375px; height: 760px; min-height: 0;
+    margin: 20px auto; border: 12px solid #0f1a3a; border-radius: 42px;
+    overflow: hidden; position: relative; background: #f9fafb;
+    box-shadow: 0 30px 60px rgba(15,26,58,.35);
+    transform: translateZ(0); /* les éléments fixed se calent sur le cadre du téléphone */
+  }
+  body.mobile #sidebar { display: none; }
+  body.mobile #main-col { margin-left: 0 !important; height: 100%; overflow-y: auto; padding-bottom: 96px; }
+  body.mobile #bottomnav { display: flex; }
+  body.mobile .m-hide { display: none !important; }
+  body.mobile .m-stack { grid-template-columns: 1fr !important; }
+  body.mobile .m-col { flex-direction: column !important; align-items: stretch !important; }
+  .m-only { display: none !important; }
+  body.mobile .m-only { display: flex !important; }
+  body.mobile #drawer { max-width: 100%; top: 10%; height: 90%; border-radius: 24px 24px 0 0; transform: translateY(100%); }
+  body.mobile #drawer.open { transform: none; }
+
+  /* ---- Barre de progression import ---- */
+  #import-progress-bar { transition: width 1.6s ease; }
+
+  /* ---- Flash photo ---- */
+  @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+  .flashing { animation: flash .35s ease forwards; }
+
+  /* ---- Toast ---- */
+  #toast { transition: opacity .25s ease, transform .25s ease; }
+</style>
+</head>
+<body class="bg-gray-50 font-manrope text-navy">
+
+<!-- ============ Icônes SVG réutilisables ============ -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v11h5v-6h4v6h5V10"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5l4 4L7 21H3v-4L16.5 3.5z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="i-ware" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M9 21v-6h6v6"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M7 17V9M12 17V5M17 17v-7"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="19" cy="18" r="2"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.1 1-1.1 1.8"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V5m-5 5 5-5 5 5"/><path d="M4 21h16"/></symbol>
+</svg>
+
+<!-- ============ Bandeau maquette ============ -->
+<div class="sticky top-0 z-[80] h-11 bg-navy flex items-center gap-3 px-4 text-white">
+  <span class="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold tracking-wide uppercase">
+    <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
+    Maquette de validation — aucune donnée réelle
+  </span>
+  <div class="ml-auto flex items-center gap-1.5">
+    <button onclick="setDataMode('vide')" id="btn-mode-vide" class="mode-btn px-3 h-7 rounded-md text-[11.5px] font-semibold bg-white/10 hover:bg-white/20 transition">Premier écran (vide)</button>
+    <button onclick="setDataMode('data')" id="btn-mode-data" class="mode-btn px-3 h-7 rounded-md text-[11.5px] font-semibold bg-white/10 hover:bg-white/20 transition">Avec données</button>
+    <button onclick="toggleMobile()" id="btn-mobile" class="px-3 h-7 rounded-md text-[11.5px] font-semibold bg-sky/25 hover:bg-sky/40 transition">📱 Vue mobile 375&nbsp;px</button>
+  </div>
+</div>
+
+<!-- ============ Application ============ -->
+<div id="maquette-app" class="relative bg-gray-50">
+
+  <!-- ---- Sidebar (reproduction du dashboard) ---- -->
+  <aside id="sidebar" class="fixed top-11 left-0 bottom-0 w-64 bg-navy flex flex-col overflow-y-auto z-30">
+    <div class="px-4 pt-6 pb-4 text-center">
+      <p class="font-syne font-bold text-white text-lg leading-tight py-3">Daniela Élec</p>
+    </div>
+    <div class="px-3 mb-3">
+      <button onclick="toast('Dans la vraie version : menu Créer (devis, facture, chantier…) + « 📸 Dépense (photo du ticket) »')" class="w-full h-11 rounded-lg bg-orange hover:bg-orange-hover text-white font-bold flex items-center justify-center gap-2 transition">
+        <span class="text-lg leading-none">+</span> Créer
+      </button>
+    </div>
+    <nav class="flex-1 px-2 space-y-0.5 text-[14px]">
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-home"/></svg>Accueil</a>
+      <hr class="border-white/[0.06] my-1 mx-2.5">
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-pen"/></svg>Devis</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-cal"/></svg>Planning</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-grid"/></svg>Chantiers</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-cash"/></svg>Factures</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-scroll"/></svg>Documents</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-clip"/></svg>Rapports</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-bag"/></svg>Achats</a>
+      <a class="nav-it active relative" href="#" onclick="return false">
+        <span class="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-orange"></span>
+        <svg class="ic"><use href="#i-wallet"/></svg><span class="font-semibold">Dépenses &amp; Banque</span>
+        <span class="ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-orange text-white text-[11px] font-extrabold" id="nav-badge">3</span>
+      </a>
+      <hr class="border-white/[0.06] my-1 mx-2.5">
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-user"/></svg>Clients</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-ware"/></svg>Fournisseurs</a>
+      <hr class="border-white/[0.06] my-1 mx-2.5">
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-chart"/></svg>Statistiques</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-sliders"/></svg>Paramètres</a>
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-down"/></svg>Importer</a>
+      <hr class="border-white/[0.06] my-1 mx-2.5">
+      <a class="nav-it" href="#" onclick="return navOff()"><svg class="ic"><use href="#i-help"/></svg>Aide &amp; Tutoriels</a>
+    </nav>
+    <div class="mt-auto border-t border-white/[0.08] p-4 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-sky flex items-center justify-center text-white text-sm font-extrabold">DM</div>
+      <div class="min-w-0">
+        <p class="text-sm text-white font-medium truncate">Daniela Marques</p>
+        <p class="text-xs text-white/50">Se déconnecter</p>
+      </div>
+    </div>
+  </aside>
+  <style>
+    .nav-it { display:flex; align-items:center; gap:12px; height:40px; padding:0 12px; margin-left:4px; border-radius:8px; color:rgba(255,255,255,.6); font-weight:500; transition:all .15s; }
+    .nav-it:hover { background:rgba(255,255,255,.05); color:rgba(255,255,255,.85); }
+    .nav-it.active { background:rgba(90,180,224,.12); color:#fff; }
+    .nav-it .ic { width:19px; height:19px; flex-shrink:0; opacity:.75; }
+    .nav-it.active .ic { opacity:1; }
+  </style>
+
+  <!-- ---- Colonne principale ---- -->
+  <div id="main-col" class="ml-0 md:ml-64" style="margin-left:256px">
+
+    <!-- Header -->
+    <header class="sticky top-11 z-20 h-[60px] bg-white border-b border-gray-200 flex items-center px-4 lg:px-6 gap-3">
+      <button class="m-only items-center justify-center w-10 h-10 rounded-md hover:bg-gray-100" onclick="toast('Menu — hors périmètre de la maquette')" aria-label="Ouvrir le menu">
+        <svg class="w-[22px] h-[22px]" fill="none" stroke="#1a1a2e" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 class="font-syne font-bold text-base sm:text-xl tracking-tight truncate">Dépenses &amp; Banque</h1>
+      <button onclick="toast('Achats = vos factures fournisseurs. Dépenses &amp; Banque = l’argent qui entre et qui sort de votre compte.', 5000)" class="w-6 h-6 rounded-full border border-gray-300 text-gray-400 hover:text-navy hover:border-navy text-xs font-bold transition" aria-label="C’est quoi la différence avec Achats ?">?</button>
+    </header>
+
+    <main class="p-4 lg:p-6 pb-20">
+
+      <!-- Sous-onglets -->
+      <div class="flex items-center gap-1 border-b border-navy/[0.08] mb-6">
+        <button id="tab-operations" onclick="setTab('operations')" class="subtab relative px-4 py-2.5 text-[14px] font-semibold transition-colors">Opérations</button>
+        <button id="tab-caisse" onclick="setTab('caisse')" class="subtab relative px-4 py-2.5 text-[14px] font-semibold transition-colors">Caisse</button>
+        <button id="tab-chantiers" onclick="setTab('chantiers')" class="subtab relative px-4 py-2.5 text-[14px] font-semibold transition-colors">Par chantier</button>
+      </div>
+
+      <!-- ================= ÉCRAN : ÉTAT VIDE « à 3 portes » ================= -->
+      <section id="screen-vide" class="screen">
+        <div class="max-w-3xl mx-auto text-center pt-6 pb-10">
+          <!-- Illustration légère style trait -->
+          <svg viewBox="0 0 200 90" class="mx-auto w-52 h-auto mb-6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="20" y="30" width="70" height="45" rx="6" stroke="#0f1a3a" stroke-width="2.5"/>
+            <path d="M20 44h70" stroke="#0f1a3a" stroke-width="2.5"/>
+            <circle cx="76" cy="59" r="4" fill="#e87a2a"/>
+            <path d="M120 70 L145 25 L170 70" stroke="#0f1a3a" stroke-width="2.5"/>
+            <path d="M130 52h30" stroke="#e87a2a" stroke-width="2.5"/>
+            <path d="M148 25l-6 14h10l-8 16" stroke="#f5c842" stroke-width="2.5"/>
+            <circle cx="105" cy="20" r="6" stroke="#5ab4e0" stroke-width="2.5"/>
+          </svg>
+          <h2 class="font-syne font-bold text-2xl sm:text-3xl mb-3">Suivez où part votre argent, chantier par chantier</h2>
+          <p class="text-gray-600 max-w-xl mx-auto mb-8">Ajoutez vos dépenses comme ça vous arrange. Pas besoin de connaître la compta&nbsp;: une photo du ticket suffit.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 m-stack text-left">
+            <!-- Porte 1 : photo -->
+            <button onclick="goPhotoDemo()" class="group bg-white rounded-2xl border-2 border-orange p-5 card-shadow hover:-translate-y-0.5 transition text-left">
+              <div class="w-11 h-11 rounded-xl bg-orange/10 text-orange flex items-center justify-center mb-3">
+                <svg class="w-6 h-6"><use href="#i-camera"/></svg>
+              </div>
+              <p class="font-syne font-bold text-[15px] mb-1">Photographier un ticket</p>
+              <p class="text-[13px] text-gray-500 leading-snug">Le plus rapide. On lit le montant pour vous.</p>
+              <span class="inline-block mt-3 text-[12.5px] font-bold text-orange group-hover:underline">Essayer sur mobile →</span>
+            </button>
+            <!-- Porte 2 : saisie manuelle -->
+            <button onclick="openDepense()" class="group bg-white rounded-2xl border border-navy/[0.08] p-5 card-shadow hover:-translate-y-0.5 hover:border-sky transition text-left">
+              <div class="w-11 h-11 rounded-xl bg-sky/15 text-navy flex items-center justify-center mb-3">
+                <svg class="w-6 h-6"><use href="#i-pen"/></svg>
+              </div>
+              <p class="font-syne font-bold text-[15px] mb-1">Saisir une dépense à la main</p>
+              <p class="text-[13px] text-gray-500 leading-snug">30 secondes, montant + chantier.</p>
+              <span class="inline-block mt-3 text-[12.5px] font-bold text-sky group-hover:underline">Saisir →</span>
+            </button>
+            <!-- Porte 3 : import -->
+            <button onclick="openImport()" class="group bg-white rounded-2xl border border-navy/[0.08] p-5 card-shadow hover:-translate-y-0.5 hover:border-gold transition text-left">
+              <div class="w-11 h-11 rounded-xl bg-gold/20 text-navy flex items-center justify-center mb-3">
+                <svg class="w-6 h-6"><use href="#i-down"/></svg>
+              </div>
+              <p class="font-syne font-bold text-[15px] mb-1">Importer mon relevé bancaire</p>
+              <p class="text-[13px] text-gray-500 leading-snug">Le fichier CSV que votre banque vous laisse télécharger. On s’occupe du reste.</p>
+              <span class="inline-block mt-3 text-[12.5px] font-bold text-navy group-hover:underline">Importer →</span>
+            </button>
+          </div>
+
+          <button onclick="openAide()" class="mt-6 text-[13px] text-gray-500 underline underline-offset-2 hover:text-navy transition">C’est quoi, un relevé CSV/OFX&nbsp;?</button>
+        </div>
+      </section>
+
+      <!-- ================= ÉCRAN : LISTE DES OPÉRATIONS ================= -->
+      <section id="screen-operations" class="screen">
+
+        <!-- Rappel du périmètre (décision validée : banque + caisse uniquement) -->
+        <div class="flex items-start gap-2 bg-cream border border-gold/50 rounded-xl px-4 py-2.5 mb-4 text-[12.5px] text-navy/80">
+          <span class="mt-px">💡</span>
+          <p>Ici, vous voyez <strong>l’argent qui bouge</strong> (votre banque + votre caisse). Les dépenses saisies à la main se rangent dans <button onclick="toast('Dans la vraie version : ouvre l’onglet Achats.')" class="font-bold underline underline-offset-2">Achats&nbsp;→</button></p>
+        </div>
+
+        <!-- Bandeau relevé à jour -->
+        <div class="flex items-center gap-2 text-[12.5px] text-gray-500 mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky inline-block"></span>
+          Relevé à jour au 30/06/2026
+          <button onclick="openImport()" class="font-bold text-navy underline underline-offset-2 hover:text-orange transition">Importer la suite</button>
+        </div>
+
+        <!-- Cartes de synthèse -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 m-stack mb-5">
+          <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow px-5 py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Entrées</p>
+            <p id="card-entrees" class="font-mono font-semibold text-xl text-green-700">+ 8 340,00 €</p>
+          </div>
+          <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow px-5 py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Sorties</p>
+            <p id="card-sorties" class="font-mono font-semibold text-xl text-red-700/80">− 5 214,00 €</p>
+          </div>
+          <button onclick="openQueue()" class="bg-white rounded-2xl border-2 border-orange/60 card-shadow px-5 py-4 text-left hover:bg-orange/[0.04] transition">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-orange mb-1">À trier</p>
+            <p id="card-atrier" class="font-syne font-bold text-xl text-navy"><span id="count-atrier">3</span> opérations <span class="text-[12px] font-manrope font-semibold text-orange">→ Commencer le tri</span></p>
+          </button>
+        </div>
+
+        <!-- Filtres période + recherche + actions -->
+        <div class="flex flex-wrap items-center gap-2 mb-5 m-col">
+          <div class="flex items-center gap-1.5 flex-wrap" id="period-chips">
+            <button onclick="setPeriod(this,'mois')" class="pchip">Ce mois</button>
+            <button onclick="setPeriod(this,'dernier')" class="pchip">Mois dernier</button>
+            <button onclick="setPeriod(this,'3mois')" class="pchip pchip-on">3 derniers mois</button>
+            <button onclick="setPeriod(this,'annee')" class="pchip">Année</button>
+          </div>
+          <div class="relative flex-1 min-w-[180px]">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"><use href="#i-search"/></svg>
+            <input id="op-search" oninput="searchOps(this.value)" type="text" placeholder="Rechercher une opération…" class="w-full h-10 pl-9 pr-3 rounded-xl border-[1.5px] border-gray-200 bg-white text-sm focus:outline-none focus:border-sky transition">
+          </div>
+          <button onclick="openImport()" class="h-10 px-4 rounded-xl border-[1.5px] border-gray-200 bg-white font-semibold text-sm hover:border-orange transition inline-flex items-center gap-2">
+            <svg class="w-4 h-4"><use href="#i-down"/></svg> Importer un relevé
+          </button>
+          <button onclick="openDepense()" class="h-10 px-4 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold text-sm transition inline-flex items-center gap-2">+ Dépense</button>
+        </div>
+        <style>
+          .pchip { height:32px; padding:0 12px; border-radius:9999px; border:1.5px solid #e5e7eb; background:#fff; font-size:12.5px; font-weight:600; color:#4b5563; transition:all .15s; }
+          .pchip:hover { border-color:#5ab4e0; }
+          .pchip-on { background:#0f1a3a; border-color:#0f1a3a; color:#fff; }
+        </style>
+
+        <!-- ===== Liste groupée par mois ===== -->
+        <div class="space-y-6">
+
+          <!-- Juillet -->
+          <div class="op-month">
+            <p class="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Juillet 2026 <span class="normal-case tracking-normal font-mono text-gray-400">· 2 opérations · <span class="text-green-700">+ 80,00 €</span> · <span class="text-navy">− 34,90 €</span></span></p>
+            <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow divide-y divide-gray-100 overflow-hidden">
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Recharge visseuse — La Plateforme du Bâtiment</p>
+                  <p class="op-l2">Outillage · <span class="tagpill bg-cream text-navy/70">Espèces</span></p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">08/07</span>
+                  <span class="font-mono text-sm text-navy">− 34,90 €</span>
+                  <svg class="w-3.5 h-3.5 text-orange" role="img" aria-label="Justificatif joint"><use href="#i-paperclip"/></svg>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-green-100">💶</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Dépannage express — M. Fabre</p>
+                  <p class="op-l2">Encaissement client · <span class="tagpill bg-cream text-navy/70">Espèces</span></p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">03/07</span>
+                  <span class="font-mono text-sm text-green-700">+ 80,00 €</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Juin -->
+          <div class="op-month">
+            <p class="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Juin 2026 <span class="normal-case tracking-normal font-mono text-gray-400">· 12 opérations · <span class="text-green-700">+ 4 850,00 €</span> · <span class="text-navy">− 1 916,31 €</span></span></p>
+            <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow divide-y divide-gray-100 overflow-hidden">
+
+              <div class="op-row" id="row-delmi" onclick="openOp('delmi')">
+                <div class="op-ic bg-green-100">💶</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Virement Mme Delmi</p>
+                  <p class="op-l2" id="sub-delmi">Virement reçu — à rapprocher d’une facture</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">30/06</span>
+                  <span class="font-mono text-sm text-green-700">+ 1 200,00 €</span>
+                  <span class="badge-atrier" id="badge-delmi"><span class="dot"></span>À trier</span>
+                </div>
+              </div>
+
+              <div class="op-row" id="row-rexel" onclick="openOp('rexel')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Rexel Bordeaux</p>
+                  <p class="op-l2" id="sub-rexel">Catégorie proposée : Fournitures chantier</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">28/06</span>
+                  <span class="font-mono text-sm text-navy">− 487,32 €</span>
+                  <span class="badge-atrier" id="badge-rexel"><span class="dot"></span>À trier</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">La Plateforme du Bâtiment</p>
+                  <p class="op-l2">Fournitures chantier · <span class="tagpill bg-sky/15 text-navy">🏠 Salle de bain Legros</span></p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">27/06</span>
+                  <span class="font-mono text-sm text-navy">− 126,90 €</span>
+                  <svg class="w-3.5 h-3.5 text-orange" role="img" aria-label="Justificatif joint"><use href="#i-paperclip"/></svg>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-gold/25">🧾</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">URSSAF</p>
+                  <p class="op-l2">Cotisations &amp; impôts</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">26/06</span>
+                  <span class="font-mono text-sm text-navy">− 842,00 €</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-cream">🚐</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">TotalEnergies St-Médard</p>
+                  <p class="op-l2">Véhicule</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">24/06</span>
+                  <span class="font-mono text-sm text-navy">− 68,54 €</span>
+                  <svg class="w-3.5 h-3.5 text-orange" role="img" aria-label="Justificatif joint"><use href="#i-paperclip"/></svg>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-green-100">💶</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Virement M. Legros</p>
+                  <p class="op-l2">Encaissement · Acompte de 795 € sur la facture 2026-014</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">23/06</span>
+                  <span class="font-mono text-sm text-green-700">+ 795,00 €</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Ampoules dépannage — Brico Cash</p>
+                  <p class="op-l2">Fournitures chantier · <span class="tagpill bg-cream text-navy/70">Espèces</span></p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">20/06</span>
+                  <span class="font-mono text-sm text-navy">− 24,90 €</span>
+                </div>
+              </div>
+
+              <div class="op-row" id="row-cef" onclick="openOp('cef')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">CEF Yesss Électrique</p>
+                  <p class="op-l2" id="sub-cef">Catégorie proposée : Fournitures chantier</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">19/06</span>
+                  <span class="font-mono text-sm text-navy">− 312,45 €</span>
+                  <span class="badge-atrier" id="badge-cef"><span class="dot"></span>À trier</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-gray-100">🔄</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Retrait au distributeur</p>
+                  <p class="op-l2">Mouvement interne — exclu des Entrées/Sorties</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">16/06</span>
+                  <span class="font-mono text-sm text-gray-400">− 100,00 €</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-green-100">💶</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Virement Boulangerie Pain d’Oc</p>
+                  <p class="op-l2">Encaissement · Facture 2026-012 réglée ✓</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">12/06</span>
+                  <span class="font-mono text-sm text-green-700">+ 2 855,00 €</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-cream">🛡️</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">MAIF Assurance Pro</p>
+                  <p class="op-l2">Assurances pro — décennale, RC pro</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">08/06</span>
+                  <span class="font-mono text-sm text-navy">− 54,20 €</span>
+                </div>
+              </div>
+
+              <div class="op-row opacity-60" onclick="toast('Marquée Perso : exclue de vos chiffres pro. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-gray-100">👤</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Amazon Marketplace</p>
+                  <p class="op-l2">Perso — rien à voir avec l’entreprise</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">05/06</span>
+                  <span class="font-mono text-sm text-gray-400">− 39,99 €</span>
+                  <span class="tagpill bg-gray-100 text-gray-500">Perso</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Mai -->
+          <div class="op-month">
+            <p class="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Mai 2026 <span class="normal-case tracking-normal font-mono text-gray-400">· 9 opérations · <span class="text-green-700">+ 3 410,00 €</span> · <span class="text-navy">− 3 262,79 €</span></span></p>
+            <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow divide-y divide-gray-100 overflow-hidden">
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Sonepar Mérignac</p>
+                  <p class="op-l2">Fournitures chantier · <span class="tagpill bg-sky/15 text-navy">🏠 Salle de bain Legros</span></p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">28/05</span>
+                  <span class="font-mono text-sm text-navy">− 1 240,18 €</span>
+                  <svg class="w-3.5 h-3.5 text-orange" role="img" aria-label="Justificatif joint"><use href="#i-paperclip"/></svg>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-green-100">💶</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Virement Garage Fabre</p>
+                  <p class="op-l2">Encaissement · Facture 2026-009 réglée ✓</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">15/05</span>
+                  <span class="font-mono text-sm text-green-700">+ 3 410,00 €</span>
+                </div>
+              </div>
+
+              <div class="op-row" onclick="toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.')">
+                <div class="op-ic bg-cream">📱</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Free Pro</p>
+                  <p class="op-l2">Téléphone &amp; logiciels</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">05/05</span>
+                  <span class="font-mono text-sm text-navy">− 45,99 €</span>
+                </div>
+              </div>
+
+            </div>
+            <button onclick="toast('Maquette : seules 3 opérations de mai sont montrées ici.')" class="mt-2 text-[12.5px] text-gray-500 underline underline-offset-2 hover:text-navy transition">Voir les 6 autres opérations de mai</button>
+          </div>
+
+        </div>
+        <style>
+          .op-row { display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; transition:background .15s; }
+          .op-row:hover { background:#fafbfc; }
+          .op-ic { width:36px; height:36px; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+          .op-l1 { font-weight:700; font-size:14px; color:#0f1a3a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+          .op-l2 { font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+          .op-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+          .op-date { font-family:'Manrope',sans-serif; font-variant-numeric:tabular-nums; font-size:11px; color:#9ca3af; }
+          .font-mono { font-variant-numeric: tabular-nums; } /* chiffres alignés, police du site */
+          .tagpill { display:inline-flex; align-items:center; padding:1px 8px; border-radius:9999px; font-size:11px; font-weight:600; }
+          .badge-atrier { display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:9999px; background:rgba(232,122,42,.1); color:#e87a2a; font-size:11px; font-weight:700; }
+          .badge-atrier .dot { width:6px; height:6px; border-radius:9999px; background:#e87a2a; }
+          body.mobile .op-l2 { max-width:150px; }
+          body.mobile .op-date { display:none; }
+        </style>
+      </section>
+
+<!-- ================= ÉCRAN : CAISSE (avec données) ================= -->
+      <section id="screen-caisse" class="screen">
+        <div class="flex items-start gap-2 bg-cream border border-gold/50 rounded-xl px-4 py-2.5 mb-4 text-[12.5px] text-navy/80">
+          <span class="mt-px">💡</span>
+          <p>Votre liquide, tout simplement. Chaque mouvement de caisse apparaît aussi dans <strong>Opérations</strong> avec la pastille «&nbsp;Espèces&nbsp;».</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 m-stack items-stretch mb-6">
+          <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow px-6 py-5">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Dans la caisse</p>
+            <p class="font-syne font-bold text-3xl">240,20&nbsp;€</p>
+            <p class="text-[12px] text-gray-500 mt-1.5">Fond de caisse de départ&nbsp;: 120,00&nbsp;€ le 01/06/2026 · <button onclick="toast('Dans la vraie version : vous pourrez corriger le fond de caisse à tout moment.')" class="underline underline-offset-2 hover:text-navy transition">Modifier</button></p>
+          </div>
+          <div class="flex sm:flex-col gap-3 m-col sm:justify-center">
+            <button onclick="openCaisseMove('in')" class="flex-1 sm:flex-none h-12 px-5 rounded-xl border-[1.5px] border-gray-200 bg-white font-bold text-sm hover:border-sky transition">+ Argent reçu</button>
+            <button onclick="openCaisseMove('out')" class="flex-1 sm:flex-none h-12 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold text-sm transition">− Argent dépensé</button>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <p class="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Juillet 2026 <span class="normal-case tracking-normal font-mono text-gray-400">· 2 mouvements · <span class="text-green-700">+ 80,00 €</span> · <span class="text-navy">− 34,90 €</span></span></p>
+            <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow divide-y divide-gray-100 overflow-hidden">
+              <div class="op-row" onclick="toast('Mouvement de caisse déjà trié. Un clic permettra de le modifier dans la vraie version.')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Recharge visseuse — La Plateforme du Bâtiment</p>
+                  <p class="op-l2">Outillage</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">08/07</span>
+                  <span class="font-mono text-sm text-navy">− 34,90 €</span>
+                  <svg class="w-3.5 h-3.5 text-orange" role="img" aria-label="Justificatif joint"><use href="#i-paperclip"/></svg>
+                </div>
+              </div>
+              <div class="op-row" onclick="toast('Mouvement de caisse déjà trié. Un clic permettra de le modifier dans la vraie version.')">
+                <div class="op-ic bg-green-100">💶</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Dépannage express — M. Fabre</p>
+                  <p class="op-l2">Encaissement client</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">03/07</span>
+                  <span class="font-mono text-sm text-green-700">+ 80,00 €</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p class="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Juin 2026 <span class="normal-case tracking-normal font-mono text-gray-400">· 2 mouvements · <span class="text-green-700">+ 100,00 €</span> · <span class="text-navy">− 24,90 €</span></span></p>
+            <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow divide-y divide-gray-100 overflow-hidden">
+              <div class="op-row" onclick="toast('Mouvement de caisse déjà trié. Un clic permettra de le modifier dans la vraie version.')">
+                <div class="op-ic bg-sky/15">⚡</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Ampoules dépannage — Brico Cash</p>
+                  <p class="op-l2">Fournitures chantier</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">20/06</span>
+                  <span class="font-mono text-sm text-navy">− 24,90 €</span>
+                </div>
+              </div>
+              <div class="op-row" onclick="toast('Ce billet vient du retrait au distributeur du 16/06 : la banque et la caisse restent d’accord entre elles.')">
+                <div class="op-ic bg-gray-100">🔄</div>
+                <div class="min-w-0 flex-1">
+                  <p class="op-l1">Retrait au distributeur ajouté à la caisse</p>
+                  <p class="op-l2">Mouvement interne — le même argent, passé de la banque à la caisse</p>
+                </div>
+                <div class="op-right">
+                  <span class="op-date">16/06</span>
+                  <span class="font-mono text-sm text-gray-400">+ 100,00 €</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ÉCRAN : CAISSE (état vide) ================= -->
+      <section id="screen-caisse-vide" class="screen">
+        <div class="max-w-md mx-auto text-center pt-12 pb-10">
+          <div class="w-16 h-16 rounded-2xl bg-gold/20 text-navy flex items-center justify-center mx-auto mb-5 text-3xl">💶</div>
+          <h2 class="font-syne font-bold text-xl sm:text-2xl mb-3">Vous encaissez ou payez parfois en liquide&nbsp;?</h2>
+          <p class="text-gray-600 mb-6">Notez-le ici pour ne rien perdre. Un billet oublié, c’est une dépense qui disparaît de vos chiffres.</p>
+          <button onclick="openCaisseStart()" class="h-12 px-6 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">Démarrer ma caisse</button>
+        </div>
+      </section>
+
+      <!-- ================= ÉCRAN : PAR CHANTIER (avec données) ================= -->
+      <section id="screen-chantiers" class="screen">
+        <div class="flex items-start gap-2 bg-white border border-navy/[0.08] rounded-xl px-4 py-3 mb-4 text-[12.5px] text-navy/80 card-shadow">
+          <span class="mt-px">ℹ️</span>
+          <div>
+            <p><strong>Comment on calcule&nbsp;?</strong> Rapporté = ce que vous avez facturé sur ce chantier. Dépensé = les dépenses que vous y avez rattachées. Si vous n’avez pas tout rattaché, le chiffre est optimiste.</p>
+            <p class="mt-1.5 text-orange font-semibold">2 dépenses ne sont rattachées à aucun chantier ce mois-ci. <button onclick="openQueue()" class="underline underline-offset-2 font-bold">Les trier</button></p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap mb-5" id="chantier-sort">
+          <button onclick="sortChantiers(this)" class="pchip pchip-on">Les plus rentables</button>
+          <button onclick="sortChantiers(this)" class="pchip">Les moins rentables</button>
+          <button onclick="sortChantiers(this)" class="pchip">Récents</button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Legros -->
+          <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow p-5">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <p class="font-syne font-bold text-[16px]">Salle de bain Legros</p>
+              <span class="tagpill bg-sky/15 text-navy">M. Legros</span>
+              <span class="tagpill bg-green-100 text-green-700">En cours</span>
+              <span class="ml-auto font-syne font-bold text-[15px] text-green-700">+ 1 282,92 €</span>
+            </div>
+            <div class="space-y-1.5 mb-3">
+              <div class="flex items-center gap-2 text-[12px]"><span class="w-16 text-gray-500 flex-shrink-0">Facturé</span><div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden"><div class="h-full rounded-full bg-green-600" style="width:100%"></div></div><span class="font-mono w-24 text-right flex-shrink-0">2 650,00 €</span></div>
+              <div class="flex items-center gap-2 text-[12px]"><span class="w-16 text-gray-500 flex-shrink-0">Dépensé</span><div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden"><div class="h-full rounded-full bg-orange" style="width:52%"></div></div><span class="font-mono w-24 text-right flex-shrink-0">1 367,08 €</span></div>
+            </div>
+            <p class="text-[13.5px] font-bold text-green-700 mb-1">Ce chantier vous a rapporté 1 282,92 €</p>
+            <p class="text-[12px] text-gray-500">Prévu au devis : 4 200,00 € · Reste à facturer : 1 550,00 €</p>
+          </div>
+
+          <!-- Fabre -->
+          <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow p-5">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <p class="font-syne font-bold text-[16px]">Garage Fabre</p>
+              <span class="tagpill bg-sky/15 text-navy">Garage Fabre</span>
+              <span class="tagpill bg-gray-100 text-gray-500">Terminé</span>
+              <span class="ml-auto font-syne font-bold text-[15px] text-green-700">+ 1 519,55 €</span>
+            </div>
+            <div class="space-y-1.5 mb-3">
+              <div class="flex items-center gap-2 text-[12px]"><span class="w-16 text-gray-500 flex-shrink-0">Facturé</span><div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden"><div class="h-full rounded-full bg-green-600" style="width:100%"></div></div><span class="font-mono w-24 text-right flex-shrink-0">3 410,00 €</span></div>
+              <div class="flex items-center gap-2 text-[12px]"><span class="w-16 text-gray-500 flex-shrink-0">Dépensé</span><div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden"><div class="h-full rounded-full bg-orange" style="width:55%"></div></div><span class="font-mono w-24 text-right flex-shrink-0">1 890,45 €</span></div>
+            </div>
+            <p class="text-[13.5px] font-bold text-green-700 mb-1">Ce chantier vous a rapporté 1 519,55 €</p>
+            <p class="text-[12px] text-gray-500">Prévu au devis : 3 410,00 € · Conforme au devis ✓</p>
+          </div>
+
+          <!-- Delmi -->
+          <div class="bg-white rounded-2xl border border-navy/[0.06] card-shadow p-5">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <p class="font-syne font-bold text-[16px]">Rénovation tableau Delmi</p>
+              <span class="tagpill bg-sky/15 text-navy">Mme Delmi</span>
+              <span class="tagpill bg-green-100 text-green-700">En cours</span>
+              <span class="ml-auto font-syne font-bold text-[15px] text-red-700/80">− 180,00 €</span>
+            </div>
+            <div class="space-y-1.5 mb-3">
+              <div class="flex items-center gap-2 text-[12px]"><span class="w-16 text-gray-500 flex-shrink-0">Facturé</span><div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden"><div class="h-full rounded-full bg-green-600" style="width:94%"></div></div><span class="font-mono w-24 text-right flex-shrink-0">3 000,00 €</span></div>
+              <div class="flex items-center gap-2 text-[12px]"><span class="w-16 text-gray-500 flex-shrink-0">Dépensé</span><div class="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden"><div class="h-full rounded-full bg-orange" style="width:100%"></div></div><span class="font-mono w-24 text-right flex-shrink-0">3 180,00 €</span></div>
+            </div>
+            <p class="text-[13.5px] font-bold text-red-700/80 mb-1">Ce chantier vous a coûté 180,00 € de plus que ce qu’il a rapporté. <button onclick="toast('Dans la vraie version : la liste des dépenses de ce chantier, des plus grosses aux plus petites.')" class="underline underline-offset-2 font-bold">Voir pourquoi</button></p>
+            <p class="text-[12px] text-gray-500">Prévu au devis : 3 000,00 € · Dépenses rattachées : 3 180,00 €</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ÉCRAN : PAR CHANTIER (état vide) ================= -->
+      <section id="screen-chantiers-vide" class="screen">
+        <div class="max-w-md mx-auto text-center pt-12 pb-10">
+          <div class="w-16 h-16 rounded-2xl bg-sky/15 text-navy flex items-center justify-center mx-auto mb-5 text-3xl">🏠</div>
+          <h2 class="font-syne font-bold text-xl sm:text-2xl mb-3">Est-ce que vos chantiers vous rapportent&nbsp;?</h2>
+          <p class="text-gray-600 mb-6">Ajoutez une dépense et rattachez-la à un chantier&nbsp;: on vous dira s’il vous rapporte de l’argent.</p>
+          <button onclick="openDepense()" class="h-12 px-6 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">Ajouter ma première dépense</button>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- /main-col -->
+
+  <!-- ============ Voile (overlay) ============ -->
+  <div id="overlay" class="fixed inset-0 bg-navy/40 z-40" style="display:none" onclick="closeAll()"></div>
+
+  <!-- ============ Panneau de pointage (drawer) ============ -->
+  <aside id="drawer" class="fixed top-11 right-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col" role="dialog" aria-modal="true" aria-label="Pointage de l’opération">
+    <div id="drawer-body" class="flex-1 overflow-y-auto"></div>
+    <div id="drawer-foot" class="border-t border-gray-100 p-4 flex-shrink-0">
+      <p id="drawer-count" class="text-center text-[12px] font-bold text-orange mb-2"></p>
+      <div class="flex items-center gap-3">
+        <button onclick="validerOp()" class="flex-1 h-12 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">C’est noté ✓</button>
+        <button onclick="passerOp()" class="h-12 px-4 rounded-xl border-[1.5px] border-gray-200 font-semibold text-sm text-gray-500 hover:border-gray-300 transition">Passer</button>
+      </div>
+      <p class="text-center text-[11px] text-gray-400 mt-2">Vous pourrez toujours modifier plus tard.</p>
+    </div>
+  </aside>
+
+  <!-- ============ Modale : import de relevé (4 étapes) ============ -->
+  <div id="import-modal" class="modal" role="dialog" aria-modal="true" aria-label="Importer un relevé bancaire">
+    <div class="absolute inset-0 bg-navy/40" onclick="closeAll()"></div>
+    <div class="mbox p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-syne font-bold text-lg">Importer un relevé</h2>
+        <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+      </div>
+
+      <div class="flex items-center gap-1.5 mb-5 flex-wrap" aria-hidden="true">
+        <span class="imp-dot" id="imp-dot-1">1</span><span class="imp-lbl">Fichier</span><span class="imp-line"></span>
+        <span class="imp-dot" id="imp-dot-2">2</span><span class="imp-lbl">Vérification</span><span class="imp-line"></span>
+        <span class="imp-dot" id="imp-dot-3">3</span><span class="imp-lbl">Import</span><span class="imp-line"></span>
+        <span class="imp-dot" id="imp-dot-4">4</span><span class="imp-lbl">Terminé</span>
+      </div>
+
+      <!-- Étape 1 : dépôt -->
+      <div class="imp-step" id="imp-step-1">
+        <button onclick="simulateFile()" class="w-full rounded-2xl border-2 border-dashed border-gray-300 hover:border-orange bg-gray-50 hover:bg-orange/[0.04] transition px-5 py-10 text-center">
+          <svg class="w-8 h-8 mx-auto text-gray-400 mb-3"><use href="#i-upload"/></svg>
+          <p class="font-bold text-[14px] mb-1">Glissez le relevé téléchargé depuis votre banque</p>
+          <p class="text-[12.5px] text-gray-500">CSV, OFX ou Excel. Pas besoin de le modifier&nbsp;: on se débrouille avec le fichier tel quel.</p>
+          <span class="inline-block mt-4 h-10 leading-10 px-5 rounded-xl bg-navy text-white font-bold text-[13px]">Choisir un fichier (simulation)</span>
+        </button>
+        <div class="mt-4 space-y-1.5 text-[12.5px] text-gray-500">
+          <p>✓ Jusqu’à 10 000 lignes — un an de relevé passe en une seule fois.</p>
+          <p>✓ Réimporter deux fois le même fichier ne crée jamais de doublon.</p>
+          <p>✗ Les relevés PDF ne sont pas encore acceptés — téléchargez la version CSV.</p>
+        </div>
+        <button onclick="openAide()" class="mt-4 text-[13px] font-semibold text-navy underline underline-offset-2 hover:text-orange transition">Où trouver ce fichier dans ma banque&nbsp;?</button>
+      </div>
+
+      <!-- Étape 2 : vérification -->
+      <div class="imp-step" id="imp-step-2" style="display:none">
+        <div class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 mb-4">
+          <p class="font-bold text-[14px] text-green-800 mb-1">On a reconnu votre fichier ✓</p>
+          <p class="text-[12.5px] text-green-800/80 font-mono">releve-boursorama-2026-S1.csv</p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 text-[12.5px]">
+          <div class="rounded-xl border border-gray-200 px-3 py-2.5"><p class="text-gray-500">Banque détectée</p><p class="font-bold">Boursorama</p></div>
+          <div class="rounded-xl border border-gray-200 px-3 py-2.5"><p class="text-gray-500">Opérations</p><p class="font-bold">273 · du 01/01 au 30/06/2026</p></div>
+          <div class="rounded-xl border border-gray-200 px-3 py-2.5"><p class="text-gray-500">Entrées / Sorties</p><p class="font-bold"><span class="text-green-700">+ 5 401,00 €</span> · <span class="text-navy">− 5 921,00 €</span></p></div>
+        </div>
+        <p class="text-[12.5px] text-gray-500 mb-2">Ajouter à&nbsp;: <button onclick="toast('Dans la vraie version : choix du compte, ou « + Nouveau compte ».')" class="font-bold text-navy underline underline-offset-2">Compte pro Boursorama ▾</button></p>
+        <div class="rounded-xl bg-cream border border-gold/50 px-4 py-2.5 mb-4 text-[12.5px] text-navy/80">
+          <strong>41 opérations sont déjà dans Nexartis</strong> (même date, même montant, même libellé)&nbsp;: on ne les réimportera pas.
+        </div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Aperçu des 5 premières lignes — les lignes grisées sont déjà là</p>
+        <div class="rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden text-[12.5px] mb-5">
+          <div class="flex items-center gap-3 px-4 py-2"><span class="font-mono text-gray-400 w-16 flex-shrink-0">02/01</span><span class="flex-1 truncate">Sonepar Mérignac</span><span class="font-mono text-navy">− 214,60 €</span></div>
+          <div class="flex items-center gap-3 px-4 py-2 opacity-45"><span class="font-mono text-gray-400 w-16 flex-shrink-0">05/01</span><span class="flex-1 truncate">Virement M. Bosc</span><span class="tagpill bg-gray-100 text-gray-500">Déjà là</span><span class="font-mono">+ 640,00 €</span></div>
+          <div class="flex items-center gap-3 px-4 py-2"><span class="font-mono text-gray-400 w-16 flex-shrink-0">09/01</span><span class="flex-1 truncate">TotalEnergies St-Médard</span><span class="font-mono text-navy">− 71,20 €</span></div>
+          <div class="flex items-center gap-3 px-4 py-2 opacity-45"><span class="font-mono text-gray-400 w-16 flex-shrink-0">12/01</span><span class="flex-1 truncate">URSSAF</span><span class="tagpill bg-gray-100 text-gray-500">Déjà là</span><span class="font-mono">− 812,00 €</span></div>
+          <div class="flex items-center gap-3 px-4 py-2"><span class="font-mono text-gray-400 w-16 flex-shrink-0">15/01</span><span class="flex-1 truncate">Brico Cash</span><span class="font-mono text-navy">− 45,80 €</span></div>
+        </div>
+        <div class="flex items-center gap-3 m-col">
+          <button onclick="importStep(1)" class="h-11 px-4 rounded-xl border-[1.5px] border-gray-200 font-semibold text-sm text-gray-500 hover:border-gray-300 transition">← Retour</button>
+          <button onclick="importStep(3)" class="flex-1 h-11 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold text-sm transition">Importer 232 opérations →</button>
+        </div>
+      </div>
+
+      <!-- Étape 3 : import en cours -->
+      <div class="imp-step" id="imp-step-3" style="display:none">
+        <div class="py-10 text-center">
+          <p class="font-syne font-bold text-lg mb-1">Import en cours…</p>
+          <p class="text-[12.5px] text-gray-500 mb-6">On trie automatiquement ce qu’on reconnaît (fournisseurs, URSSAF, assurances…).</p>
+          <div class="h-2.5 rounded-full bg-gray-100 overflow-hidden max-w-sm mx-auto">
+            <div id="import-progress-bar" class="h-full rounded-full bg-orange" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 4 : rapport -->
+      <div class="imp-step" id="imp-step-4" style="display:none">
+        <div class="text-center pt-4 pb-2">
+          <div class="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mx-auto mb-4"><svg class="w-7 h-7"><use href="#i-check"/></svg></div>
+          <p class="font-syne font-bold text-xl mb-2">232 opérations ajoutées.</p>
+          <p class="text-[13.5px] text-gray-600 max-w-sm mx-auto mb-6">On en a trié <strong>178 automatiquement</strong> (fournisseurs et catégories reconnus). Il vous en reste <strong>54 à vérifier</strong> — 5 minutes, promis.</p>
+          <div class="flex items-center justify-center gap-3 m-col">
+            <button onclick="importFinishTri()" class="h-12 px-6 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">Commencer le tri</button>
+            <button onclick="closeAll()" class="h-12 px-5 rounded-xl border-[1.5px] border-gray-200 font-semibold text-sm hover:border-gray-300 transition">Voir mes opérations</button>
+          </div>
+          <button onclick="importStep(1)" class="mt-4 text-[12.5px] text-gray-500 underline underline-offset-2 hover:text-navy transition">Importer un autre fichier</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modale : saisie manuelle d’une dépense ============ -->
+  <div id="depense-modal" class="modal" role="dialog" aria-modal="true" aria-label="Nouvelle dépense">
+    <div class="absolute inset-0 bg-navy/40" onclick="closeAll()"></div>
+    <div class="mbox p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-syne font-bold text-lg">Nouvelle dépense</h2>
+        <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="rounded-xl bg-cream border border-gold/50 px-4 py-2.5 mb-4 text-[12px] text-navy/80">
+        💡 Cette dépense se rangera dans <strong>Achats</strong>. L’écran Opérations, lui, ne montre que votre banque et votre caisse.
+      </div>
+
+      <label for="dep-montant" class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Montant</label>
+      <input id="dep-montant" inputmode="decimal" value="87,30" class="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-mono font-bold text-2xl text-center focus:outline-none focus:border-sky transition mb-4" aria-label="Montant en euros">
+
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Payé avec</p>
+      <div id="dep-pay" class="flex flex-wrap gap-2 mb-1.5">
+        <button class="chip sel" data-v="Compte pro" onclick="pickPay(this)">Compte pro</button>
+        <button class="chip" data-v="Espèces" onclick="pickPay(this)">Espèces</button>
+        <button class="chip" data-v="Carte perso" onclick="pickPay(this)">Carte perso</button>
+      </div>
+      <p id="dep-pay-note" class="text-[12px] text-gray-500 mb-4">Elle pourra être rapprochée de la ligne bancaire correspondante au prochain import de relevé.</p>
+
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Pour quel chantier&nbsp;?</p>
+      <p class="text-[12px] text-gray-500 mb-2">Aujourd’hui vous étiez chez Legros (d’après votre Planning) — on a pré-rempli&nbsp;:</p>
+      <div id="dep-chantier" class="flex flex-wrap gap-2 mb-4">
+        <button class="chip sel" data-v="Salle de bain Legros" onclick="pickChip(this)">🏠 Salle de bain Legros</button>
+        <button class="chip" data-v="Rénovation tableau Delmi" onclick="pickChip(this)">🏠 Rénovation tableau Delmi</button>
+        <button class="chip" data-v="Aucun / frais généraux" onclick="pickChip(this)">Aucun / frais généraux</button>
+      </div>
+
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Catégorie</p>
+      <div id="dep-cat" class="flex flex-wrap gap-2 mb-4">
+        <button class="chip sel" data-v="Fournitures chantier" onclick="pickChip(this)">Fournitures chantier</button>
+        <button class="chip" data-v="Outillage" onclick="pickChip(this)">Outillage</button>
+        <button class="chip" data-v="Véhicule" onclick="pickChip(this)">Véhicule</button>
+        <button class="chip" onclick="toast('Dans la vraie version : recherche parmi ~15 catégories en français simple (Repas &amp; déplacements, Assurances pro, Cotisations &amp; impôts, Rémunération…).',5000)">Autre…</button>
+      </div>
+
+      <button onclick="toast('Dans la vraie version : photo directe ou choix d’un fichier (PDF, JPG, PNG — photos iPhone converties automatiquement, 5 Mo max après compression).',5000)" class="w-full h-12 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 font-semibold text-[13px] hover:border-sky hover:text-navy transition mb-3">📎 Ajouter le ticket (photo)</button>
+      <button onclick="toast('Dans la vraie version : fournisseur, description et date (pré-remplie à aujourd’hui) — tout est facultatif.',4500)" class="text-[12.5px] text-gray-500 underline underline-offset-2 hover:text-navy transition mb-4">+ Fournisseur, description, date (facultatif)</button>
+
+      <button onclick="saveDepense()" class="w-full h-12 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">Enregistrer la dépense</button>
+    </div>
+  </div>
+
+  <!-- ============ Modale : démarrer la caisse ============ -->
+  <div id="caisse-start-modal" class="modal" role="dialog" aria-modal="true" aria-label="Démarrer ma caisse">
+    <div class="absolute inset-0 bg-navy/40" onclick="closeAll()"></div>
+    <div class="mbox !max-w-sm p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-syne font-bold text-lg">Démarrer ma caisse</h2>
+        <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+      </div>
+      <p class="text-[14px] font-semibold mb-1">Combien avez-vous en liquide aujourd’hui&nbsp;?</p>
+      <p class="text-[12px] text-gray-500 mb-3">Ça peut être 0 — vous pourrez corriger plus tard.</p>
+      <input id="caisse-fond" inputmode="decimal" value="120,00" class="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-mono font-bold text-2xl text-center focus:outline-none focus:border-sky transition mb-4" aria-label="Fond de caisse en euros">
+      <button onclick="startCaisse()" class="w-full h-12 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">C’est parti</button>
+    </div>
+  </div>
+
+  <!-- ============ Modale : mouvement de caisse ============ -->
+  <div id="caisse-move-modal" class="modal" role="dialog" aria-modal="true" aria-label="Mouvement de caisse">
+    <div class="absolute inset-0 bg-navy/40" onclick="closeAll()"></div>
+    <div class="mbox !max-w-sm p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 id="cm-title" class="font-syne font-bold text-lg">+ Argent reçu</h2>
+        <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+      </div>
+      <input id="cm-montant" inputmode="decimal" value="20,00" class="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-mono font-bold text-2xl text-center focus:outline-none focus:border-sky transition mb-2" aria-label="Montant en euros">
+      <p class="text-[12px] text-gray-500 mb-4">Catégorie et chantier&nbsp;: proposés juste après, comme pour une opération bancaire.</p>
+      <button onclick="saveCaisseMove()" class="w-full h-12 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition">C’est noté ✓</button>
+    </div>
+  </div>
+
+  <!-- ============ Modale : aide « où trouver mon relevé » ============ -->
+  <div id="aide-modal" class="modal" role="dialog" aria-modal="true" aria-label="Aide relevé bancaire">
+    <div class="absolute inset-0 bg-navy/40" onclick="closeAll()"></div>
+    <div class="mbox p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-syne font-bold text-lg">C’est quoi, un relevé CSV ou OFX&nbsp;?</h2>
+        <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+      </div>
+      <p class="text-[13px] text-gray-600 mb-4">C’est le fichier que votre banque vous laisse télécharger, avec la liste de vos opérations. Le CSV s’ouvre dans Excel&nbsp;; l’OFX est un format bancaire standard. Les deux marchent — <strong>vous n’avez rien à modifier dedans</strong>.</p>
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Où le trouver, banque par banque</p>
+      <div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden text-[13px] mb-4">
+        <div class="px-4 py-3"><p class="font-bold mb-0.5">Crédit Agricole</p><p class="text-gray-500">Comptes → cliquez sur votre compte → «&nbsp;Télécharger les opérations&nbsp;» → format CSV.</p></div>
+        <div class="px-4 py-3"><p class="font-bold mb-0.5">BNP Paribas</p><p class="text-gray-500">Comptes → bouton «&nbsp;Exporter&nbsp;» en haut de la liste des opérations → CSV ou OFX.</p></div>
+        <div class="px-4 py-3"><p class="font-bold mb-0.5">Boursorama</p><p class="text-gray-500">Mon compte → icône de téléchargement au-dessus de la liste des opérations → CSV.</p></div>
+        <div class="px-4 py-3"><p class="font-bold mb-0.5">Qonto</p><p class="text-gray-500">Transactions → bouton «&nbsp;Exporter&nbsp;» → CSV.</p></div>
+        <div class="px-4 py-3"><p class="font-bold mb-0.5">Shine</p><p class="text-gray-500">Compte pro → «&nbsp;Exports comptables&nbsp;» → relevé CSV.</p></div>
+      </div>
+      <p class="text-[12.5px] text-gray-500">Votre banque n’est pas dans la liste&nbsp;? Cherchez un bouton «&nbsp;Exporter&nbsp;» ou «&nbsp;Télécharger&nbsp;» près de la liste de vos opérations — c’est presque toujours là.</p>
+    </div>
+  </div>
+
+  <!-- ============ Modale : démo photo de ticket ============ -->
+  <div id="photo-modal" class="modal" role="dialog" aria-modal="true" aria-label="Dépense par photo du ticket">
+    <div class="absolute inset-0 bg-navy/70" onclick="closeAll()"></div>
+    <div class="mbox !max-w-sm !bg-navy text-white relative overflow-hidden">
+      <div id="pd-flash" class="absolute inset-0 bg-white opacity-0 pointer-events-none z-10"></div>
+      <div id="pd-1" class="p-5">
+        <div class="flex items-center justify-between mb-3">
+          <p class="font-syne font-bold text-[15px]">📸 Dépense — photo du ticket</p>
+          <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="rounded-2xl bg-black/50 border border-white/15 h-60 relative flex items-center justify-center mb-4">
+          <div class="w-28 bg-white text-navy rounded-sm px-2 py-2 text-center rotate-2 shadow-lg">
+            <p class="text-[9px] font-bold">REXEL BORDEAUX</p>
+            <p class="text-[7px] text-gray-400 leading-tight mt-1">Gaine ICTA 20 ×50 m<br>Disjoncteur 16 A ×4<br>Boîtes d’encastrement ×12</p>
+            <p class="text-[10px] font-mono font-bold mt-1">87,30 €</p>
+          </div>
+        </div>
+        <p class="text-[12px] text-white/60 text-center mb-3">Sur votre téléphone, l’appareil photo s’ouvre directement — pas de menu, pas de réglage.</p>
+        <button onclick="pdShoot()" class="w-full h-12 rounded-xl bg-orange hover:bg-orange-hover font-bold transition">Prendre la photo</button>
+      </div>
+      <div id="pd-2" class="p-5" style="display:none">
+        <div class="flex items-center justify-between mb-1">
+          <p class="font-syne font-bold text-[15px]">Photo enregistrée ✓</p>
+          <button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="Fermer"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>
+        </div>
+        <p class="text-[12px] text-white/60 mb-3">Le ticket est attaché. Il ne reste que le montant — tout le reste peut attendre le canapé.</p>
+        <label for="pd-montant" class="block text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-1">Montant</label>
+        <input id="pd-montant" inputmode="decimal" value="87,30" class="w-full h-14 rounded-xl bg-white text-navy font-mono font-bold text-2xl text-center mb-3" aria-label="Montant en euros">
+        <p class="text-[12px] text-white/60 mb-2">Aujourd’hui vous étiez chez Legros (d’après votre Planning) — on a pré-rempli&nbsp;:</p>
+        <div id="pd-chips" class="flex flex-wrap gap-2 mb-4">
+          <button class="chip sel" data-v="Salle de bain Legros" onclick="pickChip(this)">🏠 Salle de bain Legros</button>
+          <button class="chip" data-v="Aucun / frais généraux" onclick="pickChip(this)">Aucun / frais généraux</button>
+        </div>
+        <button onclick="pdSave()" class="w-full h-12 rounded-xl bg-orange hover:bg-orange-hover font-bold transition">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Menu « + » mobile ============ -->
+  <div id="create-menu" class="modal" role="dialog" aria-modal="true" aria-label="Créer">
+    <div class="absolute inset-0 bg-navy/40" onclick="closeAll()"></div>
+    <div class="mbox !max-w-sm p-3">
+      <button onclick="closeAll();goPhotoDemo()" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-50 text-left transition"><span class="text-xl">📸</span><span class="font-bold text-[14px]">Dépense (photo du ticket)</span></button>
+      <button onclick="closeAll();openDepense()" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-50 text-left transition"><span class="text-xl">✍️</span><span class="font-bold text-[14px]">Saisir une dépense</span></button>
+      <button onclick="toast('Devis, facture, chantier… — hors périmètre de cette maquette.')" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-50 text-left transition"><span class="text-xl">📄</span><span class="font-bold text-[14px] text-gray-500">Devis, facture, chantier…</span></button>
+    </div>
+  </div>
+
+  <!-- ============ Navigation basse mobile ============ -->
+  <nav id="bottomnav" class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 h-[68px] px-2 items-center justify-around" aria-label="Navigation mobile">
+    <button onclick="navOff()" class="bn-it"><svg class="w-[22px] h-[22px]"><use href="#i-home"/></svg><span>Accueil</span></button>
+    <button onclick="navOff()" class="bn-it"><svg class="w-[22px] h-[22px]"><use href="#i-pen"/></svg><span>Devis</span></button>
+    <button onclick="openCreateMenu()" class="w-[52px] h-[52px] -mt-7 rounded-full bg-orange hover:bg-orange-hover text-white text-2xl font-bold shadow-lg flex items-center justify-center transition" aria-label="Créer">+</button>
+    <button onclick="navOff()" class="bn-it"><svg class="w-[22px] h-[22px]"><use href="#i-grid"/></svg><span>Chantiers</span></button>
+    <button onclick="toast('Le menu « Plus » donne accès à Dépenses & Banque sur mobile.')" class="bn-it"><svg class="w-[22px] h-[22px]"><use href="#i-sliders"/></svg><span>Plus…</span></button>
+  </nav>
+
+  <!-- ============ Toast ============ -->
+  <div id="toast" class="fixed left-1/2 bottom-[84px] -translate-x-1/2 z-[90] max-w-[92%] sm:max-w-md bg-navy text-white text-[13px] font-semibold px-4 py-3 rounded-xl shadow-xl opacity-0 pointer-events-none" role="status" aria-live="polite"></div>
+
+</div><!-- /maquette-app -->
+
+<style>
+  /* ---- Sous-onglets ---- */
+  .subtab { color:#6b7280; }
+  .subtab:hover { color:#0f1a3a; }
+  .subtab.on { color:#0f1a3a; }
+  .subtab.on::after { content:''; position:absolute; left:8px; right:8px; bottom:-1px; height:3px; border-radius:9999px; background:#e87a2a; }
+
+  /* ---- Chips de sélection (drawer + modales) ---- */
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; min-height:40px; border-radius:9999px; border:1.5px solid #e5e7eb; background:#fff; font-size:13px; font-weight:600; color:#374151; }
+  .chip:hover { border-color:#5ab4e0; }
+
+  /* ---- Modales ---- */
+  .modal { position:fixed; inset:0; z-index:60; display:none; }
+  .modal.on { display:flex; align-items:center; justify-content:center; padding:16px; }
+  .mbox { position:relative; background:#fff; border-radius:20px; width:100%; max-width:640px; max-height:88%; overflow-y:auto; box-shadow:0 30px 60px rgba(15,26,58,.25); }
+  body.mobile .modal.on { align-items:flex-end; padding:0; }
+  body.mobile .mbox { border-radius:20px 20px 0 0; max-height:92%; }
+
+  /* ---- Étapes d'import ---- */
+  .imp-dot { width:26px; height:26px; border-radius:9999px; border:1.5px solid #e5e7eb; color:#9ca3af; font-size:12px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .imp-dot.on { background:#0f1a3a; border-color:#0f1a3a; color:#fff; }
+  .imp-lbl { font-size:11.5px; font-weight:600; color:#6b7280; }
+  .imp-line { flex:1; min-width:12px; height:1.5px; background:#e5e7eb; }
+
+  /* ---- Ajustements vue mobile ---- */
+  body.mobile #main-col header { top:0; }
+
+  /* ---- Bottom nav ---- */
+  #bottomnav { display:none; }
+  .bn-it { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:56px; min-height:48px; justify-content:center; font-size:10.5px; font-weight:600; color:#6b7280; }
+  .bn-it:hover { color:#0f1a3a; }
+
+  /* ---- Sections du drawer ---- */
+  .dr-title { font-family:'Syne',sans-serif; font-weight:700; font-size:15px; margin-bottom:4px; }
+  .dr-hint { font-size:12px; color:#6b7280; margin-bottom:8px; }
+  .dr-link { font-size:13px; color:#4b5563; text-decoration:underline; text-underline-offset:2px; text-align:left; min-height:32px; }
+  .dr-link:hover { color:#0f1a3a; }
+</style>
+
+<script>
+/* =========================================================
+   Maquette « Dépenses & Banque » — logique de démonstration
+   Aucune donnée réelle. Aucun appel réseau. Audit vérificateur : 12/07/2026.
+   ========================================================= */
+
+// ---------- État global ----------
+let dataMode = 'data';
+let currentTab = 'operations';
+let currentOp = null;
+let aTrier = ['delmi', 'rexel', 'cef'];
+let toastTimer = null;
+
+// ---------- Données factices des opérations à trier ----------
+const OPS = {
+  delmi: {
+    type: 'credit',
+    titre: 'Virement Mme Delmi',
+    brut: 'VIR SEPA MME DELMI NADIA REF 88412',
+    date: '30/06/2026',
+    montant: '+ 1 200,00 €',
+    source: 'Relevé Boursorama — Compte pro'
+  },
+  rexel: {
+    type: 'debit',
+    titre: 'Rexel Bordeaux',
+    brut: 'CB REXEL BORDEAUX FR 27/06 CARTE 4974XX',
+    date: '28/06/2026',
+    montant: '− 487,32 €',
+    source: 'Relevé Boursorama — Compte pro',
+    sugg: ['Fournitures chantier', 'Outillage', 'Véhicule']
+  },
+  cef: {
+    type: 'debit',
+    titre: 'CEF Yesss Électrique',
+    brut: 'CB CEF YESSS ELECTRIQUE 19/06 CARTE 4974XX',
+    date: '19/06/2026',
+    montant: '− 312,45 €',
+    source: 'Relevé Boursorama — Compte pro',
+    sugg: ['Fournitures chantier', 'Outillage', 'Téléphone & logiciels']
+  }
+};
+const CHANTIERS = ['Salle de bain Legros', 'Rénovation tableau Delmi', 'Garage Fabre'];
+
+// ---------- Toast ----------
+function toast(msg, dur) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.opacity = '0'; }, dur || 2800);
+}
+
+// ---------- Navigation factice ----------
+function navOff() {
+  toast('Navigation désactivée dans la maquette — seul l’onglet « Dépenses & Banque » est cliquable.');
+  return false;
+}
+
+// ---------- Onglets & modes de données ----------
+function refreshScreens() {
+  const map = {
+    operations: dataMode === 'data' ? 'screen-operations' : 'screen-vide',
+    caisse:     dataMode === 'data' ? 'screen-caisse'     : 'screen-caisse-vide',
+    chantiers:  dataMode === 'data' ? 'screen-chantiers'  : 'screen-chantiers-vide'
+  };
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById(map[currentTab]).classList.add('on');
+}
+function setTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.subtab').forEach(b => b.classList.remove('on'));
+  document.getElementById('tab-' + t).classList.add('on');
+  refreshScreens();
+}
+function setDataMode(m) {
+  dataMode = m;
+  ['vide', 'data'].forEach(x => {
+    const b = document.getElementById('btn-mode-' + x);
+    b.classList.toggle('bg-gold', x === m);
+    b.classList.toggle('text-navy', x === m);
+    b.classList.toggle('bg-white/10', x !== m);
+  });
+  refreshScreens();
+}
+function toggleMobile() {
+  const on = document.body.classList.toggle('mobile');
+  document.getElementById('btn-mobile').textContent = on ? '🖥️ Vue ordinateur' : '📱 Vue mobile 375 px';
+}
+
+// ---------- Filtres & recherche ----------
+function setPeriod(el, p) {
+  document.querySelectorAll('#period-chips .pchip').forEach(c => c.classList.remove('pchip-on'));
+  el.classList.add('pchip-on');
+  if (p !== '3mois') toast('Maquette : les chiffres affichés correspondent aux 3 derniers mois. Dans la vraie version, ce filtre recalculerait tout.', 4200);
+}
+function sortChantiers(el) {
+  document.querySelectorAll('#chantier-sort .pchip').forEach(c => c.classList.remove('pchip-on'));
+  el.classList.add('pchip-on');
+  toast('Dans la vraie version : la liste des chantiers se réordonnerait.');
+}
+function searchOps(v) {
+  v = v.trim().toLowerCase();
+  document.querySelectorAll('#screen-operations .op-month').forEach(m => {
+    let any = false;
+    m.querySelectorAll('.op-row').forEach(r => {
+      const ok = !v || r.textContent.toLowerCase().includes(v);
+      r.style.display = ok ? '' : 'none';
+      if (ok) any = true;
+    });
+    m.style.display = any ? '' : 'none';
+  });
+}
+
+// ---------- Compteur « À trier » ----------
+function updateTriCount() {
+  const n = aTrier.length;
+  const badge = document.getElementById('nav-badge');
+  badge.textContent = n;
+  badge.style.display = n ? '' : 'none';
+  const card = document.getElementById('card-atrier');
+  if (n === 0) {
+    card.innerHTML = 'Tout est trié ✓';
+  } else {
+    card.innerHTML = '<span id="count-atrier">' + n + '</span> opération' + (n > 1 ? 's' : '') +
+      ' <span class="text-[12px] font-manrope font-semibold text-orange">→ Commencer le tri</span>';
+  }
+}
+
+// ---------- Chips (sélection simple dans un groupe) ----------
+function pickChip(el) {
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function pickPay(el) {
+  pickChip(el);
+  const v = el.dataset.v;
+  const n = document.getElementById('dep-pay-note');
+  if (v === 'Espèces')          n.textContent = 'Payée en liquide : elle sera aussi notée dans votre Caisse.';
+  else if (v === 'Carte perso') n.textContent = 'Payée de votre poche : l’entreprise vous doit ce montant (remboursable).';
+  else                          n.textContent = 'Elle pourra être rapprochée de la ligne bancaire correspondante au prochain import de relevé.';
+}
+
+// ---------- Ouverture / fermeture générale ----------
+function closeAll() {
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('drawer').classList.remove('open');
+  document.querySelectorAll('.modal').forEach(m => m.classList.remove('on'));
+  // Réinitialise la démo photo
+  document.getElementById('pd-1').style.display = '';
+  document.getElementById('pd-2').style.display = 'none';
+}
+function openModal(id) {
+  closeAll();
+  document.getElementById(id).classList.add('on');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+
+// ---------- Panneau de pointage ----------
+function openOp(id) {
+  if (!aTrier.includes(id)) { toast('Opération déjà triée ✓'); return; }
+  aTrier = [id].concat(aTrier.filter(x => x !== id)); // celle qu'on a cliquée passe en tête de file
+  closeAll();
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('drawer').classList.add('open');
+  renderDrawer(id);
+}
+function openQueue() {
+  if (!aTrier.length) { toast('Tout est déjà trié ✓'); return; }
+  openOp(aTrier[0]);
+}
+function renderDrawer(id) {
+  const op = OPS[id];
+  currentOp = id;
+  document.getElementById('drawer-foot').style.display = '';
+  document.getElementById('drawer-count').textContent = 'Plus que ' + aTrier.length + ' à trier';
+
+  let h = '<div class="px-5 pt-5 pb-4 border-b border-gray-100 flex items-start gap-3">' +
+    '<div class="min-w-0 flex-1">' +
+      '<p class="font-syne font-bold text-[28px] leading-tight ' + (op.type === 'credit' ? 'text-green-700' : '') + '">' + op.montant + '</p>' +
+      '<p class="text-[15px] font-bold mt-1">' + op.titre + '</p>' +
+      '<p class="font-mono text-[11px] text-gray-400 mt-0.5">' + op.brut + '</p>' +
+      '<p class="text-[12px] text-gray-500 mt-1">' + op.date + ' · ' + op.source + '</p>' +
+    '</div>' +
+    '<button onclick="closeAll()" class="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center flex-shrink-0" aria-label="Fermer le panneau"><svg class="w-4 h-4"><use href="#i-x"/></svg></button>' +
+  '</div>';
+
+  if (op.type === 'debit') {
+    h += '<div class="px-5 pt-4 pb-2">' +
+      '<p class="dr-title">C’est quoi cette dépense ?</p>' +
+      '<p class="dr-hint">On pense à :</p>' +
+      '<div id="dr-cats" class="flex flex-wrap gap-2">' +
+        op.sugg.map((c, i) => '<button class="chip' + (i === 0 ? ' sel' : '') + '" data-v="' + c + '" onclick="pickChip(this)">' + c + '</button>').join('') +
+        '<button class="chip" onclick="toast(\'Dans la vraie version : recherche parmi ~15 catégories en français simple (Repas & déplacements, Assurances pro, Cotisations & impôts, Rémunération…).\',5000)">Autre…</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="px-5 pt-4 pb-2">' +
+      '<p class="dr-title">Pour quel chantier ?</p>' +
+      '<p class="dr-hint">En choisissant un chantier, Nexartis crée l’achat correspondant et l’y rattache — c’est lui qui compte dans la rentabilité.</p>' +
+      '<div id="dr-chantiers" class="flex flex-wrap gap-2">' +
+        CHANTIERS.map(c => '<button class="chip" data-v="' + c + '" onclick="pickChip(this)">🏠 ' + c + '</button>').join('') +
+        '<button class="chip sel" data-v="Aucun / frais généraux" onclick="pickChip(this)">Aucun / frais généraux</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="px-5 pt-4 pb-2">' +
+      '<p class="dr-title">Justificatif</p>' +
+      '<button onclick="toast(\'Dans la vraie version : photo directe ou choix d’un fichier (PDF, JPG, PNG — photos iPhone converties automatiquement, 5 Mo max après compression).\',5000)" class="w-full h-12 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 font-semibold text-[13px] hover:border-sky hover:text-navy transition">📎 Ajouter le ticket ou la facture</button>' +
+    '</div>';
+  } else {
+    h += '<div class="px-5 pt-4 pb-2">' +
+      '<p class="dr-title">À quelle facture correspond ce virement ?</p>' +
+      '<p class="dr-hint">Ce virement de 1 200,00 € ressemble à un règlement de Mme Delmi. On pense à cette facture :</p>' +
+      '<div class="rounded-xl border-2 border-sky bg-sky/5 p-4">' +
+        '<div class="flex items-start justify-between gap-2 mb-2 flex-wrap">' +
+          '<p class="font-bold text-[13.5px]">Facture 2026-016 — Rénovation du tableau électrique</p>' +
+          '<span class="tagpill bg-sky/15 text-navy">Mme Delmi</span>' +
+        '</div>' +
+        '<div class="text-[12.5px] space-y-1.5">' +
+          '<p class="flex justify-between gap-3"><span class="text-gray-500">Total de la facture</span><span class="font-mono">3 000,00 €</span></p>' +
+          '<p class="flex justify-between gap-3"><span class="text-gray-500">Déjà reçu — acompte du 28/04</span><span class="font-mono">900,00 €</span></p>' +
+          '<p class="flex justify-between gap-3"><span class="text-gray-500">Ce virement (2ᵉ acompte)</span><span class="font-mono text-green-700">+ 1 200,00 €</span></p>' +
+          '<hr class="border-sky/30">' +
+          '<p class="flex justify-between gap-3 font-bold"><span>Reste dû après pointage</span><span class="font-mono">900,00 €</span></p>' +
+        '</div>' +
+      '</div>' +
+      '<button onclick="toast(\'Dans la vraie version : recherche parmi vos factures en attente de paiement.\')" class="dr-link mt-2">Non, c’est pour une autre facture</button>' +
+    '</div>';
+  }
+
+  h += '<div class="px-5 pt-3 pb-6">' +
+    '<p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Cas particuliers</p>' +
+    '<div class="flex flex-col items-start gap-1.5">' +
+      '<button onclick="toast(\'Dans la vraie version : l’opération serait marquée « Remboursement ou avoir » et viendrait en moins de la catégorie choisie.\',4500)" class="dr-link">C’est un remboursement ou un avoir</button>' +
+      '<button onclick="marquerInterne()" class="dr-link">C’est un virement entre mes comptes</button>' +
+      '<button onclick="marquerPerso()" class="dr-link">C’est perso</button>' +
+    '</div>' +
+  '</div>';
+
+  document.getElementById('drawer-body').innerHTML = h;
+  document.getElementById('drawer-body').scrollTop = 0;
+}
+
+// ---------- Validation d'une opération ----------
+function setRowDone(id, subHTML, opts) {
+  opts = opts || {};
+  const row = document.getElementById('row-' + id);
+  const sub = document.getElementById('sub-' + id);
+  const badge = document.getElementById('badge-' + id);
+  if (sub) sub.innerHTML = subHTML;
+  if (badge) {
+    if (opts.pill) badge.outerHTML = '<span class="tagpill ' + opts.pill + '">' + opts.pillText + '</span>';
+    else badge.remove();
+  }
+  if (opts.grey) {
+    const amt = row.querySelector('.op-right .font-mono');
+    if (amt) amt.className = 'font-mono text-sm text-gray-400';
+  }
+  if (opts.fade) row.classList.add('opacity-60');
+  row.onclick = function () { toast('Opération déjà triée. Un clic permettra de la modifier dans la vraie version.'); };
+  aTrier = aTrier.filter(x => x !== id);
+  updateTriCount();
+}
+function nextAfterDone() {
+  if (aTrier.length) {
+    renderDrawer(aTrier[0]);
+  } else {
+    document.getElementById('drawer-foot').style.display = 'none';
+    document.getElementById('drawer-body').innerHTML =
+      '<div class="p-8 text-center">' +
+        '<div class="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mx-auto mb-4"><svg class="w-7 h-7"><use href="#i-check"/></svg></div>' +
+        '<p class="font-syne font-bold text-xl mb-2">Tout est trié ✓</p>' +
+        '<p class="text-[13px] text-gray-500 mb-5">Plus rien à vérifier. Vos chiffres sont à jour.</p>' +
+        '<button onclick="closeAll()" class="h-11 px-6 rounded-xl bg-navy text-white font-bold">Fermer</button>' +
+      '</div>';
+  }
+}
+function validerOp() {
+  const id = currentOp;
+  const op = OPS[id];
+  if (op.type === 'debit') {
+    const catEl = document.querySelector('#dr-cats .chip.sel');
+    const chEl = document.querySelector('#dr-chantiers .chip.sel');
+    const cat = catEl ? catEl.dataset.v : op.sugg[0];
+    const ch = chEl ? chEl.dataset.v : 'Aucun / frais généraux';
+    if (ch !== 'Aucun / frais généraux') {
+      setRowDone(id, cat + ' · <span class="tagpill bg-sky/15 text-navy">🏠 ' + ch + '</span>');
+      toast('Achat créé et rattaché au chantier « ' + ch + ' » ✓', 3500);
+    } else {
+      setRowDone(id, cat);
+      toast('C’est noté ✓');
+    }
+  } else {
+    setRowDone(id, 'Encaissement · Acompte de 1 200 € sur la facture 2026-016 — reste dû 900,00 €');
+    toast('Paiement pointé sur la facture 2026-016 ✓ Reste dû : 900,00 €', 3500);
+  }
+  nextAfterDone();
+}
+function marquerPerso() {
+  setRowDone(currentOp, 'Perso — rien à voir avec l’entreprise', { pill: 'bg-gray-100 text-gray-500', pillText: 'Perso', grey: true, fade: true });
+  toast('Marquée « Perso » ✓ — exclue de vos chiffres pro.');
+  nextAfterDone();
+}
+function marquerInterne() {
+  setRowDone(currentOp, 'Mouvement interne — exclu des Entrées/Sorties', { grey: true });
+  toast('Marquée comme virement entre vos comptes ✓');
+  nextAfterDone();
+}
+function passerOp() {
+  if (aTrier.length <= 1) { toast('Il ne reste que celle-ci — autant la trier maintenant 😉'); return; }
+  aTrier = aTrier.filter(x => x !== currentOp).concat(currentOp); // repasse en fin de file
+  renderDrawer(aTrier[0]);
+}
+
+// ---------- Import de relevé ----------
+function openImport() { openModal('import-modal'); importStep(1); }
+function importStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('imp-step-' + i).style.display = (i === n) ? '' : 'none';
+    document.getElementById('imp-dot-' + i).classList.toggle('on', i <= n);
+  }
+  if (n === 3) {
+    const bar = document.getElementById('import-progress-bar');
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    setTimeout(() => { bar.style.transition = 'width 1.6s ease'; bar.style.width = '100%'; }, 60);
+    setTimeout(() => { if (document.getElementById('import-modal').classList.contains('on')) importStep(4); }, 1900);
+  }
+}
+function simulateFile() {
+  toast('Fichier déposé : releve-boursorama-2026-S1.csv (simulation)');
+  setTimeout(() => importStep(2), 450);
+}
+function importFinishTri() {
+  closeAll();
+  toast('Maquette : la file de tri s’ouvre — ici avec les 3 opérations d’exemple.', 3500);
+  setTimeout(openQueue, 400);
+}
+
+// ---------- Saisie manuelle d'une dépense ----------
+function openDepense() { openModal('depense-modal'); }
+function saveDepense() {
+  const m = (document.getElementById('dep-montant').value || '0').trim();
+  const chEl = document.querySelector('#dep-chantier .chip.sel');
+  const payEl = document.querySelector('#dep-pay .chip.sel');
+  const ch = chEl ? chEl.dataset.v : 'Aucun / frais généraux';
+  const pay = payEl ? payEl.dataset.v : 'Compte pro';
+  let msg = 'Dépense de ' + m + ' € enregistrée ✓ — rangée dans Achats';
+  if (ch !== 'Aucun / frais généraux') msg += ', rattachée au chantier « ' + ch + ' »';
+  if (pay === 'Espèces') msg += '. Notée aussi dans votre Caisse.';
+  if (pay === 'Carte perso') msg += '. L’entreprise vous doit ce montant.';
+  toast(msg, 5000);
+  closeAll();
+}
+
+// ---------- Caisse ----------
+function openCaisseStart() { openModal('caisse-start-modal'); }
+function startCaisse() {
+  closeAll();
+  setDataMode('data');
+  setTab('caisse');
+  toast('Votre caisse est démarrée ✓ (maquette : on affiche la caisse d’exemple)', 3800);
+}
+function openCaisseMove(dir) {
+  openModal('caisse-move-modal');
+  document.getElementById('cm-title').textContent = dir === 'in' ? '+ Argent reçu' : '− Argent dépensé';
+}
+function saveCaisseMove() {
+  closeAll();
+  toast('Mouvement de caisse enregistré ✓ — il apparaîtra ici et dans Opérations avec la pastille « Espèces ». (maquette)', 4200);
+}
+
+// ---------- Démo photo de ticket ----------
+function goPhotoDemo() {
+  if (!document.body.classList.contains('mobile')) {
+    toggleMobile();
+    toast('On passe en vue mobile : la photo de ticket, c’est un geste de téléphone 📱', 3200);
+  }
+  openModal('photo-modal');
+}
+function pdShoot() {
+  const f = document.getElementById('pd-flash');
+  f.classList.remove('flashing');
+  void f.offsetWidth; // relance l'animation
+  f.classList.add('flashing');
+  setTimeout(() => {
+    document.getElementById('pd-1').style.display = 'none';
+    document.getElementById('pd-2').style.display = '';
+  }, 320);
+}
+function pdSave() {
+  const m = (document.getElementById('pd-montant').value || '0').trim();
+  const chEl = document.querySelector('#pd-chips .chip.sel');
+  const ch = chEl ? chEl.dataset.v : 'Aucun / frais généraux';
+  let msg = 'C’est noté ✓ Dépense de ' + m + ' € rangée dans Achats';
+  if (ch !== 'Aucun / frais généraux') msg += ', rattachée au chantier « ' + ch + ' »';
+  toast(msg + '.', 4500);
+  closeAll();
+}
+
+// ---------- Menu « + » mobile ----------
+function openCreateMenu() { openModal('create-menu'); }
+
+// ---------- Aide ----------
+function openAide() { openModal('aide-modal'); }
+
+// ---------- Initialisation ----------
+updateTriCount();
+setDataMode('data');
+setTab('operations');
+</script>
+</body>
+</html>

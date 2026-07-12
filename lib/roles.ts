@@ -142,6 +142,10 @@ const ROUTE_RULES: RouteRule[] = [
   // Rapports d'intervention : dirigeant + commercial (comme la RLS).
   { prefix: '/dashboard/rapports', roles: ['dirigeant', 'commercial'] },
   { prefix: '/dashboard/achats', roles: ['dirigeant'] },
+  // Dépenses & Banque (Lot 2a) : données financières → dirigeant uniquement,
+  // comme la RLS des tables banque_* (sans cette ligne, la règle générale
+  // '/dashboard' en fin de liste ouvrirait la route à tous les rôles).
+  { prefix: '/dashboard/banque', roles: ['dirigeant'] },
   { prefix: '/dashboard/fournisseurs', roles: ['dirigeant'] },
   { prefix: '/dashboard/statistiques', roles: ['dirigeant'] },
   { prefix: '/dashboard/clients', roles: ['dirigeant', 'commercial'] },

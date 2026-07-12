@@ -39,6 +39,7 @@ import {
   ShoppingBag,
   CalendarDays,
   UserRound,
+  Wallet,
   Warehouse,
   UsersRound,
   Library,
@@ -93,6 +94,10 @@ const NAV_GROUPS: NavItem[][] = [
     { label: 'Documents', href: '/dashboard/documents', icon: ScrollText },
     { label: 'Rapports', href: '/dashboard/rapports', icon: ClipboardList },
     { label: 'Achats', href: '/dashboard/achats', icon: ShoppingBag },
+    // Lot 2a — module « Dépenses & Banque » (import de relevé, opérations).
+    // Route listée dans lib/roles.ts ROUTE_RULES → dirigeant uniquement
+    // (données financières), cohérent avec la RLS des tables banque_*.
+    { label: 'Dépenses & Banque', href: '/dashboard/banque', icon: Wallet },
   ],
   [
     { label: 'Clients', href: '/dashboard/clients', icon: UserRound },
@@ -128,6 +133,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/rapports': "Rapports d'intervention",
   '/dashboard/normes': 'Normes par métier',
   '/dashboard/achats': 'Achats',
+  '/dashboard/banque': 'Dépenses & Banque',
   '/dashboard/planning': 'Planning',
   '/dashboard/clients': 'Clients',
   '/dashboard/fournisseurs': 'Fournisseurs',
@@ -741,7 +747,8 @@ export default function DashboardLayout({
       '/dashboard/factures': 'Factures', '/dashboard/planning': 'Planning',
       '/dashboard/chantiers': 'Chantiers', '/dashboard/clients': 'Clients',
       '/dashboard/fournisseurs': 'Fournisseurs', '/dashboard/rapports': 'Rapports',
-      '/dashboard/achats': 'Achats', '/dashboard/equipe': 'Mon equipe',
+      '/dashboard/achats': 'Achats', '/dashboard/banque': 'Depenses & Banque',
+      '/dashboard/equipe': 'Mon equipe',
       '/dashboard/materiel': 'Materiel', '/dashboard/statistiques': 'Statistiques',
       '/dashboard/prestations': 'Prestations', '/dashboard/calculatrice': 'Calculatrices',
       '/dashboard/normes': 'Normes', '/dashboard/abonnement': 'Abonnement',
