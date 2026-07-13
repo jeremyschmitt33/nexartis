@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useFactures, useDevis, useChantiers, LoadingSkeleton } from "@/lib/hooks";
+import { useFactures, useDevis, useChantiers, usePlanning, LoadingSkeleton } from "@/lib/hooks";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const MONTH_NAMES = [
@@ -78,8 +78,9 @@ export default function StatistiquesPage() {
   const { data: factures, loading: loadingF } = useFactures();
   const { data: devis, loading: loadingD } = useDevis();
   const { data: chantiers, loading: loadingCh } = useChantiers();
+  const { data: planning, loading: loadingP } = usePlanning();
 
-  const loading = loadingF || loadingD || loadingCh;
+  const loading = loadingF || loadingD || loadingCh || loadingP;
 
   const stats = useMemo(() => {
     const facs = factures.map((f) => f as Record<string, unknown>);
@@ -180,6 +181,74 @@ export default function StatistiquesPage() {
       return s === "en_cours" || s === "planifie";
     }).length;
 
+    // ── Délai moyen de signature (devis) ─────────────────────────
+    // Moyenne, en jours pleins, de l'écart entre l'émission (ou création)
+    // et la signature, sur les devis effectivement signés. null si aucun.
+    let sommeDelaiSign = 0;
+    let nbDelaiSign = 0;
+    for (const d of devs) {
+      const sigStr = (d.date_signature as string) || "";
+      if (!sigStr) continue;
+      const baseStr = (d.date_emission as string) || (d.created_at as string) || "";
+      if (!baseStr) continue;
+      const sig = new Date(sigStr);
+      const base = new Date(baseStr);
+      const tSig = sig.getTime();
+      const tBase = base.getTime();
+      if (isNaN(tSig) || isNaN(tBase)) continue;
+      const jours = (tSig - tBase) / 86400000;
+      if (jours < 0) continue;
+      sommeDelaiSign += jours;
+      nbDelaiSign += 1;
+    }
+    const delaiMoyenSignature = nbDelaiSign > 0 ? Math.round(sommeDelaiSign / nbDelaiSign) : null;
+
+    // ── Délai moyen de paiement (factures) ───────────────────────
+    // Cohérence page : on reste sur le statut facture 'payee' (pas la table
+    // paiements). Écart émission→paiement en jours pleins. Avoirs exclus.
+    let sommeDelaiPaie = 0;
+    let nbDelaiPaie = 0;
+    for (const f of facs) {
+      if (estAvoir(f)) continue;
+      if (((f.statut as string) ?? "") !== "payee") continue;
+      const payStr = (f.date_paiement as string) || "";
+      if (!payStr) continue;
+      const baseStr = (f.date_emission as string) || (f.created_at as string) || "";
+      if (!baseStr) continue;
+      const pay = new Date(payStr);
+      const base = new Date(baseStr);
+      const tPay = pay.getTime();
+      const tBase = base.getTime();
+      if (isNaN(tPay) || isNaN(tBase)) continue;
+      const jours = (tPay - tBase) / 86400000;
+      if (jours < 0) continue;
+      sommeDelaiPaie += jours;
+      nbDelaiPaie += 1;
+    }
+    const delaiMoyenPaiement = nbDelaiPaie > 0 ? Math.round(sommeDelaiPaie / nbDelaiPaie) : null;
+
+    // ── Jour le plus chargé (planning) ───────────────────────────
+    // Comptage des interventions par jour de semaine (getDay: 0=dimanche).
+    const JOURS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    const compteParJour = [0, 0, 0, 0, 0, 0, 0];
+    const plans = planning.map((p) => p as Record<string, unknown>);
+    for (const p of plans) {
+      const dStr = (p.date_debut as string) || "";
+      if (!dStr) continue;
+      const dt = new Date(dStr);
+      if (isNaN(dt.getTime())) continue;
+      const jour = dt.getDay();
+      compteParJour[jour] += 1;
+    }
+    let jourPlusCharge: string | null = null;
+    let maxCompte = 0;
+    for (let i = 0; i < 7; i++) {
+      if (compteParJour[i] > maxCompte) {
+        maxCompte = compteParJour[i];
+        jourPlusCharge = JOURS_FR[i];
+      }
+    }
+
     return {
       totalCA,
       totalCAFacture,
@@ -193,8 +262,11 @@ export default function StatistiquesPage() {
       facturesEnRetard,
       tauxEncaissement,
       chantiersActifs,
+      delaiMoyenSignature,
+      delaiMoyenPaiement,
+      jourPlusCharge,
     };
-  }, [factures, devis, chantiers, chartYear]);
+  }, [factures, devis, chantiers, planning, chartYear]);
 
   if (loading) {
     return (
@@ -316,7 +388,7 @@ export default function StatistiquesPage() {
             size="3xl"
             highlight
           />
-          <StatCard label="Délai moyen signature" value="—" />
+          <StatCard label="Délai moyen signature" value={stats.delaiMoyenSignature != null ? `${stats.delaiMoyenSignature} j` : "—"} />
           <StatCard label="Montant moyen" value={formatCurrency(stats.montantMoyenDevis)} />
           <StatCard
             label="Devis signés"
@@ -326,7 +398,7 @@ export default function StatistiquesPage() {
 
         <SectionHeader title="Factures" subtitle="Suivi de l'encaissement" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Délai moyen paiement" value="—" />
+          <StatCard label="Délai moyen paiement" value={stats.delaiMoyenPaiement != null ? `${stats.delaiMoyenPaiement} j` : "—"} />
           <StatCard
             label="Reste à encaisser"
             value={formatCurrency(stats.resteAEncaisser)}
@@ -342,9 +414,8 @@ export default function StatistiquesPage() {
         </div>
 
         <SectionHeader title="Planning" subtitle="Activité chantiers" />
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-          <StatCard label="Taux occupation" value="—" />
-          <StatCard label="Jour le plus chargé" value="—" />
+        <div className="grid grid-cols-2 gap-4 mb-10">
+          <StatCard label="Jour le plus chargé" value={stats.jourPlusCharge ?? "—"} />
           <StatCard label="Chantiers actifs" value={String(stats.chantiersActifs)} />
         </div>
       </div>

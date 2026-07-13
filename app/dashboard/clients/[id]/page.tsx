@@ -12,7 +12,6 @@ import {
   FileText,
   HardHat,
   Receipt,
-  History,
   Plus,
 } from 'lucide-react'
 import {
@@ -38,7 +37,7 @@ interface Client {
 
 interface Chantier {
   id: string
-  nom: string
+  titre: string
   statut: string
   progression: number
 }
@@ -57,13 +56,13 @@ interface Facture {
   statut: string
   created_at: string
   montant_ttc: number
+  montant_paye?: number
 }
 
 const TABS = [
   { key: 'chantiers', label: 'Chantiers', icon: HardHat },
   { key: 'devis', label: 'Devis', icon: FileText },
   { key: 'factures', label: 'Factures', icon: Receipt },
-  { key: 'historique', label: 'Historique', icon: History },
 ]
 
 // -------------------------------------------------------------------
@@ -105,7 +104,7 @@ export default function ClientDetailPage() {
     )
   }
 
-  const caTotal = devis.reduce((sum, d) => sum + (d.montant_ttc ?? 0), 0)
+  const caEncaisse = factures.reduce((sum, f) => sum + (f.montant_paye ?? 0), 0)
 
   return (
     <div className="space-y-6">
@@ -176,9 +175,9 @@ export default function ClientDetailPage() {
           <h2 className="font-hanken font-extrabold text-base text-[#0f1a3a] tracking-[-0.02em] mb-4">Chiffres</h2>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-[11.5px] font-hanken font-semibold uppercase tracking-wider text-gray-500 mb-1">CA total</p>
+              <p className="text-[11.5px] font-hanken font-semibold uppercase tracking-wider text-gray-500 mb-1">Encaissé</p>
               <p className="font-spline-mono font-semibold text-2xl text-[#0f1a3a] tracking-[-0.01em]">
-                {caTotal.toLocaleString('fr-FR')} <span className="text-gray-400">€</span>
+                {caEncaisse.toLocaleString('fr-FR')} <span className="text-gray-400">€</span>
               </p>
             </div>
             <div>
@@ -237,7 +236,7 @@ export default function ClientDetailPage() {
                   <tbody>
                     {chantiers.map((ch) => (
                       <tr key={ch.id} className="border-b border-gray-100 hover:bg-[#fafbfc] transition-colors">
-                        <td className="px-4 py-3 text-sm font-hanken font-bold text-[#0f1a3a]">{ch.nom}</td>
+                        <td className="px-4 py-3 text-sm font-hanken font-bold text-[#0f1a3a]">{ch.titre ?? ''}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-hanken font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/60">
                             {ch.statut}
@@ -339,13 +338,6 @@ export default function ClientDetailPage() {
                   </tbody>
                 </table>
               )
-            )}
-
-            {activeTab === 'historique' && (
-              <div className="py-12 text-center">
-                <History size={40} className="mx-auto text-gray-300 mb-3" />
-                <p className="text-sm font-hanken text-gray-500">Aucune donnée</p>
-              </div>
             )}
           </div>
         </div>

@@ -8,6 +8,7 @@ import { useClients, useChantiers, useEntreprise, usePointsCollecte, usePrestati
 import { createClient } from '@/lib/supabase/client'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { isAutoEntrepreneur } from '@/lib/helpers'
+import { getEffectivePlan } from '@/lib/plans'
 import { buildSuggestions, memorizePrestations } from '@/lib/prestations-memo'
 import { mergeCatalogueSuggestions } from '@/lib/catalogue'
 import LineCard from '@/components/mobile/LineCard'
@@ -439,6 +440,10 @@ function NouveauDevisPage() {
   const { data: clientsRaw, loading: loadingClients } = useClients()
   const { data: chantiersRaw } = useChantiers()
   const { entreprise } = useEntreprise()
+  // Gating vocal : la dictée du devis est réservée au plan Complet (essai/lifetime inclus via getEffectivePlan).
+  // Pendant le chargement, entreprise est undefined → getEffectivePlan renvoie 'complete' (accès full), le bouton s'affiche : acceptable.
+  const { plan: planEffectif, isTrial: essaiEnCours } = getEffectivePlan(entreprise)
+  const voixAutorisee = essaiEnCours || planEffectif === 'complete'
   const { data: pointsCollecteRaw } = usePointsCollecte()
   const { data: prestationsRows } = usePrestations()
   const prestationSuggestions = useMemo(
@@ -526,14 +531,15 @@ function NouveauDevisPage() {
 
   // --- Auto-open voice modal from URL ---
   useEffect(() => {
-    if (searchParams.get('voice') === '1') setVoiceOpen(true)
-  }, [searchParams])
+    if (voixAutorisee && searchParams.get('voice') === '1') setVoiceOpen(true)
+  }, [searchParams, voixAutorisee])
 
   // --- V3.1 : Lecture du payload de la commande vocale universelle ---
   // L'utilisateur a dicte depuis n'importe ou via UniversalVoiceButton, l'API
   // /api/voice-command a detecte intent=devis, le VoiceResultScreen a redirige
   // ici avec ?voicePayload=base64(JSON). On decode et on pre-remplit.
   useEffect(() => {
+    if (!voixAutorisee) return
     const encoded = searchParams.get('voicePayload')
     if (!encoded) return
     try {
@@ -1157,10 +1163,12 @@ function NouveauDevisPage() {
       <div className="p-6 space-y-6">
         {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3"><p className="text-sm text-red-600 font-hanken">{error}</p></div>}
 
-        {/* Voice button */}
-        <button onClick={() => setVoiceOpen(true)} className="flex items-center gap-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-xl px-6 py-3 font-hanken font-bold text-sm shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all">
-          <Mic size={18} /> Créer un devis par la voix
-        </button>
+        {/* Voice button — réservé au plan Complet (essai/lifetime inclus) */}
+        {voixAutorisee && (
+          <button onClick={() => setVoiceOpen(true)} className="flex items-center gap-2 bg-gradient-to-br from-[#ff7a1a] to-[#ff9d4d] text-white rounded-xl px-6 py-3 font-hanken font-bold text-sm shadow-[0_8px_20px_rgba(255,122,26,0.35),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 transition-all">
+            <Mic size={18} /> Créer un devis par la voix
+          </button>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Dates */}

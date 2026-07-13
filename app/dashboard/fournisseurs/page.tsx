@@ -14,10 +14,10 @@ import {
   useFournisseurs,
   insertRow,
   updateRow,
-  deleteRow,
   LoadingSkeleton,
   ErrorBanner,
 } from '@/lib/hooks'
+import { toast } from '@/lib/toast'
 // V4 Light Premium — composants centralisés (cf. DESIGN_SYSTEM_V4.md).
 import {
   PremiumInput,
@@ -72,6 +72,7 @@ export default function FournisseursPage() {
   const { data: fournisseurs, loading, error, refetch } = useFournisseurs()
 
   const filtered = (fournisseurs as unknown as Fournisseur[]).filter((f) => {
+    if (f.actif === false) return false
     if (search) {
       const q = search.toLowerCase()
       return (
@@ -115,8 +116,8 @@ export default function FournisseursPage() {
       refetch()
       setShowModal(false)
       resetForm()
-    } catch {
-      // error handled silently
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Enregistrement impossible')
     } finally {
       setSaving(false)
     }
@@ -124,10 +125,11 @@ export default function FournisseursPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteRow('fournisseurs', id)
+      await updateRow('fournisseurs', id, { actif: false })
+      toast.success('Fournisseur archivé')
       refetch()
-    } catch {
-      // error handled silently
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Suppression impossible')
     } finally {
       setDeleteConfirm(null)
     }
@@ -237,6 +239,7 @@ export default function FournisseursPage() {
                           handleDelete(fournisseur.id)
                         }}
                         className="px-2 py-1 rounded-lg bg-red-600 text-white text-xs font-hanken font-bold hover:bg-red-700 transition-colors"
+                        title="Archiver ce fournisseur ? Il sera masqué de la liste."
                       >
                         Confirmer
                       </button>
@@ -257,8 +260,8 @@ export default function FournisseursPage() {
                         setDeleteConfirm(fournisseur.id)
                       }}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      title="Supprimer"
-                      aria-label="Supprimer"
+                      title="Archiver"
+                      aria-label="Archiver"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -322,6 +325,7 @@ export default function FournisseursPage() {
                         <button
                           onClick={() => handleDelete(fournisseur.id)}
                           className="px-2 py-1 rounded-lg bg-red-600 text-white text-xs font-hanken font-bold hover:bg-red-700 transition-colors"
+                          title="Archiver ce fournisseur ? Il sera masqué de la liste."
                         >
                           Confirmer
                         </button>
