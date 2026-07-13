@@ -201,28 +201,34 @@ export async function POST(req: NextRequest) {
     }
     const regles: RegleCategorisation[] = (reglesBrutes ?? []) as RegleCategorisation[]
 
-    // Catégories privées (code 'prive') : une règle qui y pointe pose AUSSI
-    // est_prive = TRUE (le mouvement sort de tous les totaux pro).
+    // Catégories : privées (est_prive) + libellés (totaux de l'écran de synthèse).
     const { data: categoriesBrutes, error: erreurCategories } = await supabase
       .from('depense_categories')
-      .select('id, est_privee')
+      .select('id, est_privee, label')
       .is('deleted_at', null)
     if (erreurCategories) {
       console.error('[banque/import/execute] lecture catégories:', erreurCategories.message)
     }
+    const categoriesLignes = (categoriesBrutes ?? []) as {
+      id: string
+      est_privee: boolean
+      label: string
+    }[]
     const categoriesPrivees = new Set(
-      ((categoriesBrutes ?? []) as { id: string; est_privee: boolean }[])
-        .filter((c) => c.est_privee)
-        .map((c) => c.id),
+      categoriesLignes.filter((c) => c.est_privee).map((c) => c.id),
     )
+    const labelParCategorie = new Map(categoriesLignes.map((c) => [c.id, c.label]))
 
     // ── Insertion par chunks de 500, doublons base ignorés ──
     let nbImportees = 0
     let nbErreurs = 0
-    let nbTriees = 0
-    let nbCategorisees = 0
-    /** Nombre d'applications par règle (débits auto-triés) — best effort. */
+    let nbClassees = 0 // 1a : catégorisés ET pointés d'office
+    let nbAConfirmer = 0 // 1b : reconnus (suggestion ou binaire), non pointés
+    let nbATrier = 0 // ni classé ni reconnu (inclut les crédits)
+    /** Nombre d'applications par règle (débits auto-classés 1a) — best effort. */
     const usageRegles = new Map<string, number>()
+    /** Totaux par catégorie des débits classés 1a (écran de synthèse). */
+    const totauxParCategorie = new Map<string, number>()
 
     for (let i = 0; i < uniques.length; i += TAILLE_CHUNK) {
       const morceau = uniques.slice(i, i + TAILLE_CHUNK)
@@ -249,11 +255,19 @@ export async function POST(req: NextRequest) {
       // parallèle à lignesInsert, pour compter nb_applications après insertion.
       const regleParLigne: (RegleCategorisation | null)[] = []
       const lignesInsert = aInserer.map((l) => {
-        const regle = trouverRegle(regles, l.libelle, l.montant)
+        // Un CRÉDIT ne reçoit JAMAIS de catégorie/pointage automatique : un crédit
+        // peut être un apport perso, un remboursement ou un virement interne — le
+        // classer en recette gonflerait la base URSSAF. Garantie structurelle.
+        const estDebit = l.montant < 0
+        const regle = estDebit ? trouverRegle(regles, l.libelle, l.montant) : null
         regleParLigne.push(regle)
-        // Décision Lot 2c : un DÉBIT reconnu est trié d'office ; un crédit
-        // reconnu reste à trier (catégorie = simple suggestion).
-        const triAuto = regle !== null && l.montant < 0
+
+        const categorieId = regle?.categorie_id ?? null
+        const estPrivee = categorieId !== null && categoriesPrivees.has(categorieId)
+        // Niveau 1a (auto_point=true) → catégorisé ET pointé. Niveau 1b
+        // (auto_point=false) → suggestion, jamais pointé. JAMAIS auto-pointer une
+        // catégorie privée, même si la règle est 1a (garde structurelle).
+        const autoPoint = regle !== null && regle.auto_point === true && !estPrivee
         return {
           user_id: user.id,
           compte_id: compteId,
@@ -261,9 +275,12 @@ export async function POST(req: NextRequest) {
           date_operation: l.date,
           libelle_banque: l.libelle,
           montant: l.montant,
-          categorie_id: regle?.categorie_id ?? null,
-          statut_pointage: (triAuto ? 'pointe' : 'a_pointer') as 'pointe' | 'a_pointer',
-          est_prive: triAuto && regle !== null && categoriesPrivees.has(regle.categorie_id),
+          categorie_id: categorieId,
+          statut_pointage: (autoPoint ? 'pointe' : 'a_pointer') as 'pointe' | 'a_pointer',
+          est_prive: autoPoint && estPrivee,
+          // Provenance = la machine a reconnu ce marchand (1a OU 1b, même binaire).
+          // Sert au tag « Classé auto » et à distinguer « à confirmer » de « à trier ».
+          categorisation_auto: regle !== null,
           source: 'import_csv' as const,
         }
       })
@@ -275,10 +292,18 @@ export async function POST(req: NextRequest) {
           const ligne = lignesInsert[idx]
           const regle = regleParLigne[idx]
           if (ligne.statut_pointage === 'pointe') {
-            nbTriees++
+            nbClassees++
             if (regle) usageRegles.set(regle.id, (usageRegles.get(regle.id) ?? 0) + 1)
-          } else if (ligne.categorie_id !== null) {
-            nbCategorisees++
+            if (ligne.categorie_id !== null) {
+              totauxParCategorie.set(
+                ligne.categorie_id,
+                (totauxParCategorie.get(ligne.categorie_id) ?? 0) + Math.abs(ligne.montant),
+              )
+            }
+          } else if (ligne.categorisation_auto) {
+            nbAConfirmer++ // reconnu mais non pointé = à confirmer
+          } else {
+            nbATrier++ // ni classé ni reconnu (crédits inclus)
           }
         }
       }
@@ -360,14 +385,21 @@ export async function POST(req: NextRequest) {
       return secureError("L'import a échoué : aucune opération n'a pu être enregistrée. Réessayez.", 500)
     }
 
+    // Totaux par catégorie (débits classés 1a), triés du plus gros au plus petit.
+    const totauxCategories = Array.from(totauxParCategorie.entries())
+      .map(([id, montant]) => ({ label: labelParCategorie.get(id) ?? 'Autre', montant }))
+      .sort((a, b) => b.montant - a.montant)
+
     const reponse: ExecuteReponse = {
       ok: true,
       importId,
       nbImportees,
       nbDoublons,
       nbErreurs,
-      nbTriees,
-      nbCategorisees,
+      nbClassees,
+      nbAConfirmer,
+      nbATrier,
+      totauxCategories,
     }
     return secureJson(reponse)
   } catch (e) {

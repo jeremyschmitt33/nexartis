@@ -485,6 +485,7 @@ export default function PanneauPointage({
             statut_pointage: 'pointe',
             // Une règle vers la catégorie « prive » sort aussi le mouvement des totaux pro.
             est_prive: categorieChoisie.code === 'prive',
+            categorisation_auto: false, // propagation d'une correction humaine = choix utilisateur
           })
           .in('id', ids)
           .select(MOUVEMENT_COLONNES)
@@ -570,6 +571,7 @@ export default function PanneauPointage({
         statut_pointage: 'pointe',
         nature: 'normal',
         est_prive: false,
+        categorisation_auto: false, // classement manuel : l'utilisateur s'approprie
       })
 
       if (nomChantier) {
@@ -692,6 +694,7 @@ export default function PanneauPointage({
         statut_pointage: 'pointe',
         nature: 'normal',
         est_prive: false,
+        categorisation_auto: false,
       })
       toast.success('C’est noté ✓')
       onPointe(maj)
@@ -714,6 +717,7 @@ export default function PanneauPointage({
         statut_pointage: 'pointe',
         est_prive: false,
         categorie_id: categorieId,
+        categorisation_auto: false,
       })
       toast.success('Marquée « Remboursement ou avoir » ✓ — elle vient en moins de la catégorie.')
       onPointe(maj)
@@ -735,6 +739,7 @@ export default function PanneauPointage({
         statut_pointage: 'pointe',
         est_prive: false,
         categorie_id: categorieParCode('virement_interne')?.id ?? null,
+        categorisation_auto: false,
       })
       toast.success('Marquée comme virement entre vos comptes ✓')
       onPointe(maj)
@@ -756,6 +761,7 @@ export default function PanneauPointage({
         statut_pointage: 'pointe',
         nature: 'normal',
         categorie_id: categorieParCode('prive')?.id ?? null,
+        categorisation_auto: false,
       })
       toast.success('Marquée « Perso » ✓ — exclue de vos chiffres pro.')
       onPointe(maj)

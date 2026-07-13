@@ -87,6 +87,8 @@ export default function BanqueClient() {
   const [franchiseTva, setFranchiseTva] = useState(false)
 
   const [onglet, setOnglet] = useState<Onglet>('operations')
+  /** Sous-onglet d'ouverture de « À classer » (l'import bascule sur « confirmer »). */
+  const [triSousOnglet, setTriSousOnglet] = useState<'confirmer' | 'trier' | 'classees'>('confirmer')
   const [periode, setPeriode] = useState<Periode>('3mois')
   const [recherche, setRecherche] = useState('')
   const [compteFiltre, setCompteFiltre] = useState<string>('tous')
@@ -334,7 +336,7 @@ export default function BanqueClient() {
         {(
           [
             { id: 'operations', label: 'Opérations' },
-            { id: 'trier', label: 'Trier' },
+            { id: 'trier', label: 'À classer' },
             { id: 'caisse', label: 'Caisse' },
             { id: 'chantiers', label: 'Par chantier' },
             { id: 'registres', label: 'Registres' },
@@ -350,6 +352,11 @@ export default function BanqueClient() {
             }`}
           >
             {o.label}
+            {o.id === 'trier' && totaux.aTrier > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center min-w-[19px] px-1.5 py-px rounded-full bg-orange/15 text-[12px] font-bold text-orange align-middle">
+                {totaux.aTrier}
+              </span>
+            )}
             {onglet === o.id && (
               <span
                 aria-hidden="true"
@@ -385,7 +392,11 @@ export default function BanqueClient() {
       ) : onglet === 'registres' ? (
         <RegistresTab />
       ) : onglet === 'trier' ? (
-        <TriGroupeTab categories={categoriesListe} onModifie={chargerDonnees} />
+        <TriGroupeTab
+          categories={categoriesListe}
+          onModifie={chargerDonnees}
+          ongletInitial={triSousOnglet}
+        />
       ) : chargement ? (
         <div className="flex items-center justify-center py-24 text-gray-400" role="status" aria-live="polite">
           <Loader2 size={22} className="animate-spin mr-2" aria-hidden="true" />
@@ -576,6 +587,12 @@ export default function BanqueClient() {
           onClose={() => setImportOuvert(false)}
           onImported={() => {
             setImportOuvert(false)
+            void chargerDonnees()
+          }}
+          onVoirAClasser={() => {
+            setImportOuvert(false)
+            setTriSousOnglet('confirmer')
+            setOnglet('trier')
             void chargerDonnees()
           }}
           onCreerCompte={() => setCompteModal({ type: 'bancaire' })}

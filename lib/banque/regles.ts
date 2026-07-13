@@ -14,17 +14,27 @@
 // ============================================================================
 
 /** Colonnes à sélectionner sur categorisation_regles (alignées sur RegleCategorisation). */
-export const REGLES_COLONNES = 'id, pattern, type_match, categorie_id, sens, priorite'
+export const REGLES_COLONNES = 'id, pattern, type_match, categorie_id, sens, priorite, auto_point'
 
 export interface RegleCategorisation {
   id: string
   pattern: string
   type_match: 'contient' | 'commence_par'
-  categorie_id: string
+  /**
+   * null = règle 1b « binaire » (supermarché ambigu) : on RECONNAÎT le marchand
+   * mais on ne propose AUCUNE catégorie (question pro/perso posée à l'utilisateur).
+   */
+  categorie_id: string | null
   /** 'debit' | 'credit' | null = les deux. */
   sens: 'debit' | 'credit' | null
   /** Plus petit = gagne (apprises 100 < système ~900). */
   priorite: number
+  /**
+   * true = niveau 1a (mono-catégorie certain) : le débit reconnu est catégorisé
+   * ET pointé d'office. false = niveau 1b (ambigu) : catégorie SUGGÉRÉE (ou
+   * simple reconnaissance binaire si categorie_id null), jamais pointée d'office.
+   */
+  auto_point: boolean
 }
 
 /**

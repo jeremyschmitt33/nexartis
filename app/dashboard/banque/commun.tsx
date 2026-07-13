@@ -34,6 +34,14 @@ export interface Mouvement {
   nature: 'normal' | 'remboursement' | 'virement_interne'
   est_prive: boolean
   categorie_id: string | null
+  /**
+   * true = la catégorie (ou la reconnaissance du marchand) vient de la MACHINE,
+   * pas de l'utilisateur. Discrimine les 3 états du tri :
+   *   a_pointer + categorisation_auto → « À confirmer » (avec cat = suggéré,
+   *   sans cat = binaire pro/perso) ; a_pointer sinon → « À trier » ;
+   *   pointe + categorisation_auto → « Classé auto » (tag + pourquoi).
+   */
+  categorisation_auto: boolean
   justificatif_path: string | null
   notes: string | null
   source: string
@@ -41,7 +49,7 @@ export interface Mouvement {
 
 /** Colonnes sélectionnées pour un Mouvement (à garder alignées sur le type). */
 export const MOUVEMENT_COLONNES =
-  'id, compte_id, date_operation, libelle_banque, libelle_perso, montant, statut_pointage, nature, est_prive, categorie_id, justificatif_path, notes, source'
+  'id, compte_id, date_operation, libelle_banque, libelle_perso, montant, statut_pointage, nature, est_prive, categorie_id, categorisation_auto, justificatif_path, notes, source'
 
 export interface Categorie {
   id: string

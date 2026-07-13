@@ -50,6 +50,48 @@ function jourMois(iso: string): string {
   return `${j}/${m}`
 }
 
+/**
+ * Contenu de l'écran de synthèse « victoire » (maquette tri-auto-v2 §1) :
+ * on cadre TOUJOURS par le travail FAIT, jamais par le restant. Gère les cas
+ * limites : rien reconnu (1er import), tout classé, que des « à confirmer ».
+ */
+function contenuVictoire(r: ExecuteReponse): {
+  grandNombre: number
+  unite: string
+  sousTitre: string
+  ctaPrimaire: string | null
+} {
+  const restantes = r.nbAConfirmer + r.nbATrier
+  const s = (n: number) => (n > 1 ? 's' : '')
+  const lesN = `${restantes === 1 ? 'la ' : 'les '}${restantes}`
+  if (r.nbClassees > 0) {
+    return {
+      grandNombre: r.nbClassees,
+      unite: `opération${s(r.nbClassees)} déjà classée${s(r.nbClassees)}`,
+      sousTitre:
+        restantes > 0
+          ? 'On a reconnu vos marchands habituels. Il reste juste quelques points à voir.'
+          : 'Tout est en ordre, rien ne vous attend.',
+      ctaPrimaire: restantes > 0 ? `Vérifier ${lesN} restante${s(restantes)} →` : null,
+    }
+  }
+  if (r.nbAConfirmer > 0) {
+    return {
+      grandNombre: r.nbAConfirmer,
+      unite: `opération${s(r.nbAConfirmer)} à confirmer`,
+      sousTitre: 'On a reconnu des marchands, mais on préfère vous laisser trancher.',
+      ctaPrimaire: `Vérifier ${lesN} opération${s(restantes)} →`,
+    }
+  }
+  return {
+    grandNombre: r.nbImportees,
+    unite: `opération${s(r.nbImportees)} importée${s(r.nbImportees)}`,
+    sousTitre:
+      "On n'a pas encore reconnu vos marchands — c'est normal au premier import. Classez-les une fois, on les retiendra.",
+    ctaPrimaire: 'Commencer le tri →',
+  }
+}
+
 type Etape = 1 | 2 | 3 | 4
 
 const ETAPES: { n: Etape; label: string }[] = [
@@ -67,6 +109,7 @@ export default function ImportReleveModal({
   comptes,
   onClose,
   onImported,
+  onVoirAClasser,
   onCreerCompte,
   onAide,
 }: {
@@ -75,6 +118,12 @@ export default function ImportReleveModal({
   onClose: () => void
   /** Appelé après un import réussi quand l'utilisateur ferme le rapport. */
   onImported: () => void
+  /**
+   * Appelé quand l'utilisateur clique l'action dominante de l'écran de synthèse
+   * (« Vérifier les N restantes »/« Commencer le tri ») : va à l'onglet « À classer ».
+   * Si absent, on retombe sur onImported.
+   */
+  onVoirAClasser?: () => void
   onCreerCompte: () => void
   onAide: () => void
 }) {
@@ -481,11 +530,20 @@ export default function ImportReleveModal({
             {analyse.nbTriablesAuto > 0 && (
               <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 mb-3 text-[12.5px] text-green-800">
                 <strong>
-                  {analyse.nbTriablesAuto} dépense{analyse.nbTriablesAuto > 1 ? 's seront triées' : ' sera triée'}{' '}
+                  {analyse.nbTriablesAuto} dépense{analyse.nbTriablesAuto > 1 ? 's seront classées' : ' sera classée'}{' '}
                   automatiquement
                 </strong>{' '}
-                (fournisseurs, URSSAF, assurances… reconnus). Vous gardez le dernier mot&nbsp;: tout se corrige
+                (fournisseurs, URSSAF, carburant… reconnus). Vous gardez le dernier mot&nbsp;: tout se corrige
                 en un clic.
+              </div>
+            )}
+            {analyse.nbSuggerables > 0 && (
+              <div className="rounded-xl bg-cream border border-gold/50 px-4 py-2.5 mb-3 text-[12.5px] text-navy/80">
+                <strong>
+                  {analyse.nbSuggerables} opération{analyse.nbSuggerables > 1 ? 's seront à confirmer' : ' sera à confirmer'}
+                </strong>{' '}
+                (supermarchés, Amazon, assurances… reconnus mais ambigus)&nbsp;: on vous les proposera, vous
+                tranchez d’un clic. Jamais classées à votre place.
               </div>
             )}
             {analyse.fichierDejaImporte && (
@@ -582,52 +640,24 @@ export default function ImportReleveModal({
           </div>
         )}
 
-        {/* ══════════ Étape 4 : rapport ══════════ */}
-        {etape === 4 && resultat && (
+        {/* ══════════ Étape 4 : écran de synthèse « victoire » ══════════ */}
+        {etape === 4 && resultat && resultat.nbImportees === 0 && (
+          /* Cas particulier : tout était déjà en base (aucun ajout). */
           <div className="text-center pt-4 pb-2">
             <div className="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mx-auto mb-4">
               <Check size={28} aria-hidden="true" />
             </div>
-            <p className="font-hanken font-bold text-xl text-navy mb-2">
-              {resultat.nbImportees > 0
-                ? `${resultat.nbImportees} opération${resultat.nbImportees > 1 ? 's' : ''} ajoutée${
-                    resultat.nbImportees > 1 ? 's' : ''
-                  }.`
-                : 'Rien de nouveau à ajouter.'}
-            </p>
-            <div className="text-[13.5px] text-gray-600 max-w-sm mx-auto mb-6 space-y-1">
-              {resultat.nbTriees > 0 && (
-                <p>
-                  <strong>{resultat.nbTriees}</strong> triée{resultat.nbTriees > 1 ? 's' : ''} automatiquement
-                  (fournisseurs, URSSAF… reconnus) — vous pouvez corriger chacune en un clic.
-                </p>
-              )}
-              {resultat.nbImportees - resultat.nbTriees > 0 && (
-                <p>
-                  <strong>{resultat.nbImportees - resultat.nbTriees}</strong> reste
-                  {resultat.nbImportees - resultat.nbTriees > 1 ? 'nt' : ''} à trier&nbsp;: catégorie, chantier,
-                  justificatif — quelques secondes par opération.
-                </p>
-              )}
-              {resultat.nbDoublons > 0 && (
-                <p>
-                  {resultat.nbDoublons} opération{resultat.nbDoublons > 1 ? 's' : ''} déjà présente
-                  {resultat.nbDoublons > 1 ? 's' : ''} {resultat.nbDoublons > 1 ? 'ont été ignorées' : 'a été ignorée'}{' '}
-                  (aucun doublon créé).
-                </p>
-              )}
-              {resultat.nbErreurs > 0 && (
-                <p>
-                  {resultat.nbErreurs} ligne{resultat.nbErreurs > 1 ? 's' : ''} n’{resultat.nbErreurs > 1 ? 'ont' : 'a'}{' '}
-                  pas pu être enregistrée{resultat.nbErreurs > 1 ? 's' : ''} — réimportez le fichier pour
-                  {resultat.nbErreurs > 1 ? ' les' : ' la'} récupérer (les autres ne seront pas dupliquées).
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+            <p className="font-hanken font-bold text-xl text-navy mb-2">Rien de nouveau à ajouter.</p>
+            {resultat.nbDoublons > 0 && (
+              <p className="text-[13.5px] text-gray-600 max-w-sm mx-auto mb-6">
+                {resultat.nbDoublons} opération{resultat.nbDoublons > 1 ? 's' : ''} du fichier{' '}
+                {resultat.nbDoublons > 1 ? 'étaient déjà' : 'était déjà'} dans Nexartis&nbsp;: aucun doublon créé.
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-4">
               <button
                 onClick={onImported}
-                className="h-12 px-6 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold transition"
+                className="h-12 px-6 rounded-xl bg-navy hover:bg-navy-mid text-white font-bold transition"
               >
                 Voir mes opérations
               </button>
@@ -638,6 +668,116 @@ export default function ImportReleveModal({
                 Importer un autre fichier
               </button>
             </div>
+          </div>
+        )}
+
+        {etape === 4 && resultat && resultat.nbImportees > 0 && (
+          <div className="pt-1 pb-1">
+            {(() => {
+              const v = contenuVictoire(resultat)
+              const s = (n: number) => (n > 1 ? 's' : '')
+              return (
+                <>
+                  {/* Hero : on cadre par le travail FAIT (gros chiffre gold). */}
+                  <div className="rounded-[20px] bg-gradient-to-br from-navy to-navy-mid text-white px-6 py-6 overflow-hidden">
+                    <p className="font-hanken font-extrabold leading-none text-4xl sm:text-[44px] tracking-tight">
+                      <span className="text-gold font-spline-mono">{v.grandNombre}</span> {v.unite}
+                    </p>
+                    <p className="mt-2.5 text-[14.5px] text-white/80">{v.sousTitre}</p>
+
+                    {(resultat.nbAConfirmer > 0 || resultat.nbATrier > 0) && (
+                      <div className="flex flex-wrap gap-2.5 mt-4">
+                        {resultat.nbAConfirmer > 0 && (
+                          <span className="inline-flex items-center gap-2 rounded-full bg-orange/20 border border-orange/50 px-3.5 py-1.5 text-[13px] font-semibold text-white">
+                            <span className="w-2 h-2 rounded-full bg-orange" aria-hidden="true" />
+                            {resultat.nbAConfirmer} à confirmer
+                          </span>
+                        )}
+                        {resultat.nbATrier > 0 && (
+                          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3.5 py-1.5 text-[13px] font-semibold text-white/90">
+                            <span className="w-2 h-2 rounded-full bg-white/50" aria-hidden="true" />
+                            {resultat.nbATrier} à trier
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
+                      {v.ctaPrimaire ? (
+                        <>
+                          <button
+                            onClick={onVoirAClasser ?? onImported}
+                            className="h-12 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold text-[14px] transition"
+                          >
+                            {v.ctaPrimaire}
+                          </button>
+                          <button
+                            onClick={onImported}
+                            className="h-12 px-5 rounded-xl bg-white/12 hover:bg-white/20 text-white font-bold text-[14px] transition"
+                          >
+                            Tout est bon, terminer
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={onImported}
+                          className="h-12 px-5 rounded-xl bg-orange hover:bg-orange-hover text-white font-bold text-[14px] transition"
+                        >
+                          Voir mes opérations
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Totaux par catégorie : repérer une anomalie d'un coup d'œil. */}
+                  {resultat.totauxCategories.length > 0 && (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-4">
+                        {resultat.totauxCategories.slice(0, 6).map((t) => (
+                          <div key={t.label} className="rounded-xl bg-cream border border-navy/10 px-3 py-2.5">
+                            <p className="text-[11.5px] font-semibold text-gray-500 leading-tight">{t.label}</p>
+                            <p className="font-spline-mono font-bold text-[15px] text-navy mt-1">{euros(t.montant)}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[12px] text-gray-500 mt-2.5">
+                        Ces totaux vous laissent repérer une anomalie de montant d’un coup d’œil, sans vérifier ligne
+                        à ligne.
+                      </p>
+                    </>
+                  )}
+
+                  {/* Notes secondaires : doublons / erreurs. */}
+                  {(resultat.nbDoublons > 0 || resultat.nbErreurs > 0) && (
+                    <div className="text-[12.5px] text-gray-500 mt-3 space-y-1">
+                      {resultat.nbDoublons > 0 && (
+                        <p>
+                          {resultat.nbDoublons} opération{s(resultat.nbDoublons)} déjà présente{s(resultat.nbDoublons)}{' '}
+                          {resultat.nbDoublons > 1 ? 'ont été ignorées' : 'a été ignorée'} (aucun doublon créé).
+                        </p>
+                      )}
+                      {resultat.nbErreurs > 0 && (
+                        <p>
+                          {resultat.nbErreurs} ligne{s(resultat.nbErreurs)} n’
+                          {resultat.nbErreurs > 1 ? 'ont' : 'a'} pas pu être enregistrée{s(resultat.nbErreurs)} —
+                          réimportez le fichier pour {resultat.nbErreurs > 1 ? 'les' : 'la'} récupérer (les autres ne
+                          seront pas dupliquées).
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={recommencer}
+                      className="text-[13px] font-semibold text-gray-500 underline underline-offset-2 hover:text-navy transition"
+                    >
+                      Importer un autre fichier
+                    </button>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         )}
       </div>

@@ -49,10 +49,15 @@ export interface ParseReponse {
   /** Lignes déjà présentes en base (pré-marquées, seront ignorées). */
   nbDejaImportees: number
   /**
-   * Débits (hors doublons déjà en base) qu'une règle sait trier
-   * automatiquement à l'import — pour l'aperçu « X seront triées ».
+   * Débits (hors doublons déjà en base) qu'une règle 1a sait classer ET pointer
+   * automatiquement à l'import — pour l'aperçu « X seront classées ».
    */
   nbTriablesAuto: number
+  /**
+   * Débits reconnus par une règle 1b (ambiguë) : catégorie suggérée OU marchand
+   * reconnu (binaire pro/perso) — resteront « à confirmer », jamais pointés.
+   */
+  nbSuggerables: number
   /** Totaux pour détecter les signes inversés d'un coup d'œil. */
   totalEntrees: number
   totalSorties: number
@@ -71,6 +76,14 @@ export interface ExecuteRequete {
   lignes: LigneReleve[]
 }
 
+/** Total d'une catégorie sur un import (écran de synthèse). */
+export interface TotalCategorieImport {
+  /** Libellé « artisan » de la catégorie (ex. « Matériaux & fournitures chantier »). */
+  label: string
+  /** Somme des montants (valeur absolue, en euros) des débits classés dans cette catégorie. */
+  montant: number
+}
+
 /** Réponse de POST /api/banque/import/execute */
 export interface ExecuteReponse {
   ok: true
@@ -79,15 +92,23 @@ export interface ExecuteReponse {
   nbDoublons: number
   nbErreurs: number
   /**
-   * DÉBITS catégorisés ET pointés automatiquement par une règle
-   * (statut_pointage = 'pointe' dès l'insertion — décision Lot 2c).
+   * DÉBITS reconnus par une règle 1a : catégorisés ET pointés automatiquement
+   * (statut_pointage = 'pointe' + categorisation_auto = true dès l'insertion).
+   * = le gros chiffre « N déjà classées » de l'écran de synthèse.
    */
-  nbTriees: number
+  nbClassees: number
   /**
-   * Mouvements ayant reçu une catégorie SUGGÉRÉE mais restés à trier
-   * (crédits matchés par une règle : le rapprochement facture reste manuel).
+   * Débits reconnus par une règle 1b (ambiguë) : catégorie suggérée OU marchand
+   * reconnu (binaire), restés « à confirmer » (a_pointer + categorisation_auto=true).
    */
-  nbCategorisees: number
+  nbAConfirmer: number
+  /**
+   * Reste importé, ni classé ni reconnu : à trier manuellement (inclut les
+   * crédits, jamais catégorisés automatiquement — garantie URSSAF).
+   */
+  nbATrier: number
+  /** Totaux par catégorie des débits CLASSÉS 1a, pour l'écran de synthèse. */
+  totauxCategories: TotalCategorieImport[]
 }
 
 /** Limites V1 de l'import CSV. */

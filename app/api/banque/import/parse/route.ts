@@ -153,6 +153,7 @@ export async function POST(req: NextRequest) {
         nbPairesFusionnees: 0,
         nbDejaImportees: 0,
         nbTriablesAuto: 0,
+        nbSuggerables: 0,
         totalEntrees: 0,
         totalSorties: 0,
         periodeDebut: null,
@@ -218,7 +219,8 @@ export async function POST(req: NextRequest) {
     // ── Construction de l'aperçu ──
     let totalEntrees = 0
     let totalSorties = 0
-    let nbTriablesAuto = 0
+    let nbTriablesAuto = 0 // débits reconnus 1a (classés + pointés d'office)
+    let nbSuggerables = 0 // débits reconnus 1b (à confirmer)
     let periodeDebut: string | null = null
     let periodeFin: string | null = null
     const lignes: LigneReleve[] = analyse.lignes.map((l, i) => {
@@ -227,9 +229,14 @@ export async function POST(req: NextRequest) {
       if (!periodeDebut || l.date < periodeDebut) periodeDebut = l.date
       if (!periodeFin || l.date > periodeFin) periodeFin = l.date
       const dejaImporte = dejaEnBase.has(hashes[i])
-      // Même critère que la route execute : DÉBIT + règle qui matche.
-      if (!dejaImporte && l.montant < 0 && trouverRegle(regles, l.libelle, l.montant) !== null) {
-        nbTriablesAuto++
+      // Même critère que la route execute : DÉBIT + règle qui matche. On sépare
+      // 1a (auto_point=true → classé) et 1b (auto_point=false → à confirmer).
+      if (!dejaImporte && l.montant < 0) {
+        const regle = trouverRegle(regles, l.libelle, l.montant)
+        if (regle) {
+          if (regle.auto_point) nbTriablesAuto++
+          else nbSuggerables++
+        }
       }
       return {
         date: l.date,
@@ -252,6 +259,7 @@ export async function POST(req: NextRequest) {
       nbPairesFusionnees: analyse.nbPairesFusionnees,
       nbDejaImportees: lignes.filter((l) => l.dejaImporte).length,
       nbTriablesAuto,
+      nbSuggerables,
       totalEntrees: Math.round(totalEntrees * 100) / 100,
       totalSorties: Math.round(totalSorties * 100) / 100,
       periodeDebut,
