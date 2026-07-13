@@ -97,7 +97,10 @@ export default function TriGroupeTab({
       else map.set(cle, { motifRegle: motif, mvts: [m] })
     }
     const list: Groupe[] = []
-    for (const [cle, { motifRegle, mvts }] of map) {
+    // Array.from(...) plutôt que `for...of` sur la Map : le tsconfig du projet
+    // (target ES ancien, sans downlevelIteration) n'autorise pas l'itération
+    // directe d'une Map — convention déjà suivie ailleurs dans le code.
+    Array.from(map.entries()).forEach(([cle, { motifRegle, mvts }]) => {
       list.push({
         cle,
         motifRegle,
@@ -105,7 +108,7 @@ export default function TriGroupeTab({
         mouvements: mvts,
         total: mvts.reduce((s, x) => s + x.montant, 0),
       })
-    }
+    })
     // Trier par volume décroissant : on débloque le plus gros d'abord.
     return list.sort(
       (a, b) => b.mouvements.length - a.mouvements.length || a.total - b.total,
