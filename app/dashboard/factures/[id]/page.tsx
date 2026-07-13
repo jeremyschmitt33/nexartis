@@ -111,6 +111,10 @@ interface FactureRecord {
   // 2026-06-10 — Autoliquidation BTP (sous-traitance). Nullable car la migration
   // SQL peut ne pas etre encore executee en BDD (colonne absente → undefined).
   autoliquidation_btp?: boolean | null
+  // Retenue de garantie (facture de situation). Nullable : colonne potentiellement
+  // absente si la migration SQL n'a pas encore ete executee.
+  retenue_garantie_pct?: number | null
+  retenue_garantie_ht?: number | null
   superpdp_invoice_id?: string | null
   superpdp_status?: string | null
   superpdp_envoyee_at?: string | null
@@ -708,6 +712,10 @@ export default function FactureDetailPage() {
       // V2 imputation — avoir d'un autre dossier impute en reglement de cette facture.
       avoir_impute_numero: facture.avoir_impute_numero ?? null,
       avoir_impute_montant: facture.avoir_impute_montant ?? null,
+      // Retenue de garantie (facture de situation). Defensif : undefined si la
+      // colonne n'existe pas encore en DB → aucune ligne rendue (parité stricte).
+      retenue_garantie_pct: (facture.retenue_garantie_pct as number | null | undefined) ?? null,
+      retenue_garantie_ht: (facture.retenue_garantie_ht as number | null | undefined) ?? null,
       numero_situation: (facture.numero_situation as number | null | undefined) ?? null,
       pourcentage_situation: (facture.pourcentage_situation as number | null | undefined) ?? null,
       devis_ref: (facture.devis_ref as string | null | undefined) ?? null,

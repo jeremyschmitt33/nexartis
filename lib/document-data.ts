@@ -4,6 +4,8 @@
 // V3.0b.2 — Source UNIQUE de donnees pour les 4 rendus devis/facture.
 // ============================================================================
 
+import { labelRetenueGarantie } from './situation'
+
 export type DocumentType = 'devis' | 'facture'
 
 // Push 5 (Plan 2D) — image de plan affichée dans la section « Plan du
@@ -226,6 +228,10 @@ export interface RawFacture {
   // V2 imputation — avoir d'un autre dossier impute EN reglement de CETTE facture.
   avoir_impute_numero?: string | null
   avoir_impute_montant?: number | null
+  // Retenue de garantie (facture de situation, loi 16/07/1971). Nullable pour
+  // gerer le cas ou la migration SQL n'a pas encore ete executee.
+  retenue_garantie_pct?: number | null
+  retenue_garantie_ht?: number | null
   numero_situation?: number | null
   pourcentage_situation?: number | null
   devis_ref?: string | null
@@ -712,15 +718,29 @@ export function buildFactureDocument(opts: {
     }
   }
 
-  // V2 imputation — Si un avoir d'un autre dossier a ete impute EN reglement de
-  // cette facture, on l'affiche comme DEDUCTION sous le Total TTC (le TTC + la TVA
-  // restent PLEINS = CA juste). Canal partage -> rendu identique dans les 3 sorties.
+  // DEDUCTIONS de reglement affichees sous le Total TTC (qui reste PLEIN = CA + TVA
+  // justes), avant le Net a payer. Canal partage -> rendu STRICTEMENT identique dans
+  // le PDF (lib/pdf.ts) et le HTML (DocumentRender). Deux sources, jamais sur un avoir :
+  //   - V2 imputation : avoir d'un autre dossier impute EN reglement ;
+  //   - Retenue de garantie (facture de situation, loi 16/07/1971).
+  // ⚠️ ORDRE identique au PDF : avoir imputé d'abord, puis retenue de garantie.
+  const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
   const avoirImpute = Number(opts.doc.avoir_impute_montant ?? 0)
-  if (opts.doc.type !== 'avoir' && avoirImpute > 0.01) {
-    const numAv = opts.doc.avoir_impute_numero ? ` ${opts.doc.avoir_impute_numero}` : ''
-    const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
-    totals.deductions = [{ label: `Avoir${numAv} imputé`, montant: r2(avoirImpute) }]
-    totals.netAPayer = r2(Math.max(0, totals.totalTtc - avoirImpute))
+  const retenueHt = Number(opts.doc.retenue_garantie_ht ?? 0)
+  if (opts.doc.type !== 'avoir') {
+    const deductions: { label: string; montant: number }[] = []
+    if (avoirImpute > 0.01) {
+      const numAv = opts.doc.avoir_impute_numero ? ` ${opts.doc.avoir_impute_numero}` : ''
+      deductions.push({ label: `Avoir${numAv} imputé`, montant: r2(avoirImpute) })
+    }
+    if (retenueHt > 0.01) {
+      deductions.push({ label: labelRetenueGarantie(opts.doc.retenue_garantie_pct ?? 0), montant: r2(retenueHt) })
+    }
+    if (deductions.length > 0) {
+      const totalDed = deductions.reduce((s, d) => s + d.montant, 0)
+      totals.deductions = deductions
+      totals.netAPayer = r2(Math.max(0, totals.totalTtc - totalDed))
+    }
   }
 
   const clientType: 'pro' | 'particulier' = (client.siret && client.siret.trim()) ? 'pro' : 'particulier'

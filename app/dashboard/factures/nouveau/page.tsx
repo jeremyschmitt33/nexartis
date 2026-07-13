@@ -188,6 +188,9 @@ export default function NouvelleFacturePage() {
   const [devisRef, setDevisRef] = useState('')
   const [numeroSituation, setNumeroSituation] = useState<number>(1)
   const [pourcentageSituation, setPourcentageSituation] = useState<number>(0)
+  // Retenue de garantie (loi 16/07/1971, plafond 5 %). 0 = aucune retenue.
+  // Pilotée depuis <SituationParLigne> (case à cocher) et persistée au save.
+  const [retenueGarantiePct, setRetenueGarantiePct] = useState<number>(0)
   // V3.0c.18 — Pré-remplissage intelligent des situations :
   //   - cumul HT/TTC des situations précédentes (calculé depuis la DB)
   //   - reste à facturer HT/TTC (si on retrouve le devis lié → totalHT - cumul - cette situation)
@@ -594,6 +597,9 @@ export default function NouvelleFacturePage() {
       id: nextId++, designation: lf.designation, qty: 1, unit: 'forfait', priceHT: lf.prix_unitaire_ht, tva: lf.tva, type: 'line' as const, devisLigneId: lf.devisLigneId,
     })))
     setPourcentageSituation(r.pourcentageGlobal)
+    // Retenue de garantie : la valeur est déjà pilotée par le parent, on la
+    // resynchronise depuis le résultat par sécurité (source unique au save).
+    setRetenueGarantiePct(r.retenueGarantiePct)
   }
 
   // Push 7B — vrai quand l'écran de situation par ligne est disponible (pilote l'UI :
@@ -986,6 +992,13 @@ export default function NouvelleFacturePage() {
         }
       }
 
+      // Retenue de garantie (loi 16/07/1971) : 5 % max du HT POSITIF de cette
+      // situation. Recalculée au save depuis le vrai HT (totalHT) pour ne jamais
+      // figer une valeur périmée. Uniquement pour une facture de situation.
+      const retenueGarantieHtCalc = isSit && retenueGarantiePct > 0
+        ? Math.round(Math.max(0, totalHT) * (retenueGarantiePct / 100) * 100) / 100
+        : 0
+
       const factureData: Record<string, unknown> = {
         numero,
         statut: statutFinal,
@@ -1028,6 +1041,12 @@ export default function NouvelleFacturePage() {
         montant_situation_precedent_ttc: isSit ? cumulFraisTTC : null,
         reste_a_facturer_ht: resteHT,
         reste_a_facturer_ttc: resteTTC,
+        // Retenue de garantie (facture de situation) : taux + montant HT retenu.
+        // null si non applicable → aucune ligne « retenue » rendue (parité stricte
+        // avec les factures sans retenue). Colonnes gérées par le catch 42703 si la
+        // migration SQL n'a pas encore été exécutée (même filet que autoliquidation_btp).
+        retenue_garantie_pct: isSit && retenueGarantiePct > 0 ? retenueGarantiePct : null,
+        retenue_garantie_ht: isSit && retenueGarantiePct > 0 ? retenueGarantieHtCalc : null,
         date_emission: dateFacture,
         date_echeance: dateEcheance,
         objet: objet || null,
@@ -1138,9 +1157,13 @@ export default function NouvelleFacturePage() {
           )
           return
         }
-        if (msg.includes('autoliquidation_btp') || code === '42703' || msg.includes('42703')) {
+        if (msg.includes('autoliquidation_btp') || msg.includes('retenue_garantie') || code === '42703' || msg.includes('42703')) {
           const fallback = { ...factureData }
+          // Retire les colonnes potentiellement absentes si la migration SQL n'a
+          // pas encore tourné (42703 = undefined column) → l'insertion ne plante pas.
           delete fallback.autoliquidation_btp
+          delete fallback.retenue_garantie_pct
+          delete fallback.retenue_garantie_ht
           try {
             facture = await insertRow('factures', fallback)
           } catch (e2) {
@@ -1427,6 +1450,8 @@ export default function NouvelleFacturePage() {
                       dejaFactureParLigne={situationPlan.dejaFacture}
                       etatsPieces={situationPlan.etats}
                       nomsPieces={situationPlan.noms}
+                      retenueGarantiePct={retenueGarantiePct}
+                      onRetenueChange={setRetenueGarantiePct}
                       onAppliquer={appliquerSituation}
                     />
                   </div>

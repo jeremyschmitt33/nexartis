@@ -28,6 +28,7 @@ import { drawFooterAllPages } from './pdf/footer'
 import { drawSepaPaymentBlock, canDrawSepaQr } from './sepa-qr'
 import { buildPalette, type Palette } from './pdf/palette'
 import type { DocumentTheme } from './document-theme'
+import { labelRetenueGarantie } from './situation'
 
 // ---------------------------------------------------------------------------
 // Interfaces publiques (conservation stricte des champs vs ancien lib/pdf.ts)
@@ -171,6 +172,11 @@ export interface FactureData {
   // V2 imputation — avoir d'un autre dossier impute EN reglement de cette facture.
   avoir_impute_numero?: string
   avoir_impute_montant?: number
+  // Retenue de garantie (facture de situation, loi 16/07/1971). Affichee en
+  // deduction du net a payer (le Total TTC + la TVA restent PLEINS). Absente/0
+  // => aucune ligne rendue (parite stricte avec une facture standard).
+  retenue_garantie_pct?: number
+  retenue_garantie_ht?: number
   // 2026-06-10 — Autoliquidation TVA BTP (sous-traitance, art. 283-2 nonies CGI).
   // Quand true : pousse hasSousTraitanceBTP=true dans le LegalContext → la mention
   // d'autoliquidation est ajoutee automatiquement en pied de doc (cf. legal-mentions.ts).
@@ -421,6 +427,27 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   y = drawTable(doc, lignes, y, isForfait, ent, data.objet, data.montant_ht, palette)
 
   // 6. Bloc CONDITIONS (avec IBAN) + RECAP + NET A PAYER
+  // Deductions de reglement affichees sous le Total TTC (qui reste PLEIN = CA/TVA
+  // justes), avant le Net a payer. Canal generique PARTAGE avec le rendu HTML
+  // (lib/document-data.ts + DocumentRender.tsx) -> parite stricte garantie.
+  // Deux sources possibles, JAMAIS sur un avoir :
+  //   - avoir d'un autre dossier impute en reglement ;
+  //   - retenue de garantie (facture de situation, loi 16/07/1971).
+  const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
+  const factureDeductions: { label: string; montant: number }[] = []
+  if (!isAvoir && (data.avoir_impute_montant ?? 0) > 0.01) {
+    factureDeductions.push({
+      label: `Avoir${data.avoir_impute_numero ? ` ${data.avoir_impute_numero}` : ''} imputé`,
+      montant: r2(data.avoir_impute_montant as number),
+    })
+  }
+  if (!isAvoir && (data.retenue_garantie_ht ?? 0) > 0.01) {
+    factureDeductions.push({
+      label: labelRetenueGarantie(data.retenue_garantie_pct ?? 0),
+      montant: r2(data.retenue_garantie_ht as number),
+    })
+  }
+  const totalDeductions = factureDeductions.reduce((s, d) => s + d.montant, 0)
   y = drawTotals(
     doc,
     {
@@ -437,13 +464,9 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
       entreprise: ent,
       netLabel: isAvoir ? 'Net à créditer' : 'Net à payer',
       isAvoir,
-      // V2 imputation — avoir d'un autre dossier impute en reglement (TTC reste plein).
-      // Arrondi 2 decimales identique au rendu HTML (lib/document-data.ts) -> parite.
-      deductions: (!isAvoir && (data.avoir_impute_montant ?? 0) > 0.01)
-        ? [{ label: `Avoir${data.avoir_impute_numero ? ` ${data.avoir_impute_numero}` : ''} imputé`, montant: Math.round(((data.avoir_impute_montant as number) + Number.EPSILON) * 100) / 100 }]
-        : undefined,
-      netAPayer: (!isAvoir && (data.avoir_impute_montant ?? 0) > 0.01)
-        ? Math.round((Math.max(0, (data.montant_ttc || 0) - (data.avoir_impute_montant as number)) + Number.EPSILON) * 100) / 100
+      deductions: factureDeductions.length > 0 ? factureDeductions : undefined,
+      netAPayer: factureDeductions.length > 0
+        ? r2(Math.max(0, (data.montant_ttc || 0) - totalDeductions))
         : undefined,
     },
     lignes,
@@ -454,8 +477,9 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
 
   // 6.bis QR de paiement SEPA (virement pre-rempli) — si IBAN renseigne
   {
-    // V2 imputation : le QR demande le NET reel (apres acompte ET avoir impute).
-    const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0) - (data.avoir_impute_montant || 0)
+    // V2 imputation : le QR demande le NET reel (apres acompte, avoir impute ET
+    // retenue de garantie) — coherent avec le Net a payer affiche.
+    const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0) - (data.avoir_impute_montant || 0) - (data.retenue_garantie_ht || 0)
     const entInfo = ent as { nom?: string; iban?: string }
     // V-AVOIR : pas de QR de virement SEPA sur un avoir (somme a crediter, pas a payer).
     if (!isAvoir && canDrawSepaQr(entInfo?.iban, netAPayer)) {

@@ -26,6 +26,24 @@
 /** Plafond légal de la retenue de garantie (loi 16/07/1971). */
 export const RETENUE_GARANTIE_MAX_PCT = 5
 
+/**
+ * Formate un taux de retenue en français (5 → "5", 2.5 → "2,5"), sans zéros
+ * inutiles. Utilisé UNIQUEMENT pour construire le libellé affiché.
+ */
+export function formatRetenuePct(pct: number): string {
+  const p = Math.round((Number(pct) + Number.EPSILON) * 100) / 100
+  return (p % 1 === 0 ? String(p) : String(p).replace('.', ','))
+}
+
+/**
+ * Libellé UNIQUE de la ligne « Retenue de garantie X % » affichée en déduction
+ * du net à payer. Source de vérité PARTAGÉE par le PDF (lib/pdf.ts) et le rendu
+ * HTML (lib/document-data.ts) → garantit un libellé strictement identique.
+ */
+export function labelRetenueGarantie(pct: number): string {
+  return `Retenue de garantie ${formatRetenuePct(pct)} %`
+}
+
 /** Une ligne du marché (devis) avec son avancement cumulé et son déjà-facturé réel. */
 export interface LigneMarcheSituation {
   id: string

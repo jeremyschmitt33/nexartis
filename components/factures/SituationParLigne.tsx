@@ -25,6 +25,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   calculerSituation,
   pctSuggereDepuisEtat,
+  labelRetenueGarantie,
+  RETENUE_GARANTIE_MAX_PCT,
   type LigneMarcheSituation,
   type SituationLigneEnregistree,
 } from '@/lib/situation'
@@ -46,6 +48,12 @@ export interface SituationParLigneResultat {
   situationHt: number
   /** % global pondéré (cumul facturé / marché), pour le champ pourcentage_situation. */
   pourcentageGlobal: number
+  /** Taux de retenue de garantie appliqué (0..5), 0 si aucune retenue. */
+  retenueGarantiePct: number
+  /** Montant HT retenu en garantie (déduit du net à payer). 0 si aucune retenue. */
+  retenueGarantieHt: number
+  /** Net à payer TTC de cette situation (Total TTC − retenue de garantie). */
+  netAPayerTtc: number
 }
 
 export interface SituationParLigneProps {
@@ -56,8 +64,10 @@ export interface SituationParLigneProps {
   etatsPieces: Record<string, string>
   /** Nom des pièces (roomId → nom), pour l'étiquette. */
   nomsPieces?: Record<string, string>
-  /** Retenue de garantie en % (0 pour l'instant — géré par le moteur, câblé plus tard). */
+  /** Retenue de garantie en % (0 = aucune). CONTRÔLÉ par le parent. */
   retenueGarantiePct?: number
+  /** Callback pour piloter le taux de retenue depuis le parent (case à cocher + input). */
+  onRetenueChange?: (pct: number) => void
   onAppliquer: (r: SituationParLigneResultat) => void
 }
 
@@ -82,6 +92,7 @@ export default function SituationParLigne({
   etatsPieces,
   nomsPieces = {},
   retenueGarantiePct = 0,
+  onRetenueChange,
   onAppliquer,
 }: SituationParLigneProps) {
   const [pctParLigne, setPctParLigne] = useState<Record<string, number>>({})
@@ -163,7 +174,15 @@ export default function SituationParLigne({
       devis_ligne_id: l.id,
       montant_ht: l.montantSituationHt,
     }))
-    onAppliquer({ lignesFacture, situationLignes, situationHt: resultat.situationHt, pourcentageGlobal: progression })
+    onAppliquer({
+      lignesFacture,
+      situationLignes,
+      situationHt: resultat.situationHt,
+      pourcentageGlobal: progression,
+      retenueGarantiePct,
+      retenueGarantieHt: resultat.retenueGarantieHt,
+      netAPayerTtc: resultat.netAPayerTtc,
+    })
   }
 
   if (lignesFacturables.length === 0) {
@@ -249,6 +268,42 @@ export default function SituationParLigne({
         </p>
       )}
 
+      {/* Retenue de garantie — case à cocher (loi 16/07/1971, plafond légal 5 %). */}
+      <div className="rounded-xl border border-gray-200 bg-[#fafbfc] px-3 py-2.5">
+        <label className="flex items-center gap-2 font-hanken text-[13px] text-[#0f1a3a]">
+          <input
+            type="checkbox"
+            checked={retenueGarantiePct > 0}
+            onChange={(e) => onRetenueChange?.(e.target.checked ? RETENUE_GARANTIE_MAX_PCT : 0)}
+            className="h-4 w-4 rounded border-gray-300 accent-[#ff7a1a]"
+          />
+          <span className="font-semibold">Appliquer une retenue de garantie</span>
+        </label>
+        {retenueGarantiePct > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <label htmlFor="retenue-garantie-pct" className="font-hanken text-[12px] text-gray-600">
+              Retenue de garantie (plafond légal 5 %)
+            </label>
+            <input
+              id="retenue-garantie-pct"
+              type="number"
+              min={0}
+              max={RETENUE_GARANTIE_MAX_PCT}
+              step={0.5}
+              value={retenueGarantiePct}
+              onChange={(e) => {
+                const n = Number(e.target.value)
+                const v = Number.isFinite(n) ? Math.min(RETENUE_GARANTIE_MAX_PCT, Math.max(0, n)) : 0
+                onRetenueChange?.(v)
+              }}
+              aria-label="Taux de retenue de garantie en pourcentage"
+              className="w-16 rounded-lg border-[1.5px] border-gray-200 bg-white px-2 py-1 text-right font-spline-mono text-[13px] text-[#0f1a3a] focus:border-[#ff7a1a] focus:outline-none"
+            />
+            <span className="font-hanken text-[12px] text-gray-500">%</span>
+          </div>
+        )}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <div className="mb-1.5 font-hanken text-[11px] uppercase tracking-wider text-gray-500">Progression du chantier</div>
@@ -270,7 +325,7 @@ export default function SituationParLigne({
           </div>
           {retenueGarantiePct > 0 && (
             <div className="flex justify-between py-0.5">
-              <span className="font-hanken text-gray-600">Retenue de garantie {retenueGarantiePct} %</span>
+              <span className="font-hanken text-gray-600">{labelRetenueGarantie(retenueGarantiePct)}</span>
               <span className="text-red-600">− {eur(resultat.retenueGarantieHt)}</span>
             </div>
           )}

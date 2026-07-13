@@ -137,6 +137,12 @@ export async function buildFactureDataFromDb(
     // V2 imputation — avoir d'un autre dossier impute en reglement de cette facture.
     avoir_impute_numero: facture.avoir_impute_numero || undefined,
     avoir_impute_montant: facture.avoir_impute_montant ?? undefined,
+    // Retenue de garantie (facture de situation). Propagee dans le rendu VISUEL
+    // uniquement (PDF + HTML). NON exposee dans le XML Factur-X (mapping.ts) :
+    // aucun equivalent EN 16931 simple (ni acompte prepaye, ni remise) sans
+    // risquer une TVA/base fausse -> volontairement omise du structure.
+    retenue_garantie_pct: facture.retenue_garantie_pct ?? undefined,
+    retenue_garantie_ht: facture.retenue_garantie_ht ?? undefined,
     autoliquidation_btp: facture.autoliquidation_btp === true,
     notes: facture.notes || undefined,
     // Push 7C — snapshot du plan colorié (avancement) figé sur une facture de
