@@ -540,6 +540,9 @@ export default function PanneauPointage({
           : undefined
         const valeursAchat: Record<string, unknown> = {
           date_achat: mouvement.date_operation,
+          // Registre des achats : la date de règlement = date de l'opération
+          // bancaire (le décaissement réel), ici identique à date_achat.
+          date_reglement: mouvement.date_operation,
           montant_ht: montantHt,
           taux_tva: taux,
           montant_ttc: montantTtc,

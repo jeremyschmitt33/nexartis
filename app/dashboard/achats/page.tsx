@@ -260,6 +260,9 @@ function AchatsPageInner() {
       const values: Record<string, unknown> = {
         fournisseur_id: modalFournisseur || null,
         date_achat: modalDate,
+        // Registre des achats (légal) : date du règlement = décaissement. Pour une
+        // saisie manuelle, on prend la date saisie (achat au comptant par défaut).
+        date_reglement: modalDate,
         montant_ht: ht,
         taux_tva: tvaTaux,
         // Lot 2b : montant_ttc est désormais rempli par le pointage bancaire

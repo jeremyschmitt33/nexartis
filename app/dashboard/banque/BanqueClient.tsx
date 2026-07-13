@@ -25,6 +25,7 @@ import AideReleveModal from './AideReleveModal'
 import PanneauPointage from './PanneauPointage'
 import CaisseTab from './CaisseTab'
 import ParChantierTab from './ParChantierTab'
+import RegistresTab from './RegistresTab'
 import {
   euros,
   grouperParMois,
@@ -49,7 +50,7 @@ export type { CompteTresorerie } from './commun'
 export { euros } from './commun'
 
 type Periode = 'mois' | 'dernier' | '3mois' | 'annee'
-type Onglet = 'operations' | 'caisse' | 'chantiers'
+type Onglet = 'operations' | 'caisse' | 'chantiers' | 'registres'
 
 function bornesPeriode(periode: Periode): { debut: string; fin: string | null } {
   const maintenant = new Date()
@@ -332,6 +333,7 @@ export default function BanqueClient() {
             { id: 'operations', label: 'Opérations' },
             { id: 'caisse', label: 'Caisse' },
             { id: 'chantiers', label: 'Par chantier' },
+            { id: 'registres', label: 'Registres' },
           ] as { id: Onglet; label: string }[]
         ).map((o) => (
           <button
@@ -376,6 +378,8 @@ export default function BanqueClient() {
             ouvrirFile()
           }}
         />
+      ) : onglet === 'registres' ? (
+        <RegistresTab />
       ) : chargement ? (
         <div className="flex items-center justify-center py-24 text-gray-400" role="status" aria-live="polite">
           <Loader2 size={22} className="animate-spin mr-2" aria-hidden="true" />
