@@ -326,3 +326,24 @@ export const UPGRADE_MESSAGES: Partial<Record<FeatureKey, { title: string; descr
       'Générez des rapports d\'intervention signés sur le chantier. Disponible dans l\'offre Complet à 25 € HT/mois.',
   },
 }
+
+// ─────────────────────────────────────────────────────────────
+// Helper SERVEUR (Stripe)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Retourne l'ID de prix Stripe correspondant à un plan.
+ * ⚠️ À N'UTILISER QUE CÔTÉ SERVEUR (route API) : lit des variables
+ * d'environnement non exposées au client.
+ *
+ * - essential → STRIPE_PRICE_ESSENTIAL
+ * - complete  → STRIPE_PRICE_COMPLETE, avec repli sur l'ancien
+ *   STRIPE_PRICE_ID (rétrocompatibilité pendant la migration Vercel).
+ *
+ * Retourne undefined si la variable n'est pas configurée : la route
+ * appelante doit alors renvoyer une erreur 500 explicite.
+ */
+export function stripePriceIdForPlan(plan: PlanId): string | undefined {
+  if (plan === 'essential') return process.env.STRIPE_PRICE_ESSENTIAL
+  return process.env.STRIPE_PRICE_COMPLETE ?? process.env.STRIPE_PRICE_ID
+}

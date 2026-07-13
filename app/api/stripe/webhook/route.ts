@@ -100,11 +100,17 @@ export async function POST(req: NextRequest) {
           ? session.subscription
           : (session.subscription as Stripe.Subscription)?.id
 
+        // Plan choisi a la souscription (essential/complete). Defaut 'complete'
+        // si absent ou valeur inattendue (retrocompatibilite + securite).
+        const planChoisi = session.metadata?.nexartis_plan
+        const subscriptionPlan = (planChoisi === 'essential' || planChoisi === 'complete') ? planChoisi : 'complete'
+
         if (entrepriseId) {
           await supabase
             .from('entreprises')
             .update({
               abonnement_type: 'actif',
+              subscription_plan: subscriptionPlan,
               stripe_subscription_id: subscriptionId || null,
               stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
               abonnement_expire_at: null,

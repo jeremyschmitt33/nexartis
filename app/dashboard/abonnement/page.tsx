@@ -17,36 +17,45 @@ import {
   Lock,
 } from 'lucide-react'
 import { useEntreprise, useUser, LoadingSkeleton } from '@/lib/hooks'
-import { UPGRADE_MESSAGES, type FeatureKey } from '@/lib/plans'
+import { PLANS, UPGRADE_MESSAGES, type FeatureKey, type PlanId } from '@/lib/plans'
 
 // -------------------------------------------------------------------
 // Constantes
 // -------------------------------------------------------------------
 
 const TRIAL_DAYS = 14
-const PRICE_HT = 25
-const PRICE_TTC = Math.round(PRICE_HT * 1.2 * 100) / 100 // 30 €
 
-const FEATURES_INCLUDED = [
-  'Devis illimités',
-  'Factures illimitées',
-  'Signature électronique',
-  'Planning chantiers',
-  'Alertes conflits équipe',
-  'Tableau de bord CA',
-  'Suivi des impayés simplifié',
-  'Optimisé pour smartphone et tablette',
-  'Facturation électronique intégrée',
-  'Bibliothèque de vos prestations',
-  'TVA 5.5%, 10%, 20% automatique',
-  'Acomptes et factures de situation (#1, #2, #3 avec cumul d’avancement)',
-  'Avoirs et rectifications',
-  'Export PDF de chaque devis et facture',
-  'Export CSV comptable (Sage / EBP / FEC) — à venir',
-  'Données hébergées en Europe · RGPD strict',
-  'Support par email Lun-Ven 9h-18h',
-  'Mises à jour incluses à vie',
-  'Aucune limite de clients ni de chantiers',
+// Prix : source de vérité = lib/plans.ts (PLANS[plan].priceMonthlyHT).
+// Le prix affiché dépend du plan sélectionné (TTC = HT × 1,2, TVA 20 %).
+
+// Listes de features affichées par offre. Libellés lisibles pour l'artisan
+// (distincts des clés techniques de FeatureKey dans lib/plans.ts).
+const ESSENTIAL_DISPLAY_FEATURES = [
+  'Devis & factures illimités',
+  'Signature électronique en ligne',
+  'Mentions BTP + TVA (5,5 / 10 / 20 %) automatiques',
+  'Acomptes & attestations TVA rénovation',
+  'Factures d’avoir',
+  'Suivi des impayés & relances email',
+  'Facture électronique (réception 2026, émission prête 2027)',
+  'QR de virement SEPA',
+  'Tableau de bord du CA',
+  '10 calculatrices métier + aide URSSAF',
+  'Catalogue +700 prestations (biblio perso 50 max)',
+  'Rappels assurance décennale',
+  'Clients & chantiers illimités',
+  '1 utilisateur',
+]
+
+const COMPLETE_DISPLAY_FEATURES = [
+  'Tout l’Essentiel, plus :',
+  'Planning chantier + alertes de conflit',
+  'Gestion d’équipe & comptes',
+  'Devis vocal par IA',
+  'Factures de situation',
+  'Export comptable CSV (Sage / EBP)',
+  'Rapport d’intervention',
+  'Bibliothèque de prestations illimitée',
 ]
 
 // -------------------------------------------------------------------
@@ -192,6 +201,8 @@ function AbonnementPageContent() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [cgvAccepted, setCgvAccepted] = useState(false)
+  // Offre choisie par l'utilisateur. Défaut 'complete' (recommandée + rétrocompatible).
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('complete')
 
   const isExpiredFlow = searchParams.get('expired') === '1'
   // ?upgrade=planning_chantier (ou autre feature) : on arrive ici depuis une
@@ -208,7 +219,7 @@ function AbonnementPageContent() {
       setToast({
         type: 'success',
         message:
-          "Abonnement activé ! Bienvenue dans la version complète de Nexartis. Votre première facture vous a été envoyée par email.",
+          "Abonnement activé ! Bienvenue sur Nexartis. Votre première facture vous a été envoyée par email.",
       })
     } else if (canceled === '1') {
       setToast({
@@ -253,6 +264,7 @@ function AbonnementPageContent() {
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -367,6 +379,12 @@ function AbonnementPageContent() {
     (status.type === 'trial' && status.joursRestants !== null && status.joursRestants < 0) ||
     (status.type === 'suspendu' &&
       (status.expireAt === null || (status.joursRestants !== null && status.joursRestants <= 0)))
+
+  // Prix et features du plan actuellement sélectionné (source : lib/plans.ts)
+  const priceHT = PLANS[selectedPlan].priceMonthlyHT
+  const priceTTC = Math.round(priceHT * 1.2 * 100) / 100
+  const displayFeatures =
+    selectedPlan === 'essential' ? ESSENTIAL_DISPLAY_FEATURES : COMPLETE_DISPLAY_FEATURES
 
   return (
     <div className="max-w-5xl">
@@ -591,34 +609,79 @@ function AbonnementPageContent() {
           <div className="absolute -top-20 -right-20 w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(255,122,26,0.08)_0%,transparent_70%)] pointer-events-none" />
 
           <div className="relative">
-            <div className="flex flex-col items-center text-center mb-8">
+            <div className="flex flex-col items-center text-center mb-6">
               <span
-                className="inline-flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full
+                className="inline-flex items-center gap-1.5 mb-2 px-3 py-1 rounded-full
                            bg-gradient-to-br from-[#fff3e5] to-[#fff8ef] border border-[#ff7a1a]/30
                            text-[#ff7a1a] font-hanken font-bold text-[11.5px] uppercase tracking-[0.12em]"
               >
                 <Sparkles size={12} />
-                Plan Nexartis
+                Choisissez votre offre
               </span>
-
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="font-spline-mono font-medium text-[#0f1a3a] text-5xl sm:text-6xl tracking-[-0.02em] leading-none">
-                  {PRICE_HT}€
-                </span>
-                <span className="font-hanken text-gray-500 text-lg font-semibold">
-                  / mois HT
-                </span>
-              </div>
               <p className="font-hanken text-gray-500 text-sm">
-                soit <span className="font-spline-mono font-medium">{PRICE_TTC.toFixed(2).replace('.', ',')}</span>&nbsp;€&nbsp;TTC&nbsp;·&nbsp;Sans engagement&nbsp;·&nbsp;Résiliable à tout moment
+                Changez d&apos;offre à tout moment depuis votre espace.
+              </p>
+            </div>
+
+            {/* Sélecteur : 2 offres cliquables (Essentiel / Complet) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {(['essential', 'complete'] as PlanId[]).map((p) => {
+                const isSelected = selectedPlan === p
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setSelectedPlan(p)}
+                    aria-pressed={isSelected}
+                    className={`relative text-left rounded-2xl border-2 p-5 transition-all duration-200
+                      ${isSelected
+                        ? 'border-[#ff7a1a] bg-gradient-to-br from-[#fff8ef] to-white shadow-[0_8px_24px_rgba(255,122,26,0.18)]'
+                        : 'border-gray-200 bg-white hover:border-[#ff7a1a]/40 hover:-translate-y-0.5'}`}
+                  >
+                    {p === 'complete' && (
+                      <span className="absolute -top-2.5 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full
+                                       bg-gradient-to-br from-[#ff9d4d] to-[#ff7a1a] text-white
+                                       font-hanken font-bold text-[10px] uppercase tracking-[0.1em]
+                                       shadow-[0_4px_12px_rgba(255,122,26,0.35)]">
+                        Recommandé
+                      </span>
+                    )}
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-hanken font-extrabold text-lg text-[#0f1a3a] tracking-[-0.02em]">
+                        {PLANS[p].name}
+                      </span>
+                      {isSelected && (
+                        <CheckCircle2 size={20} className="text-[#ff7a1a] flex-shrink-0" />
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1.5 mb-2">
+                      <span className="font-spline-mono font-medium text-[#0f1a3a] text-3xl tracking-[-0.02em] leading-none">
+                        {PLANS[p].priceMonthlyHT}€
+                      </span>
+                      <span className="font-hanken text-gray-500 text-sm font-semibold">
+                        / mois HT
+                      </span>
+                    </div>
+                    <p className="font-hanken text-xs text-gray-500 leading-relaxed">
+                      {PLANS[p].description}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Rappel du prix TTC du plan sélectionné */}
+            <div className="flex flex-col items-center text-center mb-8">
+              <p className="font-hanken text-gray-500 text-sm">
+                Soit <span className="font-spline-mono font-medium">{priceTTC.toFixed(2).replace('.', ',')}</span>&nbsp;€&nbsp;TTC&nbsp;/&nbsp;mois&nbsp;·&nbsp;Sans engagement&nbsp;·&nbsp;Résiliable à tout moment
               </p>
             </div>
 
             <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-8" />
 
-            {/* Liste features — V4 Light : checks orange, texte navy */}
+            {/* Liste features de l'offre sélectionnée — V4 Light : checks orange, texte navy */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 mb-8">
-              {FEATURES_INCLUDED.map((feature) => (
+              {displayFeatures.map((feature) => (
                 <div
                   key={feature}
                   className="flex items-start gap-2.5 text-[14px] text-[#0f1a3a] font-hanken"

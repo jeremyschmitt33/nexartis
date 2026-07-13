@@ -5,6 +5,7 @@ import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   secureJson, secureError, rateLimitError, unauthorizedError,
 } from '@/lib/api-security'
+import { stripePriceIdForPlan, type PlanId } from '@/lib/plans'
 
 /**
  * POST /api/stripe/create-checkout-session
@@ -29,6 +30,18 @@ export async function POST(req: NextRequest) {
     // Verifier l'authentification
     const user = await getAuthenticatedUser()
     if (!user || !user.email) return unauthorizedError()
+
+    // Lire le plan choisi dans le body (defaut conservateur 'complete').
+    // On lit le body UNE SEULE FOIS, en tolerant un body vide/invalide.
+    let plan: PlanId = 'complete'
+    try {
+      const parsedBody = await req.json().catch(() => null)
+      if (parsedBody && (parsedBody.plan === 'essential' || parsedBody.plan === 'complete')) {
+        plan = parsedBody.plan
+      }
+    } catch {
+      // body absent ou non-JSON : on garde 'complete'
+    }
 
     // Recuperer les infos entreprise
     const supabase = createClient(
@@ -79,10 +92,10 @@ export async function POST(req: NextRequest) {
         .eq('id', entreprise.id)
     }
 
-    // Creer la session Checkout
-    const priceId = process.env.STRIPE_PRICE_ID
+    // Creer la session Checkout — le prix depend du plan choisi
+    const priceId = stripePriceIdForPlan(plan)
     if (!priceId) {
-      return secureError('Configuration Stripe incomplete (STRIPE_PRICE_ID manquant)', 500)
+      return secureError(`Configuration Stripe incomplete (price manquant pour ${plan})`, 500)
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexartis.fr'
@@ -107,11 +120,13 @@ export async function POST(req: NextRequest) {
       metadata: {
         nexartis_user_id: user.id,
         nexartis_entreprise_id: entreprise.id,
+        nexartis_plan: plan,
       },
       subscription_data: {
         metadata: {
           nexartis_user_id: user.id,
           nexartis_entreprise_id: entreprise.id,
+          nexartis_plan: plan,
         },
       },
     })
