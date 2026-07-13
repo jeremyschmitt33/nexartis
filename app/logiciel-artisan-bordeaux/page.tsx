@@ -105,7 +105,7 @@ export default function Page() {
               Sans logiciel adapté, ce rythme se traduit par un dimanche soir entier à
               rattraper les devis et factures. Avec Nexartis, chaque intervention
               est saisie depuis la camionnette : un devis créé en 3 minutes, envoyé
-              par SMS, signé sur le téléphone du client. La facture est générée
+              par email, signé sur le téléphone du client. La facture est générée
               dans la foulée, <strong>prête pour la facturation électronique</strong>, et
               un bouton « Relancer » en un clic en cas d&apos;impayé. Le planning
               visuel évite les doubles affectations entre la rocade A630 et le centre.
@@ -239,7 +239,7 @@ export default function Page() {
                 Nexartis fonctionne sur mobile depuis n&apos;importe quel chantier.
                 L&apos;application est conçue pour le terrain : vous créez un devis
                 depuis votre véhicule, vous prenez une photo du chantier, vous
-                l&apos;envoyez par SMS au client. Le tout en couvrant les 28 communes
+                l&apos;envoyez par email au client. Le tout en couvrant les 28 communes
                 de Bordeaux Métropole.
               </p>
             </details>

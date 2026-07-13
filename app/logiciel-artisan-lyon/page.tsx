@@ -105,7 +105,7 @@ export default function Page() {
             <p>
               Sans outil adapté, ces journées finissent en soirées de paperasse à
               rattraper devis et factures. Avec Nexartis, chaque intervention est
-              saisie depuis le véhicule : devis créé en 3 minutes, envoyé par SMS,
+              saisie depuis le véhicule : devis créé en 3 minutes, envoyé par email,
               signé sur le téléphone du client. La facture est générée dans la
               foulée, <strong>prête pour la facturation électronique</strong>, et un bouton
               « Relancer » en un clic en cas d&apos;impayé. Le planning visuel évite
@@ -249,7 +249,7 @@ export default function Page() {
                 Meyzieu et Rillieux-la-Pape, Nexartis fonctionne sur mobile depuis
                 n&apos;importe quel chantier. L&apos;application est pensée pour
                 le terrain : devis créé depuis votre véhicule, photo du chantier,
-                envoi par SMS au client. Les 59 communes de la Métropole sont
+                envoi par email au client. Les 59 communes de la Métropole sont
                 couvertes sans surcoût.
               </p>
             </details>

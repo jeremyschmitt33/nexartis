@@ -65,7 +65,7 @@ const ESSENTIAL_GROUPS: FeatureGroup[] = [
     title: "Paiement & trésorerie",
     items: [
       { label: "Suivi des impayés et relance en 1 clic" },
-      { label: "Relances auto (email) + SMS gratuite" },
+      { label: "Relances email automatiques + SMS gratuit depuis votre téléphone" },
       { label: "QR de virement SEPA pour être payé plus vite" },
       { label: "Tableau de bord du chiffre d'affaires" },
     ],
@@ -99,7 +99,7 @@ const COMPLETE_EXTRA_FEATURES: FeatureRow[] = [
   { label: "Gestion d'équipe et planning intervenants" },
   { label: "Devis vocal par IA (exclusif)" },
   { label: "Factures de situation (#1, #2, #3 avec cumul)" },
-  { label: "Export comptable (Sage / EBP / FEC)" },
+  { label: "Export comptable CSV (Sage / EBP)" },
   { label: "Rapport d'intervention" },
   { label: "Bibliothèque prestations illimitée" },
 ];

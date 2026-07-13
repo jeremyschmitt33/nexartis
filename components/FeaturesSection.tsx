@@ -65,7 +65,7 @@ const cards: FeatureCard[] = [
   },
   {
     title: "Vos relances tournent toutes seules",
-    text: "Relances email automatiques, relance SMS gratuite, ou relance manuelle en 1 clic. Les clients qui n'ont pas paye remontent en haut de votre tableau de bord. Vous n'oubliez plus une facture.",
+    text: "Relances email automatiques, SMS de relance pret a envoyer depuis votre telephone (gratuit), ou relance manuelle en 1 clic. Les clients qui n'ont pas paye remontent en haut de votre tableau de bord. Vous n'oubliez plus une facture.",
     tag: "✓ Relances integrees",
     accent: "#8b6dff",
     svgPaths: (

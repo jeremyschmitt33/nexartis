@@ -15,7 +15,7 @@ import ScrollReveal from "@/components/ScrollReveal";
  * - Maillage interne vers pages métier + outils.
  *
  * Anti-mensonge :
- *   - Le rapport d'intervention est marqué BIENTÔT (non encore livré).
+ *   - Le rapport d'intervention est LIVE (module livré et disponible).
  *   - La répartition des fonctions doit correspondre au gating réel de lib/plans.ts.
  *   - Aucune fausse promo barrée : 19/31 = "tarif de lancement, bientôt".
  */
@@ -34,7 +34,7 @@ const ESSENTIAL_FEATURES: string[] = [
   "Signature électronique sur smartphone",
   "Mentions BTP & TVA (5,5 / 10 / 20 %) automatiques",
   "Acomptes & attestations TVA rénovation",
-  "Suivi des impayés & relances (email + SMS)",
+  "Suivi des impayés & relances email auto (+ SMS depuis votre téléphone)",
   "Conforme facture électronique 2026 / 2027",
   "Tableau de bord du chiffre d'affaires",
   "Support par email (Lun–Ven)",
@@ -50,8 +50,8 @@ const COMPLETE_EXTRA: CompleteExtra[] = [
   { label: "Planning chantier visuel + alertes de conflit" },
   { label: "Gestion d'équipe & intervenants" },
   { label: "Factures de situation (#1, #2, #3 avec cumul)" },
-  { label: "Export comptable (Sage / EBP / FEC)" },
-  { label: "Rapport d'intervention", badge: "BIENTÔT" },
+  { label: "Export comptable CSV (Sage / EBP)" },
+  { label: "Rapport d'intervention" },
   { label: "Bibliothèque de prestations illimitée" },
   { label: "Support prioritaire" },
 ];
@@ -59,14 +59,14 @@ const COMPLETE_EXTRA: CompleteExtra[] = [
 const COMPARISON: CompareRow[] = [
   { label: "Devis & factures illimités", essential: true, complete: true },
   { label: "Signature & conformité e-facture 2026", essential: true, complete: true },
-  { label: "Suivi impayés & relances (email + SMS)", essential: true, complete: true },
+  { label: "Suivi impayés & relances email auto (+ SMS mobile)", essential: true, complete: true },
   { label: "Acomptes", essential: true, complete: true },
   { label: "Factures de situation (#1, #2, #3)", essential: false, complete: true },
   { label: "Devis vocal par IA", essential: false, complete: true },
   { label: "Planning chantier & alertes de conflit", essential: false, complete: true },
   { label: "Gestion d'équipe & intervenants", essential: false, complete: true },
-  { label: "Rapport d'intervention", badge: "BIENTÔT", essential: false, complete: true },
-  { label: "Export comptable (Sage / EBP / FEC)", essential: false, complete: true },
+  { label: "Rapport d'intervention", essential: false, complete: true },
+  { label: "Export comptable CSV (Sage / EBP)", essential: false, complete: true },
   { label: "Bibliothèque de prestations", essential: "50 max", complete: "Illimitée" },
   { label: "Support", essential: "Email", complete: "Prioritaire" },
 ];
