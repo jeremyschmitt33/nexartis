@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette — Tri auto V2 (à valider)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0f1a3a; --navy-80:rgba(15,26,58,.8); --navy-10:rgba(15,26,58,.10);
+    --orange:#ff7a1a; --sky:#3b82f6; --cream:#fdf8f0; --gold:#e8c56a;
+    --green:#1f9d6b; --green-bg:#e7f6ef; --grey:#7b8ba3; --line:#e6ecf2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#f4f6f9;color:var(--navy);font-family:'Hanken Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'Spline Sans Mono',monospace}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px 60px}
+  .note{background:#fff8e6;border:1px solid var(--gold);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--navy-80);margin-bottom:22px}
+  h1{font-size:15px;letter-spacing:.4px;text-transform:uppercase;color:var(--grey);font-weight:700;margin:34px 0 12px}
+  .card{background:#fff;border:1px solid var(--navy-10);border-radius:18px;padding:22px}
+
+  /* ---- Écran de synthèse (victoire) ---- */
+  .hero{background:linear-gradient(135deg,#0f1a3a,#1b2b57);color:#fff;border-radius:20px;padding:26px 24px;position:relative;overflow:hidden}
+  .hero .big{font-size:44px;font-weight:800;line-height:1;letter-spacing:-1px}
+  .hero .big span{color:var(--gold)}
+  .hero .sub{margin-top:8px;font-size:15px;color:rgba(255,255,255,.82)}
+  .pills{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .pill{border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .pill.confirm{background:rgba(255,122,26,.18);color:#ffd9b8;border:1px solid rgba(255,122,26,.5)}
+  .pill.trier{background:rgba(255,255,255,.10);color:#dfe6f2;border:1px solid rgba(255,255,255,.22)}
+  .cta{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn{border:none;border-radius:12px;padding:13px 20px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
+  .btn.primary{background:var(--orange);color:#fff}
+  .btn.ghost{background:rgba(255,255,255,.12);color:#fff}
+  .btn.dark{background:var(--navy);color:#fff}
+  .btn.mini{padding:9px 14px;font-size:13px;font-weight:600}
+
+  .totaux{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:16px}
+  .tot{background:var(--cream);border:1px solid var(--navy-10);border-radius:12px;padding:11px 13px}
+  .tot .lbl{font-size:12px;color:var(--grey);font-weight:600}
+  .tot .val{font-size:17px;font-weight:700;margin-top:3px}
+
+  /* ---- Onglets ---- */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--navy-10);margin:26px 0 18px}
+  .tab{padding:10px 14px;font-weight:700;font-size:14px;color:var(--grey);position:relative;cursor:pointer;background:none;border:none;font-family:inherit}
+  .tab.on{color:var(--navy)}
+  .tab.on:after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:3px;border-radius:3px;background:var(--orange)}
+  .tab .badge{display:inline-block;min-width:19px;text-align:center;background:var(--navy-10);border-radius:999px;font-size:12px;padding:1px 6px;margin-left:6px;color:var(--navy)}
+
+  /* ---- Carte marchand groupée ---- */
+  .grp{background:#fff;border:1px solid var(--navy-10);border-radius:16px;padding:16px 18px;margin-bottom:12px}
+  .grp .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .grp .name{font-weight:800;font-size:16px}
+  .grp .meta{font-size:12.5px;color:var(--grey);margin-top:2px}
+  .grp .amount{font-weight:700}
+  .grp .row2{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+  select.cat{font-family:inherit;font-weight:600;font-size:13.5px;color:var(--navy);border:1px solid var(--navy-10);border-radius:10px;padding:9px 12px;background:#fff;min-width:170px}
+  .suggest{font-size:12px;color:var(--orange);font-weight:700;display:inline-flex;align-items:center;gap:5px}
+  .why{font-size:12px;color:var(--grey);margin-top:9px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .dot.confirm{background:var(--orange)} .dot.done{background:var(--green)} .dot.trier{background:var(--grey)}
+
+  /* ---- Ligne déjà classée ---- */
+  .done-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff}
+  .done-row .l{display:flex;align-items:center;gap:11px}
+  .tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--green-bg);color:var(--green)}
+  .chip{font-size:12px;color:var(--grey)}
+  .change{font-size:12.5px;color:var(--sky);font-weight:700;cursor:pointer}
+
+  .learn{background:var(--green-bg);border:1px solid #bfe6d3;border-radius:12px;padding:11px 14px;font-size:13px;color:#0c7350;font-weight:600;margin-top:6px}
+  .foot{font-size:12px;color:var(--grey);margin-top:26px;line-height:1.6}
+  .caption{font-size:12px;color:var(--grey);margin:6px 0 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="note">
+    <b>Maquette de validation — Tri auto V2.</b> Écrans proposés (données d'exemple type relevé pro).
+    À valider ou ajuster avant que je code le React. Rien ici n'est fonctionnel.
+  </div>
+
+  <!-- ============ 1. ÉCRAN DE SYNTHÈSE (VICTOIRE) ============ -->
+  <h1>1 · Juste après l'import — l'écran de « victoire »</h1>
+  <p class="caption">On cadre par le travail <b>fait</b>, jamais par le restant. Le gros chiffre est rassurant.</p>
+  <div class="hero">
+    <div class="big"><span>47</span> opérations déjà classées</div>
+    <div class="sub">On a reconnu vos marchands habituels. Il reste juste quelques points à voir.</div>
+    <div class="pills">
+      <span class="pill confirm">● 8 à confirmer</span>
+      <span class="pill trier">● 5 vrais doutes à trier</span>
+    </div>
+    <div class="cta">
+      <button class="btn primary">Vérifier les 13 restantes →</button>
+      <button class="btn ghost">Tout est bon, terminer</button>
+    </div>
+  </div>
+  <div class="totaux">
+    <div class="tot"><div class="lbl">Matériel &amp; fournitures</div><div class="val mono">1 240,00 €</div></div>
+    <div class="tot"><div class="lbl">Carburant &amp; péages</div><div class="val mono">318,50 €</div></div>
+    <div class="tot"><div class="lbl">Charges (URSSAF…)</div><div class="val mono">642,00 €</div></div>
+    <div class="tot"><div class="lbl">Perso</div><div class="val mono">optionnel</div></div>
+  </div>
+  <p class="caption" style="margin-top:12px">Les totaux par catégorie permettent de repérer une anomalie de montant d'un coup d'œil, sans vérifier ligne à ligne.</p>
+
+  <!-- ============ 2. TRI GROUPÉ PAR MARCHAND ============ -->
+  <h1>2 · Le tri — groupé par marchand (le vrai gain de temps)</h1>
+  <p class="caption">Un geste classe 9 lignes d'un coup. Trié par volume : on débloque le plus gros d'abord.</p>
+
+  <div class="tabs">
+    <button class="tab on">À confirmer <span class="badge">8</span></button>
+    <button class="tab">À trier <span class="badge">5</span></button>
+    <button class="tab">Déjà classées <span class="badge">47</span></button>
+  </div>
+
+  <div class="grp">
+    <div class="top">
+      <div>
+        <div class="name">E.LECLERC</div>
+        <div class="meta">9 opérations · du 28 mai au 25 juin</div>
+      </div>
+      <div class="amount mono">− 328,45 €</div>
+    </div>
+    <div class="row2">
+      <span class="suggest" style="color:var(--grey)">? À vous de dire</span>
+      <button class="btn dark mini">Plutôt pro</button>
+      <button class="btn mini" style="background:var(--cream);color:var(--navy);border:1px solid var(--navy-10)">Plutôt perso</button>
+      <button class="btn mini" style="background:none;color:var(--sky);font-weight:700">Détailler les 9 →</button>
+    </div>
+    <div class="why">Un supermarché, c'est ambigu (consommables de chantier ou perso ?). On ne suppose <b>rien</b> par défaut — vous tranchez d'un pouce. Si vous mettez toujours « perso », on le retiendra pour la prochaine fois.</div>
+  </div>
+
+  <div class="grp">
+    <div class="top">
+      <div>
+        <div class="name">AMAZON</div>
+        <div class="meta">3 opérations · matériel ou perso ?</div>
+      </div>
+      <div class="amount mono">− 138,20 €</div>
+    </div>
+    <div class="row2">
+      <span class="suggest">✦ Suggéré</span>
+      <select class="cat">
+        <option>Autre dépense pro</option>
+        <option>Outillage &amp; petit matériel</option>
+        <option>Perso / privé</option>
+      </select>
+      <button class="btn dark mini">Valider les 3</button>
+    </div>
+    <div class="why">Amazon vend de tout — à vous de trancher.</div>
+  </div>
+
+  <div class="grp">
+    <div class="top">
+      <div>
+        <div class="name">LE CAFE ROSTAND</div>
+        <div class="meta">2 opérations · restauration</div>
+      </div>
+      <div class="amount mono">− 41,00 €</div>
+    </div>
+    <div class="row2">
+      <span class="suggest">✦ Suggéré</span>
+      <select class="cat">
+        <option>Repas / restau</option>
+        <option>Perso / privé</option>
+      </select>
+      <button class="btn dark mini">Valider les 2</button>
+    </div>
+    <div class="why">Reconnu « restaurant / café » d'après le libellé.</div>
+  </div>
+
+  <div style="text-align:center;margin-top:14px">
+    <button class="btn ghost" style="background:var(--navy-10);color:var(--navy)">Valider les 5 suggestions sûres (annulable)</button>
+    <div class="caption" style="margin-top:8px">Ce bouton ne touche jamais le « perso », les gros montants ni les virements reçus — ceux-là se confirment toujours à la main.</div>
+  </div>
+
+  <!-- exemple d'apprentissage après correction -->
+  <div class="learn" style="margin-top:18px">✓ Compris. Les prochains « E.LECLERC » iront désormais en <b>Perso</b> automatiquement.</div>
+
+  <!-- ============ 3. TRANSPARENCE : DÉJÀ CLASSÉES ============ -->
+  <h1>3 · Transparence — les 47 déjà classées (rien à faire, mais tout visible)</h1>
+  <p class="caption">Consultable, expliqué (« reconnu : … »), corrigible en 1 geste. Jamais caché, jamais reconfirmé.</p>
+
+  <div class="done-row">
+    <div class="l"><span class="dot done"></span>
+      <div><b>REXEL</b> <span class="chip">· reconnu → Matériel &amp; fournitures</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="tag">Classé auto</span>
+      <span class="mono">− 223,21 €</span>
+      <span class="change">Changer</span>
+    </div>
+  </div>
+  <div class="done-row">
+    <div class="l"><span class="dot done"></span>
+      <div><b>TOTAL ACCESS</b> <span class="chip">· reconnu → Carburant &amp; péages</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="tag">Classé auto</span>
+      <span class="mono">− 72,30 €</span>
+      <span class="change">Changer</span>
+    </div>
+  </div>
+  <div class="done-row">
+    <div class="l"><span class="dot done"></span>
+      <div><b>URSSAF</b> <span class="chip">· reconnu → Charges sociales</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="tag">Classé auto</span>
+      <span class="mono">− 642,00 €</span>
+      <span class="change">Changer</span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Garde-fous comptables (validés par un expert-comptable micro).</b><br>
+    • <b>Côté dépenses</b> : on est large et automatique — en micro, la catégorie d'une dépense n'a aucun impact sur vos cotisations (charges non déductibles). C'est juste pour votre pilotage.<br>
+    • <b>Côté encaissements</b> : on est parano. Un crédit n'entre JAMAIS dans votre chiffre d'affaires sans votre validation (un virement de votre livret, un remboursement, un apport perso ne sont pas des recettes — les compter gonflerait votre URSSAF). Un dépôt d'espèces est toujours « à qualifier » (ça peut être un client payé en cash).<br>
+    • La ventilation <b>prestation (21,2 %) vs vente de marchandise (12,3 %)</b> vient de vos <b>factures</b> Nexartis, pas du libellé bancaire — avec « prestation » par défaut (rappel : fourniture + pose = prestation, matériaux compris).<br>
+    • Le « perso » n'est jamais posé d'office. Tout auto-classé est réversible en un geste. La file « une par une » reste là pour les vrais doutes uniques.
+  </div>
+
+</div>
+</body>
+</html>
