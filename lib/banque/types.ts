@@ -48,6 +48,11 @@ export interface ParseReponse {
   nbPairesFusionnees: number
   /** Lignes déjà présentes en base (pré-marquées, seront ignorées). */
   nbDejaImportees: number
+  /**
+   * Débits (hors doublons déjà en base) qu'une règle sait trier
+   * automatiquement à l'import — pour l'aperçu « X seront triées ».
+   */
+  nbTriablesAuto: number
   /** Totaux pour détecter les signes inversés d'un coup d'œil. */
   totalEntrees: number
   totalSorties: number
@@ -73,7 +78,15 @@ export interface ExecuteReponse {
   nbImportees: number
   nbDoublons: number
   nbErreurs: number
-  /** Mouvements ayant reçu une catégorie SUGGÉRÉE (statut reste a_pointer). */
+  /**
+   * DÉBITS catégorisés ET pointés automatiquement par une règle
+   * (statut_pointage = 'pointe' dès l'insertion — décision Lot 2c).
+   */
+  nbTriees: number
+  /**
+   * Mouvements ayant reçu une catégorie SUGGÉRÉE mais restés à trier
+   * (crédits matchés par une règle : le rapprochement facture reste manuel).
+   */
   nbCategorisees: number
 }
 

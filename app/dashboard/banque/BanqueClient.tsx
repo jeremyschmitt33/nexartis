@@ -267,6 +267,23 @@ export default function BanqueClient() {
     [remplacerMouvement],
   )
 
+  /**
+   * Une règle apprise vient de trier d'autres opérations (Lot 2c) : on met à
+   * jour la liste et on les retire de la file de tri (sans toucher à la tête,
+   * qui est l'opération en cours de pointage).
+   */
+  const surAutresTriees = useCallback((majs: Mouvement[]) => {
+    if (majs.length === 0) return
+    const parId = new Map(majs.map((m) => [m.id, m]))
+    setMouvements((prec) => prec.map((m) => parId.get(m.id) ?? m))
+    setRafraichirCaisse((n) => n + 1)
+    setPanneau((prec) => {
+      if (!prec) return prec
+      const [tete, ...reste] = prec.file
+      return { ...prec, file: [tete, ...reste.filter((m) => !parId.has(m.id))] }
+    })
+  }, [])
+
   const surPasser = useCallback(() => {
     setPanneau((prec) => {
       if (!prec) return prec
@@ -300,8 +317,10 @@ export default function BanqueClient() {
   const mouvementCourant = panneau?.file[0] ?? null
 
   // ── Rendu ──
+  // font-hanken sur la racine : tout le module hérite de la police du
+  // dashboard V4 (les dates et montants repassent en font-spline-mono).
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto font-hanken">
       {/* Sous-onglets */}
       <div
         className="flex items-center gap-1 border-b border-navy/[0.08] mb-6"
@@ -320,7 +339,7 @@ export default function BanqueClient() {
             role="tab"
             aria-selected={onglet === o.id}
             onClick={() => setOnglet(o.id)}
-            className={`relative px-4 py-2.5 text-[14px] font-semibold transition-colors ${
+            className={`relative px-4 py-2.5 font-hanken text-[14px] font-semibold transition-colors ${
               onglet === o.id ? 'text-navy' : 'text-gray-500 hover:text-navy'
             }`}
           >
@@ -382,7 +401,8 @@ export default function BanqueClient() {
           {dateDernierMouvement && (
             <div className="flex items-center gap-2 text-[12.5px] text-gray-500 mb-4 flex-wrap">
               <span className="w-1.5 h-1.5 rounded-full bg-sky inline-block" aria-hidden="true" />
-              Relevé à jour au {dateDernierMouvement.split('-').reverse().join('/')}
+              Relevé à jour au{' '}
+              <span className="font-spline-mono">{dateDernierMouvement.split('-').reverse().join('/')}</span>
               <button
                 onClick={() => setImportOuvert(true)}
                 className="font-bold text-navy underline underline-offset-2 hover:text-orange transition"
@@ -396,11 +416,11 @@ export default function BanqueClient() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Entrées</p>
-              <p className="font-semibold text-xl text-green-700 tabular-nums">+ {euros(totaux.entrees)}</p>
+              <p className="font-spline-mono font-medium text-xl text-green-700 tracking-[0.5px]">+ {euros(totaux.entrees)}</p>
             </div>
             <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Sorties</p>
-              <p className="font-semibold text-xl text-red-700/80 tabular-nums">− {euros(totaux.sorties)}</p>
+              <p className="font-spline-mono font-medium text-xl text-red-700/80 tracking-[0.5px]">− {euros(totaux.sorties)}</p>
             </div>
             {totaux.aTrier > 0 ? (
               <button
@@ -408,9 +428,9 @@ export default function BanqueClient() {
                 className="bg-white rounded-2xl border-2 border-orange/60 shadow-sm px-5 py-4 text-left hover:bg-orange/[0.04] transition"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-orange mb-1">À trier</p>
-                <p className="font-syne font-bold text-xl text-navy">
+                <p className="font-hanken font-bold text-xl text-navy">
                   {totaux.aTrier} opération{totaux.aTrier > 1 ? 's' : ''}{' '}
-                  <span className="text-[12px] font-manrope font-semibold text-orange">
+                  <span className="text-[12px] font-hanken font-semibold text-orange">
                     → Commencer le tri
                   </span>
                 </p>
@@ -418,7 +438,7 @@ export default function BanqueClient() {
             ) : (
               <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm px-5 py-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-orange mb-1">À trier</p>
-                <p className="font-syne font-bold text-xl text-navy">Tout est trié ✓</p>
+                <p className="font-hanken font-bold text-xl text-navy">Tout est trié ✓</p>
               </div>
             )}
           </div>
@@ -514,10 +534,10 @@ export default function BanqueClient() {
                   <div key={cleMois}>
                     <p className="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
                       {libelleMois(cleMois)}{' '}
-                      <span className="normal-case tracking-normal text-gray-400 tabular-nums">
+                      <span className="normal-case tracking-normal text-gray-400">
                         · {liste.length} opération{liste.length > 1 ? 's' : ''} ·{' '}
-                        <span className="text-green-700">+ {euros(entreesMois)}</span> ·{' '}
-                        <span className="text-navy">− {euros(sortiesMois)}</span>
+                        <span className="font-spline-mono text-green-700">+ {euros(entreesMois)}</span> ·{' '}
+                        <span className="font-spline-mono text-navy">− {euros(sortiesMois)}</span>
                       </span>
                     </p>
                     <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm divide-y divide-gray-100 overflow-hidden">
@@ -577,6 +597,7 @@ export default function BanqueClient() {
           onMaj={surMaj}
           onPointe={surPointe}
           onPasser={surPasser}
+          onAutresTriees={surAutresTriees}
         />
       )}
 
@@ -613,7 +634,7 @@ function PanneauToutTrie({ onClose }: { onClose: () => void }) {
         >
           <Check size={28} />
         </div>
-        <p className="font-syne font-bold text-xl text-navy mb-2">Tout est trié ✓</p>
+        <p className="font-hanken font-bold text-xl text-navy mb-2">Tout est trié ✓</p>
         <p className="text-[13px] text-gray-500 mb-5">Plus rien à vérifier. Vos chiffres sont à jour.</p>
         <button
           onClick={onClose}
@@ -649,7 +670,7 @@ function EtatVide({ onImporter, onAide }: { onImporter: () => void; onAide: () =
         <path d="M148 25l-6 14h10l-8 16" stroke="#f5c842" strokeWidth="2.5" />
         <circle cx="105" cy="20" r="6" stroke="#5ab4e0" strokeWidth="2.5" />
       </svg>
-      <h2 className="font-syne font-bold text-2xl sm:text-3xl text-navy mb-3">
+      <h2 className="font-hanken font-bold text-2xl sm:text-3xl text-navy mb-3">
         Suivez où part votre argent, chantier par chantier
       </h2>
       <p className="text-gray-600 max-w-xl mx-auto mb-8">
@@ -666,7 +687,7 @@ function EtatVide({ onImporter, onAide }: { onImporter: () => void; onAide: () =
           <span className="w-11 h-11 rounded-xl bg-orange/10 text-orange flex items-center justify-center mb-3">
             <Camera size={24} aria-hidden="true" />
           </span>
-          <p className="font-syne font-bold text-[15px] text-navy mb-1">Photographier un ticket</p>
+          <p className="font-hanken font-bold text-[15px] text-navy mb-1">Photographier un ticket</p>
           <p className="text-[13px] text-gray-500 leading-snug">Le plus rapide. Le ticket est gardé avec la dépense.</p>
           <span className="inline-block mt-3 text-[12.5px] font-bold text-orange group-hover:underline">
             Via la page Achats →
@@ -680,7 +701,7 @@ function EtatVide({ onImporter, onAide }: { onImporter: () => void; onAide: () =
           <span className="w-11 h-11 rounded-xl bg-sky/15 text-navy flex items-center justify-center mb-3">
             <PencilLine size={24} aria-hidden="true" />
           </span>
-          <p className="font-syne font-bold text-[15px] text-navy mb-1">Saisir une dépense à la main</p>
+          <p className="font-hanken font-bold text-[15px] text-navy mb-1">Saisir une dépense à la main</p>
           <p className="text-[13px] text-gray-500 leading-snug">30 secondes, montant + chantier.</p>
           <span className="inline-block mt-3 text-[12.5px] font-bold text-sky group-hover:underline">Saisir →</span>
         </Link>
@@ -692,7 +713,7 @@ function EtatVide({ onImporter, onAide }: { onImporter: () => void; onAide: () =
           <span className="w-11 h-11 rounded-xl bg-gold/20 text-navy flex items-center justify-center mb-3">
             <ArrowDownToLine size={24} aria-hidden="true" />
           </span>
-          <p className="font-syne font-bold text-[15px] text-navy mb-1">Importer mon relevé bancaire</p>
+          <p className="font-hanken font-bold text-[15px] text-navy mb-1">Importer mon relevé bancaire</p>
           <p className="text-[13px] text-gray-500 leading-snug">
             Le fichier CSV que votre banque vous laisse télécharger. On s’occupe du reste.
           </p>

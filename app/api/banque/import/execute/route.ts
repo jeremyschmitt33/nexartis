@@ -5,9 +5,14 @@
 //   1. crée la ligne banque_imports (statut en_cours),
 //   2. recalcule les hash_dedup CÔTÉ SERVEUR (formule de la migration 04 —
 //      on ne fait jamais confiance à un hash envoyé par le client),
-//   3. applique les categorisation_regles (système + utilisateur, priorité
-//      croissante, sens respecté) → categorie_id = SUGGESTION seulement,
-//      statut_pointage reste 'a_pointer',
+//   3. applique les categorisation_regles (apprises + système, priorité
+//      croissante, sens respecté). Décision Lot 2c (validée par jeremy) :
+//        - DÉBIT matché par une règle → categorie_id appliquée ET
+//          statut_pointage = 'pointe' dès l'insertion (+ est_prive si la
+//          catégorie est privée) ; nb_applications incrémenté (best effort),
+//        - CRÉDIT matché → categorie_id = suggestion, reste 'a_pointer'
+//          (le rapprochement facture reste manuel),
+//        - pas de règle → 'a_pointer' sans catégorie,
 //   4. insère par chunks de 500 en ignorant les doublons
 //      (compte_id + hash_dedup). ⚠️ L'index d'unicité de la migration 04 est
 //      PARTIEL (WHERE deleted_at IS NULL) : PostgREST ne sait pas fournir le
@@ -32,6 +37,11 @@ import {
 } from '@/lib/api-security'
 import { hashDedup, nettoyerLibelle } from '@/lib/banque/csv'
 import {
+  REGLES_COLONNES,
+  trouverRegle,
+  type RegleCategorisation,
+} from '@/lib/banque/regles'
+import {
   IMPORT_MAX_LIGNES,
   type ExecuteReponse,
 } from '@/lib/banque/types'
@@ -47,30 +57,6 @@ interface LigneValidee {
   libelle: string
   montant: number
   hash: string
-}
-
-interface Regle {
-  pattern: string
-  type_match: 'contient' | 'commence_par'
-  categorie_id: string
-  sens: 'debit' | 'credit' | null
-  priorite: number
-}
-
-/** Applique la première règle qui matche (priorité croissante, sens respecté). */
-function suggererCategorie(regles: Regle[], libelle: string, montant: number): string | null {
-  const libelleMaj = libelle.toUpperCase()
-  for (const regle of regles) {
-    if (regle.sens === 'debit' && montant >= 0) continue
-    if (regle.sens === 'credit' && montant <= 0) continue
-    const motif = regle.pattern.toUpperCase()
-    const ok =
-      regle.type_match === 'commence_par'
-        ? libelleMaj.startsWith(motif)
-        : libelleMaj.includes(motif)
-    if (ok) return regle.categorie_id
-  }
-  return null
 }
 
 export async function POST(req: NextRequest) {
@@ -201,23 +187,42 @@ export async function POST(req: NextRequest) {
     }
     importId = importCree.id as string
 
-    // ── Règles de catégorisation (système + utilisateur), priorité croissante ──
-    // SUGGESTION seulement : statut_pointage reste 'a_pointer'.
+    // ── Règles de catégorisation (apprises + système), priorité croissante ──
+    // Les règles apprises (priorité 100) priment sur les règles système (~900).
     const { data: reglesBrutes, error: erreurRegles } = await supabase
       .from('categorisation_regles')
-      .select('pattern, type_match, categorie_id, sens, priorite')
+      .select(REGLES_COLONNES)
       .eq('actif', true)
       .is('deleted_at', null)
       .order('priorite', { ascending: true })
+      .order('created_at', { ascending: true })
     if (erreurRegles) {
       console.error('[banque/import/execute] lecture règles:', erreurRegles.message)
     }
-    const regles: Regle[] = (reglesBrutes ?? []) as Regle[]
+    const regles: RegleCategorisation[] = (reglesBrutes ?? []) as RegleCategorisation[]
+
+    // Catégories privées (code 'prive') : une règle qui y pointe pose AUSSI
+    // est_prive = TRUE (le mouvement sort de tous les totaux pro).
+    const { data: categoriesBrutes, error: erreurCategories } = await supabase
+      .from('depense_categories')
+      .select('id, est_privee')
+      .is('deleted_at', null)
+    if (erreurCategories) {
+      console.error('[banque/import/execute] lecture catégories:', erreurCategories.message)
+    }
+    const categoriesPrivees = new Set(
+      ((categoriesBrutes ?? []) as { id: string; est_privee: boolean }[])
+        .filter((c) => c.est_privee)
+        .map((c) => c.id),
+    )
 
     // ── Insertion par chunks de 500, doublons base ignorés ──
     let nbImportees = 0
     let nbErreurs = 0
+    let nbTriees = 0
     let nbCategorisees = 0
+    /** Nombre d'applications par règle (débits auto-triés) — best effort. */
+    const usageRegles = new Map<string, number>()
 
     for (let i = 0; i < uniques.length; i += TAILLE_CHUNK) {
       const morceau = uniques.slice(i, i + TAILLE_CHUNK)
@@ -240,8 +245,15 @@ export async function POST(req: NextRequest) {
       nbDoublons += morceau.length - aInserer.length
       if (aInserer.length === 0) continue
 
+      // regleParLigne[i] = la règle qui a matché la ligne i (null sinon) —
+      // parallèle à lignesInsert, pour compter nb_applications après insertion.
+      const regleParLigne: (RegleCategorisation | null)[] = []
       const lignesInsert = aInserer.map((l) => {
-        const categorieId = suggererCategorie(regles, l.libelle, l.montant)
+        const regle = trouverRegle(regles, l.libelle, l.montant)
+        regleParLigne.push(regle)
+        // Décision Lot 2c : un DÉBIT reconnu est trié d'office ; un crédit
+        // reconnu reste à trier (catégorie = simple suggestion).
+        const triAuto = regle !== null && l.montant < 0
         return {
           user_id: user.id,
           compte_id: compteId,
@@ -249,20 +261,35 @@ export async function POST(req: NextRequest) {
           date_operation: l.date,
           libelle_banque: l.libelle,
           montant: l.montant,
-          categorie_id: categorieId,
-          statut_pointage: 'a_pointer' as const,
+          categorie_id: regle?.categorie_id ?? null,
+          statut_pointage: (triAuto ? 'pointe' : 'a_pointer') as 'pointe' | 'a_pointer',
+          est_prive: triAuto && regle !== null && categoriesPrivees.has(regle.categorie_id),
           source: 'import_csv' as const,
         }
       })
 
-      const nbCategoriseesChunk = lignesInsert.filter((l) => l.categorie_id !== null).length
+      /** Comptabilise un lot de lignes effectivement insérées. */
+      const compterInserees = (indices: number[]) => {
+        nbImportees += indices.length
+        for (const idx of indices) {
+          const ligne = lignesInsert[idx]
+          const regle = regleParLigne[idx]
+          if (ligne.statut_pointage === 'pointe') {
+            nbTriees++
+            if (regle) usageRegles.set(regle.id, (usageRegles.get(regle.id) ?? 0) + 1)
+          } else if (ligne.categorie_id !== null) {
+            nbCategorisees++
+          }
+        }
+      }
+
+      const tousIndices = lignesInsert.map((_, idx) => idx)
 
       const { error: erreurInsert } = await supabase
         .from('banque_mouvements')
         .insert(lignesInsert)
       if (!erreurInsert) {
-        nbImportees += lignesInsert.length
-        nbCategorisees += nbCategoriseesChunk
+        compterInserees(tousIndices)
         continue
       }
 
@@ -275,7 +302,8 @@ export async function POST(req: NextRequest) {
           .is('deleted_at', null)
           .in('hash_dedup', aInserer.map((l) => l.hash))
         const dejaLa2 = new Set((existants2 ?? []).map((e) => e.hash_dedup as string))
-        const restantes = lignesInsert.filter((_, idx) => !dejaLa2.has(aInserer[idx].hash))
+        const indicesRestants = tousIndices.filter((idx) => !dejaLa2.has(aInserer[idx].hash))
+        const restantes = indicesRestants.map((idx) => lignesInsert[idx])
         nbDoublons += lignesInsert.length - restantes.length
         if (restantes.length > 0) {
           const { error: erreurRetry } = await supabase.from('banque_mouvements').insert(restantes)
@@ -283,13 +311,34 @@ export async function POST(req: NextRequest) {
             console.error('[banque/import/execute] insertion (retry):', erreurRetry.message)
             nbErreurs += restantes.length
           } else {
-            nbImportees += restantes.length
-            nbCategorisees += restantes.filter((l) => l.categorie_id !== null).length
+            compterInserees(indicesRestants)
           }
         }
       } else {
         console.error('[banque/import/execute] insertion:', erreurInsert.message)
         nbErreurs += lignesInsert.length
+      }
+    }
+
+    // ── nb_applications des règles utilisées (best effort, jamais bloquant) ──
+    // NB : la RLS n'autorise l'update que sur les règles de l'utilisateur
+    // (apprises / user) — les compteurs des règles système sont simplement
+    // ignorés (0 ligne touchée), c'est accepté.
+    for (const [regleId, n] of Array.from(usageRegles.entries())) {
+      try {
+        const { data: regleActuelle } = await supabase
+          .from('categorisation_regles')
+          .select('nb_applications')
+          .eq('id', regleId)
+          .maybeSingle()
+        if (regleActuelle) {
+          await supabase
+            .from('categorisation_regles')
+            .update({ nb_applications: Number(regleActuelle.nb_applications ?? 0) + n })
+            .eq('id', regleId)
+        }
+      } catch (e) {
+        console.error('[banque/import/execute] compteur règle:', e)
       }
     }
 
@@ -317,6 +366,7 @@ export async function POST(req: NextRequest) {
       nbImportees,
       nbDoublons,
       nbErreurs,
+      nbTriees,
       nbCategorisees,
     }
     return secureJson(reponse)

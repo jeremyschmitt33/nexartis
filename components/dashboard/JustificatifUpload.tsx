@@ -135,7 +135,7 @@ export default function JustificatifUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={occupe}
-          className="w-full min-h-[48px] rounded-xl border-2 border-dashed border-gray-300 text-gray-500 font-semibold text-[13px] hover:border-sky hover:text-navy disabled:opacity-60 transition inline-flex items-center justify-center gap-2 px-3"
+          className="w-full min-h-[48px] rounded-xl border-2 border-dashed border-gray-300 text-gray-500 font-hanken font-semibold text-[13px] hover:border-sky hover:text-navy disabled:opacity-60 transition inline-flex items-center justify-center gap-2 px-3"
         >
           {occupe ? (
             <>
@@ -149,7 +149,7 @@ export default function JustificatifUpload({
       ) : (
         <div className="flex items-center gap-2 rounded-xl border-[1.5px] border-gray-200 bg-gray-50 px-3 py-2.5">
           <Paperclip size={15} className="text-orange flex-shrink-0" aria-hidden="true" />
-          <span className="text-[13px] font-semibold text-navy truncate flex-1">
+          <span className="font-hanken text-[13px] font-semibold text-navy truncate flex-1">
             {fichierEnAttente ?? 'Justificatif joint'}
           </span>
           {occupe ? (
@@ -169,7 +169,7 @@ export default function JustificatifUpload({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="text-[12px] font-bold text-navy underline underline-offset-2 hover:text-orange transition"
+                className="font-hanken text-[12px] font-bold text-navy underline underline-offset-2 hover:text-orange transition"
               >
                 Remplacer
               </button>
@@ -187,12 +187,12 @@ export default function JustificatifUpload({
       )}
 
       {erreur && (
-        <p className="text-[12px] text-red-700 mt-1.5" role="alert">
+        <p className="font-hanken text-[12px] text-red-700 mt-1.5" role="alert">
           {erreur}
         </p>
       )}
       {!aQuelqueChose && !erreur && (
-        <p className="text-[11.5px] text-gray-400 mt-1.5">
+        <p className="font-hanken text-[11.5px] text-gray-400 mt-1.5">
           PDF, JPG, PNG — photos iPhone converties automatiquement, 5&nbsp;Mo max après compression.
         </p>
       )}

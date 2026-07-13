@@ -37,6 +37,11 @@ import {
   type OrdreDates,
 } from '@/lib/banque/csv'
 import {
+  REGLES_COLONNES,
+  trouverRegle,
+  type RegleCategorisation,
+} from '@/lib/banque/regles'
+import {
   IMPORT_MAX_LIGNES,
   IMPORT_MAX_OCTETS,
   type LigneReleve,
@@ -147,6 +152,7 @@ export async function POST(req: NextRequest) {
         nbErreurs: 0,
         nbPairesFusionnees: 0,
         nbDejaImportees: 0,
+        nbTriablesAuto: 0,
         totalEntrees: 0,
         totalSorties: 0,
         periodeDebut: null,
@@ -195,9 +201,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Règles (apprises + système, priorité croissante) : combien de débits
+    //    seront triés automatiquement à l'import ? (aperçu honnête, rien d'écrit) ──
+    const { data: reglesBrutes, error: erreurRegles } = await supabase
+      .from('categorisation_regles')
+      .select(REGLES_COLONNES)
+      .eq('actif', true)
+      .is('deleted_at', null)
+      .order('priorite', { ascending: true })
+      .order('created_at', { ascending: true })
+    if (erreurRegles) {
+      console.error('[banque/import/parse] lecture règles:', erreurRegles.message)
+    }
+    const regles: RegleCategorisation[] = (reglesBrutes ?? []) as RegleCategorisation[]
+
     // ── Construction de l'aperçu ──
     let totalEntrees = 0
     let totalSorties = 0
+    let nbTriablesAuto = 0
     let periodeDebut: string | null = null
     let periodeFin: string | null = null
     const lignes: LigneReleve[] = analyse.lignes.map((l, i) => {
@@ -205,11 +226,16 @@ export async function POST(req: NextRequest) {
       else totalSorties += -l.montant
       if (!periodeDebut || l.date < periodeDebut) periodeDebut = l.date
       if (!periodeFin || l.date > periodeFin) periodeFin = l.date
+      const dejaImporte = dejaEnBase.has(hashes[i])
+      // Même critère que la route execute : DÉBIT + règle qui matche.
+      if (!dejaImporte && l.montant < 0 && trouverRegle(regles, l.libelle, l.montant) !== null) {
+        nbTriablesAuto++
+      }
       return {
         date: l.date,
         libelle: l.libelle,
         montant: l.montant,
-        dejaImporte: dejaEnBase.has(hashes[i]),
+        dejaImporte,
       }
     })
 
@@ -225,6 +251,7 @@ export async function POST(req: NextRequest) {
       nbErreurs: analyse.nbErreurs,
       nbPairesFusionnees: analyse.nbPairesFusionnees,
       nbDejaImportees: lignes.filter((l) => l.dejaImporte).length,
+      nbTriablesAuto,
       totalEntrees: Math.round(totalEntrees * 100) / 100,
       totalSorties: Math.round(totalSorties * 100) / 100,
       periodeDebut,

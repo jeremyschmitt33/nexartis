@@ -46,7 +46,7 @@ export default function AideReleveModal({ onClose }: { onClose: () => void }) {
         aria-label="Où télécharger mon relevé bancaire"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-syne font-bold text-lg text-navy">Où télécharger mon relevé&nbsp;?</h2>
+          <h2 className="font-hanken font-bold text-lg text-navy">Où télécharger mon relevé&nbsp;?</h2>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center"

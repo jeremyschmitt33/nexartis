@@ -12,8 +12,9 @@
 //                     période, totaux Entrées/Sorties (repérer les signes
 //                     inversés), doublons déjà en base pré-marqués.
 //   3. Import       : POST /api/banque/import/execute (chunks de 500 côté
-//                     serveur, doublons ignorés via hash_dedup).
-//   4. Terminé      : rapport (ajoutées / doublons / catégories proposées).
+//                     serveur, doublons ignorés via hash_dedup). Lot 2c : les
+//                     débits reconnus par une règle sont TRIÉS d'office.
+//   4. Terminé      : rapport (ajoutées / triées automatiquement / à trier).
 // ============================================================================
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -227,14 +228,14 @@ export default function ImportReleveModal({
         aria-hidden="true"
       />
       <div
-        className="relative bg-white rounded-[20px] w-full max-w-2xl max-h-[88vh] overflow-y-auto shadow-2xl p-5 sm:p-6"
+        className="relative bg-white rounded-[20px] w-full max-w-2xl max-h-[88vh] overflow-y-auto shadow-2xl p-5 sm:p-6 font-hanken"
         role="dialog"
         aria-modal="true"
         aria-label="Importer un relevé bancaire"
       >
         {/* En-tête */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-syne font-bold text-lg text-navy">Importer un relevé</h2>
+          <h2 className="font-hanken font-bold text-lg text-navy">Importer un relevé</h2>
           {etape !== 3 && (
             <button
               onClick={onClose}
@@ -251,7 +252,7 @@ export default function ImportReleveModal({
           {ETAPES.map((e, i) => (
             <span key={e.n} className="contents">
               <span
-                className={`w-[26px] h-[26px] rounded-full border-[1.5px] text-[12px] font-extrabold inline-flex items-center justify-center flex-shrink-0 ${
+                className={`w-[26px] h-[26px] rounded-full border-[1.5px] font-spline-mono text-[12px] font-bold inline-flex items-center justify-center flex-shrink-0 ${
                   etape >= e.n ? 'bg-navy border-navy text-white' : 'border-gray-200 text-gray-400'
                 }`}
               >
@@ -316,7 +317,7 @@ export default function ImportReleveModal({
             {datesAmbigues ? (
               /* ── Dates ambiguës : jamais de choix silencieux ── */
               <div className="rounded-2xl border-2 border-gold bg-cream/60 px-5 py-5 mb-4">
-                <p className="font-syne font-bold text-[15px] text-navy mb-1.5">
+                <p className="font-hanken font-bold text-[15px] text-navy mb-1.5">
                   Une précision sur les dates de votre relevé
                 </p>
                 <p className="text-[13px] text-navy/80 mb-4">
@@ -443,14 +444,21 @@ export default function ImportReleveModal({
                 <p className="text-gray-500">Opérations lues</p>
                 <p className="font-bold text-navy">
                   {analyse.lignes.length}
-                  {analyse.periodeDebut && analyse.periodeFin
-                    ? ` · du ${dateFr(analyse.periodeDebut)} au ${dateFr(analyse.periodeFin)}`
-                    : ''}
+                  {analyse.periodeDebut && analyse.periodeFin ? (
+                    <>
+                      {' · du '}
+                      <span className="font-spline-mono">{dateFr(analyse.periodeDebut)}</span>
+                      {' au '}
+                      <span className="font-spline-mono">{dateFr(analyse.periodeFin)}</span>
+                    </>
+                  ) : (
+                    ''
+                  )}
                 </p>
               </div>
               <div className="rounded-xl border border-gray-200 px-3 py-2.5">
                 <p className="text-gray-500">Entrées / Sorties</p>
-                <p className="font-bold tabular-nums">
+                <p className="font-spline-mono font-medium">
                   <span className="text-green-700">+ {euros(analyse.totalEntrees)}</span>{' '}
                   <span className="text-navy">· − {euros(analyse.totalSorties)}</span>
                 </p>
@@ -470,6 +478,16 @@ export default function ImportReleveModal({
               écrivez-nous, on s’en occupe.
             </p>
 
+            {analyse.nbTriablesAuto > 0 && (
+              <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 mb-3 text-[12.5px] text-green-800">
+                <strong>
+                  {analyse.nbTriablesAuto} dépense{analyse.nbTriablesAuto > 1 ? 's seront triées' : ' sera triée'}{' '}
+                  automatiquement
+                </strong>{' '}
+                (fournisseurs, URSSAF, assurances… reconnus). Vous gardez le dernier mot&nbsp;: tout se corrige
+                en un clic.
+              </div>
+            )}
             {analyse.fichierDejaImporte && (
               <div className="rounded-xl bg-cream border border-gold/50 px-4 py-2.5 mb-3 text-[12.5px] text-navy/80">
                 <strong>Ce fichier a déjà été importé sur ce compte.</strong> Vous pouvez continuer sans risque&nbsp;:
@@ -510,15 +528,15 @@ export default function ImportReleveModal({
                   key={i}
                   className={`flex items-center gap-3 px-4 py-2 ${l.dejaImporte ? 'opacity-45' : ''}`}
                 >
-                  <span className="tabular-nums text-gray-400 w-12 flex-shrink-0">{jourMois(l.date)}</span>
+                  <span className="font-spline-mono text-gray-400 w-12 flex-shrink-0">{jourMois(l.date)}</span>
                   <span className="flex-1 truncate text-navy">{l.libelle}</span>
                   {l.dejaImporte && (
-                    <span className="inline-flex items-center px-2 py-px rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold flex-shrink-0">
+                    <span className="inline-flex items-center px-2 py-px rounded-full bg-gray-100 text-gray-500 font-hanken text-[11px] font-semibold flex-shrink-0">
                       Déjà là
                     </span>
                   )}
                   <span
-                    className={`tabular-nums flex-shrink-0 ${l.montant > 0 ? 'text-green-700' : 'text-navy'}`}
+                    className={`font-spline-mono flex-shrink-0 ${l.montant > 0 ? 'text-green-700' : 'text-navy'}`}
                   >
                     {l.montant > 0 ? '+ ' : '− '}
                     {euros(Math.abs(l.montant))}
@@ -553,7 +571,7 @@ export default function ImportReleveModal({
         {/* ══════════ Étape 3 : import en cours ══════════ */}
         {etape === 3 && (
           <div className="py-10 text-center" role="status" aria-live="polite">
-            <p className="font-syne font-bold text-lg text-navy mb-1">Import en cours…</p>
+            <p className="font-hanken font-bold text-lg text-navy mb-1">Import en cours…</p>
             <p className="text-[12.5px] text-gray-500 mb-6">
               On range ce qu’on reconnaît (fournisseurs, URSSAF, assurances…) — vous garderez le dernier mot.
             </p>
@@ -570,7 +588,7 @@ export default function ImportReleveModal({
             <div className="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mx-auto mb-4">
               <Check size={28} aria-hidden="true" />
             </div>
-            <p className="font-syne font-bold text-xl text-navy mb-2">
+            <p className="font-hanken font-bold text-xl text-navy mb-2">
               {resultat.nbImportees > 0
                 ? `${resultat.nbImportees} opération${resultat.nbImportees > 1 ? 's' : ''} ajoutée${
                     resultat.nbImportees > 1 ? 's' : ''
@@ -578,11 +596,17 @@ export default function ImportReleveModal({
                 : 'Rien de nouveau à ajouter.'}
             </p>
             <div className="text-[13.5px] text-gray-600 max-w-sm mx-auto mb-6 space-y-1">
-              {resultat.nbCategorisees > 0 && (
+              {resultat.nbTriees > 0 && (
                 <p>
-                  On a proposé une catégorie pour <strong>{resultat.nbCategorisees}</strong> d’entre elles
-                  (fournisseurs reconnus). Le tri final — validation, chantier, justificatif — arrive au prochain
-                  lot.
+                  <strong>{resultat.nbTriees}</strong> triée{resultat.nbTriees > 1 ? 's' : ''} automatiquement
+                  (fournisseurs, URSSAF… reconnus) — vous pouvez corriger chacune en un clic.
+                </p>
+              )}
+              {resultat.nbImportees - resultat.nbTriees > 0 && (
+                <p>
+                  <strong>{resultat.nbImportees - resultat.nbTriees}</strong> reste
+                  {resultat.nbImportees - resultat.nbTriees > 1 ? 'nt' : ''} à trier&nbsp;: catégorie, chantier,
+                  justificatif — quelques secondes par opération.
                 </p>
               )}
               {resultat.nbDoublons > 0 && (

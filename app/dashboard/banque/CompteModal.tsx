@@ -116,7 +116,7 @@ export default function CompteModal({
         aria-label="Nouveau compte"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-syne font-bold text-lg text-navy">Nouveau compte</h2>
+          <h2 className="font-hanken font-bold text-lg text-navy">Nouveau compte</h2>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center"
@@ -200,7 +200,7 @@ export default function CompteModal({
               onChange={(e) => setIban4(e.target.value.replace(/\D/g, '').slice(0, 4))}
               maxLength={4}
               placeholder="1234"
-              className="w-full h-11 px-3 rounded-xl border-[1.5px] border-gray-200 text-sm tabular-nums focus:outline-none focus:border-sky transition mb-1.5"
+              className="w-full h-11 px-3 rounded-xl border-[1.5px] border-gray-200 font-spline-mono text-sm focus:outline-none focus:border-sky transition mb-1.5"
             />
             <p className="text-[12px] text-gray-500 mb-5">
               Juste pour reconnaître le compte. On ne vous demandera <strong>jamais</strong> votre IBAN complet ni
@@ -220,7 +220,7 @@ export default function CompteModal({
               value={fondCaisse}
               onChange={(e) => setFondCaisse(e.target.value)}
               placeholder="0,00"
-              className="w-full h-11 px-3 rounded-xl border-[1.5px] border-gray-200 text-sm tabular-nums focus:outline-none focus:border-sky transition mb-1.5"
+              className="w-full h-11 px-3 rounded-xl border-[1.5px] border-gray-200 font-spline-mono text-sm focus:outline-none focus:border-sky transition mb-1.5"
             />
             <p className="text-[12px] text-gray-500 mb-5">Ça peut être 0 — vous pourrez corriger plus tard.</p>
           </>

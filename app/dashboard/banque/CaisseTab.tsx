@@ -108,7 +108,7 @@ export default function CaisseTab({
         >
           💶
         </div>
-        <h2 className="font-syne font-bold text-xl sm:text-2xl text-navy mb-3">
+        <h2 className="font-hanken font-bold text-xl sm:text-2xl text-navy mb-3">
           Vous encaissez ou payez parfois en liquide&nbsp;?
         </h2>
         <p className="text-gray-600 mb-6">
@@ -148,12 +148,13 @@ export default function CaisseTab({
           <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
             Dans la caisse
           </p>
-          <p className={`font-syne font-bold text-3xl ${solde < 0 ? 'text-red-700/80' : 'text-navy'}`}>
+          <p className={`font-spline-mono font-bold text-3xl tracking-[0.5px] ${solde < 0 ? 'text-red-700/80' : 'text-navy'}`}>
             {euros(solde)}
           </p>
           <p className="text-[12px] text-gray-500 mt-1.5">
-            Fond de caisse de départ&nbsp;: {euros(compteCaisse.solde_initial)} le{' '}
-            {dateFr(compteCaisse.solde_initial_date)} ·{' '}
+            Fond de caisse de départ&nbsp;:{' '}
+            <span className="font-spline-mono">{euros(compteCaisse.solde_initial)}</span> le{' '}
+            <span className="font-spline-mono">{dateFr(compteCaisse.solde_initial_date)}</span> ·{' '}
             <button
               onClick={() => setModaleFond(true)}
               className="underline underline-offset-2 hover:text-navy transition"
@@ -209,10 +210,10 @@ export default function CaisseTab({
               <div key={cleMois}>
                 <p className="flex flex-wrap items-baseline gap-x-2 text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
                   {libelleMois(cleMois)}{' '}
-                  <span className="normal-case tracking-normal text-gray-400 tabular-nums">
+                  <span className="normal-case tracking-normal text-gray-400">
                     · {liste.length} mouvement{liste.length > 1 ? 's' : ''} ·{' '}
-                    <span className="text-green-700">+ {euros(entreesMois)}</span> ·{' '}
-                    <span className="text-navy">− {euros(sortiesMois)}</span>
+                    <span className="font-spline-mono text-green-700">+ {euros(entreesMois)}</span> ·{' '}
+                    <span className="font-spline-mono text-navy">− {euros(sortiesMois)}</span>
                   </span>
                 </p>
                 <div className="bg-white rounded-2xl border border-navy/[0.06] shadow-sm divide-y divide-gray-100 overflow-hidden">
@@ -354,7 +355,7 @@ function MouvementCaisseModal({
         aria-label="Mouvement de caisse"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-syne font-bold text-lg text-navy">
+          <h2 className="font-hanken font-bold text-lg text-navy">
             {sens === 'in' ? '+ Argent reçu' : '− Argent dépensé'}
           </h2>
           <button
@@ -382,7 +383,7 @@ function MouvementCaisseModal({
           value={montantTexte}
           onChange={(e) => setMontantTexte(e.target.value)}
           placeholder="20,00"
-          className="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-bold text-2xl text-center tabular-nums focus:outline-none focus:border-sky transition mb-4"
+          className="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-spline-mono font-bold text-2xl text-center focus:outline-none focus:border-sky transition mb-4"
         />
 
         <label htmlFor="caisse-libelle" className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
@@ -407,7 +408,7 @@ function MouvementCaisseModal({
           value={date}
           max={aujourdHui}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full h-11 px-3 rounded-xl border-[1.5px] border-gray-200 text-sm tabular-nums focus:outline-none focus:border-sky transition mb-2"
+          className="w-full h-11 px-3 rounded-xl border-[1.5px] border-gray-200 font-spline-mono text-sm focus:outline-none focus:border-sky transition mb-2"
         />
         <p className="text-[12px] text-gray-500 mb-4">
           Catégorie et chantier&nbsp;: proposés juste après, comme pour une opération bancaire.
@@ -488,7 +489,7 @@ function FondDeCaisseModal({
         aria-label="Fond de caisse"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-syne font-bold text-lg text-navy">Fond de caisse</h2>
+          <h2 className="font-hanken font-bold text-lg text-navy">Fond de caisse</h2>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center"
@@ -517,7 +518,7 @@ function FondDeCaisseModal({
           value={montantTexte}
           onChange={(e) => setMontantTexte(e.target.value)}
           aria-label="Fond de caisse en euros"
-          className="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-bold text-2xl text-center tabular-nums focus:outline-none focus:border-sky transition mb-4"
+          className="w-full h-14 rounded-xl border-[1.5px] border-gray-200 font-spline-mono font-bold text-2xl text-center focus:outline-none focus:border-sky transition mb-4"
         />
         <button
           onClick={() => void enregistrer()}

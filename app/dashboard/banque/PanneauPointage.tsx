@@ -15,6 +15,10 @@
 //    2 factures — le garde-fou MOUVEMENT_DEPASSE protège côté base).
 //  · Cas particuliers : remboursement / virement interne / c'est perso.
 //  · File enchaînée : « Plus que N à trier », passe à la suivante.
+//  · Apprentissage (Lot 2c) : quand l'utilisateur choisit/corrige la catégorie
+//    d'un DÉBIT importé, une règle apprise (categorisation_regles, source
+//    'apprise', priorité 100) est proposée — « Retenir pour les prochaines
+//    fois », cochée par défaut — puis appliquée aux autres débits à trier.
 // ============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -26,6 +30,7 @@ import {
   mapPaiementRpcError,
   type PaiementRpcResult,
 } from '@/lib/banque/rpc-paiements'
+import { extraireMotif } from '@/lib/banque/regles'
 import {
   dateFr,
   euros,
@@ -108,6 +113,7 @@ export default function PanneauPointage({
   onMaj,
   onPointe,
   onPasser,
+  onAutresTriees,
 }: {
   mouvement: Mouvement
   compte: CompteTresorerie | undefined
@@ -124,6 +130,8 @@ export default function PanneauPointage({
   /** Pointage terminé → le parent met à jour la liste et avance la file. */
   onPointe: (mouvementMaj: Mouvement) => void
   onPasser: () => void
+  /** Une règle apprise a trié d'autres opérations → le parent met à jour liste + file. */
+  onAutresTriees: (mouvementsMaj: Mouvement[]) => void
 }) {
   const supabase = useMemo(() => createClient(), [])
   const estDebit = mouvement.montant < 0
@@ -153,6 +161,18 @@ export default function PanneauPointage({
   const [detailsOuverts, setDetailsOuverts] = useState(
     Boolean(mouvement.libelle_perso || mouvement.notes),
   )
+
+  // ── Apprentissage des corrections (Lot 2c) ──
+  // Motif extrait du libellé bancaire (débits importés uniquement : un libellé
+  // saisi à la main dans la caisse n'a rien à apprendre). null = pas de motif
+  // exploitable → pas de proposition de règle.
+  const motifAppris = useMemo(
+    () =>
+      estDebit && mouvement.source !== 'manuel' ? extraireMotif(mouvement.libelle_banque) : null,
+    [estDebit, mouvement.source, mouvement.libelle_banque],
+  )
+  /** « Retenir pour les prochaines fois » — cochée par défaut (décision validée). */
+  const [retenirRegle, setRetenirRegle] = useState(true)
 
   // ── État du rapprochement crédit ──
   const [factureChoisieId, setFactureChoisieId] = useState<string | null>(null)
@@ -388,6 +408,114 @@ export default function PanneauPointage({
     [supabase, mouvement.id],
   )
 
+  // ── Apprentissage : créer/mettre à jour la règle apprise + propager ──
+  // Best effort ABSOLU : le pointage est déjà enregistré quand on arrive ici,
+  // un échec d'apprentissage ne doit jamais le remettre en cause (log + rien).
+  async function apprendreEtPropager(categorieChoisie: Categorie) {
+    if (!motifAppris) return
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+
+      // 1) Upsert logique de la règle apprise (même user + même pattern →
+      //    on met à jour la catégorie au lieu de créer un doublon).
+      const { data: existante, error: erreurLecture } = await supabase
+        .from('categorisation_regles')
+        .select('id, nb_applications')
+        .eq('user_id', user.id)
+        .eq('pattern', motifAppris)
+        .eq('source', 'apprise')
+        .is('deleted_at', null)
+        .limit(1)
+        .maybeSingle()
+      if (erreurLecture) throw erreurLecture
+
+      let regleId: string | null = null
+      let nbApplications = 0
+      if (existante) {
+        regleId = existante.id as string
+        nbApplications = Number(existante.nb_applications ?? 0)
+        const { error } = await supabase
+          .from('categorisation_regles')
+          .update({ categorie_id: categorieChoisie.id, sens: 'debit', priorite: 100, actif: true })
+          .eq('id', regleId)
+        if (error) throw error
+      } else {
+        const { data: creee, error } = await supabase
+          .from('categorisation_regles')
+          .insert({
+            user_id: user.id,
+            pattern: motifAppris,
+            type_match: 'contient',
+            categorie_id: categorieChoisie.id,
+            sens: 'debit',
+            priorite: 100, // les règles apprises priment sur les règles système (~900)
+            source: 'apprise',
+          })
+          .select('id')
+          .single()
+        if (error) throw error
+        regleId = (creee?.id as string) ?? null
+      }
+
+      // 2) Propagation : les AUTRES débits « à trier » dont le libellé
+      //    contient le motif sont triés du même coup (500 max par prudence).
+      const motifLike = motifAppris.replace(/[\\%_]/g, (c) => `\\${c}`)
+      const { data: autres, error: erreurAutres } = await supabase
+        .from('banque_mouvements')
+        .select('id')
+        .eq('user_id', user.id) // jamais les mouvements d'un autre membre de l'entreprise
+        .eq('statut_pointage', 'a_pointer')
+        .is('deleted_at', null)
+        .lt('montant', 0)
+        .neq('id', mouvement.id)
+        .ilike('libelle_banque', `%${motifLike}%`)
+        .limit(500)
+      if (erreurAutres) throw erreurAutres
+
+      let majs: Mouvement[] = []
+      const ids = (autres ?? []).map((a) => a.id as string)
+      if (ids.length > 0) {
+        const { data: pointes, error: erreurMaj } = await supabase
+          .from('banque_mouvements')
+          .update({
+            categorie_id: categorieChoisie.id,
+            statut_pointage: 'pointe',
+            // Une règle vers la catégorie « prive » sort aussi le mouvement des totaux pro.
+            est_prive: categorieChoisie.code === 'prive',
+          })
+          .in('id', ids)
+          .select(MOUVEMENT_COLONNES)
+        if (erreurMaj) throw erreurMaj
+        majs = (pointes ?? []) as Mouvement[]
+      }
+
+      // 3) Compteur d'applications de la règle (best effort).
+      if (regleId && majs.length > 0) {
+        await supabase
+          .from('categorisation_regles')
+          .update({ nb_applications: nbApplications + majs.length })
+          .eq('id', regleId)
+      }
+
+      if (majs.length > 0) {
+        onAutresTriees(majs)
+        toast.success(
+          `Règle retenue ✓ — ${majs.length} autre${majs.length > 1 ? 's' : ''} opération${
+            majs.length > 1 ? 's' : ''
+          } « ${motifAppris} » triée${majs.length > 1 ? 's' : ''} du même coup.`,
+        )
+      } else {
+        toast.success('Règle retenue ✓ — la prochaine fois, ce sera trié tout seul.')
+      }
+    } catch (e) {
+      console.error('Apprentissage de la règle impossible', e)
+      // Silencieux côté utilisateur : son pointage, lui, est bien enregistré.
+    }
+  }
+
   // ── Validation d'un DÉBIT ──
   async function validerDebit() {
     if (enregistrement) return
@@ -446,6 +574,21 @@ export default function PanneauPointage({
       } else {
         toast.success('C’est noté ✓')
       }
+
+      // 3) Apprentissage (Lot 2c) : uniquement si la case est cochée, qu'un
+      //    motif est exploitable ET que l'utilisateur a réellement choisi /
+      //    corrigé la catégorie (confirmer une suggestion déjà correcte issue
+      //    d'une règle ne crée rien — la règle existe déjà).
+      const categorieChoisie = categorieMap.get(categorieId) ?? null
+      if (
+        retenirRegle &&
+        motifAppris !== null &&
+        categorieChoisie !== null &&
+        categorieId !== mouvement.categorie_id
+      ) {
+        await apprendreEtPropager(categorieChoisie)
+      }
+
       onPointe(maj)
     } catch (e) {
       console.error('Pointage du débit impossible', e)
@@ -639,7 +782,7 @@ export default function PanneauPointage({
     <>
       <div className="fixed inset-0 bg-navy/40 z-40" onClick={onClose} aria-hidden="true" />
       <aside
-        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col"
+        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col font-hanken"
         role="dialog"
         aria-modal="true"
         aria-label="Pointage de l’opération"
@@ -648,7 +791,7 @@ export default function PanneauPointage({
         <div className="px-5 pt-5 pb-4 border-b border-gray-100 flex items-start gap-3 flex-shrink-0">
           <div className="min-w-0 flex-1">
             <p
-              className={`font-syne font-bold text-[28px] leading-tight ${
+              className={`font-spline-mono font-bold text-[28px] leading-tight tracking-[0.5px] ${
                 mouvement.montant > 0 ? 'text-green-700' : 'text-navy'
               }`}
             >
@@ -659,7 +802,7 @@ export default function PanneauPointage({
             </p>
             <p className="text-[11px] text-gray-400 mt-0.5 break-words">{mouvement.libelle_banque}</p>
             <p className="text-[12px] text-gray-500 mt-1">
-              {dateFr(mouvement.date_operation)} ·{' '}
+              <span className="font-spline-mono">{dateFr(mouvement.date_operation)}</span> ·{' '}
               {compte ? compte.nom : 'Compte'} —{' '}
               {mouvement.source === 'manuel' ? 'saisie manuelle' : 'relevé importé'}
             </p>
@@ -690,7 +833,7 @@ export default function PanneauPointage({
             <>
               {/* ── Catégorie ── */}
               <div className="px-5 pt-4 pb-2">
-                <p className="font-syne font-bold text-[15px] text-navy mb-1">C’est quoi cette dépense&nbsp;?</p>
+                <p className="font-hanken font-bold text-[15px] text-navy mb-1">C’est quoi cette dépense&nbsp;?</p>
                 <p className="text-[12px] text-gray-500 mb-2">On pense à&nbsp;:</p>
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Catégorie de la dépense">
                   {suggestionsCategories.map((c) => (
@@ -758,11 +901,34 @@ export default function PanneauPointage({
                     </div>
                   </div>
                 )}
+
+                {/* ── Apprentissage : « Retenir pour les prochaines fois » ──
+                    Visible dès que l'utilisateur choisit/corrige la catégorie
+                    (pas quand il confirme une suggestion déjà correcte). */}
+                {motifAppris && categorieId && categorieId !== mouvement.categorie_id && (
+                  <label className="mt-3 flex items-start gap-2.5 cursor-pointer select-none rounded-xl bg-cream/60 border border-gold/40 px-3.5 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={retenirRegle}
+                      onChange={(e) => setRetenirRegle(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-orange"
+                    />
+                    <span className="text-[12.5px] text-gray-600">
+                      <span className="block font-hanken font-semibold text-navy">
+                        Retenir pour les prochaines fois
+                      </span>
+                      <span className="block text-[11.5px] text-gray-500 mt-0.5">
+                        Les opérations «&nbsp;{motifAppris}&nbsp;» seront triées toutes seules — y compris
+                        celles qui attendent déjà.
+                      </span>
+                    </span>
+                  </label>
+                )}
               </div>
 
               {/* ── Chantier ── */}
               <div className="px-5 pt-4 pb-2">
-                <p className="font-syne font-bold text-[15px] text-navy mb-1">Pour quel chantier&nbsp;?</p>
+                <p className="font-hanken font-bold text-[15px] text-navy mb-1">Pour quel chantier&nbsp;?</p>
                 <p className="text-[12px] text-gray-500 mb-2">
                   En choisissant un chantier, Nexartis crée l’achat correspondant et l’y rattache — c’est lui
                   qui compte dans la rentabilité.
@@ -795,10 +961,10 @@ export default function PanneauPointage({
                     </p>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-navy/80 mb-2">
                       <span>
-                        Montant&nbsp;: <strong className="tabular-nums">{euros(Math.abs(mouvement.montant))}</strong>
+                        Montant&nbsp;: <strong className="font-spline-mono">{euros(Math.abs(mouvement.montant))}</strong>
                       </span>
                       <span>
-                        Date&nbsp;: <strong className="tabular-nums">{dateFr(mouvement.date_operation)}</strong>
+                        Date&nbsp;: <strong className="font-spline-mono">{dateFr(mouvement.date_operation)}</strong>
                       </span>
                     </div>
                     <label htmlFor="pointage-fournisseur" className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
@@ -833,7 +999,7 @@ export default function PanneauPointage({
 
               {/* ── Justificatif ── */}
               <div className="px-5 pt-4 pb-2">
-                <p className="font-syne font-bold text-[15px] text-navy mb-2">Justificatif</p>
+                <p className="font-hanken font-bold text-[15px] text-navy mb-2">Justificatif</p>
                 <JustificatifUpload
                   path={mouvement.justificatif_path}
                   entite="mouvement"
@@ -885,7 +1051,7 @@ export default function PanneauPointage({
             <>
               {/* ── Rapprochement facture (crédit) ── */}
               <div className="px-5 pt-4 pb-2">
-                <p className="font-syne font-bold text-[15px] text-navy mb-1">
+                <p className="font-hanken font-bold text-[15px] text-navy mb-1">
                   À quelle facture correspond ce virement&nbsp;?
                 </p>
                 {dejaAffecte > 0 && (
@@ -926,17 +1092,17 @@ export default function PanneauPointage({
                         <div className="text-[12.5px] space-y-1.5 text-navy">
                           <p className="flex justify-between gap-3">
                             <span className="text-gray-500">Total de la facture</span>
-                            <span className="tabular-nums">{euros(factureChoisie.montant_ttc)}</span>
+                            <span className="font-spline-mono">{euros(factureChoisie.montant_ttc)}</span>
                           </p>
                           {factureChoisie.avoir_impute_montant > 0 && (
                             <p className="flex justify-between gap-3">
                               <span className="text-gray-500">Avoir imputé</span>
-                              <span className="tabular-nums">− {euros(factureChoisie.avoir_impute_montant)}</span>
+                              <span className="font-spline-mono">− {euros(factureChoisie.avoir_impute_montant)}</span>
                             </p>
                           )}
                           <p className="flex justify-between gap-3">
                             <span className="text-gray-500">Déjà reçu</span>
-                            <span className="tabular-nums">{euros(factureChoisie.montant_paye)}</span>
+                            <span className="font-spline-mono">{euros(factureChoisie.montant_paye)}</span>
                           </p>
                           <div className="flex justify-between items-center gap-3">
                             <label htmlFor="pointage-montant" className="text-gray-500">
@@ -949,13 +1115,13 @@ export default function PanneauPointage({
                               value={montantSaisiTexte}
                               onChange={(e) => setMontantSaisiTexte(e.target.value)}
                               aria-label="Montant à pointer sur cette facture, en euros"
-                              className="w-32 h-9 px-2 rounded-lg border-[1.5px] border-gray-200 bg-white text-right text-[13px] font-bold text-green-700 tabular-nums focus:outline-none focus:border-sky transition"
+                              className="w-32 h-9 px-2 rounded-lg border-[1.5px] border-gray-200 bg-white text-right font-spline-mono text-[13px] font-bold text-green-700 focus:outline-none focus:border-sky transition"
                             />
                           </div>
                           <hr className="border-sky/30" />
                           <p className="flex justify-between gap-3 font-bold">
                             <span>Reste dû après pointage</span>
-                            <span className="tabular-nums">
+                            <span className="font-spline-mono">
                               {(() => {
                                 const saisi = parserMontantSaisi(montantSaisiTexte) ?? 0
                                 return euros(Math.max(0, Math.round((resteDuFacture(factureChoisie) - saisi) * 100) / 100))
@@ -1010,8 +1176,8 @@ export default function PanneauPointage({
                                     {f.objet || (f.date_emission ? `Émise le ${dateFr(f.date_emission)}` : '')}
                                   </span>
                                 </span>
-                                <span className="text-[12.5px] font-bold text-navy tabular-nums flex-shrink-0">
-                                  reste {euros(resteDuFacture(f))}
+                                <span className="text-[12.5px] font-bold text-navy flex-shrink-0">
+                                  reste <span className="font-spline-mono">{euros(resteDuFacture(f))}</span>
                                 </span>
                               </button>
                             ))

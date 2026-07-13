@@ -245,7 +245,7 @@ export default function ParChantierTab({ onOuvrirTri }: { onOuvrirTri: () => voi
         >
           🏠
         </div>
-        <h2 className="font-syne font-bold text-xl sm:text-2xl text-navy mb-3">
+        <h2 className="font-hanken font-bold text-xl sm:text-2xl text-navy mb-3">
           Est-ce que vos chantiers vous rapportent&nbsp;?
         </h2>
         <p className="text-gray-600 mb-6">
@@ -335,7 +335,7 @@ export default function ParChantierTab({ onOuvrirTri }: { onOuvrirTri: () => voi
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <Link
                   href={`/dashboard/chantiers/${c.id}`}
-                  className="font-syne font-bold text-[16px] text-navy hover:underline underline-offset-2"
+                  className="font-hanken font-bold text-[16px] text-navy hover:underline underline-offset-2"
                 >
                   {c.nom}
                 </Link>
@@ -352,7 +352,7 @@ export default function ParChantierTab({ onOuvrirTri }: { onOuvrirTri: () => voi
                   {statutLabel}
                 </span>
                 <span
-                  className={`ml-auto font-syne font-bold text-[15px] tabular-nums ${
+                  className={`ml-auto font-spline-mono font-bold text-[15px] tracking-[0.5px] ${
                     enPerte ? 'text-red-700/80' : 'text-green-700'
                   }`}
                 >
@@ -374,7 +374,7 @@ export default function ParChantierTab({ onOuvrirTri }: { onOuvrirTri: () => voi
                       style={{ width: `${Math.round((c.facture / max) * 100)}%` }}
                     />
                   </div>
-                  <span className="w-24 text-right flex-shrink-0 tabular-nums">{euros(c.facture)}</span>
+                  <span className="w-24 text-right flex-shrink-0 font-spline-mono">{euros(c.facture)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[12px]">
                   <span className="w-16 text-gray-500 flex-shrink-0">Dépensé</span>
@@ -388,7 +388,7 @@ export default function ParChantierTab({ onOuvrirTri }: { onOuvrirTri: () => voi
                       style={{ width: `${Math.round((c.depense / max) * 100)}%` }}
                     />
                   </div>
-                  <span className="w-24 text-right flex-shrink-0 tabular-nums">{euros(c.depense)}</span>
+                  <span className="w-24 text-right flex-shrink-0 font-spline-mono">{euros(c.depense)}</span>
                 </div>
               </div>
 
@@ -448,11 +448,11 @@ export default function ParChantierTab({ onOuvrirTri }: { onOuvrirTri: () => voi
                   ) : (
                     c.achats.map((a) => (
                       <div key={a.id} className="flex items-center gap-3 px-4 py-2 text-[12.5px]">
-                        <span className="text-gray-400 tabular-nums w-16 flex-shrink-0">
+                        <span className="font-spline-mono text-gray-400 w-16 flex-shrink-0">
                           {a.date ? a.date.split('-').reverse().slice(0, 2).join('/') : '—'}
                         </span>
                         <span className="flex-1 truncate text-navy">{a.libelle}</span>
-                        <span className="text-navy tabular-nums">− {euros(a.montant)}</span>
+                        <span className="font-spline-mono text-navy">− {euros(a.montant)}</span>
                       </div>
                     ))
                   )}

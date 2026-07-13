@@ -175,22 +175,22 @@ export function LigneOperation({
         {emoji}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-bold text-[14px] text-navy truncate">{titre}</span>
-        <span className="block text-[12px] text-gray-500 truncate mt-px">
+        <span className="block font-hanken font-bold text-[14px] text-navy truncate">{titre}</span>
+        <span className="block font-hanken text-[12px] text-gray-500 truncate mt-px">
           {sousTitre}
           {estCaisse && (
-            <span className="ml-1.5 inline-flex items-center px-2 py-px rounded-full bg-cream text-navy/70 text-[11px] font-semibold">
+            <span className="ml-1.5 inline-flex items-center px-2 py-px rounded-full bg-cream text-navy/70 font-hanken text-[11px] font-semibold">
               Espèces
             </span>
           )}
         </span>
       </span>
       <span className="flex items-center gap-2.5 flex-shrink-0">
-        <span className="hidden sm:inline text-[11px] text-gray-400 tabular-nums">
+        <span className="hidden sm:inline font-spline-mono text-[11px] text-gray-400">
           {jourMois(mouvement.date_operation)}
         </span>
         <span
-          className={`text-sm tabular-nums ${
+          className={`font-spline-mono font-medium text-sm ${
             griser ? 'text-gray-400' : mouvement.montant > 0 ? 'text-green-700' : 'text-navy'
           }`}
         >
@@ -200,12 +200,12 @@ export function LigneOperation({
           <Paperclip size={14} className="text-orange" role="img" aria-label="Justificatif joint" />
         )}
         {mouvement.est_prive ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-hanken text-[11px] font-semibold">
             Perso
           </span>
         ) : (
           mouvement.statut_pointage === 'a_pointer' && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange/10 text-orange text-[11px] font-bold">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange/10 text-orange font-hanken text-[11px] font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-orange" aria-hidden="true" />À trier
             </span>
           )
