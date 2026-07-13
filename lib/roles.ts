@@ -153,6 +153,12 @@ const ROUTE_RULES: RouteRule[] = [
   { prefix: '/dashboard/materiel', roles: ['dirigeant', 'commercial'] },
   { prefix: '/dashboard/planning', roles: ['dirigeant', 'commercial', 'ouvrier'] },
   { prefix: '/dashboard/chantiers', roles: ['dirigeant', 'commercial', 'ouvrier'] },
+  // Outils métier neutres (aucune donnée sensible) : accessibles à tous les rôles
+  // (décision produit 13/07/2026 — un ouvrier/commercial peut consulter une norme
+  // ou faire un calcul sur chantier). Sans ces lignes, la règle générale '/dashboard'
+  // ne suffirait pas (les préfixes plus spécifiques priment, mais ceux-ci n'existaient pas).
+  { prefix: '/dashboard/calculatrice', roles: ['dirigeant', 'commercial', 'ouvrier'] },
+  { prefix: '/dashboard/normes', roles: ['dirigeant', 'commercial', 'ouvrier'] },
   { prefix: '/dashboard/equipe', roles: ['dirigeant', 'commercial', 'ouvrier'] }, // visible, mais gestion des comptes gardée par gereComptes
   { prefix: '/dashboard/parametres', roles: ['dirigeant'] },
   { prefix: '/dashboard/abonnement', roles: ['dirigeant'] },

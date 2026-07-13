@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -42,11 +42,9 @@ import {
   Wallet,
   Warehouse,
   UsersRound,
-  Library,
   TrendingUp,
   ArrowDownToLine,
   SlidersHorizontal,
-  Bell,
   Menu,
   X,
   MoreHorizontal,
@@ -56,8 +54,6 @@ import {
   FileText,
   ScrollText,
   ClipboardList,
-  Receipt,
-  Calendar,
   Shield,
   Trash2,
   Wrench,
@@ -66,6 +62,7 @@ import {
   LifeBuoy,
   WifiOff,
   Calculator,
+  Layers,
 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
@@ -78,48 +75,90 @@ interface NavItem {
   label: string
   href: string
   icon: React.ElementType
+  /** true = « à venir » (barré, non cliquable, pastille « Bientôt »). */
+  soon?: boolean
+}
+interface NavCategory {
+  name: string
+  items: NavItem[]
 }
 
 // -------------------------------------------------------------------
-// Constants
+// Constants — navigation V2 (refonte 13/07/2026, cf. docs/navigation/)
+//   • Accès direct : le quotidien, à plat, sans doublon.
+//   • Catégories repliables (par nature) : état sauvegardé, DÉPLIÉ par défaut.
+//   • « Mon compte » repliable en bas + Aide. « Importer » y reste (pas de route orpheline).
+//   • Rôle : catégorie sans item visible masquée, catégorie à 1 item dégradée en item plat.
+//   • Mode réduit (icônes) : tout est rendu à plat (pas de titres de catégorie).
 // -------------------------------------------------------------------
 
-const NAV_GROUPS: NavItem[][] = [
-  [{ label: 'Accueil', href: '/dashboard', icon: Home }],
-  [
-    { label: 'Devis', href: '/dashboard/devis', icon: FilePenLine },
-    { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
-    { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
-    { label: 'Factures', href: '/dashboard/factures', icon: Banknote },
-    { label: 'Documents', href: '/dashboard/documents', icon: ScrollText },
-    { label: 'Rapports', href: '/dashboard/rapports', icon: ClipboardList },
-    { label: 'Achats', href: '/dashboard/achats', icon: ShoppingBag },
-    // Lot 2a — module « Dépenses & Banque » (import de relevé, opérations).
-    // Route listée dans lib/roles.ts ROUTE_RULES → dirigeant uniquement
-    // (données financières), cohérent avec la RLS des tables banque_*.
-    { label: 'Dépenses & Banque', href: '/dashboard/banque', icon: Wallet },
-  ],
-  [
-    { label: 'Clients', href: '/dashboard/clients', icon: UserRound },
-    { label: 'Fournisseurs', href: '/dashboard/fournisseurs', icon: Warehouse },
-    { label: 'Mon\u00a0équipe', href: '/dashboard/equipe', icon: UsersRound },
-    { label: 'Matériel', href: '/dashboard/materiel', icon: Wrench },
-  ],
-  [
-    { label: 'Statistiques', href: '/dashboard/statistiques', icon: TrendingUp },
-    { label: 'Prestations', href: '/dashboard/prestations', icon: FileText },
-    { label: 'Calculatrices', href: '/dashboard/calculatrice', icon: Calculator },
-    { label: 'Normes', href: '/dashboard/normes', icon: Shield },
+/** Le quotidien — accès direct, jamais replié. */
+const NAV_DIRECT: NavItem[] = [
+  { label: 'Accueil', href: '/dashboard', icon: Home },
+  { label: 'Devis', href: '/dashboard/devis', icon: FilePenLine },
+  { label: 'Factures', href: '/dashboard/factures', icon: Banknote },
+  { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
+  { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
+  // Plans 2D/3D : onglet à venir (module en construction) — teaser non cliquable.
+  { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, soon: true },
+]
+
+/** Le reste rangé par nature — catégories repliables. */
+const NAV_CATEGORIES: NavCategory[] = [
+  {
+    name: 'Base de données',
+    items: [
+      { label: 'Clients', href: '/dashboard/clients', icon: UserRound },
+      { label: 'Fournisseurs', href: '/dashboard/fournisseurs', icon: Warehouse },
+      { label: 'Prestations', href: '/dashboard/prestations', icon: FileText },
+      { label: 'Matériel', href: '/dashboard/materiel', icon: Wrench },
+      { label: 'Mon équipe', href: '/dashboard/equipe', icon: UsersRound },
+    ],
+  },
+  {
+    name: 'Documents',
+    items: [
+      { label: 'Documents', href: '/dashboard/documents', icon: ScrollText },
+      { label: 'Rapports', href: '/dashboard/rapports', icon: ClipboardList },
+    ],
+  },
+  {
+    name: 'Finances',
+    items: [
+      // Ex-« Dépenses & Banque » renommé « Banque » (demande jeremy 13/07/2026).
+      { label: 'Banque', href: '/dashboard/banque', icon: Wallet },
+      { label: 'Achats', href: '/dashboard/achats', icon: ShoppingBag },
+      { label: 'Statistiques', href: '/dashboard/statistiques', icon: TrendingUp },
+    ],
+  },
+  {
+    name: 'Outils',
+    items: [
+      { label: 'Calculatrices', href: '/dashboard/calculatrice', icon: Calculator },
+      { label: 'Normes', href: '/dashboard/normes', icon: Shield },
+    ],
+  },
+]
+
+/** Compte / réglages — repliable, en bas. « Importer » y reste (route non orpheline). */
+const NAV_COMPTE: NavCategory = {
+  name: 'Mon compte',
+  items: [
     { label: 'Abonnement', href: '/dashboard/abonnement', icon: CreditCard },
     { label: 'Paramètres', href: '/dashboard/parametres', icon: SlidersHorizontal },
     { label: 'Importer', href: '/dashboard/import', icon: ArrowDownToLine },
     { label: 'Corbeille', href: '/dashboard/corbeille', icon: Trash2 },
   ],
-  // Groupe séparé "Aide" — placé en tout dernier pour bien distinguer
-  // le métier (au-dessus) de la documentation utilisateur (en bas).
-  [
-    { label: 'Aide & Tutoriels', href: '/dashboard/aide', icon: LifeBuoy },
-  ],
+}
+
+const NAV_AIDE: NavItem = { label: 'Aide & Tutoriels', href: '/dashboard/aide', icon: LifeBuoy }
+
+/** Tous les items à plat (mode sidebar réduite = icônes seules). */
+const NAV_FLAT: NavItem[] = [
+  ...NAV_DIRECT,
+  ...NAV_CATEGORIES.flatMap((c) => c.items),
+  ...NAV_COMPTE.items,
+  NAV_AIDE,
 ]
 
 const PAGE_TITLES: Record<string, string> = {
@@ -133,7 +172,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/rapports': "Rapports d'intervention",
   '/dashboard/normes': 'Normes par métier',
   '/dashboard/achats': 'Achats',
-  '/dashboard/banque': 'Dépenses & Banque',
+  '/dashboard/banque': 'Banque',
   '/dashboard/planning': 'Planning',
   '/dashboard/clients': 'Clients',
   '/dashboard/fournisseurs': 'Fournisseurs',
@@ -224,6 +263,9 @@ function Sidebar({
   isTrial,
   badges,
   role,
+  isMobile,
+  collapsedCats,
+  onToggleCat,
 }: {
   collapsed: boolean
   mobileOpen: boolean
@@ -242,6 +284,12 @@ function Sidebar({
   badges?: Record<string, number>
   /** Push 2 — rôle du membre courant (null = dirigeant legacy / inconnu → voit tout) */
   role: UserRole | null
+  /** true = instance MOBILE (affiche l'encadré « À traiter » en tête). */
+  isMobile?: boolean
+  /** État de repli des catégories (partagé + sauvegardé). Déplié par défaut. */
+  collapsedCats: Record<string, boolean>
+  /** Bascule le repli d'une catégorie (persisté par le parent). */
+  onToggleCat: (name: string) => void
 }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
@@ -265,6 +313,208 @@ function Sidebar({
   }
 
   const w = collapsed ? 'w-16' : 'w-64'
+
+  // Un item est visible si le rôle y a accès (les items « à venir » sont
+  // toujours affichés en teaser). role=null / dirigeant → tout visible.
+  const canSee = (item: NavItem) =>
+    role === null || canAccessDashboardPath(role, item.href)
+  const visibleInFlat = (item: NavItem) => item.soon || canSee(item)
+
+  // ---- Rendu d'un item de navigation (Link, ou div « à venir ») ----
+  const renderItem = (item: NavItem) => {
+    const Icon = item.icon
+    // Item « à venir » : non cliquable, barré, pastille « Bientôt ».
+    if (item.soon) {
+      return (
+        <div
+          key={item.href}
+          aria-disabled="true"
+          title={collapsed ? `${item.label} (Bientôt)` : undefined}
+          className={`
+            group/nav relative flex items-center rounded-lg text-[14px] font-hanken font-medium
+            text-white/40 cursor-default
+            ${collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 h-10 px-3 ml-1'}
+          `}
+        >
+          <Icon size={19} strokeWidth={1.8} className="flex-shrink-0 text-white/35" />
+          {!collapsed && (
+            <span className="truncate flex-1 line-through decoration-white/30">{item.label}</span>
+          )}
+          {!collapsed && (
+            <span className="ml-auto flex-none text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.08] text-white/60 border border-white/10">
+              Bientôt
+            </span>
+          )}
+        </div>
+      )
+    }
+    const active = isActive(pathname, item.href)
+    // Ancrage du spotlight onboarding sur les liens Paramètres,
+    // Aide, Mon équipe (V1 Fix #7, mode Société uniquement) et
+    // Matériel (V3 — bulle "Ton inventaire pro").
+    // OnboardingTour cible ces attributs via querySelector.
+    const tourId =
+      item.href === '/dashboard/parametres' ? 'parametres' :
+      item.href === '/dashboard/aide' ? 'aide' :
+      item.href === '/dashboard/equipe' ? 'equipe' :
+      item.href === '/dashboard/materiel' ? 'materiel' :
+      undefined
+    // Item réservé au plan Complet → on affiche un badge ★ pour
+    // les utilisateurs Essentiel hors période d'essai (incite à
+    // l'upgrade au lieu d'un blocage silencieux).
+    const isPremium = isPremiumNavItem(item.href)
+    const showPremiumBadge = isPremium && !isTrial && effectivePlan === 'essential'
+    // QW2 -- Badge orange
+    const badgeCount = badges?.[item.href] ?? 0
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onCloseMobile}
+        title={collapsed ? `${item.label}${showPremiumBadge ? ' (offre Complet)' : ''}` : undefined}
+        data-tour={tourId}
+        className={`
+          group/nav relative flex items-center rounded-lg text-[14px] font-hanken font-medium
+          transition-all duration-150 ease-out
+          ${collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 h-10 px-3 ml-1'}
+          ${
+            active
+              ? 'bg-[rgba(90,180,224,0.12)] text-white'
+              : showPremiumBadge
+                ? 'text-white/50 hover:bg-white/[0.05] hover:text-white/75'
+                : 'text-white/60 hover:bg-white/[0.05] hover:text-white/85'
+          }
+        `}
+      >
+        {/* Active indicator bar */}
+        {active && !collapsed && (
+          <span style={{ backgroundColor: 'var(--nexartis-accent, #e87a2a)' }} className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" />
+        )}
+        <Icon
+          size={19}
+          strokeWidth={active ? 2.2 : 1.8}
+          className={`flex-shrink-0 transition-all duration-150 ${
+            active
+              ? 'text-white'
+              : 'text-white/50 group-hover/nav:text-white/75'
+          }`}
+        />
+        {!collapsed && (
+          <span className={`truncate flex-1 ${active ? 'font-semibold' : ''}`}>
+            {item.label}
+          </span>
+        )}
+        {/* QW2 -- Pastille orange notification actions en attente */}
+        {badgeCount > 0 && !collapsed && !showPremiumBadge && (
+          <span
+            aria-label={`${badgeCount} action${badgeCount > 1 ? 's' : ''} en attente`}
+            className="ml-auto flex-none inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-extrabold leading-none"
+            style={{
+              background: 'var(--nexartis-accent, #e87a2a)',
+              color: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }}
+          >
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        )}
+        {badgeCount > 0 && collapsed && !showPremiumBadge && (
+          <span
+            aria-label={`${badgeCount} action${badgeCount > 1 ? 's' : ''} en attente`}
+            className="absolute top-1 right-1 w-2 h-2 rounded-full"
+            style={{ background: 'var(--nexartis-accent, #e87a2a)' }}
+          />
+        )}
+        {/* Badge ★ pour les items premium quand utilisateur Essentiel */}
+        {showPremiumBadge && !collapsed && (
+          <span
+            className="ml-auto flex-none text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
+            style={{
+              color: '#ffc79a',
+              background: 'color-mix(in srgb, #ff7a1a 14%, transparent)',
+              borderColor: 'color-mix(in srgb, #ff7a1a 38%, transparent)',
+            }}
+            title="Disponible dans l'offre Complet"
+          >
+            ★
+          </span>
+        )}
+        {showPremiumBadge && collapsed && (
+          <span
+            aria-hidden="true"
+            className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
+            style={{ background: '#ff9d4d', boxShadow: '0 0 6px #ff7a1a' }}
+          />
+        )}
+      </Link>
+    )
+  }
+
+  // ---- Rendu d'une catégorie repliable ----
+  //   0 item visible → masquée. 1 item → dégradée en item plat (pas d'accordéon).
+  const renderCategory = (cat: NavCategory) => {
+    const items = cat.items.filter(canSee)
+    if (items.length === 0) return null
+    if (items.length === 1) return <div key={cat.name}>{renderItem(items[0])}</div>
+    const isCol = !!collapsedCats[cat.name]
+    return (
+      <div key={cat.name} className="pt-0.5">
+        <button
+          type="button"
+          onClick={() => onToggleCat(cat.name)}
+          aria-expanded={!isCol}
+          className="w-full flex items-center gap-2 h-8 px-3 ml-1 text-white/40 hover:text-white/70 text-[10.5px] font-extrabold uppercase tracking-wider transition-colors"
+        >
+          <span className="flex-1 text-left truncate">{cat.name}</span>
+          <ChevronDown
+            size={13}
+            className={`flex-shrink-0 transition-transform duration-150 ${isCol ? '-rotate-90' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+        {!isCol && items.map(renderItem)}
+      </div>
+    )
+  }
+
+  // ---- Encadré « À traiter » (mobile uniquement, compact) ----
+  const renderATraiter = () => {
+    const s = (n: number) => (n > 1 ? 's' : '')
+    const devis = badges?.['/dashboard/devis'] ?? 0
+    const factures = badges?.['/dashboard/factures'] ?? 0
+    const banque = badges?.['/dashboard/banque'] ?? 0
+    const lignes: { label: string; href: string }[] = []
+    if (devis > 0) lignes.push({ label: `${devis} devis à relancer`, href: '/dashboard/devis' })
+    if (factures > 0) lignes.push({ label: `${factures} facture${s(factures)} en retard`, href: '/dashboard/factures' })
+    if (banque > 0) lignes.push({ label: `${banque} opération${s(banque)} à pointer`, href: '/dashboard/banque' })
+    return (
+      <div
+        className="rounded-xl mb-2 mx-1 px-3 py-2.5"
+        style={{ background: 'rgba(245,200,66,0.10)', border: '1px solid rgba(245,200,66,0.22)' }}
+      >
+        <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: '#ffe0b8' }}>
+          À traiter
+        </p>
+        {lignes.length > 0 ? (
+          lignes.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={onCloseMobile}
+              className="flex items-center gap-2 py-[3px] text-[12.5px] font-semibold text-white/80 hover:text-white transition-colors"
+            >
+              <span className="w-[6px] h-[6px] rounded-full flex-none" style={{ background: 'var(--nexartis-accent, #e87a2a)' }} aria-hidden="true" />
+              <span className="truncate">{l.label}</span>
+            </Link>
+          ))
+        ) : (
+          <p className="text-[12px] font-semibold" style={{ color: '#bfe6d3' }}>
+            ✓ Tout est à jour
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -402,123 +652,24 @@ function Sidebar({
 
         {/* ---- Navigation ---- */}
         <nav className="flex-1 px-2 space-y-0.5">
-          {NAV_GROUPS
-            // Push 2 — filtrage par rôle. role=null (dirigeant legacy / inconnu) ou
-            // dirigeant → canAccessDashboardPath renvoie true partout : menu INCHANGÉ.
-            .map((group) =>
-              group.filter((item) => role === null || canAccessDashboardPath(role, item.href)),
-            )
-            // On masque les groupes devenus vides pour éviter un <hr> orphelin.
-            .map((group, gi) => ({ group, gi }))
-            .filter(({ group }) => group.length > 0)
-            .map(({ group, gi }) => (
-            <div key={gi}>
-              {gi > 0 && <hr className="border-white/[0.06] my-1 mx-2.5" />}
-              {group.map((item) => {
-                const active = isActive(pathname, item.href)
-                const Icon = item.icon
-                // Ancrage du spotlight onboarding sur les liens Paramètres,
-                // Aide, Mon équipe (V1 Fix #7, mode Société uniquement) et
-                // Matériel (V3 — bulle "Ton inventaire pro").
-                // OnboardingTour cible ces attributs via querySelector.
-                const tourId =
-                  item.href === '/dashboard/parametres' ? 'parametres' :
-                  item.href === '/dashboard/aide' ? 'aide' :
-                  item.href === '/dashboard/equipe' ? 'equipe' :
-                  item.href === '/dashboard/materiel' ? 'materiel' :
-                  undefined
-                // Item réservé au plan Complet → on affiche un badge ★ pour
-                // les utilisateurs Essentiel hors période d'essai (incite à
-                // l'upgrade au lieu d'un blocage silencieux).
-                const isPremium = isPremiumNavItem(item.href)
-                const showPremiumBadge = isPremium && !isTrial && effectivePlan === 'essential'
-                // QW2 -- Badge orange
-                const badgeCount = badges?.[item.href] ?? 0
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onCloseMobile}
-                    title={collapsed ? `${item.label}${showPremiumBadge ? ' (offre Complet)' : ''}` : undefined}
-                    data-tour={tourId}
-                    className={`
-                      group/nav relative flex items-center rounded-lg text-[14px] font-hanken font-medium
-                      transition-all duration-150 ease-out
-                      ${collapsed ? 'justify-center h-10 w-10 mx-auto' : 'gap-3 h-10 px-3 ml-1'}
-                      ${
-                        active
-                          ? 'bg-[rgba(90,180,224,0.12)] text-white'
-                          : showPremiumBadge
-                            ? 'text-white/50 hover:bg-white/[0.05] hover:text-white/75'
-                            : 'text-white/60 hover:bg-white/[0.05] hover:text-white/85'
-                      }
-                    `}
-                  >
-                    {/* Active indicator bar */}
-                    {active && !collapsed && (
-                      <span style={{ backgroundColor: 'var(--nexartis-accent, #e87a2a)' }} className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" />
-                    )}
-                    <Icon
-                      size={19}
-                      strokeWidth={active ? 2.2 : 1.8}
-                      className={`flex-shrink-0 transition-all duration-150 ${
-                        active
-                          ? 'text-white'
-                          : 'text-white/50 group-hover/nav:text-white/75'
-                      }`}
-                    />
-                    {!collapsed && (
-                      <span className={`truncate flex-1 ${active ? 'font-semibold' : ''}`}>
-                        {item.label}
-                      </span>
-                    )}
-                    {/* QW2 -- Pastille orange notification actions en attente */}
-                    {badgeCount > 0 && !collapsed && !showPremiumBadge && (
-                      <span
-                        aria-label={`${badgeCount} action${badgeCount > 1 ? 's' : ''} en attente`}
-                        className="ml-auto flex-none inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-extrabold leading-none"
-                        style={{
-                          background: 'var(--nexartis-accent, #e87a2a)',
-                          color: '#fff',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                        }}
-                      >
-                        {badgeCount > 99 ? '99+' : badgeCount}
-                      </span>
-                    )}
-                    {badgeCount > 0 && collapsed && !showPremiumBadge && (
-                      <span
-                        aria-label={`${badgeCount} action${badgeCount > 1 ? 's' : ''} en attente`}
-                        className="absolute top-1 right-1 w-2 h-2 rounded-full"
-                        style={{ background: 'var(--nexartis-accent, #e87a2a)' }}
-                      />
-                    )}
-                    {/* Badge ★ pour les items premium quand utilisateur Essentiel */}
-                    {showPremiumBadge && !collapsed && (
-                      <span
-                        className="ml-auto flex-none text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
-                        style={{
-                          color: '#ffc79a',
-                          background: 'color-mix(in srgb, #ff7a1a 14%, transparent)',
-                          borderColor: 'color-mix(in srgb, #ff7a1a 38%, transparent)',
-                        }}
-                        title="Disponible dans l'offre Complet"
-                      >
-                        ★
-                      </span>
-                    )}
-                    {showPremiumBadge && collapsed && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full"
-                        style={{ background: '#ff9d4d', boxShadow: '0 0 6px #ff7a1a' }}
-                      />
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          ))}
+          {/* Encadré « À traiter » : mobile uniquement (sur desktop, l'Accueil le montre déjà). */}
+          {isMobile && !collapsed && renderATraiter()}
+
+          {collapsed ? (
+            // Mode réduit (icônes) : tout à plat, pas de titres de catégorie.
+            NAV_FLAT.filter(visibleInFlat).map(renderItem)
+          ) : (
+            <>
+              {/* Accès direct (le quotidien) */}
+              {NAV_DIRECT.filter(visibleInFlat).map(renderItem)}
+              {/* Catégories par nature */}
+              {NAV_CATEGORIES.map(renderCategory)}
+              {/* Compte + Aide, détachés en bas */}
+              <hr className="border-white/[0.06] my-1 mx-2.5" />
+              {renderCategory(NAV_COMPTE)}
+              {canSee(NAV_AIDE) && renderItem(NAV_AIDE)}
+            </>
+          )}
 
           {/* ---- Lien Admin (visible uniquement pour admin@nexartis.fr) ---- */}
           {userEmail === ADMIN_EMAIL && (
@@ -747,7 +898,7 @@ export default function DashboardLayout({
       '/dashboard/factures': 'Factures', '/dashboard/planning': 'Planning',
       '/dashboard/chantiers': 'Chantiers', '/dashboard/clients': 'Clients',
       '/dashboard/fournisseurs': 'Fournisseurs', '/dashboard/rapports': 'Rapports',
-      '/dashboard/achats': 'Achats', '/dashboard/banque': 'Depenses & Banque',
+      '/dashboard/achats': 'Achats', '/dashboard/banque': 'Banque',
       '/dashboard/equipe': 'Mon equipe',
       '/dashboard/materiel': 'Materiel', '/dashboard/statistiques': 'Statistiques',
       '/dashboard/prestations': 'Prestations', '/dashboard/calculatrice': 'Calculatrices',
@@ -758,7 +909,7 @@ export default function DashboardLayout({
     }
     const key = Object.keys(titles).sort((a, b) => b.length - a.length)
       .find(p => pathname === p || pathname.startsWith(p + '/'))
-    document.title = (key ? titles[key] : 'Espace') + ' \u2014 Nexartis'
+    document.title = (key ? titles[key] : 'Espace') + ' — Nexartis'
     let meta = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null
     if (!meta) { meta = document.createElement('meta'); meta.name = 'robots'; document.head.appendChild(meta) }
     meta.content = 'noindex, nofollow'
@@ -766,6 +917,29 @@ export default function DashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [hovered, setHovered] = useState(false)
+
+  // État de repli des catégories du menu (partagé entre les 3 instances de
+  // Sidebar + sauvegardé). Déplié par défaut ; l'artisan replie ce qu'il veut.
+  const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({})
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nex_nav_collapsed')
+      if (raw) setCollapsedCats(JSON.parse(raw) as Record<string, boolean>)
+    } catch {
+      /* localStorage indisponible : on reste sur « tout déplié » */
+    }
+  }, [])
+  const toggleCat = useCallback((name: string) => {
+    setCollapsedCats((prev) => {
+      const next = { ...prev, [name]: !prev[name] }
+      try {
+        localStorage.setItem('nex_nav_collapsed', JSON.stringify(next))
+      } catch {
+        /* pas de persistance possible : on garde au moins l'état en mémoire */
+      }
+      return next
+    })
+  }, [])
 
   const router = useRouter()
   const { user, loading: userLoading } = useUser()
@@ -985,7 +1159,7 @@ export default function DashboardLayout({
     }
   }, [])
 
-  // Lot 2b banque — badge « N à pointer » sur l'entrée Dépenses & Banque.
+  // Lot 2b banque — badge « N à pointer » sur l'entrée Banque.
   // Volontairement léger : un simple count (head:true) au chargement et à
   // chaque navigation (pas de realtime). Si la table n'existe pas encore ou
   // que la RLS refuse (rôle non dirigeant), le badge reste simplement à 0.
@@ -1079,6 +1253,9 @@ export default function DashboardLayout({
           isTrial={isTrial}
           badges={sidebarBadges}
           role={role}
+          isMobile={false}
+          collapsedCats={collapsedCats}
+          onToggleCat={toggleCat}
         />
       </div>
 
@@ -1100,6 +1277,9 @@ export default function DashboardLayout({
           isTrial={isTrial}
           badges={sidebarBadges}
           role={role}
+          isMobile={false}
+          collapsedCats={collapsedCats}
+          onToggleCat={toggleCat}
         />
       </div>
 
@@ -1121,6 +1301,9 @@ export default function DashboardLayout({
           isTrial={isTrial}
           badges={sidebarBadges}
           role={role}
+          isMobile={true}
+          collapsedCats={collapsedCats}
+          onToggleCat={toggleCat}
         />
       </div>
 

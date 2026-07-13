@@ -271,6 +271,9 @@ export function getEffectivePlan(
 export const PREMIUM_DASHBOARD_ROUTES: ReadonlyArray<{ href: string; feature: FeatureKey }> = [
   { href: '/dashboard/planning', feature: 'planning_chantier' },
   { href: '/dashboard/equipe', feature: 'gestion_equipe' },
+  // Rapports d'intervention = feature Complet (rapport_intervention) : on grise ★
+  // l'item de sidebar en Essentiel (le mur d'upgrade est déjà géré dans la page).
+  { href: '/dashboard/rapports', feature: 'rapport_intervention' },
 ] as const
 
 export function isPremiumNavItem(href: string): boolean {
