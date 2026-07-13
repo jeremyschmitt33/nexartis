@@ -89,6 +89,8 @@ export default function BanqueClient() {
   const [onglet, setOnglet] = useState<Onglet>('operations')
   /** Sous-onglet d'ouverture de « À classer » (l'import bascule sur « confirmer »). */
   const [triSousOnglet, setTriSousOnglet] = useState<'confirmer' | 'trier' | 'classees'>('confirmer')
+  /** Incrémenté après un pointage/fermeture de file : TriGroupeTab recharge ses listes. */
+  const [triRafraichir, setTriRafraichir] = useState(0)
   const [periode, setPeriode] = useState<Periode>('3mois')
   const [recherche, setRecherche] = useState('')
   const [compteFiltre, setCompteFiltre] = useState<string>('tous')
@@ -248,6 +250,7 @@ export default function BanqueClient() {
     (maj: Mouvement) => {
       remplacerMouvement(maj)
       setRafraichirCaisse((n) => n + 1)
+      setTriRafraichir((n) => n + 1) // TriGroupeTab (À classer) recharge ses 3 listes
       setPanneau((prec) => {
         if (!prec) return null
         const reste = prec.file.slice(1)
@@ -304,6 +307,7 @@ export default function BanqueClient() {
   const fermerPanneau = useCallback(() => {
     setPanneau(null)
     setFinTri(false)
+    setTriRafraichir((n) => n + 1) // au cas où le tri a bougé pendant la file
   }, [])
 
   /** Après déclaration d'un mouvement de caisse : il rejoint la liste et part au tri. */
@@ -396,6 +400,11 @@ export default function BanqueClient() {
           categories={categoriesListe}
           onModifie={chargerDonnees}
           ongletInitial={triSousOnglet}
+          rafraichir={triRafraichir}
+          onDetailler={(mvts) => {
+            setFinTri(false)
+            setPanneau({ file: mvts, modeFile: true })
+          }}
         />
       ) : chargement ? (
         <div className="flex items-center justify-center py-24 text-gray-400" role="status" aria-live="polite">

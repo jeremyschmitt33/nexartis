@@ -47,12 +47,18 @@ export default function TriGroupeTab({
   categories,
   onModifie,
   ongletInitial = 'confirmer',
+  rafraichir = 0,
+  onDetailler,
 }: {
   categories: Categorie[]
   /** Appelé après un classement pour rafraîchir les compteurs du module. */
   onModifie: () => void
   /** Sous-onglet ouvert au montage (l'import bascule sur « confirmer »). */
   ongletInitial?: SousOnglet
+  /** Incrémenté par le parent (après un pointage via la file) pour recharger. */
+  rafraichir?: number
+  /** Ouvre la file de tri « une par une » sur les opérations d'un marchand. */
+  onDetailler?: (mouvements: Mouvement[]) => void
 }) {
   const supabase = useMemo(() => createClient(), [])
   const [sousOnglet, setSousOnglet] = useState<SousOnglet>(ongletInitial)
@@ -61,6 +67,7 @@ export default function TriGroupeTab({
   const [aConfirmer, setAConfirmer] = useState<Mouvement[]>([])
   const [aTrier, setATrier] = useState<Mouvement[]>([])
   const [classees, setClassees] = useState<Mouvement[]>([])
+  const [nbSures, setNbSures] = useState(0) // compté côté serveur (rpc_compter_suggestions_sures)
   const [choix, setChoix] = useState<Record<string, string>>({}) // clé groupe -> categorie_id
   const [enCours, setEnCours] = useState<string | null>(null)
 
@@ -110,7 +117,11 @@ export default function TriGroupeTab({
         .order('date_operation', { ascending: false })
         .limit(300)
 
-      const [resAttente, resClassees] = await Promise.all([enAttente, dejaClassees])
+      const [resAttente, resClassees, resSures] = await Promise.all([
+        enAttente,
+        dejaClassees,
+        supabase.rpc('rpc_compter_suggestions_sures'),
+      ])
       if (resAttente.error) throw resAttente.error
       if (resClassees.error) throw resClassees.error
 
@@ -118,6 +129,9 @@ export default function TriGroupeTab({
       setAConfirmer(attente.filter((m) => m.categorisation_auto))
       setATrier(attente.filter((m) => !m.categorisation_auto))
       setClassees((resClassees.data ?? []) as Mouvement[])
+      // Le nombre « sûr » vient du SERVEUR (mêmes garde-fous que la validation) :
+      // zéro divergence entre le libellé du bouton et ce qui sera réellement validé.
+      setNbSures(typeof resSures.data === 'number' ? resSures.data : 0)
     } catch (e) {
       console.error('TriGroupe : chargement impossible', e)
       setErreur('Impossible de charger vos opérations. Rechargez la page.')
@@ -128,7 +142,7 @@ export default function TriGroupeTab({
 
   useEffect(() => {
     void charger()
-  }, [charger])
+  }, [charger, rafraichir])
 
   // Catégories sélectionnables : dépenses pro + « Privé » (jamais les recettes).
   const categoriesChoix = useMemo(
@@ -244,14 +258,14 @@ export default function TriGroupeTab({
       setEnCours(g.cle)
       try {
         await ecrireClassement(ids, categorieId, estPrive, false)
-        // Marchand distinctif classé une fois → retenu et classé d'office ensuite,
+        // (marchand à trier) Marchand distinctif classé une fois → retenu et classé d'office ensuite,
         // SAUF si c'est du privé (jamais auto-pointé → règle en suggestion).
         await memoriserRegle(g.motifRegle, categorieId, !estPrive)
-        setATrier((p) => p.filter((m) => !ids.includes(m.id)))
         toast.success(
           `${ids.length} opération${ids.length > 1 ? 's' : ''} classée${ids.length > 1 ? 's' : ''} en « ${cat?.label ?? ''} »` +
             (g.motifRegle ? ' · retenu ✓' : ''),
         )
+        await charger() // recharge les 3 listes + nbSures (cohérence totale)
         onModifie()
       } catch (e) {
         console.error('TriGroupe : classement impossible', e)
@@ -260,7 +274,7 @@ export default function TriGroupeTab({
         setEnCours(null)
       }
     },
-    [choix, categorieParId, ecrireClassement, memoriserRegle, onModifie],
+    [choix, categorieParId, ecrireClassement, memoriserRegle, charger, onModifie],
   )
 
   // ── Onglet « À confirmer » : confirmer une suggestion (avec catégorie) ──
@@ -282,10 +296,10 @@ export default function TriGroupeTab({
         // Changé → l'utilisateur s'approprie (categorisation_auto=false) + on apprend.
         await ecrireClassement(ids, categorieId, estPrive, inchange)
         if (!inchange) await memoriserRegle(g.motifRegle, categorieId, !estPrive)
-        setAConfirmer((p) => p.filter((m) => !ids.includes(m.id)))
         toast.success(
           `${ids.length} opération${ids.length > 1 ? 's' : ''} classée${ids.length > 1 ? 's' : ''} en « ${cat?.label ?? ''} »`,
         )
+        await charger()
         onModifie()
       } catch (e) {
         console.error('TriGroupe : confirmation impossible', e)
@@ -294,7 +308,7 @@ export default function TriGroupeTab({
         setEnCours(null)
       }
     },
-    [choix, categorieParId, ecrireClassement, memoriserRegle, onModifie],
+    [choix, categorieParId, ecrireClassement, memoriserRegle, charger, onModifie],
   )
 
   // ── Onglet « À confirmer » : marchand binaire (supermarché) → pro / perso ──
@@ -311,7 +325,6 @@ export default function TriGroupeTab({
         await ecrireClassement(ids, cat.id, sens === 'perso', false)
         // On PROPOSE la prochaine fois (jamais « classé d'office » sur un ambigu).
         await memoriserRegle(g.motifRegle, cat.id, false)
-        setAConfirmer((p) => p.filter((m) => !ids.includes(m.id)))
         if (g.motifRegle) {
           toast.success(
             `Compris — les prochains « ${g.motifRegle} » vous seront proposés en ${sens === 'perso' ? 'Perso' : 'pro'}.`,
@@ -319,6 +332,7 @@ export default function TriGroupeTab({
         } else {
           toast.success(`${ids.length} opération${ids.length > 1 ? 's' : ''} classée${ids.length > 1 ? 's' : ''}.`)
         }
+        await charger()
         onModifie()
       } catch (e) {
         console.error('TriGroupe : décision binaire impossible', e)
@@ -327,39 +341,25 @@ export default function TriGroupeTab({
         setEnCours(null)
       }
     },
-    [catPrive, catAutrePro, ecrireClassement, memoriserRegle, onModifie],
+    [catPrive, catAutrePro, ecrireClassement, memoriserRegle, charger, onModifie],
   )
 
-  // ── « Valider les suggestions sûres » : lot sécurisé (annulable via Changer) ──
-  const suggestionsSures = useMemo(
-    () =>
-      aConfirmer.filter((m) => {
-        if (m.categorie_id === null) return false // binaire (supermarché) → jamais en masse
-        if (Math.abs(m.montant) >= SEUIL_GROS_MONTANT) return false // gros montant → œil humain
-        const cat = categorieParId.get(m.categorie_id)
-        if (!cat) return false
-        if (cat.code === 'prive') return false // jamais « privé »
-        if (cat.code === 'assurances_pro') return false // pro/perso indiscernable
-        return true
-      }),
-    [aConfirmer, categorieParId],
-  )
-
+  // ── « Valider les suggestions sûres » : la SÉCURITÉ est côté serveur ──
+  // Les garde-fous (jamais privé/crédit/ambigu/gros montant) vivent dans la RPC
+  // rpc_valider_suggestions_sures (SECURITY INVOKER + RLS dirigeant). Un bug
+  // d'interface ne peut donc jamais valider par erreur. Le compte affiché vient
+  // de la RPC jumelle rpc_compter_suggestions_sures (même prédicat = zéro dérive).
   const validerSures = useCallback(async () => {
-    const ids = suggestionsSures.map((m) => m.id)
-    if (ids.length === 0) return
+    if (nbSures === 0) return
     setEnCours('__sures__')
     try {
-      const { error } = await supabase
-        .from('banque_mouvements')
-        .update({ statut_pointage: 'pointe' }) // categorisation_auto reste true (origine auto)
-        .in('id', ids)
+      const { data, error } = await supabase.rpc('rpc_valider_suggestions_sures')
       if (error) throw error
-      const set = new Set(ids)
-      setAConfirmer((p) => p.filter((m) => !set.has(m.id)))
+      const n = typeof data === 'number' ? data : 0
       toast.success(
-        `${ids.length} suggestion${ids.length > 1 ? 's' : ''} validée${ids.length > 1 ? 's' : ''} · corrigez d’un clic dans « Déjà classées »`,
+        `${n} suggestion${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''} · corrigez d’un clic dans « Déjà classées »`,
       )
+      await charger()
       onModifie()
     } catch (e) {
       console.error('TriGroupe : validation en masse impossible', e)
@@ -367,7 +367,7 @@ export default function TriGroupeTab({
     } finally {
       setEnCours(null)
     }
-  }, [suggestionsSures, supabase, onModifie])
+  }, [nbSures, supabase, charger, onModifie])
 
   // ── « Changer » une opération déjà classée (transparence, réversible) ──
   const changerClassee = useCallback(
@@ -502,6 +502,15 @@ export default function TriGroupeTab({
                           Un supermarché, c’est ambigu (consommables de chantier ou perso&nbsp;?). On ne suppose rien —
                           vous tranchez. Si vous mettez toujours «&nbsp;perso&nbsp;», on le retiendra.
                         </p>
+                        {onDetailler && nb > 1 && (
+                          <button
+                            onClick={() => onDetailler(g.mouvements)}
+                            disabled={enTrain}
+                            className="mt-2 inline-block py-1.5 text-[12.5px] font-bold text-navy/70 hover:text-navy underline underline-offset-2 transition disabled:opacity-40"
+                          >
+                            Détailler les {nb} une par une →
+                          </button>
+                        )}
                       </>
                     ) : (
                       <>
@@ -535,6 +544,15 @@ export default function TriGroupeTab({
                             Valider {nb > 1 ? `les ${nb}` : ''}
                           </button>
                         </div>
+                        {onDetailler && nb > 1 && (
+                          <button
+                            onClick={() => onDetailler(g.mouvements)}
+                            disabled={enTrain}
+                            className="mt-2 inline-block py-1.5 text-[12.5px] font-bold text-navy/70 hover:text-navy underline underline-offset-2 transition disabled:opacity-40"
+                          >
+                            Détailler les {nb} une par une →
+                          </button>
+                        )}
                       </>
                     )}
                   </section>
@@ -542,7 +560,7 @@ export default function TriGroupeTab({
               })}
             </div>
 
-            {suggestionsSures.length > 0 && (
+            {nbSures > 0 && (
               <div className="text-center mt-5">
                 <button
                   onClick={validerSures}
@@ -554,8 +572,8 @@ export default function TriGroupeTab({
                   ) : (
                     <ShieldCheck size={15} aria-hidden="true" />
                   )}
-                  Valider les {suggestionsSures.length} suggestion{suggestionsSures.length > 1 ? 's' : ''} sûre
-                  {suggestionsSures.length > 1 ? 's' : ''} (annulable)
+                  Valider les {nbSures} suggestion{nbSures > 1 ? 's' : ''} sûre
+                  {nbSures > 1 ? 's' : ''} (annulable)
                 </button>
                 <p className="text-[11.5px] text-gray-400 mt-2 max-w-md mx-auto">
                   Ne touche jamais le «&nbsp;perso&nbsp;», les assurances, les gros montants (≥&nbsp;{SEUIL_GROS_MONTANT}&nbsp;€)
