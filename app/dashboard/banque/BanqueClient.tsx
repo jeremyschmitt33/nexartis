@@ -27,6 +27,7 @@ import CaisseTab from './CaisseTab'
 import ParChantierTab from './ParChantierTab'
 import RegistresTab from './RegistresTab'
 import TriGroupeTab from './TriGroupeTab'
+import BandeauUrssaf from './BandeauUrssaf'
 import {
   euros,
   grouperParMois,
@@ -323,6 +324,7 @@ export default function BanqueClient() {
   // dashboard V4 (les dates et montants repassent en font-spline-mono).
   return (
     <div className="max-w-5xl mx-auto font-hanken">
+      <BandeauUrssaf />
       {/* Sous-onglets */}
       <div
         className="flex items-center gap-1 border-b border-navy/[0.08] mb-6"
