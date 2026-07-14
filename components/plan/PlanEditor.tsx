@@ -216,7 +216,9 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   }
 
   const validerAjout = (demande: DemandePiece) => {
-    setModalOuverte(false)
+    // « Ajouter et continuer » : la modale reste ouverte pour enchaîner la
+    // pièce suivante au rythme du télémètre.
+    if (!demande.continuer) setModalOuverte(false)
     const noms = etat.niveau.rooms.map((r) => r.name)
     const nomPiece = nomAvecSuffixe(demande.nom, noms)
     if (demande.forme === 'poly') {
