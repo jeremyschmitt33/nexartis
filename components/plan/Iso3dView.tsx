@@ -38,8 +38,11 @@ import { Forme } from './SymboleSvg'
 const C = COULEURS_PLAN
 const FONT_TXT = "'Hanken Grotesk', sans-serif"
 const FONT_NUM = "'Spline Sans Mono', ui-monospace, monospace"
-/** Échelle réduite des glyphes muraux (billboard) par rapport au 2D. */
-const ECHELLE_BILLBOARD = 0.8
+/**
+ * Échelle des glyphes muraux (billboard). Remontée de 0,8 à 1,05 (Push polish
+ * 3D) : les prises/interrupteurs étaient minuscules et illisibles en 3D.
+ */
+const ECHELLE_BILLBOARD = 1.05
 /** Largeur du PNG capturé (px). La hauteur suit le ratio du viewBox. */
 const LARGEUR_CAPTURE = 1600
 
@@ -120,6 +123,11 @@ function GlypheSvg({ g }: { g: IsoGlyphe }) {
       : `translate(${r(g.at[0])} ${r(g.at[1])}) matrix(${ISO_COS} ${ISO_SIN} ${-ISO_COS} ${ISO_SIN} 0 0) rotate(${g.rotationDeg})`
   return (
     <g transform={t} pointerEvents="none">
+      {/* Pastille blanche derrière les glyphes muraux (billboard) : les rend
+          lisibles quand ils se superposent aux murs. Formes par-dessus. */}
+      {g.pose === 'billboard' && (
+        <circle cx={0} cy={0} r={def.rayon} fill={C.blanc} fillOpacity={0.9} />
+      )}
       {def.formes.map((f, i) => (
         <Forme key={i} f={f} c={g.couleur} />
       ))}
@@ -131,6 +139,9 @@ function GlypheSvg({ g }: { g: IsoGlyphe }) {
 function CalqueSvg({ calque }: { calque: IsoCalque }) {
   return (
     <>
+      {calque.ombres.map((p, i) => (
+        <PrimSvg key={`o${i}`} p={p} />
+      ))}
       {calque.sols.map((p, i) => (
         <PrimSvg key={`s${i}`} p={p} />
       ))}

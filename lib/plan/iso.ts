@@ -53,6 +53,19 @@ const POTEAU_HAUTEUR_MM = 900
 const PAS_POTEAU_MM = 1600
 
 /**
+ * Ombre portée douce sous l'emprise des pièces (Push polish 3D, 14/07/2026) :
+ * deux couches de polygones gris décalés en espace ÉCRAN. Aucun filtre SVG
+ * (feGaussianBlur) → rastérisation PNG fiable partout, y compris iOS Safari
+ * qui ignore les filtres lors de la capture <img>→canvas. Décalage en unités
+ * « mm projetés », vers le bas-droite (sens de la lumière). Ancre le bâtiment
+ * au sol au lieu de le laisser « flotter ».
+ */
+const OMBRE_COUCHES: readonly { dx: number; dy: number; op: number }[] = [
+  { dx: 360, dy: 470, op: 0.05 },
+  { dx: 200, dy: 260, op: 0.09 },
+] as const
+
+/**
  * Hauteurs de pose des symboles MURAUX (mm au-dessus du sol) : le glyphe
  * est plaqué en haut d'une tige verticale fine pour rester lisible.
  * Tout type absent de cette table est traité comme symbole de sol
@@ -127,8 +140,10 @@ export interface IsoEtiquette {
   etat?: { court: string; couleur: string }
 }
 
-/** Scène d'un calque : sols triés, faces triées, étiquettes par-dessus. */
+/** Scène d'un calque : ombres au sol, sols triés, faces triées, étiquettes. */
 export interface IsoCalque {
+  /** Ombres portées douces sous l'emprise (dessinées EN PREMIER, sous les sols). */
+  ombres: IsoPrim[]
   sols: IsoPrim[]
   faces: IsoFace[]
   etiquettes: IsoEtiquette[]
@@ -189,7 +204,9 @@ function solDe(piece: Piece, pts: P2[]): IsoPrim {
   if (projet) {
     return { prim: 'poly', pts, fill: C.orange, fillOpacity: 0.16, stroke: C.orange, strokeWidth: 1.8, dash: '8 5' }
   }
-  return { prim: 'poly', pts, fill: I.solInt, stroke: C.navy, strokeWidth: 2.2 }
+  // strokeWidth 2,8 (au lieu de 2,2) : silhouette du bâtiment plus franche,
+  // le sol se détache mieux du fond (look « rendu d'agence »).
+  return { prim: 'poly', pts, fill: I.solInt, stroke: C.navy, strokeWidth: 2.8 }
 }
 
 /**
@@ -208,8 +225,8 @@ export function construireScene3d(
 ): IsoScene {
   const avancementVisible = options?.avancementVisible === true
   const calques: Record<CalqueId, IsoCalque> = {
-    existant: { sols: [], faces: [], etiquettes: [] },
-    projet: { sols: [], faces: [], etiquettes: [] },
+    existant: { ombres: [], sols: [], faces: [], etiquettes: [] },
+    projet: { ombres: [], sols: [], faces: [], etiquettes: [] },
   }
   const bn = bornesNiveau(niveau)
   if (!bn) return { existant: calques.existant, projet: calques.projet, bornes: null }
@@ -251,6 +268,20 @@ export function construireScene3d(
     const profSol = base.reduce((s, p) => s + p[0] + p[1], 0) / n
     const ptsSol = base.map((p) => P(p[0], p[1], 0))
     solsTri[piece.layer].push({ prof: profSol, prim: solDe(piece, ptsSol) })
+
+    // Ombre portée douce : seulement les pièces INTÉRIEURES (le bâtiment ; les
+    // zones ext type pelouse/terrasse ne portent pas d'ombre). Polygones
+    // décalés dans le calque `ombres` → rendus avant tous les sols.
+    if (piece.cat === 'int') {
+      for (const ombre of OMBRE_COUCHES) {
+        sc.ombres.push({
+          prim: 'poly',
+          pts: ptsSol.map((p): P2 => [p[0] + ombre.dx, p[1] + ombre.dy]),
+          fill: C.navy,
+          fillOpacity: ombre.op,
+        })
+      }
+    }
 
     // Teinte d'avancement (parité avec la 2D) : polygone semi-transparent
     // superposé au sol, avec la MÊME rgba que AVANCEMENT_META. Poussé juste

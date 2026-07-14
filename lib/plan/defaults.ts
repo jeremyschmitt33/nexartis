@@ -145,11 +145,16 @@ export function recapAvancement(
  * et defaults.ts reste LE seul fichier du module où des hex sont écrits.
  */
 export const COULEURS_ISO = {
-  solInt: '#efece2',
-  murAvantX: '#c8d1e4',
-  murAvantY: '#e2e7f1',
-  murArriereX: '#dbe1ee',
-  murArriereY: '#eef1f7',
+  // Push polish 3D (14/07/2026) : contraste creusé (les 4 tons tenaient dans
+  // une bande bleu-gris ultra pâle → volume illisible, effet « fil de fer
+  // délavé »). Écart tonal élargi + sol intérieur réchauffé. Reste dans la
+  // famille navy de la charte. Aucun impact devis (COULEURS_ISO n'est lu que
+  // par la vue 3D iso.ts/Iso3dView, jamais par PlanRender ni l'export PNG/PDF).
+  solInt: '#e7e2d4',
+  murAvantX: '#9fb0d0',
+  murAvantY: '#c4cfe6',
+  murArriereX: '#b3c0dc',
+  murArriereY: '#d7deee',
 } as const
 
 /** 8 types de pièces les plus fréquents (chips visibles). */
