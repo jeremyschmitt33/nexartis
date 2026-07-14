@@ -21,6 +21,14 @@ export interface CoteInputProps {
 export default function CoteInput({ x, y, valeurMm, onCommit, onCancel }: CoteInputProps) {
   const [valeur, setValeur] = useState(() => mmVersSaisieM(valeurMm))
   const ref = useRef<HTMLInputElement>(null)
+  /**
+   * Chaîne d'ouverture, pour ne RIEN réécrire si l'artisan n'a pas touché au
+   * champ. `onBlur` se déclenche même sur une simple consultation : sans cette
+   * garde, ouvrir une cote pour la RELIRE la réécrit en base. Ceinture-bretelles
+   * en plus du correctif de mmVersSaisieM — une mesure ne doit jamais bouger
+   * toute seule.
+   */
+  const initiale = useRef(mmVersSaisieM(valeurMm))
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -31,6 +39,11 @@ export default function CoteInput({ x, y, valeurMm, onCommit, onCancel }: CoteIn
   }, [])
 
   const valider = () => {
+    // Champ non modifié : on referme sans rien écrire.
+    if (valeur === initiale.current) {
+      onCancel()
+      return
+    }
     const mm = lireMetresEnMm(valeur)
     if (mm === null) {
       toast.warning('Saisie invalide', { description: 'Exemple : 3,5 (en mètres).' })

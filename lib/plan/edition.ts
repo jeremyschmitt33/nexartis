@@ -124,9 +124,26 @@ export function estRectangle(vertices: PointMm[]): boolean {
 
 /**
  * Redimensionne la pièce via ses cotes d'encombrement (clic sur une cote) :
- * mise à l'échelle le long de l'axe demandé, ancrée sur le bord min, puis
- * ré-aimantation de chaque sommet à la grille. Exact pour un rectangle.
+ * mise à l'échelle le long de l'axe demandé, ancrée sur le bord min.
  * Retourne null si la nouvelle dimension est hors bornes.
+ *
+ * ⚠️⚠️ LA COTE SAISIE EST SACRÉE — JAMAIS D'AIMANTATION ICI. NE PAS RÉINTRODUIRE
+ * `snapMm` DANS CETTE FONCTION (bug corrigé le 14/07/2026).
+ *
+ * Avant, la valeur tapée passait par `snapMm(nouveauMm, GRILLE_MM)` et chaque
+ * sommet était ré-aimanté à la grille de 100 mm : l'artisan saisissait 4,27 m
+ * et le logiciel enregistrait 4,30 m, SANS RIEN DIRE. Un mur de 4,27 m arrondi
+ * à 4,30 sous 2,50 m de HSP, c'est ~0,075 m² de peinture fantôme — qui se
+ * propage ensuite dans le métré, le devis, la commande de matière et le
+ * placement des ouvertures. Le bug était invisible parce que tous nos tests
+ * utilisaient des cotes rondes (3,50 / 4,50 / 3,80), toutes multiples de 10 cm.
+ *
+ * L'aimantation à la grille reste légitime pour DÉPLACER une pièce
+ * (aimanterDeplacement) : une translation ne change aucune dimension. Elle est
+ * illégitime dès qu'elle touche une mesure saisie par un humain.
+ *
+ * `Math.round` conserve l'invariant du modèle (millimètres ENTIERS) sans jamais
+ * dégrader la précision : au millimètre près, comme saisi.
  */
 export function redimensionnerParCote(
   piece: Piece,
@@ -134,15 +151,15 @@ export function redimensionnerParCote(
   nouveauMm: number
 ): Piece | null {
   if (!Number.isFinite(nouveauMm)) return null
-  const cible = snapMm(nouveauMm, GRILLE_MM)
+  const cible = Math.round(nouveauMm)
   if (cible < COTE_MIN_MM || cible > COTE_MAX_MM) return null
   const b = bornesPiece(piece)
   const actuel = dim === 'w' ? b.x2 - b.x1 : b.y2 - b.y1
   if (actuel <= 0) return null
   const ratio = cible / actuel
   const vertices = piece.vertices.map(([x, y]): PointMm => {
-    if (dim === 'w') return [snapMm(b.x1 + (x - b.x1) * ratio, GRILLE_MM), y]
-    return [x, snapMm(b.y1 + (y - b.y1) * ratio, GRILLE_MM)]
+    if (dim === 'w') return [Math.round(b.x1 + (x - b.x1) * ratio), y]
+    return [x, Math.round(b.y1 + (y - b.y1) * ratio)]
   })
   return { ...piece, vertices }
 }

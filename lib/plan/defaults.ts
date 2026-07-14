@@ -260,10 +260,27 @@ export function lireMetresEnMm(saisie: string): number | null {
   return Math.round(m * 1000)
 }
 
-/** mm -> saisie en mètres pour un input (« 4500 » -> « 4,5 »). */
+/**
+ * mm -> valeur d'un champ de SAISIE, en mètres, SANS AUCUNE PERTE.
+ * « 4500 » -> « 4,5 » ; « 4270 » -> « 4,27 » ; « 4275 » -> « 4,275 ».
+ *
+ * ⚠️⚠️ NE JAMAIS ARRONDIR ICI (bug corrigé le 14/07/2026, frère du bug
+ * `redimensionnerParCote`). Cette chaîne n'est pas de l'affichage : c'est la
+ * valeur d'un input que l'utilisateur peut réécrire en base au simple BLUR,
+ * SANS avoir rien tapé (CoteInput, hauteur sous plafond de RoomSheet).
+ * Avec l'ancien `Math.round(mm / 10) / 100`, rouvrir une cote de 4275 mm
+ * juste pour la RELIRE la réécrivait à 4280 mm : 5 mm évaporés en silence.
+ * Sur la HSP, l'effet était pire encore — elle multiplie tout le périmètre
+ * en surface de peinture.
+ *
+ * Pour de l'AFFICHAGE (étiquettes du plan), utiliser fmtLongueurM/mmVersM :
+ * là, arrondir est légitime.
+ *
+ * Sûr en flottant : tout entier mm (bien en deçà de 2^53) divisé par 1000
+ * s'imprime exactement en décimal via String().
+ */
 export function mmVersSaisieM(mm: number): string {
-  const m = Math.round(mm / 10) / 100
-  return String(m).replace('.', ',')
+  return String(mm / 1000).replace('.', ',')
 }
 
 /** Niveau vide (RDC, Étage 1...). */
