@@ -125,6 +125,19 @@ export default function PlanCanvas({
   const [polyPts, setPolyPts] = useState<PointMm[]>([])
   const [souris, setSouris] = useState<PointMm | null>(null)
   const presse = useRef<Presse | null>(null)
+  /**
+   * PINCH À 2 DOIGTS (14/07/2026) — correctif d'un vrai bug tactile.
+   *
+   * Le canvas porte `touch-none` et il DOIT le porter : sans lui, le navigateur
+   * scrolle/zoome la page au lieu de nous laisser gérer le pan. Mais rien ne
+   * remplaçait le pinch natif ainsi supprimé, et l'événement `wheel` n'existe
+   * pas sur tactile : sur téléphone, le SEUL zoom possible était le bouton
+   * « + », à ×1,25 par appui (6 à 8 appuis pour aller de la vue d'ensemble à
+   * une chambre). Injouable pour un artisan qui relève debout dans la pièce —
+   * or c'est LE cas d'usage du module.
+   */
+  const pointeurs = useRef<Map<number, { x: number; y: number }>>(new Map())
+  const pinch = useRef<{ dist: number; cx: number; cy: number; vueDepart: Viewport } | null>(null)
   const espace = useRef(false)
   const vueTouchee = useRef(false)
   const guideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -148,7 +161,35 @@ export default function PlanCanvas({
     ajusterVue()
     setPolyPts([])
     setCoteEdit(null)
+    // Table des doigts repartie à zéro au changement de niveau (sinon un
+    // pointeur resté coincé contaminerait le niveau suivant).
+    pointeurs.current.clear()
+    pinch.current = null
   }, [niveau.id, ajusterVue])
+
+  /**
+   * FILET ANTI-FUITE des pointeurs. Un pointerup peut ne JAMAIS atteindre le
+   * <svg> si la cible du geste est démontée en cours de route (les guides
+   * d'aimantation disparaissent au bout de 400 ms, l'aperçu de polygone change
+   * à chaque mouvement, le plan se re-rend à chaque zoom). L'entrée resterait
+   * alors dans la table : le tap suivant ferait croire à un 2e doigt → pinch
+   * avec un doigt fantôme → zoom aberrant, plus aucun clic. Canvas mort
+   * jusqu'au rechargement de la page.
+   * Un pointerup capturé remonte toujours jusqu'à window : ce filet ne peut pas
+   * le manquer, et il s'exécute après le handler React (logique intacte).
+   */
+  useEffect(() => {
+    const purge = (e: PointerEvent) => {
+      pointeurs.current.delete(e.pointerId)
+      if (pointeurs.current.size < 2) pinch.current = null
+    }
+    window.addEventListener('pointerup', purge)
+    window.addEventListener('pointercancel', purge)
+    return () => {
+      window.removeEventListener('pointerup', purge)
+      window.removeEventListener('pointercancel', purge)
+    }
+  }, [])
 
   // Recadre quand une pièce apparaît si l'utilisateur n'a pas touché la vue.
   const nbPieces = niveau.rooms.length
@@ -192,9 +233,52 @@ export default function PlanCanvas({
     return null
   }, [])
 
+  /**
+   * Écart et milieu des 2 doigts actifs (null si moins de 2). PUR.
+   * `Array.from` et non `[...map.values()]` : le tsconfig cible ES5, où le
+   * spread d'itérateur casse le build Vercel (TS2802).
+   */
+  const deuxDoigts = useCallback((): { dist: number; cx: number; cy: number } | null => {
+    const pts = Array.from(pointeurs.current.values())
+    if (pts.length < 2) return null
+    const a = pts[0]
+    const b = pts[1]
+    return {
+      dist: Math.hypot(b.x - a.x, b.y - a.y),
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2,
+    }
+  }, [])
+
   // ── Pointer down / move / up ──────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0 && e.button !== 1) return
+    pointeurs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    // Capture AVANT tout garde de taille : un pointeur enregistré doit TOUJOURS
+    // recevoir son pointerup, sinon il fuit dans la table et le canvas finit
+    // par se croire en pinch en permanence (insensible au tap).
+    svgRef.current?.setPointerCapture(e.pointerId)
+    // 2e doigt : on ABANDONNE le geste en cours (pan/drag démarré au 1er doigt)
+    // et on bascule en pinch. Un déplacement de PIÈCE interrompu reste cohérent
+    // (undo déjà poussé par onDebutGeste, déplacements incrémentaux). Un drag de
+    // SYMBOLE, lui, doit être finalisé ici : c'est onFinDeplacerSymbole qui
+    // réaffecte le symbole à la pièce qui le contient. Sans cet appel, le
+    // symbole resterait rattaché à son ancienne pièce — incohérence silencieuse
+    // qui fausserait métrés, 3D et PDF.
+    if (pointeurs.current.size === 2) {
+      const p0 = presse.current
+      if (p0?.bouge && p0.mode === 'dragSym' && p0.symId) onFinDeplacerSymbole(p0.symId)
+      presse.current = null
+      setGuides([])
+      const d = deuxDoigts()
+      if (d) {
+        vueTouchee.current = true
+        pinch.current = { dist: d.dist, cx: d.cx, cy: d.cy, vueDepart: vp }
+      }
+      return
+    }
+    // 3 doigts ou plus : on ignore, le pinch en cours continue sur les 2 premiers.
+    if (pointeurs.current.size > 2) return
     setCoteEdit(null)
     const cible = (e.target as Element).closest('[data-room-id]')
     const cibleSym = (e.target as Element).closest('[data-symbol-id]')
@@ -225,10 +309,25 @@ export default function PlanCanvas({
       }
     }
     presse.current = p
-    svgRef.current?.setPointerCapture(e.pointerId)
   }
 
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (pointeurs.current.has(e.pointerId)) {
+      pointeurs.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    }
+    // Pinch actif : zoom autour du milieu INITIAL des 2 doigts (le point pincé
+    // reste sous les doigts) + pan du déplacement de ce milieu (on peut donc
+    // zoomer et déplacer d'un seul geste, comme sur une carte).
+    const pz = pinch.current
+    if (pz) {
+      const d = deuxDoigts()
+      const svg = svgRef.current
+      if (!d || !svg || d.dist <= 0 || pz.dist <= 0) return
+      const rect = svg.getBoundingClientRect()
+      const base = zoomAutour(pz.vueDepart, pz.cx - rect.left, pz.cy - rect.top, d.dist / pz.dist)
+      setVp({ k: base.k, tx: base.tx + (d.cx - pz.cx), ty: base.ty + (d.cy - pz.cy) })
+      return
+    }
     if (polygone && !presse.current) {
       const [x, y] = pointMonde(e.clientX, e.clientY)
       setSouris([snapMm(x, GRILLE_MM), snapMm(y, GRILLE_MM)])
@@ -281,6 +380,23 @@ export default function PlanCanvas({
   }
 
   const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointeurs.current.delete(e.pointerId)
+    // Fin de pinch : dès qu'il ne reste qu'un doigt on sort du mode, et on ne
+    // traite SURTOUT pas ce lever comme un clic (sinon un pinch sélectionne ou
+    // désélectionne une pièce au passage).
+    if (pinch.current) {
+      if (pointeurs.current.size < 2) {
+        pinch.current = null
+      } else {
+        // Un 3e doigt était posé et l'un des deux premiers vient de se lever :
+        // on RE-BASE le pinch sur les doigts restants. Sans ça, on comparerait
+        // l'écart d'un NOUVEAU couple de doigts à la distance de référence de
+        // l'ancien → bond de zoom brutal (main qui s'appuie, pouce qui glisse).
+        const d = deuxDoigts()
+        if (d) pinch.current = { dist: d.dist, cx: d.cx, cy: d.cy, vueDepart: vp }
+      }
+      return
+    }
     const p = presse.current
     if (!p || e.pointerId !== p.pointerId) return
     presse.current = null
@@ -364,6 +480,25 @@ export default function PlanCanvas({
     onSelectRoom(cible ? cible.getAttribute('data-room-id') : null)
   }
 
+  /**
+   * Annulation système d'un pointeur (appel entrant, geste de bord iOS, rejet
+   * de paume, doigt sorti de l'écran).
+   *
+   * Handler DÉDIÉ, surtout PAS `onPointerUp` : un geste annulé qui n'a pas
+   * bougé traverserait toute la logique de clic et **poserait un symbole ou
+   * désélectionnerait la pièce**. Une annulation ne doit RIEN valider.
+   * ⚠️ Ne jamais ajouter ici de garde `e.button` : un pointercancel porte
+   * button === −1 et sortirait avant le delete → fuite de la table.
+   */
+  const onPointerCancel = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointeurs.current.delete(e.pointerId)
+    if (pointeurs.current.size < 2) pinch.current = null
+    const p = presse.current
+    presse.current = null
+    setGuides([])
+    if (p?.bouge && p.mode === 'dragSym' && p.symId) onFinDeplacerSymbole(p.symId)
+  }
+
   const onDoubleClick = () => {
     const min = polygone?.mode === 'cloture' ? 2 : 3
     if (polygone && polyPts.length >= min) {
@@ -390,6 +525,7 @@ export default function PlanCanvas({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onDoubleClick={onDoubleClick}
       >
         <defs>
