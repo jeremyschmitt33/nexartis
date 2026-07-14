@@ -46,11 +46,17 @@ export const COULEURS_PLAN = {
   cream: '#f0ede4',
   fond: '#f6f8fb',
   /**
-   * Gris bleuté de la COTATION (14/07/2026). La cote doit reculer d'un rang
-   * derrière le bâti : en navy plein, elle concurrençait les murs. Contraste
-   * volontairement suffisant pour rester lisible à l'impression.
+   * Gris bleuté de la COTATION (14/07/2026). La cote recule d'un rang derrière
+   * le bâti (en navy plein, elle concurrençait les murs).
+   *
+   * ⚠️ VALEUR PLANCHER — NE PAS ÉCLAIRCIR. Testé en prod : le #8794b0 initial
+   * donnait un contraste de ~2,9:1 sur le fond clair → sous le seuil WCAG AA
+   * (4,5:1), cotes fantômes. Or la cote est LA donnée de l'artisan (lue sur
+   * chantier, parfois en plein soleil ou imprimée en N&B) : elle doit reculer
+   * visuellement, jamais devenir difficile à lire. #64748b = ~4,6:1, conforme
+   * AA, tout en restant nettement en retrait du navy #0f1a3a des murs.
    */
-  cote: '#8794b0',
+  cote: '#64748b',
   grille: '#e3e9f2',
   blanc: '#ffffff',
   /**
