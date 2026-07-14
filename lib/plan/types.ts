@@ -110,6 +110,30 @@ export interface Symbole {
   rotation: number;
   /** Pièce d'appartenance (pour les comptages par pièce, ex. NF C 15-100). */
   roomId?: string | null;
+  /**
+   * Hauteur de l'AXE de l'appareillage au-dessus du SOL FINI, en mm entiers.
+   * Wording aligné sur `lib/normes-metiers.ts` (« NF C 15-100 — Hauteurs »),
+   * que l'app publie déjà dans son module Aide : toute divergence entre les
+   * deux serait une contradiction de l'app avec elle-même.
+   *
+   * N'existe QUE sur les symboles dont `poseDe(type) === 'mural'`.
+   * - Présent : hauteur CHOISIE, matérialisée à la pose. Donnée d'AUTEUR.
+   * - ABSENT  : hauteur INCONNUE (symbole posé avant le 15/07/2026).
+   *             JAMAIS « valeur par défaut ». Cf. `hauteurDe()`.
+   *
+   * ⚠️ Deux règles non négociables :
+   * 1. Ne JAMAIS déduire la pose de la présence de ce champ — `poseDe()` est
+   *    le seul discriminant. Confondre les deux enverrait les WC et les
+   *    éviers en haut d'une tige verticale en 3D.
+   * 2. Ne JAMAIS tester l'existence avec `in` ni `!== undefined` : un patch
+   *    `{ hauteurMm: undefined }` laisse la clé en mémoire, alors que
+   *    `JSON.stringify` la supprime au round-trip base. Seul `typeof h ===
+   *    'number'` est correct dans les deux mondes.
+   *
+   * `schemaVersion` reste à 1 : l'ajout est purement additif, et
+   * `app/api/plan/beacon-save/route.ts` rejette en 400 toute autre valeur.
+   */
+  hauteurMm?: number;
 }
 
 /** Niveau (RDC, Étage 1...). */

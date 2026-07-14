@@ -18,10 +18,12 @@
  *    opaques, murs « avant » à 85 % pour voir l'intérieur ; ombrage plat
  *    3 tons COULEURS_ISO selon l'orientation de la normale ;
  *  - CLÔTURES à plat + poteaux verticaux courts tous les ~1,6 m ;
- *  - SYMBOLES (demande du fondateur) : muraux sur tige verticale fine
- *    (prises ~250 mm, interrupteurs ~1 100 mm, appliques ~1 800 mm),
- *    symboles de sol à plat au sol, DCL au plafond (trait vertical +
- *    glyphe à HSP) ; ils participent au tri painter's par leur position ;
+ *  - SYMBOLES (demande du fondateur) : muraux sur tige verticale fine à la
+ *    hauteur RÉELLE lue dans la donnée (`Symbole.hauteurMm`, MAJ 15/07/2026 —
+ *    auparavant une table de constantes en dur ici même), symboles de sol à
+ *    plat au sol, plafond (DCL, VMC : trait vertical + glyphe à HSP), et
+ *    muraux de hauteur inconnue (plans d'avant le 15/07 : glyphe au sol +
+ *    tige pointillée) ; ils participent au tri painter's par leur position ;
  *  - ÉTIQUETTES nom + m² des pièces intérieures (dessinées en dernier).
  *
  * Chaque calque (existant / projet) a sa propre scène triée : le composant
@@ -34,6 +36,7 @@
 import type { CalqueId, Niveau, Ouverture, Piece, PointMm } from './types'
 import { AVANCEMENT_META, COULEURS_ISO, COULEURS_PLAN, avancementDe } from './defaults'
 import { centreMm, fmtNombreFr } from './geometry'
+import { hauteurDe } from './hauteurs'
 import { surfaceSolM2 } from './metrics'
 import { bornesNiveau } from './viewport'
 
@@ -66,22 +69,20 @@ const OMBRE_COUCHES: readonly { dx: number; dy: number; op: number }[] = [
 ] as const
 
 /**
- * Hauteurs de pose des symboles MURAUX (mm au-dessus du sol) : le glyphe
- * est plaqué en haut d'une tige verticale fine pour rester lisible.
- * Tout type absent de cette table est traité comme symbole de sol
- * (glyphe à plat), sauf `dcl_plafond` (plafond).
+ * Rendu d'un symbole mural dont la hauteur est INCONNUE (posé avant le
+ * 15/07/2026, ou hauteur effacée volontairement). Le glyphe reste AU SOL et une
+ * tige pointillée monte jusqu'au plafond : « quelque part sur ce mur, hauteur
+ * non renseignée ».
+ *
+ * ⚠️ Surtout PAS un z « plausible » (250 pour une prise, 1100 pour un inter) :
+ * ce serait un défaut de code déguisé en donnée — un plan sans hauteurs
+ * ressemblerait trait pour trait à un plan renseigné. Un rendu qui n'affirme
+ * rien vaut mieux qu'un rendu qui affirme faux.
+ *
+ * Se distingue de `dcl_plafond` (tige pointillée elle aussi) par la position du
+ * glyphe : au SOL ici, au PLAFOND pour un DCL.
  */
-export const HAUTEURS_MURALES_MM: Record<string, number> = {
-  prise_16a: 250,
-  prise_double: 250,
-  prise_32a: 250,
-  prise_rj45: 250,
-  prise_tv: 250,
-  sortie_cable: 250,
-  interrupteur: 1100,
-  va_et_vient: 1100,
-  applique: 1800,
-}
+const TIGE_INCONNUE = { dash: '2 5', opacite: 0.3 } as const
 
 /** Projection isométrique d'un point monde (mm). */
 export function projeterIso(x: number, y: number, z: number): P2 {
@@ -441,29 +442,68 @@ export function construireScene3d(
     sc.faces.push({ prof, prims })
   }
 
-  // ── Symboles : muraux sur tige / sol à plat / DCL au plafond ──────────────
+  // ── Symboles : muraux sur tige / sol à plat / plafond ─────────────────────
+  //
+  // La hauteur vient désormais de la DONNÉE (`Symbole.hauteurMm`, matérialisée
+  // à la pose) et non plus d'une table de constantes indexée par type. Cf.
+  // lib/plan/hauteurs.ts. L'union `HauteurInfo` force à traiter les 4 cas.
+  //
+  // ⚠️ Chaque branche se termine par `continue` et NON par un `break` : dans un
+  // `switch` imbriqué dans ce `for`, un `break` sortirait du switch et non de la
+  // boucle — chaque symbole mural recevrait alors EN PLUS un glyphe à plat au
+  // sol. Ne pas convertir ces `if`/`continue` en `switch`.
   for (const s of niveau.symbols) {
     const sc = calques[s.layer]
     const [x, y] = rot(s.position)
     const prof = x + y
     const couleur = s.layer === 'projet' ? C.orange : C.navy
-    const hMur = HAUTEURS_MURALES_MM[s.type]
-    if (hMur !== undefined) {
+    const info = hauteurDe(s)
+
+    if (info.kind === 'mural') {
       // La tige reste triée avec les murs (profondeur réelle) ; le glyphe monte
       // sur la couche d'annotation pour rester lisible.
+      const hMur = info.mm
       sc.faces.push({
         prof,
         prims: [
           { prim: 'ligne', a: P(x, y, 0), b: P(x, y, hMur), stroke: couleur, strokeWidth: 1, opacite: 0.55 },
         ],
       })
+      // `rotationDeg: 0` : la rotation utilisateur est VOLONTAIREMENT ignorée
+      // pour les billboards muraux (ils font toujours face à la caméra).
       glyphesTri[s.layer].push({
         prof,
         g: { type: s.type, couleur, at: P(x, y, hMur), pose: 'billboard', rotationDeg: 0 },
       })
       continue
     }
-    if (s.type === 'dcl_plafond') {
+
+    if (info.kind === 'mural-inconnue') {
+      // Legacy : glyphe au SOL + tige pointillée jusqu'au plafond. On n'invente
+      // aucune hauteur (cf. TIGE_INCONNUE).
+      const hsp = (s.roomId ? hspParPiece.get(s.roomId) : undefined) ?? niveau.heightDefault
+      sc.faces.push({
+        prof,
+        prims: [
+          {
+            prim: 'ligne',
+            a: P(x, y, 0),
+            b: P(x, y, hsp),
+            stroke: couleur,
+            strokeWidth: 1,
+            dash: TIGE_INCONNUE.dash,
+            opacite: TIGE_INCONNUE.opacite,
+          },
+        ],
+      })
+      glyphesTri[s.layer].push({
+        prof,
+        g: { type: s.type, couleur, at: P(x, y, 0), pose: 'billboard', rotationDeg: 0 },
+      })
+      continue
+    }
+
+    if (info.kind === 'plafond') {
       const hsp = (s.roomId ? hspParPiece.get(s.roomId) : undefined) ?? niveau.heightDefault
       sc.faces.push({
         prof,
@@ -491,7 +531,8 @@ export function construireScene3d(
       })
       continue
     }
-    // Symboles de sol (WC, évier, tableau, portail...) : glyphe à plat au sol.
+
+    // info.kind === 'sol' — WC, évier, portail... : glyphe à plat au sol.
     // Aucune primitive : le glyphe seul part sur la couche d'annotation.
     glyphesTri[s.layer].push({
       prof,

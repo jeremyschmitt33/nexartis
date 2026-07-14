@@ -74,6 +74,11 @@ export interface PlanStateApi {
   majSymboleSansUndo: (symboleId: string, patch: Partial<Symbole>) => void
   /** Tourne un symbole de deltaDeg degrés (un cran d'undo, normalisé 0..360). */
   tournerSymbole: (symboleId: string, deltaDeg: number) => void
+  /**
+   * Règle la hauteur de pose d'un symbole mural (un cran d'undo).
+   * `null` = effacer la hauteur → « non renseignée », état honnête et réversible.
+   */
+  reglerHauteurSymbole: (symboleId: string, mm: number | null) => void
   ajouterNiveau: () => void
   renommerNiveau: (niveauId: string, name: string) => void
   /** Copie profonde d'un niveau (nouveaux ids partout). Retourne le nom créé, ou null. */
@@ -444,6 +449,38 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     [muter, surNiveau]
   )
 
+  /**
+   * Hauteur de pose d'un symbole mural (15/07/2026), UN CRAN D'UNDO.
+   *
+   * Passe par `muter` et NON par `majSymboleSansUndo` : `tournerSymbole`, le
+   * champ voisin dans le même panneau, est annulable. Deux réglages côte à côte
+   * avec deux comportements Ctrl+Z opposés seraient un piège — et c'est la
+   * hauteur qu'on veut pouvoir annuler (taper 250 au lieu de 25 est l'erreur
+   * la plus probable). `majSymboleSansUndo` existe pour le DRAG (écriture
+   * continue), pas pour une validation ponctuelle.
+   *
+   * ⚠️ `delete` et non `= undefined` : `JSON.stringify` supprime déjà une clé
+   * `undefined`, mais tant que l'objet vit en mémoire, `'hauteurMm' in s` dirait
+   * `true`. `hauteurDe` teste `typeof`, donc les deux marchent — `delete` évite
+   * juste de compter sur cette subtilité.
+   *
+   * Aucune validation ici : la garde de plausibilité est dans `hauteurDe`
+   * (lecture) et la garde de saisie dans le panneau. On n'écrête JAMAIS une
+   * valeur saisie — la cote saisie est sacrée.
+   */
+  const reglerHauteurSymbole = useCallback(
+    (symboleId: string, mm: number | null) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        const s = niv?.symbols.find((x) => x.id === symboleId)
+        if (!s) return
+        if (mm === null) delete s.hauteurMm
+        else s.hauteurMm = Math.round(mm)
+      })
+    },
+    [muter, surNiveau]
+  )
+
   const ajouterNiveau = useCallback(() => {
     const noms = dataRef.current.levels.map((n) => n.name)
     let num = 1
@@ -574,6 +611,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     deplacerSymboleSansUndo,
     majSymboleSansUndo,
     tournerSymbole,
+    reglerHauteurSymbole,
     ajouterNiveau,
     renommerNiveau,
     dupliquerNiveau,

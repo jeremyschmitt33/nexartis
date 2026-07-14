@@ -198,14 +198,34 @@ export function genererSvgExport(
   }
   const COLS_LEG = 4
   const lignesSym = Math.ceil(typesPresents.length / COLS_LEG)
+
+  /**
+   * Décalage vertical de la réglette d'échelle sous `yC0`.
+   *
+   * ⚠️ DÉRIVÉ de `lignesSym`, surtout PAS une constante (bug corrigé le
+   * 15/07/2026) : la légende descend de 30 px par ligne
+   * (`y = yC0 + 56 + ligne * 30`, plus bas) pendant que la réglette était figée
+   * à `yC0 + 104`. Calcul : le bas d'une vignette de légende vaut
+   * `56 + (lignesSym − 1) * 30 + 7` ; le haut des tirets de la réglette vaut
+   * `yR − 5`. Dès **3 lignes** (donc 9 types de symboles), la légende
+   * ENTRAIT DANS la réglette — et un plan d'électricien complet en compte 10.
+   *
+   * Le `max(104, …)` garantit que rien ne bouge en dessous de 3 lignes : les
+   * cartouches déjà générés restent identiques au pixel.
+   */
+  const dyReglette = modeEchange ? Math.max(104, 56 + (lignesSym - 1) * 30 + 18) : 22
+
   // Bande CALCULÉE : 30 px par ligne de légende plutôt que sacrifier
   // l'exhaustivité d'un document technique pour quelques pixels.
   // Plancher 130 (et non 112) : la colonne DROITE descend jusqu'au label de la
   // réglette (yC0+122, descendante ~124,4). À 112, la virgule de « 0,5 m »
   // était rasée par le bord bas de l'image. 130 → ~20 px de garde, aligné sur
   // le mode client.
+  // `dyReglette + 26` reproduit exactement ce plancher (104 + 26 = 130) et le
+  // fait SUIVRE la réglette quand elle descend : sinon son label sortirait de
+  // l'image au lieu d'être écrasé par la légende.
   const bandeCartouche = modeEchange
-    ? Math.max(130, 56 + lignesSym * 30) + 12
+    ? Math.max(130, 56 + lignesSym * 30, dyReglette + 26) + 12
     : BANDE_CLIENT
 
   const H = BANDE_TITRE + zoneH + bandeCartouche
@@ -315,10 +335,14 @@ export function genererSvgExport(
       // les cotes SONT dans-œuvre (types.ts), et l'épaisseur des murs n'est PAS
       // représentée — le dire évite au lecteur d'additionner les pièces pour
       // retrouver un hors-tout qui n'existe pas.
-      // ⚠️ NE PAS ajouter « Hauteurs depuis le sol fini » tant que
-      // `Symbole.hauteurMm` n'existe pas : ce serait déclarer une convention sur
-      // des données absentes, donc créer une attente que le plan ne remplit pas.
-      // Une convention DÉCRIT une donnée présente, elle ne la crée pas.
+      // ⚠️ NE PAS ajouter « Hauteurs depuis le sol fini » : `Symbole.hauteurMm`
+      // EXISTE depuis le 15/07/2026, mais il est FACULTATIF — les symboles posés
+      // avant cette date n'en ont pas (cf. `hauteurDe`, cas 'mural-inconnue'), et
+      // `tableau` naît toujours sans. Déclarer la convention alors qu'une partie
+      // des symboles n'a pas la donnée créerait une attente que le plan ne remplit
+      // pas. Une convention DÉCRIT une donnée présente, elle ne la crée pas.
+      // La phrase ne pourra être écrite que CONDITIONNELLEMENT, calculée sur les
+      // symboles muraux du niveau (« renseignées pour 6 sur 9 »).
       texte(xD, yC0 + 62, 'Cotes dans-œuvre, en mètres.', 11.5, C.cote, false, 'end'),
       texte(xD, yC0 + 78, 'Épaisseur des murs non représentée.', 11.5, C.cote, false, 'end')
     )
@@ -327,7 +351,9 @@ export function genererSvgExport(
   // Réglette d'échelle — dans les DEUX modes (elle est utile au client aussi,
   // et c'est la seule mention d'échelle honnête sur une image redimensionnable).
   const ech = choisirEchelle(vp.k, 190)
-  const yR = modeEchange ? yC0 + 104 : yC0 + 22
+  // `dyReglette` est calculé plus haut, avec la bande : la réglette DOIT suivre
+  // la légende quand elle s'allonge (cf. le commentaire de dyReglette).
+  const yR = yC0 + dyReglette
   const xR = xD - ech.px
   legende.push(
     createElement('line', { key: 'ech-l', x1: xR, y1: yR, x2: xD, y2: yR, stroke: C.navy, strokeWidth: 2 }),

@@ -520,7 +520,18 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
               <SymboleSheet
                 symbole={etat.symboleSelectionne}
                 piece={pieceDuSymbole}
+                // HSP résolue comme iso.ts:271 (`height > 0 ? height : défaut`)
+                // et NON `piece.height ?? défaut` : `height` vaut 0 sur des
+                // données anciennes, et `??` ne se déclenche pas sur 0 → l'alerte
+                // « au-dessus du plafond (0,00 m) » se serait affichée sur TOUTE
+                // hauteur, pendant que la 3D dessinait correctement à 2,50 m.
+                hspMm={
+                  pieceDuSymbole && pieceDuSymbole.height > 0
+                    ? pieceDuSymbole.height
+                    : etat.niveau.heightDefault
+                }
                 onTourner={(delta) => etat.tournerSymbole(etat.symboleSelectionne!.id, delta)}
+                onReglerHauteur={(mm) => etat.reglerHauteurSymbole(etat.symboleSelectionne!.id, mm)}
                 onSupprimer={supprimerSelection}
                 onFermer={() => etat.selectSymbol(null)}
               />

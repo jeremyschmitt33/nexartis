@@ -7,19 +7,32 @@
 
 import type { Piece, Symbole } from '@/lib/plan/types'
 import { labelSymbole } from '@/lib/plan/symboles'
+import HauteurSymboleField from './HauteurSymboleField'
 import { IconeSymbole } from './SymboleSvg'
 
 export interface SymboleSheetProps {
   symbole: Symbole
   /** Pièce d'appartenance (résolue par l'éditeur), ou null si hors pièce. */
   piece: Piece | null
+  /** HSP résolue (mm) : pièce si > 0, sinon défaut du niveau (cf. iso.ts:271). */
+  hspMm: number
   /** Tourne le symbole de deltaDeg degrés (orientation sur le plan, Push 8). */
   onTourner: (deltaDeg: number) => void
+  /** Règle la hauteur de pose (mural uniquement) ; `null` = non renseignée. */
+  onReglerHauteur: (mm: number | null) => void
   onSupprimer: () => void
   onFermer: () => void
 }
 
-export default function SymboleSheet({ symbole, piece, onTourner, onSupprimer, onFermer }: SymboleSheetProps) {
+export default function SymboleSheet({
+  symbole,
+  piece,
+  hspMm,
+  onTourner,
+  onReglerHauteur,
+  onSupprimer,
+  onFermer,
+}: SymboleSheetProps) {
   const projet = symbole.layer === 'projet'
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white">
@@ -56,6 +69,17 @@ export default function SymboleSheet({ symbole, piece, onTourner, onSupprimer, o
             {projet ? 'Projet' : 'Existant'}
           </span>
         </div>
+
+        {/* Hauteur de pose — s'affiche UNIQUEMENT pour les symboles muraux (le
+            composant rend null sinon). `key` : le panneau n'est pas remonté
+            entre deux symboles, mais le champ DOIT l'être, sinon il garde en
+            état la hauteur du symbole précédent. */}
+        <HauteurSymboleField
+          key={symbole.id}
+          symbole={symbole}
+          hspMm={hspMm}
+          onRegler={onReglerHauteur}
+        />
 
         <p className="font-hanken text-[11.5px] leading-snug text-gray-500">
           Glissez le symbole sur le plan pour le repositionner — il se rattache automatiquement à la pièce
