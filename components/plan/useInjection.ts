@@ -250,23 +250,36 @@ export async function injecterLignes(
  * doit pas faire échouer une injection réussie). Une ré-injection régénère
  * l'image du niveau (remplacement par niveauId) ; les images des autres
  * niveaux sont conservées telles quelles (pas de régénération silencieuse).
+ *
+ * ⚠️ RETOURNE un résultat (14/07/2026) — auparavant `void` : tout échec était
+ * AVALÉ EN SILENCE. L'artisan voyait l'écran de succès et croyait son plan
+ * joint au devis envoyé au client, alors qu'il n'y était pas. Best-effort ne
+ * doit pas vouloir dire « mentir » : on ne bloque toujours pas l'injection,
+ * mais l'appelant DOIT pouvoir le dire.
+ *
+ * 'sans_objet' = rien à illustrer (niveau vide) → aucun avertissement.
+ * 'echec' = on aurait dû produire une image et on n'a pas pu → à signaler.
  */
+export type ResultatImagePlan = 'ok' | 'sans_objet' | 'echec'
+
 export async function stockerImagePlanNiveau(
   planId: string,
   planData: PlanData,
   niveauId: string
-): Promise<void> {
+): Promise<ResultatImagePlan> {
   try {
     const niveau = planData.levels.find((n) => n.id === niveauId)
-    if (!niveau) return
-    if (niveau.rooms.length === 0 && niveau.clotures.length === 0) return
+    if (!niveau) return 'sans_objet'
+    // Niveau vide : il n'y a légitimement rien à illustrer, ce n'est pas un
+    // échec — on n'avertit donc pas.
+    if (niveau.rooms.length === 0 && niveau.clotures.length === 0) return 'sans_objet'
 
     const dataUrl = await genererImagePlanNiveau(planData, niveauId)
-    if (!dataUrl) return
+    if (!dataUrl) return 'echec'
 
     const supabase = createClient()
     const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) return
+    if (!auth.user) return 'echec'
 
     const { data: row, error: errLecture } = await supabase
       .from('plans')
@@ -295,8 +308,10 @@ export async function stockerImagePlanNiveau(
       .eq('id', planId)
       .eq('user_id', auth.user.id)
     if (error) throw new Error(error.message)
+    return 'ok'
   } catch (_e) {
     // Best-effort : journalisé côté client uniquement, jamais bloquant.
     console.error("[plan] image d'export du plan non enregistrée")
+    return 'echec'
   }
 }

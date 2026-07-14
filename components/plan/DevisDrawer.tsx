@@ -160,7 +160,17 @@ export default function DevisDrawer({
       // Push 5 — image « Plan du chantier » du niveau injecté, régénérée à
       // CHAQUE injection réussie. Best-effort : ne lève jamais, l'injection
       // reste un succès même si la génération d'image échoue.
-      await stockerImagePlanNiveau(planId, data, niveau.id)
+      // Mais on ne l'avale plus en SILENCE (14/07/2026) : sans avertissement,
+      // l'artisan voyait l'écran de succès et envoyait au client un devis sans
+      // le plan, en croyant l'inverse. Les lignes, elles, sont bien créées :
+      // c'est un avertissement, pas une erreur.
+      const img = await stockerImagePlanNiveau(planId, data, niveau.id)
+      if (img === 'echec') {
+        toast.warning('Lignes créées, mais le plan n’a pas pu être joint', {
+          description:
+            'Les métrés sont bien dans le devis. L’image du plan, elle, n’a pas pu être ajoutée — renvoyez au devis pour réessayer.',
+        })
+      }
       setSucces({ n: resultat.inseres, numero: resultat.numero, devisId })
       setMode('succes')
     } catch (e) {

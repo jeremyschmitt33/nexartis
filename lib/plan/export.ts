@@ -209,7 +209,8 @@ export function svgVersPng(
   largeur: number,
   hauteur: number,
   echelle: number,
-  format: 'png' | 'jpeg' = 'png'
+  format: 'png' | 'jpeg' = 'png',
+  qualite = 0.85
 ): Promise<string | null> {
   return new Promise((resolve) => {
     try {
@@ -235,7 +236,7 @@ export function svgVersPng(
           ctx.fillRect(0, 0, w, h)
           ctx.drawImage(img, 0, 0, w, h)
           resolve(
-            format === 'jpeg' ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png')
+            format === 'jpeg' ? canvas.toDataURL('image/jpeg', qualite) : canvas.toDataURL('image/png')
           )
         } catch {
           resolve(null)
@@ -265,5 +266,12 @@ export async function genererImagePlanNiveau(
   if (grand && grand.length <= TAILLE_MAX_DATAURL) return grand
   const petit = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 1, 'jpeg')
   if (petit && petit.length <= TAILLE_MAX_DATAURL) return petit
+  // Dernier repli AVANT d'abandonner : échelle 1 en qualité dégradée. Un plan
+  // moche dans le devis vaut infiniment mieux qu'un devis SANS plan — l'artisan
+  // a explicitement demandé à joindre son plan. Rend le renoncement pour cause
+  // de poids pratiquement impossible (un plan majoritairement blanc en q0,55
+  // @1x pèse quelques dizaines de Ko).
+  const degrade = await svgVersPng(exporte.svg, exporte.largeur, exporte.hauteur, 1, 'jpeg', 0.55)
+  if (degrade && degrade.length <= TAILLE_MAX_DATAURL) return degrade
   return null
 }
