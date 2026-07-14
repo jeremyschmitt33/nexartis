@@ -8,7 +8,7 @@
 
 import type { Cloture, Niveau, Ouverture, Piece, PointMm, TypeOuverture } from './types'
 import { longueurAreteMm, snapMm } from './geometry'
-import { AIMANT_MM, COTE_MAX_MM, COTE_MIN_MM, GRILLE_MM, creerOuverture } from './defaults'
+import { AIMANT_MM, COTE_MAX_MM, COTE_MIN_MM, GRILLE_MM, OUVERTURE_DEFAUTS, creerOuverture } from './defaults'
 
 /** Rectangle englobant d'une pièce, en mm. */
 export interface BornesPiece {
@@ -271,7 +271,66 @@ export function ouvertureValide(piece: Piece, o: Ouverture): boolean {
   return o.edgeIndex < piece.vertices.length && o.offset >= 0 && o.offset + o.width <= longueur
 }
 
-/** Retire les ouvertures devenues invalides (mur raccourci sous leur largeur). */
+/**
+ * Recale les ouvertures d'une pièce après un changement de dimension.
+ *
+ * ⚠️ REMPLACE `purgerOuverturesInvalides` sur le chemin d'ÉDITION DE COTE.
+ * Bug corrigé le 14/07/2026 : la purge FILTRAIT les ouvertures devenues
+ * invalides — raccourcir un mur SUPPRIMAIT la porte qu'il portait, en silence,
+ * sans le moindre message. L'artisan perdait son travail sans jamais savoir
+ * pourquoi. C'est exactement la leçon du Push 10 (« filtrage, pas effacement »)
+ * qui n'avait pas été appliquée ici.
+ *
+ * Règle : on RECALE (l'ouverture glisse pour rester sur son mur). Si le mur
+ * devient plus court que l'ouverture elle-même, on REFUSE la modification en
+ * NOMMANT le coupable. On n'efface JAMAIS.
+ *
+ * Les ouvertures orphelines (edgeIndex hors bornes, donnée héritée) sont
+ * CONSERVÉES telles quelles : le rendu les ignore déjà (RenduOuverture), donc
+ * les garder est sans risque — et les effacer serait une perte de données.
+ */
+export function recalerOuvertures(
+  piece: Piece
+): { piece: Piece; recalees: number } | { erreur: string } {
+  const n = piece.vertices.length
+  const openings: Ouverture[] = []
+  let recalees = 0
+  for (const o of piece.openings) {
+    if (o.edgeIndex < 0 || o.edgeIndex >= n) {
+      openings.push(o)
+      continue
+    }
+    const longueur = longueurAreteMm(piece.vertices, o.edgeIndex)
+    if (o.width > longueur) {
+      const label = OUVERTURE_DEFAUTS[o.type].label.toLowerCase()
+      return {
+        erreur:
+          `Ce mur porte une ${label} de ${Math.round(o.width / 10)} cm : ` +
+          `il ne peut pas être plus court. Supprimez-la d'abord si besoin.`,
+      }
+    }
+    // `Math.floor` et surtout PAS `Math.round` : `longueur` vient de Math.hypot
+    // et peut être fractionnaire (mur en biais d'un polygone). Un arrondi au
+    // supérieur donnerait offset + width > longueur, et RenduOuverture masque
+    // alors l'ouverture — on réintroduirait la disparition silencieuse par la
+    // petite porte. `floor` garantit qu'elle reste toujours sur son mur.
+    // Le `Math.round(o.offset)` tient l'invariant du modèle : mm ENTIERS.
+    const offset = Math.max(0, Math.min(Math.round(o.offset), Math.floor(longueur - o.width)))
+    if (offset === o.offset) {
+      openings.push(o)
+    } else {
+      openings.push({ ...o, offset })
+      recalees += 1
+    }
+  }
+  return { piece: { ...piece, openings }, recalees }
+}
+
+/**
+ * Retire les ouvertures devenues invalides (mur raccourci sous leur largeur).
+ * ⚠️ DESTRUCTIF : ne PAS utiliser sur un chemin déclenché par l'artisan —
+ * préférer `recalerOuvertures`, qui recale ou refuse mais n'efface jamais.
+ */
 export function purgerOuverturesInvalides(piece: Piece): Piece {
   const valides = piece.openings.filter((o) => ouvertureValide(piece, o))
   if (valides.length === piece.openings.length) return piece

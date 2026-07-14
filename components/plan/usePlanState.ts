@@ -12,12 +12,22 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import type { Cloture, Niveau, Ouverture, Piece, PlanData, PointMm, Symbole } from '@/lib/plan/types'
 import { genId, niveauVide, nomAvecSuffixe } from '@/lib/plan/defaults'
 import {
-  purgerOuverturesInvalides,
+  recalerOuvertures,
   redimensionnerParCote,
   translaterPiece,
 } from '@/lib/plan/edition'
 
 const UNDO_MAX = 50
+
+/**
+ * Résultat d'une édition de cote. Le booléen d'avant ne pouvait dire que
+ * « non » : impossible de distinguer une dimension hors bornes d'un mur qui
+ * porte une porte trop large — et donc impossible de NOMMER le coupable à
+ * l'artisan. Une modification refusée doit toujours s'expliquer.
+ */
+export type ResultatCote =
+  | { ok: true; info?: string }
+  | { ok: false; message: string; description?: string }
 
 function clone(data: PlanData): PlanData {
   return JSON.parse(JSON.stringify(data)) as PlanData
@@ -49,7 +59,7 @@ export interface PlanStateApi {
   deplacerPieceSansUndo: (roomId: string, dx: number, dy: number) => void
   ajouterPiece: (piece: Piece) => void
   majPiece: (roomId: string, patch: Partial<Piece>) => void
-  redimensionner: (roomId: string, dim: 'w' | 'h', mm: number) => boolean
+  redimensionner: (roomId: string, dim: 'w' | 'h', mm: number) => ResultatCote
   supprimerPiece: (roomId: string) => Piece | null
   dupliquerPiece: (roomId: string) => void
   ajouterOuverture: (roomId: string, ouverture: Ouverture) => void
@@ -220,19 +230,43 @@ export function usePlanState(initial: PlanData): PlanStateApi {
   )
 
   const redimensionner = useCallback(
-    (roomId: string, dim: 'w' | 'h', mm: number): boolean => {
+    (roomId: string, dim: 'w' | 'h', mm: number): ResultatCote => {
       const nivActuel = dataRef.current.levels.find((n) => n.id === niveauId)
       const piece = nivActuel?.rooms.find((r) => r.id === roomId)
-      if (!piece) return false
+      if (!piece) return { ok: false, message: 'Pièce introuvable' }
       const nouvelle = redimensionnerParCote(piece, dim, mm)
-      if (!nouvelle) return false
+      if (!nouvelle) {
+        return {
+          ok: false,
+          message: 'Dimension invalide',
+          description: 'Saisissez entre 0,5 et 30 m.',
+        }
+      }
+      // Les ouvertures sont RECALÉES, jamais effacées : si le mur devient plus
+      // court que la porte qu'il porte, on refuse et on le dit (avant, la porte
+      // disparaissait en silence).
+      const recale = recalerOuvertures(nouvelle)
+      if ('erreur' in recale) {
+        return { ok: false, message: 'Mur trop court', description: recale.erreur }
+      }
       muter((copie) => {
         const niv = surNiveau(copie)
         if (!niv) return
         const i = niv.rooms.findIndex((r) => r.id === roomId)
-        if (i >= 0) niv.rooms[i] = purgerOuverturesInvalides(nouvelle)
+        if (i >= 0) niv.rooms[i] = recale.piece
       })
-      return true
+      // Une ouverture qui a glissé, on le DIT. Sinon on remplacerait une
+      // suppression silencieuse par un déplacement silencieux : même famille.
+      if (recale.recalees > 0) {
+        return {
+          ok: true,
+          info:
+            recale.recalees === 1
+              ? 'Une ouverture a été recalée pour rester sur son mur.'
+              : `${recale.recalees} ouvertures ont été recalées pour rester sur leur mur.`,
+        }
+      }
+      return { ok: true }
     },
     [muter, surNiveau, niveauId]
   )

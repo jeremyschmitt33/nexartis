@@ -285,9 +285,11 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
 
   // ── Cotes + ouvertures + symboles ─────────────────────────────────────────
   const editerCote = (roomId: string, dim: 'w' | 'h', mm: number) => {
-    if (!etat.redimensionner(roomId, dim, mm)) {
-      toast.warning('Dimension invalide', { description: 'Saisissez entre 0,5 et 30 m.' })
-    }
+    // Le refus est TOUJOURS expliqué : le message vient du moteur, qui sait
+    // nommer le coupable (ex. « ce mur porte une porte de 83 cm »).
+    const r = etat.redimensionner(roomId, dim, mm)
+    if (!r.ok) toast.warning(r.message, { description: r.description })
+    else if (r.info) toast.info(r.info)
   }
 
   const poserOuverture = (roomId: string, point: PointMm, type: TypeOuverture) => {
