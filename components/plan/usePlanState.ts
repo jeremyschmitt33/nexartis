@@ -201,6 +201,21 @@ export function usePlanState(initial: PlanData): PlanStateApi {
       const i = niv.rooms.findIndex((r) => r.id === roomId)
       if (i < 0) return
       niv.rooms[i] = translaterPiece(niv.rooms[i], dx, dy)
+      // ⚠️ LES SYMBOLES SUIVENT LEUR PIÈCE (bug corrigé le 14/07/2026).
+      // Avant, seuls les murs se déplaçaient : on bougeait le salon et les
+      // prises restaient sur place. Pire, à la fin du geste `finDeplacerSymbole`
+      // réaffecte chaque symbole à la pièce qui le contient GÉOMÉTRIQUEMENT —
+      // les prises du salon se retrouvaient donc comptées dans la pièce
+      // voisine, ou nulle part. Le métré électrique devenait faux en silence.
+      // Une prise est fixée à un mur : elle ne peut pas rester en arrière.
+      for (let k = 0; k < niv.symbols.length; k++) {
+        const s = niv.symbols[k]
+        if (s.roomId !== roomId) continue
+        niv.symbols[k] = {
+          ...s,
+          position: [Math.round(s.position[0] + dx), Math.round(s.position[1] + dy)],
+        }
+      }
       commit(copie)
     },
     [surNiveau, commit]

@@ -70,6 +70,15 @@ export interface PlanCanvasProps {
   onPolygoneAnnule: () => void
 }
 
+/** Cote résolue au pointerdown (position d'écran figée pour l'input inline). */
+interface CibleCote {
+  roomId: string
+  dim: 'w' | 'h'
+  /** Centre de l'étiquette en coordonnées client, mesuré au pointerdown. */
+  cx: number
+  cy: number
+}
+
 interface Presse {
   pointerId: number
   sx: number
@@ -82,6 +91,24 @@ interface Presse {
   applique: { dx: number; dy: number }
   gesteCommence: boolean
   vueDepart: Viewport
+  /**
+   * CIBLES RÉSOLUES AU POINTERDOWN (bug corrigé le 14/07/2026).
+   *
+   * Interdit de les re-dériver de `e.target` au pointerup : `setPointerCapture`
+   * (indispensable au pinch et au drag hors du canvas) fait que le navigateur
+   * RETARGETE le pointerup vers le <svg> lui-même. `closest('[data-room-id]')`
+   * remonte alors l'arbre depuis le <svg> — la pièce est en DESSOUS, donc
+   * jamais trouvée. Effet observé en prod : le 1er clic après chargement
+   * sélectionne, tous les suivants ne font plus rien (ni pièce, ni symbole,
+   * ni cote), jusqu'au rechargement de la page.
+   * Au pointerdown, `e.target` est TOUJOURS l'élément réel : on résout là.
+   */
+  cible: {
+    roomId: string | null
+    symId: string | null
+    fenceId: string | null
+    cote: CibleCote | null
+  }
 }
 
 interface CoteEdition {
@@ -279,9 +306,31 @@ export default function PlanCanvas({
     }
     // 3 doigts ou plus : on ignore, le pinch en cours continue sur les 2 premiers.
     if (pointeurs.current.size > 2) return
-    setCoteEdit(null)
-    const cible = (e.target as Element).closest('[data-room-id]')
-    const cibleSym = (e.target as Element).closest('[data-symbol-id]')
+    // ⚠️ NE PAS fermer la cote en cours ici (`setCoteEdit(null)` retiré le
+    // 14/07/2026). Ça démontait l'input ENCORE FOCALISÉ avant que le navigateur
+    // ait déplacé le focus : Chrome ne déclenche pas `blur` sur un nœud retiré
+    // du DOM, donc `onBlur={valider}` ne s'exécutait jamais et la valeur tapée
+    // était PERDUE EN SILENCE (taper « 4,27 » puis cliquer sur le plan =
+    // saisie évaporée). Le blur naturel ferme et valide déjà la cote tout seul.
+    // Cf. la règle « la cote saisie est sacrée ».
+    // Résolution des cibles ICI, au pointerdown : `e.target` est l'élément réel
+    // (au pointerup il sera retargeté vers le <svg> par la capture — cf. Presse.cible).
+    const t = e.target as Element
+    const cible = t.closest('[data-room-id]')
+    const cibleSym = t.closest('[data-symbol-id]')
+    const elCote = t.closest('[data-cote-room]')
+    let coteCible: CibleCote | null = null
+    if (elCote) {
+      // Position figée maintenant : au pointerup, un re-rendu React peut avoir
+      // remplacé le nœud, et getBoundingClientRect() d'un nœud détaché rend 0.
+      const b = elCote.getBoundingClientRect()
+      coteCible = {
+        roomId: elCote.getAttribute('data-cote-room') ?? '',
+        dim: elCote.getAttribute('data-cote-dim') === 'h' ? 'h' : 'w',
+        cx: b.left + b.width / 2,
+        cy: b.top + b.height / 2,
+      }
+    }
     const p: Presse = {
       pointerId: e.pointerId,
       sx: e.clientX,
@@ -294,6 +343,15 @@ export default function PlanCanvas({
       applique: { dx: 0, dy: 0 },
       gesteCommence: false,
       vueDepart: vp,
+      cible: {
+        roomId: cible ? cible.getAttribute('data-room-id') : null,
+        symId: cibleSym ? cibleSym.getAttribute('data-symbol-id') : null,
+        fenceId: (() => {
+          const f = t.closest('[data-fence-id]')
+          return f ? f.getAttribute('data-fence-id') : null
+        })(),
+        cote: coteCible,
+      },
     }
     const panForce = e.button === 1 || espace.current
     if (!panForce && !polygone && outil === 'select' && cibleSym) {
@@ -427,28 +485,29 @@ export default function PlanCanvas({
       return
     }
 
+    // ⚠️ Toutes les cibles viennent de `p.cible`, figé au POINTERDOWN — jamais
+    // de `e.target` ici : la capture du pointeur l'a retargeté vers le <svg>
+    // (cf. le commentaire de Presse.cible).
+
     // 2) Cote cliquée : input inline positionné sur l'étiquette.
-    const cote = (e.target as Element).closest('[data-cote-room]')
+    const cote = p.cible.cote
     if (cote && wrapRef.current) {
-      const roomId = cote.getAttribute('data-cote-room') ?? ''
-      const dim = (cote.getAttribute('data-cote-dim') === 'h' ? 'h' : 'w') as 'w' | 'h'
-      const piece = niveau.rooms.find((r) => r.id === roomId)
+      const piece = niveau.rooms.find((r) => r.id === cote.roomId)
       if (!piece) return
       const b = bornesPiece(piece)
-      const box = (cote as Element).getBoundingClientRect()
       const wrap = wrapRef.current.getBoundingClientRect()
       setCoteEdit({
-        roomId,
-        dim,
-        x: box.left + box.width / 2 - wrap.left,
-        y: box.top + box.height / 2 - wrap.top,
-        valeurMm: dim === 'w' ? b.x2 - b.x1 : b.y2 - b.y1,
+        roomId: cote.roomId,
+        dim: cote.dim,
+        x: cote.cx - wrap.left,
+        y: cote.cy - wrap.top,
+        valeurMm: cote.dim === 'w' ? b.x2 - b.x1 : b.y2 - b.y1,
       })
       return
     }
 
-    const cible = (e.target as Element).closest('[data-room-id]')
-    const cibleSym = (e.target as Element).closest('[data-symbol-id]')
+    const cibleRoomId = p.cible.roomId
+    const cibleSymId = p.cible.symId
 
     // 3) Outil symbole : pose en série (l'outil reste actif, Échap pour sortir).
     if (outilSym) {
@@ -461,23 +520,21 @@ export default function PlanCanvas({
     // 4) Outil ouverture : clic dans une pièce, près du mur receveur.
     if (outil !== 'select') {
       const pt = pointMonde(e.clientX, e.clientY)
-      let dans = pieceAuPoint(pt)
-      if (!dans && cible) dans = cible.getAttribute('data-room-id')
+      const dans = pieceAuPoint(pt) ?? cibleRoomId
       if (dans) onPoserOuverture(dans, pt, outil as TypeOuverture)
       return
     }
 
     // 5) Sélection : symbole prioritaire, puis clôture, puis pièce.
-    if (cibleSym) {
-      onSelectSymbol(cibleSym.getAttribute('data-symbol-id'))
+    if (cibleSymId) {
+      onSelectSymbol(cibleSymId)
       return
     }
-    const cibleCloture = (e.target as Element).closest('[data-fence-id]')
-    if (cibleCloture) {
-      onSelectFence(cibleCloture.getAttribute('data-fence-id'))
+    if (p.cible.fenceId) {
+      onSelectFence(p.cible.fenceId)
       return
     }
-    onSelectRoom(cible ? cible.getAttribute('data-room-id') : null)
+    onSelectRoom(cibleRoomId)
   }
 
   /**
