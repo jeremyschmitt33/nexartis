@@ -150,8 +150,12 @@ function CalqueSvg({ calque }: { calque: IsoCalque }) {
           {f.prims.map((p, j) => (
             <PrimSvg key={j} p={p} />
           ))}
-          {f.glyphe && <GlypheSvg g={f.glyphe} />}
         </g>
+      ))}
+      {/* Couche d'annotation : les glyphes passent APRÈS les murs pour ne plus
+          être écrasés par les murs avant translucides (cf. IsoCalque.glyphes). */}
+      {calque.glyphes.map((g, i) => (
+        <GlypheSvg key={`g${i}`} g={g} />
       ))}
       {calque.etiquettes.map((e, i) => (
         <g key={`e${i}`} pointerEvents="none">

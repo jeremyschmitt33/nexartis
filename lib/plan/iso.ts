@@ -128,7 +128,6 @@ export interface IsoGlyphe {
 export interface IsoFace {
   prof: number
   prims: IsoPrim[]
-  glyphe?: IsoGlyphe
 }
 
 export interface IsoEtiquette {
@@ -140,12 +139,20 @@ export interface IsoEtiquette {
   etat?: { court: string; couleur: string }
 }
 
-/** Scène d'un calque : ombres au sol, sols triés, faces triées, étiquettes. */
+/** Scène d'un calque : ombres, sols, faces, glyphes, étiquettes (ordre de rendu). */
 export interface IsoCalque {
   /** Ombres portées douces sous l'emprise (dessinées EN PREMIER, sous les sols). */
   ombres: IsoPrim[]
   sols: IsoPrim[]
   faces: IsoFace[]
+  /**
+   * Glyphes des symboles, dessinés APRÈS les murs (couche d'annotation).
+   * Testé en prod le 14/07 : attachés aux faces, les glyphes passaient SOUS
+   * les murs avant translucides (85 %) et devenaient illisibles — la pastille
+   * blanche était écrasée. Un symbole est une ANNOTATION (« la prise est là »),
+   * pas un objet physique à occulter : la lisibilité prime sur le réalisme.
+   */
+  glyphes: IsoGlyphe[]
   etiquettes: IsoEtiquette[]
 }
 
@@ -225,8 +232,8 @@ export function construireScene3d(
 ): IsoScene {
   const avancementVisible = options?.avancementVisible === true
   const calques: Record<CalqueId, IsoCalque> = {
-    existant: { ombres: [], sols: [], faces: [], etiquettes: [] },
-    projet: { ombres: [], sols: [], faces: [], etiquettes: [] },
+    existant: { ombres: [], sols: [], faces: [], glyphes: [], etiquettes: [] },
+    projet: { ombres: [], sols: [], faces: [], glyphes: [], etiquettes: [] },
   }
   const bn = bornesNiveau(niveau)
   if (!bn) return { existant: calques.existant, projet: calques.projet, bornes: null }
@@ -254,6 +261,8 @@ export function construireScene3d(
 
   // Tri différé des sols : on accumule avec leur profondeur puis on trie.
   const solsTri: Record<CalqueId, { prof: number; prim: IsoPrim }[]> = { existant: [], projet: [] }
+  /** Tri différé des glyphes (couche d'annotation rendue au-dessus des murs). */
+  const glyphesTri: Record<CalqueId, { prof: number; g: IsoGlyphe }[]> = { existant: [], projet: [] }
   /** HSP réelle par pièce (tige des DCL au plafond). */
   const hspParPiece = new Map<string, number>()
 
@@ -440,12 +449,17 @@ export function construireScene3d(
     const couleur = s.layer === 'projet' ? C.orange : C.navy
     const hMur = HAUTEURS_MURALES_MM[s.type]
     if (hMur !== undefined) {
+      // La tige reste triée avec les murs (profondeur réelle) ; le glyphe monte
+      // sur la couche d'annotation pour rester lisible.
       sc.faces.push({
         prof,
         prims: [
           { prim: 'ligne', a: P(x, y, 0), b: P(x, y, hMur), stroke: couleur, strokeWidth: 1, opacite: 0.55 },
         ],
-        glyphe: { type: s.type, couleur, at: P(x, y, hMur), pose: 'billboard', rotationDeg: 0 },
+      })
+      glyphesTri[s.layer].push({
+        prof,
+        g: { type: s.type, couleur, at: P(x, y, hMur), pose: 'billboard', rotationDeg: 0 },
       })
       continue
     }
@@ -464,7 +478,10 @@ export function construireScene3d(
             opacite: 0.35,
           },
         ],
-        glyphe: {
+      })
+      glyphesTri[s.layer].push({
+        prof,
+        g: {
           type: s.type,
           couleur,
           at: P(x, y, hsp),
@@ -475,10 +492,10 @@ export function construireScene3d(
       continue
     }
     // Symboles de sol (WC, évier, tableau, portail...) : glyphe à plat au sol.
-    sc.faces.push({
+    // Aucune primitive : le glyphe seul part sur la couche d'annotation.
+    glyphesTri[s.layer].push({
       prof,
-      prims: [],
-      glyphe: {
+      g: {
         type: s.type,
         couleur,
         at: P(x, y, 0),
@@ -493,6 +510,10 @@ export function construireScene3d(
     solsTri[calque].sort((u, v) => u.prof - v.prof)
     calques[calque].sols = solsTri[calque].map((s) => s.prim)
     calques[calque].faces.sort((u, v) => u.prof - v.prof)
+    // Glyphes triés entre eux (cohérence si 2 symboles se chevauchent), mais
+    // TOUS rendus après les murs par le composant.
+    glyphesTri[calque].sort((u, v) => u.prof - v.prof)
+    calques[calque].glyphes = glyphesTri[calque].map((x) => x.g)
   }
 
   return { existant: calques.existant, projet: calques.projet, bornes }
