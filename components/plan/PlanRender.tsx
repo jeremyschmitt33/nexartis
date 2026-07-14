@@ -10,7 +10,7 @@
  * quel sans feuille de style (parité des rendus par construction).
  */
 
-import type { Niveau, Ouverture, Piece, PointMm } from '@/lib/plan/types'
+import type { Niveau, Ouverture, Piece, PointMm, Symbole } from '@/lib/plan/types'
 import { aireMm2, centreMm, estDansPolygone, fmtNombreFr, mm2VersM2, mmVersM } from '@/lib/plan/geometry'
 import { perimetreMl, surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, COULEURS_PLAN } from '@/lib/plan/defaults'
@@ -89,9 +89,11 @@ function RenduPiece({ piece, idPrefix, interactif, avancementVisible }: { piece:
   // Une pièce « projet » (travaux futurs) ne montre jamais d'avancement, même
   // si une donnée héritée en porte un : le rendu est robuste au calque, pas
   // seulement à la saisie.
+  // `fillPlan` (teinte DOUCE) et non `fill` (réservée à la vue 3D) : l'aplat
+  // soutenu repeignait la pièce et tuait la lecture du bâti sur un plan entier.
   const teinteAvancement =
     avancementVisible && !projet && piece.avancement && piece.avancement !== 'a_faire'
-      ? AVANCEMENT_META[piece.avancement].fill
+      ? AVANCEMENT_META[piece.avancement].fillPlan
       : null
   return (
     <>
@@ -269,7 +271,13 @@ function Rappel({ x1, y1, x2, y2, c }: { x1: number; y1: number; x2: number; y2:
 }
 
 function RenduCotes({ piece, pieces, interactif }: { piece: Piece; pieces: Piece[]; interactif: boolean }) {
-  const c = couleurCalque(piece.layer)
+  // Hiérarchie typographique (14/07/2026) : la cotation RECULE d'un rang.
+  // Avant, les cotes étaient en navy plein, du même poids que les murs : elles
+  // criaient aussi fort que le bâti et le plan n'avait aucun point d'entrée.
+  // En gris bleuté, le regard tombe d'abord sur les murs, puis sur les cotes.
+  // Les pièces « projet » gardent l'orange : c'est une INFORMATION (ce qui
+  // n'existe pas encore), pas de la décoration.
+  const c = piece.layer === 'projet' ? C.orange : C.cote
 
   // Forme libre : longueur affichée au milieu de chaque segment (lecture seule).
   if (!estRectiligne(piece.vertices)) {
@@ -314,12 +322,37 @@ function RenduCotes({ piece, pieces, interactif }: { piece: Piece; pieces: Piece
 
 // ── Étiquettes + badge projet ───────────────────────────────────────────────
 
-function RenduEtiquette({ piece, avancementVisible }: { piece: Piece; avancementVisible: boolean }) {
-  const [cx, cy] = centreMm(piece.vertices)
+function RenduEtiquette({
+  piece,
+  symboles,
+  avancementVisible,
+}: {
+  piece: Piece
+  symboles: Symbole[]
+  avancementVisible: boolean
+}) {
+  const [cx, cyCentre] = centreMm(piece.vertices)
   const b = bornesPiece(piece)
   const petite = Math.min(b.x2 - b.x1, b.y2 - b.y1) < 1500
   const c = couleurCalque(piece.layer)
   const aire = surfaceSolM2(piece)
+  // ÉVITEMENT DE COLLISION (14/07/2026) — l'étiquette était ancrée au centre
+  // géométrique exact, c'est-à-dire précisément là où l'artisan pose ses
+  // symboles (le clic tombe au milieu de la pièce). Nom, surface et état s'y
+  // empilaient sur ~600 mm : sur une chambre, la moitié de la pièce devenait
+  // une zone morte illisible.
+  // Règle PURE et déterministe : si un symbole occupe la bande centrale, on
+  // remonte le bloc d'étiquette vers le quart haut de la pièce (borné pour ne
+  // jamais sortir du polygone). Sinon, on garde le centre (cas majoritaire).
+  const bandeOccupee = symboles.some(
+    (s) =>
+      estDansPolygone(s.position, piece.vertices) &&
+      Math.abs(s.position[0] - cx) < 900 &&
+      s.position[1] > cyCentre - 500 &&
+      s.position[1] < cyCentre + 800
+  )
+  const hauteur = b.y2 - b.y1
+  const cy = bandeOccupee ? Math.max(b.y1 + 420, cyCentre - hauteur / 4) : cyCentre
   // Libellé d'état en TOUTES LETTRES sur la pièce (accessibilité daltonisme :
   // ne pas se reposer sur la seule couleur du sol). Masqué sur les rendus
   // « document » (avancementVisible false) et pour 'a_faire'/absent.
@@ -440,14 +473,18 @@ export default function PlanRender({
           <RenduCotes piece={r} pieces={visibles} interactif={interactif} />
         </g>
       ))}
-      {tri.map((r) => (
-        <g key={r.id} opacity={opacite(r)}>
-          <RenduEtiquette piece={r} avancementVisible={avancementVisible} />
-        </g>
-      ))}
+      {/* Symboles AVANT les étiquettes (14/07/2026) : l'ordre inverse faisait
+          passer les symboles par-dessus le texte, et le halo du texte rongeait
+          le symbole — les deux se mélangeaient. L'étiquette, qui s'écarte
+          désormais du centre quand un symbole l'occupe, passe au-dessus. */}
       {symbolesVisibles.map((s) => (
         <g key={s.id} opacity={vue === 'projet' && s.layer === 'existant' ? 0.35 : 1}>
           <SymboleSvg symbole={s} interactif={interactif} selectionne={s.id === selectedSymbolId} />
+        </g>
+      ))}
+      {tri.map((r) => (
+        <g key={r.id} opacity={opacite(r)}>
+          <RenduEtiquette piece={r} symboles={symbolesVisibles} avancementVisible={avancementVisible} />
         </g>
       ))}
       {vue !== 'existant' && creee > 0 &&

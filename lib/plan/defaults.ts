@@ -45,6 +45,12 @@ export const COULEURS_PLAN = {
   sky: '#5ab4e0',
   cream: '#f0ede4',
   fond: '#f6f8fb',
+  /**
+   * Gris bleuté de la COTATION (14/07/2026). La cote doit reculer d'un rang
+   * derrière le bâti : en navy plein, elle concurrençait les murs. Contraste
+   * volontairement suffisant pour rester lisible à l'impression.
+   */
+  cote: '#8794b0',
   grille: '#e3e9f2',
   blanc: '#ffffff',
   /**
@@ -77,15 +83,24 @@ export const COULEURS_PLAN = {
  */
 export const AVANCEMENT_META: Record<
   EtatAvancement,
-  { label: string; court: string; fill: string | null; texte: string; pctSuggere: number }
+  { label: string; court: string; fill: string | null; fillPlan: string | null; texte: string; pctSuggere: number }
 > = {
   // `texte` = couleur SOLIDE (lisible) du libellé d'état affiché sur la pièce
   // (accessibilité daltonisme : la couleur seule ne suffit pas, cf. WCAG 1.4.1).
   // Alignée sur la palette sombre des badges de SituationParLigne (contraste).
-  a_faire: { label: 'À faire', court: 'À faire', fill: null, texte: '#6b7280', pctSuggere: 0 },
-  en_cours: { label: 'En cours', court: 'En cours', fill: 'rgba(139, 92, 246, 0.26)', texte: '#3C3489', pctSuggere: 50 },
-  termine: { label: 'Terminé', court: 'Terminé', fill: 'rgba(52, 168, 102, 0.34)', texte: '#27500A', pctSuggere: 100 },
-  receptionne: { label: 'Réceptionné', court: 'Réceptionné', fill: 'rgba(37, 99, 235, 0.28)', texte: '#0C447C', pctSuggere: 100 },
+  //
+  // ⚠️ DEUX teintes distinctes depuis le 14/07/2026 :
+  //  - `fill` : teinte SOUTENUE, utilisée par la VUE 3D (iso.ts) où le sol est
+  //    largement masqué par les murs — il faut du punch pour qu'on la voie.
+  //  - `fillPlan` : teinte DOUCE, utilisée par le PLAN 2D (PlanRender). L'aplat
+  //    à 34 % repeignait la pièce entière : sur un T3 aux pièces terminées, le
+  //    plan devenait un à-plat vert et le bâti n'était plus lisible. À 16 %,
+  //    « ce qui est vert » reste évident (renforcé par le libellé en toutes
+  //    lettres sur la pièce) sans tuer la lecture du plan.
+  a_faire: { label: 'À faire', court: 'À faire', fill: null, fillPlan: null, texte: '#6b7280', pctSuggere: 0 },
+  en_cours: { label: 'En cours', court: 'En cours', fill: 'rgba(139, 92, 246, 0.26)', fillPlan: 'rgba(139, 92, 246, 0.13)', texte: '#3C3489', pctSuggere: 50 },
+  termine: { label: 'Terminé', court: 'Terminé', fill: 'rgba(52, 168, 102, 0.34)', fillPlan: 'rgba(52, 168, 102, 0.16)', texte: '#27500A', pctSuggere: 100 },
+  receptionne: { label: 'Réceptionné', court: 'Réceptionné', fill: 'rgba(37, 99, 235, 0.28)', fillPlan: 'rgba(37, 99, 235, 0.14)', texte: '#0C447C', pctSuggere: 100 },
 } as const
 
 /** Ordre d'affichage du sélecteur d'avancement (du non-démarré au réceptionné). */

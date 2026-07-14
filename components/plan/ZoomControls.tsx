@@ -25,9 +25,12 @@ export default function ZoomControls({ onZoom, onAjuster }: ZoomControlsProps) {
         type="button"
         aria-label="Ajuster la vue au plan"
         onClick={onAjuster}
-        className={`${CLS} text-[11px]`}
+        className={`${CLS} text-[9.5px] leading-none`}
       >
-        FIT
+        {/* Remplace l'ancien « FIT » : anglicisme dans un outil 100 % FR. */}
+        TOUT
+        <br />
+        VOIR
       </button>
     </div>
   )
