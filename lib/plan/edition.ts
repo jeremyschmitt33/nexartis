@@ -9,9 +9,9 @@
 import type { Cloture, Niveau, Ouverture, Piece, PointMm, TypeOuverture } from './types'
 import { longueurAreteMm, snapMm } from './geometry'
 import { AIMANT_MM, COTE_MAX_MM, COTE_MIN_MM, GRILLE_MM, OUVERTURE_DEFAUTS, creerOuverture } from './defaults'
-// Prédicat de validité d'ouverture : source UNIQUE dans ./metrics (cf. plus bas).
+// Prédicats sur les ouvertures : source UNIQUE dans ./metrics (cf. plus bas).
 // Pas de cycle : metrics n'importe que ./types et ./geometry.
-import { ouvertureValide } from './metrics'
+import { chevauchementOuverture, ouvertureValide } from './metrics'
 
 /** Rectangle englobant d'une pièce, en mm. */
 export interface BornesPiece {
@@ -226,7 +226,24 @@ export function preparerOuverture(
   const offset = Math.round(
     Math.max(marge, Math.min(arete.alongMm - largeur / 2, arete.longueurMm - largeur - marge))
   )
-  return { ouverture: creerOuverture(type, arete.edgeIndex, offset) }
+  const ouverture = creerOuverture(type, arete.edgeIndex, offset)
+  // ⚠️ Garde de CHEVAUCHEMENT (15/07/2026) — bug prouvé en prod : sans elle,
+  // deux porte-fenêtres sur le même mur de 3,00 m étaient toutes deux acceptées
+  // et toutes deux déduites (−8,60 m² sur un mur qui en fait 7,50 ; −4,00 ml de
+  // plinthes sur 3,00 m de mur), et le plan n'en dessinait qu'UNE. Deux clics
+  // suffisaient à fausser un devis, sans le moindre signal.
+  //
+  // On REFUSE en nommant la coupable plutôt que de glisser la nouvelle à côté :
+  // la poser ailleurs que là où l'artisan a cliqué serait un déplacement
+  // silencieux — même famille que l'effacement silencieux corrigé le 14/07.
+  const conflit = chevauchementOuverture(piece, ouverture)
+  if (conflit) {
+    const nom = OUVERTURE_DEFAUTS[conflit.type].label.toLowerCase()
+    return {
+      erreur: `Ce mur porte déjà une ${nom} à cet endroit. Cliquez plus loin sur le mur, ou supprimez-la d’abord.`,
+    }
+  }
+  return { ouverture }
 }
 
 /** Distance max (mm) entre le clic et la clôture pour poser un portail. */

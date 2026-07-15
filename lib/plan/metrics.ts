@@ -71,6 +71,37 @@ export function ouvertureValide(piece: Piece, o: Ouverture): boolean {
   return o.offset >= 0 && o.offset + o.width <= longueur;
 }
 
+/**
+ * `cible` recouvre-t-elle une AUTRE ouverture de la même arête ? (15/07/2026)
+ * Rend la coupable, ou null.
+ *
+ * ⚠️ BUG PROUVÉ EN PRODUCTION le 15/07 — `preparerOuverture` ne testait QUE la
+ * longueur de l'arête, jamais le chevauchement. Deux porte-fenêtres posées sur
+ * le même mur de 3,00 m étaient TOUTES DEUX acceptées et TOUTES DEUX déduites :
+ * murs 28,20 -> 23,90 m², plinthes 11,00 -> 9,00 ml, sur un mur qui ne fait que
+ * 7,50 m². On déduisait 8,60 m² d'un mur qui n'en a que 7,50. Et le plan n'en
+ * DESSINE qu'une (elles sont superposées) : rien ne le signalait. Deux clics.
+ *
+ * Intervalles OUVERTS : deux ouvertures contiguës (`b1 === a2`, une porte qui
+ * touche une fenêtre) ne se chevauchent PAS. C'est constructible en vrai.
+ *
+ * Les ouvertures invalides sont ignorées des deux côtés : elles ne sont ni
+ * dessinées ni comptées (cf. `ouvertureValide`), donc bloquer une pose à cause
+ * d'une ouverture invisible serait incompréhensible.
+ */
+export function chevauchementOuverture(piece: Piece, cible: Ouverture): Ouverture | null {
+  if (!ouvertureValide(piece, cible)) return null;
+  const a1 = cible.offset;
+  const b1 = cible.offset + cible.width;
+  for (const o of piece.openings) {
+    if (o.id === cible.id) continue;
+    if (o.edgeIndex !== cible.edgeIndex) continue;
+    if (!ouvertureValide(piece, o)) continue;
+    if (a1 < o.offset + o.width && o.offset < b1) return o;
+  }
+  return null;
+}
+
 /** Surface d'une ouverture en m² (largeur × hauteur, mm -> m²). */
 export function surfaceOuvertureM2(o: Ouverture): number {
   return mm2VersM2(o.width * o.height);

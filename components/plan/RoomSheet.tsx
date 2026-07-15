@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import type { EtatAvancement, Piece } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
-import { ouvertureValide, perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
+import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
@@ -217,8 +217,16 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
                 // serait un fantôme : visible ici, introuvable ailleurs. On aurait
                 // remplacé une disparition silencieuse par une présence silencieuse.
                 const horsMur = !ouvertureValide(piece, o)
+                // Chevauchement DÉJÀ EN BASE : le garde-fou de `preparerOuverture`
+                // empêche d'en créer de nouveaux, il ne répare pas les anciens. Et
+                // on ne les filtre PAS du métré : les deux ouvertures sont
+                // dessinées (superposées), en exclure une serait arbitraire — et ça
+                // changerait un métré sans que l'artisan l'ait demandé. Donc on le
+                // DIT, et il tranche.
+                const conflit = horsMur ? null : chevauchementOuverture(piece, o)
+                const alerte = horsMur || conflit !== null
                 return (
-                <li key={o.id} className={`flex justify-between rounded-xl border px-3 py-2 ${horsMur ? 'items-start border-orange/40 bg-orange/5' : 'items-center border-gray-100 bg-[#fafbfc]'}`}>
+                <li key={o.id} className={`flex justify-between rounded-xl border px-3 py-2 ${alerte ? 'items-start border-orange/40 bg-orange/5' : 'items-center border-gray-100 bg-[#fafbfc]'}`}>
                   <span className="font-hanken text-[13px] text-navy">
                     {OUVERTURE_DEFAUTS[o.type].label}{' '}
                     <span className="font-spline-mono text-[12px] text-gray-500">
@@ -233,6 +241,13 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
                       <span className="mt-0.5 block font-hanken text-[11.5px] font-semibold leading-snug text-navy">
                         Hors du mur — pas dessinée, pas comptée dans les métrés.
                         Rallongez le mur ou supprimez-la.
+                      </span>
+                    )}
+                    {conflit && (
+                      <span className="mt-0.5 block font-hanken text-[11.5px] font-semibold leading-snug text-navy">
+                        Superposée à une {OUVERTURE_DEFAUTS[conflit.type].label.toLowerCase()} sur
+                        le même mur — le plan n’en dessine qu’une, et le métré compte les deux.
+                        Supprimez-en une.
                       </span>
                     )}
                   </span>
