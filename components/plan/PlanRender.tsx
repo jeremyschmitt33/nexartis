@@ -12,7 +12,7 @@
 
 import type { Niveau, Ouverture, Piece, PointMm, Symbole } from '@/lib/plan/types'
 import { aireMm2, centreMm, estDansPolygone, fmtNombreFr, mm2VersM2, mmVersM } from '@/lib/plan/geometry'
-import { perimetreMl, surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
+import { ouvertureValide, perimetreMl, surfaceCreeeProjetM2, surfaceSolM2 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, COULEURS_PLAN } from '@/lib/plan/defaults'
 import { bornesPiece, estRectiligne } from '@/lib/plan/edition'
 import SymboleSvg from './SymboleSvg'
@@ -141,11 +141,17 @@ function RenduSelection({ piece }: { piece: Piece }) {
 
 function RenduOuverture({ piece, o }: { piece: Piece; o: Ouverture }) {
   const n = piece.vertices.length
-  if (o.edgeIndex >= n) return null
+  // ⚠️ MÊME prédicat que le métré (`ouvertureValide`, lib/plan/metrics.ts),
+  // 15/07/2026. Ce test était auparavant réécrit ici à la main, et il DIVERGEAIT
+  // dans les deux sens : le rendu ne testait pas `offset >= 0` (une ouverture à
+  // offset négatif se dessinait), et le métré ne testait rien du tout (une
+  // ouverture débordante était facturée sans être dessinée). Le plan et le devis
+  // doivent dire la MÊME chose par construction. Ne jamais réécrire ce test ici.
+  if (!ouvertureValide(piece, o)) return null
   const a = piece.vertices[o.edgeIndex]
   const b = piece.vertices[(o.edgeIndex + 1) % n]
   const L = Math.hypot(b[0] - a[0], b[1] - a[1])
-  if (L <= 0 || o.offset + o.width > L) return null
+  if (L <= 0) return null
   const d = { x: (b[0] - a[0]) / L, y: (b[1] - a[1]) / L }
   // Normale orientée vers l'intérieur de la pièce (test point-dans-polygone).
   let nx = -d.y

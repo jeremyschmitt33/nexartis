@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import type { EtatAvancement, Piece } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
-import { perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
+import { ouvertureValide, perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
@@ -209,13 +209,32 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
           <div>
             <Etiquette>Ouvertures</Etiquette>
             <ul className="space-y-1.5">
-              {piece.openings.map((o) => (
-                <li key={o.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-[#fafbfc] px-3 py-2">
+              {piece.openings.map((o) => {
+                // Contrepartie OBLIGATOIRE du « filtrer sans effacer » (15/07/2026) :
+                // une ouverture qui ne tient plus sur son mur n'est plus dessinée
+                // (2D et 3D) ni comptée au devis, mais elle EXISTE toujours en base
+                // — on n'efface jamais le travail de l'artisan. Sans ce badge, elle
+                // serait un fantôme : visible ici, introuvable ailleurs. On aurait
+                // remplacé une disparition silencieuse par une présence silencieuse.
+                const horsMur = !ouvertureValide(piece, o)
+                return (
+                <li key={o.id} className={`flex justify-between rounded-xl border px-3 py-2 ${horsMur ? 'items-start border-orange/40 bg-orange/5' : 'items-center border-gray-100 bg-[#fafbfc]'}`}>
                   <span className="font-hanken text-[13px] text-navy">
                     {OUVERTURE_DEFAUTS[o.type].label}{' '}
                     <span className="font-spline-mono text-[12px] text-gray-500">
                       {fmtNombreFr(o.width / 1000, 2)} × {fmtNombreFr(o.height / 1000, 2)} m
+                      {o.sillHeight > 0 ? ` · allège ${fmtNombreFr(o.sillHeight / 1000, 2)} m` : ''}
                     </span>
+                    {horsMur && (
+                      {/* text-navy (~16:1) et PAS text-orange (2,75:1 sur ce fond,
+                          sous WCAG AA) : ce texte porte l'info « pas comptée dans
+                          les métrés ». Le signal d'alerte est déjà porté par la
+                          bordure et le fond — le texte, lui, doit se LIRE. */}
+                      <span className="mt-0.5 block font-hanken text-[11.5px] font-semibold leading-snug text-navy">
+                        Hors du mur — pas dessinée, pas comptée dans les métrés.
+                        Rallongez le mur ou supprimez-la.
+                      </span>
+                    )}
                   </span>
                   <button
                     type="button"
@@ -228,7 +247,8 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
                     </svg>
                   </button>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </div>
         )}

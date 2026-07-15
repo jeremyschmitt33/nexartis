@@ -9,6 +9,9 @@
 import type { Cloture, Niveau, Ouverture, Piece, PointMm, TypeOuverture } from './types'
 import { longueurAreteMm, snapMm } from './geometry'
 import { AIMANT_MM, COTE_MAX_MM, COTE_MIN_MM, GRILLE_MM, OUVERTURE_DEFAUTS, creerOuverture } from './defaults'
+// Prédicat de validité d'ouverture : source UNIQUE dans ./metrics (cf. plus bas).
+// Pas de cycle : metrics n'importe que ./types et ./geometry.
+import { ouvertureValide } from './metrics'
 
 /** Rectangle englobant d'une pièce, en mm. */
 export interface BornesPiece {
@@ -265,11 +268,16 @@ export function projeterSurClotures(
   return { clotureId: best.clotureId, layer: best.layer, position: best.position, rotation: best.rotation }
 }
 
-/** Une ouverture reste-t-elle valide sur son arête (après redimensionnement) ? */
-export function ouvertureValide(piece: Piece, o: Ouverture): boolean {
-  const longueur = longueurAreteMm(piece.vertices, o.edgeIndex)
-  return o.edgeIndex < piece.vertices.length && o.offset >= 0 && o.offset + o.width <= longueur
-}
+/**
+ * Une ouverture reste-t-elle valide sur son arête (après redimensionnement) ?
+ *
+ * ⚠️ DÉPLACÉ dans `./metrics` le 15/07/2026, importé en tête de ce fichier et
+ * RÉ-EXPORTÉ ici pour ne casser aucun appelant. Ce prédicat doit rester
+ * UNIQUE : il départage ce que le plan DESSINE de ce que le devis FACTURE, et
+ * deux exemplaires finiraient par diverger — c'est exactement la divergence
+ * rendu/métré qu'on vient de fermer. Ne JAMAIS le réimplémenter ici.
+ */
+export { ouvertureValide }
 
 /**
  * Recale les ouvertures d'une pièce après un changement de dimension.

@@ -21,10 +21,55 @@ import type {
 } from './types';
 import {
   aireMm2,
+  longueurAreteMm,
   longueurPolyligneMm,
   mm2VersM2,
   perimetreMm,
 } from './geometry';
+
+/**
+ * Une ouverture tient-elle RÉELLEMENT sur son arête ? (15/07/2026)
+ *
+ * ⚠️ PRÉDICAT PARTAGÉ — il DOIT rester le seul, et rester identique au test du
+ * rendu (`RenduOuverture` : `if (L <= 0 || o.offset + o.width > L) return null`).
+ *
+ * Le bug qu'il ferme : le RENDU abandonnait une ouverture débordante (elle
+ * disparaissait du dessin) pendant que `deductionOuverturesM2` et `plinthesMl`
+ * itéraient SANS AUCUN filtre de validité — ils continuaient de la déduire.
+ * Le plan montrait un mur plein, le devis facturait le mur troué. Chiffré sur
+ * une pièce 4×3 m avec une porte-fenêtre débordante : 12,00 ml de plinthes
+ * facturés au lieu de 14,00, et 4,30 m² de peinture déduits d'un trou qui
+ * n'existe nulle part. Le plan et le devis doivent dire la MÊME chose, par
+ * construction et pas par coïncidence.
+ *
+ * On FILTRE au calcul, on n'EFFACE JAMAIS la donnée : une ouverture débordante
+ * reste dans `plans.data` et redevient valide dès que le mur rallonge. C'est la
+ * leçon du 14/07 (`recalerOuvertures` a remplacé `purgerOuverturesInvalides`,
+ * qui supprimait la porte en silence quand on raccourcissait un mur).
+ *
+ * `longueurAreteMm` ramène l'index modulo n : le test `o.edgeIndex <
+ * piece.vertices.length` est donc OBLIGATOIRE et ne peut pas être déduit de la
+ * longueur — sans lui, une ouverture orpheline serait validée contre une arête
+ * qui n'est pas la sienne.
+ */
+export function ouvertureValide(piece: Piece, o: Ouverture): boolean {
+  // ⚠️ Le garde-fou passe AVANT `longueurAreteMm`, et l'ordre est le sujet :
+  // celle-ci fait `vertices[((edgeIndex % n) + n) % n]` puis DÉSTRUCTURE le
+  // sommet. Un edgeIndex NaN / undefined / non entier donne `vertices[NaN]`
+  // -> undefined -> TypeError, et le crash emporterait TOUT l'éditeur
+  // (RoomSheet et PlanRender appellent ce prédicat). Calculer la longueur en
+  // premier rendait ce prédicat faillible sur la donnée même qu'il filtre —
+  // d'autant que `estOuvertureValide` (api/plan/beacon-save) ne valide PAS
+  // `edgeIndex` : un payload malformé s'installe durablement dans plans.data.
+  if (!Number.isInteger(o.edgeIndex)) return false;
+  if (o.edgeIndex < 0 || o.edgeIndex >= piece.vertices.length) return false;
+  // Les DEUX bornes sont obligatoires et ne se déduisent pas de la longueur :
+  // `longueurAreteMm` ramène l'index modulo n DANS LES DEUX SENS (-1 -> n-1),
+  // donc une ouverture d'index négatif serait sinon validée contre une arête
+  // qui n'est pas la sienne, et déduite du devis.
+  const longueur = longueurAreteMm(piece.vertices, o.edgeIndex);
+  return o.offset >= 0 && o.offset + o.width <= longueur;
+}
 
 /** Surface d'une ouverture en m² (largeur × hauteur, mm -> m²). */
 export function surfaceOuvertureM2(o: Ouverture): number {
@@ -44,11 +89,20 @@ function seuilDeduction(mode: ModeDeduction): number | null {
   return null; // 'totale'
 }
 
-/** Somme des surfaces d'ouvertures déduites selon le mode, en m². */
-export function deductionOuverturesM2(openings: Ouverture[], mode: ModeDeduction): number {
+/**
+ * Somme des surfaces d'ouvertures déduites selon le mode, en m².
+ *
+ * ⚠️ Prend la PIÈCE et non `openings` (changé le 15/07/2026) : sans la pièce,
+ * impossible d'appeler `ouvertureValide` — et sans ce filtre, une ouverture qui
+ * déborde de son mur (donc ABSENTE du dessin) était quand même déduite du
+ * devis. La signature devait changer pour que le bug soit corrigeable.
+ */
+export function deductionOuverturesM2(piece: Piece, mode: ModeDeduction): number {
   const seuil = seuilDeduction(mode);
   let total = 0;
-  for (const o of openings) {
+  for (const o of piece.openings) {
+    // Ne déduire que ce que le plan DESSINE réellement.
+    if (!ouvertureValide(piece, o)) continue;
     const s = surfaceOuvertureM2(o);
     if (seuil === null || (seuil !== Infinity && s > seuil)) total += s;
   }
@@ -78,14 +132,24 @@ export function perimetreMl(piece: Piece): number {
  */
 export function surfaceMursM2(piece: Piece, mode: ModeDeduction): number {
   const brutM2 = mm2VersM2(perimetreMm(piece.vertices) * piece.height);
-  const deduction = mode === 'brute' ? 0 : deductionOuverturesM2(piece.openings, mode);
+  const deduction = mode === 'brute' ? 0 : deductionOuverturesM2(piece, mode);
   return Math.max(0, Math.round((brutM2 - deduction) * 100) / 100);
 }
 
-/** Plinthes en ml : périmètre − largeur des ouvertures qui touchent le sol. */
+/**
+ * Plinthes en ml : périmètre − largeur des ouvertures qui touchent le sol.
+ *
+ * ⚠️ Filtre `ouvertureValide` (15/07/2026), 2e victime du même bug que
+ * `deductionOuverturesM2` : une porte-fenêtre débordante, invisible sur le
+ * plan, retirait quand même sa largeur des plinthes. Sur une pièce 4×3 m
+ * (périmètre 14,00 ml) avec une porte-fenêtre de 2 m en débordement, le devis
+ * sortait « Peinture des plinthes : 12,00 ml » sur un plan qui dessine un mur
+ * continu tout autour.
+ */
 export function plinthesMl(piece: Piece): number {
   let solMm = perimetreMm(piece.vertices);
   for (const o of piece.openings) {
+    if (!ouvertureValide(piece, o)) continue;
     if (toucheLeSol(o)) solMm -= o.width;
   }
   return Math.max(0, Math.round(solMm / 10) / 100);
@@ -105,6 +169,13 @@ export function compteOuvertures(piece: Piece): Record<TypeOuverture, number> {
     baie: 0,
   };
   for (const o of piece.openings) {
+    // 3e lecteur de `piece.openings`, filtré comme les deux autres (15/07/2026).
+    // Il n'a AUCUN appelant aujourd'hui (`metresPiece` non plus), donc zéro
+    // effet en prod — mais c'est exactement ainsi que le bug reviendrait : le
+    // jour où le comptage de menuiseries est branché à un devis, une ouverture
+    // invisible sur le plan serait facturée à l'unité, et le badge « pas
+    // comptée dans les métrés » de RoomSheet deviendrait un mensonge.
+    if (!ouvertureValide(piece, o)) continue;
     if (o.sharedWith && o.sharedWith < piece.id) continue; // comptée chez la voisine
     compte[o.type] += 1;
   }
