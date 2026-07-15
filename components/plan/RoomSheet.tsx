@@ -225,11 +225,11 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
                       {fmtNombreFr(o.width / 1000, 2)} × {fmtNombreFr(o.height / 1000, 2)} m
                       {o.sillHeight > 0 ? ` · allège ${fmtNombreFr(o.sillHeight / 1000, 2)} m` : ''}
                     </span>
+                    {/* text-navy (~16:1) et PAS text-orange (2,75:1 sur ce fond,
+                        sous WCAG AA) : ce texte porte l'info « pas comptée dans
+                        les métrés ». Le signal d'alerte est déjà porté par la
+                        bordure et le fond — le texte, lui, doit se LIRE. */}
                     {horsMur && (
-                      {/* text-navy (~16:1) et PAS text-orange (2,75:1 sur ce fond,
-                          sous WCAG AA) : ce texte porte l'info « pas comptée dans
-                          les métrés ». Le signal d'alerte est déjà porté par la
-                          bordure et le fond — le texte, lui, doit se LIRE. */}
                       <span className="mt-0.5 block font-hanken text-[11.5px] font-semibold leading-snug text-navy">
                         Hors du mur — pas dessinée, pas comptée dans les métrés.
                         Rallongez le mur ou supprimez-la.
