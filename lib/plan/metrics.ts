@@ -102,6 +102,17 @@ export function chevauchementOuverture(piece: Piece, cible: Ouverture): Ouvertur
   return null;
 }
 
+/**
+ * La pièce porte-t-elle au moins deux ouvertures qui se chevauchent sur une
+ * même arête ? Un chevauchement = déduction EN DOUBLE au devis (cf.
+ * deductionOuverturesM2/plinthesMl qui somment). Réutilise le prédicat canonique
+ * chevauchementOuverture (jamais réimplémenté). Sert d'alerte au moment de
+ * l'injection au devis, pour qu'aucun chiffre faux n'y parte en silence.
+ */
+export function pieceAChevauchement(piece: Piece): boolean {
+  return piece.openings.some((o) => chevauchementOuverture(piece, o) !== null);
+}
+
 /** Surface d'une ouverture en m² (largeur × hauteur, mm -> m²). */
 export function surfaceOuvertureM2(o: Ouverture): number {
   return mm2VersM2(o.width * o.height);

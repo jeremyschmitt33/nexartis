@@ -18,6 +18,7 @@ import Link from 'next/link'
 import type { ModeDeduction, Niveau, PlanData } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
 import { cleDoublon, construireProposition, type LigneProposee } from '@/lib/plan/injection'
+import { pieceAChevauchement } from '@/lib/plan/metrics'
 import type { MetierId } from '@/lib/plan/profils'
 import { toast } from '@/lib/toast'
 import {
@@ -133,6 +134,10 @@ export default function DevisDrawer({
   const cochees = lignes.filter((l) => !decochees.has(l.cle))
   const doublonsPresents = lignes.filter((l) => doublons.has(cleDoublon(l.roomId, l.metric)))
   const lotsProjet = lignes.filter((l) => l.projet && !decochees.has(l.cle)).length
+  // Pièces INTÉRIEURES à ouvertures superposées : leur métré murs/plinthes est
+  // surévalué en déduction. On PRÉVIENT ici (moment de l'argent), sans toucher
+  // au calcul : l'artisan supprime l'ouverture en trop -> vraie valeur.
+  const piecesChevauchees = niveau.rooms.filter((r) => r.cat === 'int' && pieceAChevauchement(r)).map((r) => r.name)
 
   const basculer = (cle: string) => {
     setDecochees((prev) => {
@@ -314,6 +319,20 @@ export default function DevisDrawer({
             <p className="font-hanken text-[12px] leading-snug text-navy">
               <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-orange align-middle" aria-hidden="true" />
               <span className="font-bold text-orange">Calque Projet :</span> {lotsProjet} métré{s(lotsProjet)} coché{s(lotsProjet)} provien{lotsProjet > 1 ? 'nent' : 't'} de travaux à créer.
+            </p>
+          </div>
+        )}
+
+        {piecesChevauchees.length > 0 && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+            <p className="font-hanken text-[12.5px] font-semibold leading-snug text-red-800">
+              Ouvertures superposées dans {piecesChevauchees.length > 1 ? 'les pièces' : 'la pièce'} : {piecesChevauchees.join(', ')}.
+            </p>
+            <p className="mt-0.5 font-hanken text-[11.5px] leading-snug text-red-700">
+              Deux ouvertures au même endroit sont déduites deux fois : le métré des
+              murs et des plinthes de {piecesChevauchees.length > 1 ? 'ces pièces' : 'cette pièce'} est
+              surévalué en déduction (mur sous-facturé). Ouvrez la pièce et supprimez
+              l&apos;ouverture en trop avant d&apos;envoyer.
             </p>
           </div>
         )}
