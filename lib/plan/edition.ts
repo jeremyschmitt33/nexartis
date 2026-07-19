@@ -319,6 +319,7 @@ export function recalerOuvertures(
 ): { piece: Piece; recalees: number } | { erreur: string } {
   const n = piece.vertices.length
   const openings: Ouverture[] = []
+  const bougees: number[] = []
   let recalees = 0
   for (const o of piece.openings) {
     if (o.edgeIndex < 0 || o.edgeIndex >= n) {
@@ -344,11 +345,37 @@ export function recalerOuvertures(
     if (offset === o.offset) {
       openings.push(o)
     } else {
+      bougees.push(openings.length)
       openings.push({ ...o, offset })
       recalees += 1
     }
   }
-  return { piece: { ...piece, openings }, recalees }
+  // Le recalage ne doit JAMAIS créer un chevauchement : deux ouvertures alors
+  // toutes deux VALIDES seraient toutes deux déduites de la surface murale
+  // (bug prouvé : mur 4->2 m, 2 fenêtres 1,40 -> 3,50 m² déduits sur 2,00 m de
+  // mur = ~1,25 m² de mur non facturé en silence). On refuse en NOMMANT le
+  // coupable — même famille que le refus « mur trop court pour une porte ».
+  //
+  // On ne teste QUE les ouvertures qui ont BOUGÉ : un chevauchement créé par le
+  // recalage a forcément une participante déplacée. Ainsi un chevauchement
+  // legacy sur une AUTRE arête (déjà signalé par le badge de RoomSheet) ne gèle
+  // pas un redimensionnement légitime, et un AGRANDISSEMENT (aucun offset ne
+  // bouge) n'est jamais refusé. Prédicat canonique UNIQUE : chevauchementOuverture
+  // (jamais réimplémenté ici, cf. en-tête du fichier).
+  const pieceRecalee: Piece = { ...piece, openings }
+  for (const idx of bougees) {
+    const conflit = chevauchementOuverture(pieceRecalee, openings[idx])
+    if (conflit) {
+      const a = OUVERTURE_DEFAUTS[openings[idx].type].label.toLowerCase()
+      const b = OUVERTURE_DEFAUTS[conflit.type].label.toLowerCase()
+      return {
+        erreur:
+          `En raccourcissant ce mur, la ${a} et la ${b} qu'il porte se ` +
+          `chevaucheraient. Déplacez-en une ou supprimez-la d'abord.`,
+      }
+    }
+  }
+  return { piece: pieceRecalee, recalees }
 }
 
 /**
