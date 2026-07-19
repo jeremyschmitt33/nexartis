@@ -167,9 +167,13 @@ export interface PlanPaletteProps {
   onZoneExt: (extType: TypeExterieur) => void
   /** Démarre le tracé d'une clôture (polyligne ouverte). */
   onCloture: () => void
+  /** Démarre le tracé d'une bordure (polyligne ouverte, ml). */
+  onBordure: () => void
+  /** Démarre le tracé d'une tranchée (polyligne ouverte, ml + volume). */
+  onTranchee: () => void
 }
 
-export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, onZoneExt, onCloture }: PlanPaletteProps) {
+export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, onZoneExt, onCloture, onBordure, onTranchee }: PlanPaletteProps) {
   const groupes = groupesSymboles(metier)
 
   const bouton = (key: Outil, label: string, icone: React.ReactNode) => (
@@ -244,6 +248,22 @@ export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, on
       >
         <IconeExt type="Cloture" />
         <span className="truncate">Clôture / grillage</span>
+      </button>
+      <button
+        type="button"
+        onClick={onBordure}
+        className="flex w-full items-center gap-2 rounded-xl border-[1.5px] border-transparent px-2.5 py-2 text-left font-hanken text-[12.5px] font-semibold text-navy transition-colors hover:bg-gray-50"
+      >
+        <IconeExt type="Cloture" />
+        <span className="truncate">Bordure</span>
+      </button>
+      <button
+        type="button"
+        onClick={onTranchee}
+        className="flex w-full items-center gap-2 rounded-xl border-[1.5px] border-transparent px-2.5 py-2 text-left font-hanken text-[12.5px] font-semibold text-navy transition-colors hover:bg-gray-50"
+      >
+        <IconeExt type="Cloture" />
+        <span className="truncate">Tranchée</span>
       </button>
       {bouton('sym:portail', 'Portail', <IconeExt type="Portail" />)}
 

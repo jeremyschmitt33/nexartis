@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import type { CategorieZone, EtatAvancement, NatureZone, Piece, TypeExterieur } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
-import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
+import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2, volumeExtM3 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM, nomEvoqueExterieur } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
@@ -44,12 +44,14 @@ function Etiquette({ children }: { children: React.ReactNode }) {
 export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
   const [nom, setNom] = useState(piece.name)
   const [hsp, setHsp] = useState(mmVersSaisieM(piece.height))
+  const [prof, setProf] = useState(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
 
   // Resynchronise les brouillons quand la sélection change.
   useEffect(() => {
     setNom(piece.name)
     setHsp(mmVersSaisieM(piece.height))
-  }, [piece.id, piece.name, piece.height])
+    setProf(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
+  }, [piece.id, piece.name, piece.height, piece.profondeurMm])
 
   const commitNom = () => {
     const propre = nom.trim()
@@ -67,8 +69,24 @@ export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupl
     if (mm !== piece.height) onMaj({ height: mm })
   }
 
+  const commitProf = () => {
+    const t = prof.trim()
+    if (t === '') {
+      if (piece.profondeurMm !== undefined) onMaj({ profondeurMm: undefined })
+      return
+    }
+    const mm = lireMetresEnMm(t)
+    if (mm === null || mm < 10 || mm > 20000) {
+      toast.warning('Profondeur invalide', { description: 'Saisissez entre 0,01 et 20 m (ex. 0,80).' })
+      setProf(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
+      return
+    }
+    if (mm !== piece.profondeurMm) onMaj({ profondeurMm: mm })
+  }
+
   const surface = surfaceSolM2(piece)
   const perimetre = perimetreMl(piece)
+  const volume = volumeExtM3(piece)
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white">
@@ -235,26 +253,55 @@ export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupl
         </div>
         )}
 
-        <div>
-          <Etiquette>Hauteur sous plafond</Etiquette>
-          <div className="flex items-center gap-2">
-            <input
-              value={hsp}
-              onChange={(e) => setHsp(e.target.value)}
-              onBlur={commitHsp}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  ;(e.target as HTMLInputElement).blur()
-                }
-              }}
-              inputMode="decimal"
-              aria-label="Hauteur sous plafond en mètres"
-              className="w-24 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-center font-spline-mono text-[14px] font-medium text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
-            />
-            <span className="font-hanken text-[13px] text-gray-500">m</span>
+        {piece.cat !== 'ext' ? (
+          <div>
+            <Etiquette>Hauteur sous plafond</Etiquette>
+            <div className="flex items-center gap-2">
+              <input
+                value={hsp}
+                onChange={(e) => setHsp(e.target.value)}
+                onBlur={commitHsp}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                inputMode="decimal"
+                aria-label="Hauteur sous plafond en mètres"
+                className="w-24 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-center font-spline-mono text-[14px] font-medium text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
+              />
+              <span className="font-hanken text-[13px] text-gray-500">m</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <Etiquette>Profondeur / épaisseur (optionnelle)</Etiquette>
+            <div className="flex items-center gap-2">
+              <input
+                value={prof}
+                onChange={(e) => setProf(e.target.value)}
+                onBlur={commitProf}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                inputMode="decimal"
+                aria-label="Profondeur en mètres"
+                placeholder="ex. 0,80"
+                className="w-24 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-center font-spline-mono text-[14px] font-medium text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
+              />
+              <span className="font-hanken text-[13px] text-gray-500">m</span>
+            </div>
+            <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
+              {volume > 0
+                ? `Volume : ${fmtNombreFr(volume)} m³ — à qualifier (déblai / béton) sur le devis.`
+                : 'Une profondeur transforme la surface en volume (trou à creuser, dalle à couler).'}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-gray-100 bg-[#fafbfc] px-3 py-2.5 text-center">

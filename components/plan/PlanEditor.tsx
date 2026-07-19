@@ -16,11 +16,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { EtatAvancement, ModeDeduction, NatureZone, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
+import type { EtatAvancement, KindLineaire, ModeDeduction, NatureZone, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
 import { aireMm2, estDansPolygone, fmtNombreFr, fmtSurfaceM2 } from '@/lib/plan/geometry'
 import { OUVERTURE_DEFAUTS, creerCloture, creerPieceL, creerPiecePoly, creerPieceRect, nomAvecSuffixe } from '@/lib/plan/defaults'
 import { positionNouvellePiece, preparerOuverture, projeterSurClotures } from '@/lib/plan/edition'
-import { clotureMl } from '@/lib/plan/metrics'
+import { clotureMl, kindDe } from '@/lib/plan/metrics'
 import { CHUTES_DEFAUT_PCT, profilDe, type MetierId } from '@/lib/plan/profils'
 import { creerSymbole } from '@/lib/plan/symboles'
 import { toast } from '@/lib/toast'
@@ -243,11 +243,13 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   }
 
   // ── Clôture : polyligne OUVERTE (réutilise le mécanisme polygone) ─────────
-  const demarrerCloture = () => {
+  const demarrerLineaire = (kind: KindLineaire) => {
     setOutil('select')
     etat.selectRoom(null)
-    setPolygone({ nom: 'Clôture', calque: vue === 'projet' ? 'projet' : 'existant', mode: 'cloture' })
-    toast.info('Tracez la clôture sur le plan', {
+    const nom = kind === 'bordure' ? 'Bordure' : kind === 'tranchee' ? 'Tranchée' : 'Clôture'
+    const article = kind === 'bordure' ? 'la bordure' : kind === 'tranchee' ? 'la tranchée' : 'la clôture'
+    setPolygone({ nom, calque: vue === 'projet' ? 'projet' : 'existant', mode: 'cloture', kindLineaire: kind })
+    toast.info(`Tracez ${article} sur le plan`, {
       description: 'Cliquez les points le long de la parcelle — double-clic pour terminer.',
     })
   }
@@ -261,9 +263,11 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
         toast.warning('Il faut au moins 2 points pour tracer une clôture.')
         return
       }
-      const cloture = creerCloture(p.calque, points)
+      const kind = p.kindLineaire ?? 'cloture'
+      const cloture = creerCloture(p.calque, points, kind)
       etat.ajouterCloture(cloture)
-      toast.success(`Clôture tracée — ${fmtNombreFr(clotureMl(cloture))} ml calculés sur la polyligne.`)
+      const nomK = kind === 'bordure' ? 'Bordure' : kind === 'tranchee' ? 'Tranchée' : 'Clôture'
+      toast.success(`${nomK} tracée — ${fmtNombreFr(clotureMl(cloture))} ml calculés sur la polyligne.`)
       return
     }
     if (points.length < 3) {
@@ -440,7 +444,9 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             onOutil={setOutil}
             onAjouterPiece={() => ouvrirModal({ kind: 'piece' })}
             onZoneExt={(extType) => ouvrirModal({ kind: 'surface', extType })}
-            onCloture={demarrerCloture}
+            onCloture={() => demarrerLineaire('cloture')}
+            onBordure={() => demarrerLineaire('bordure')}
+            onTranchee={() => demarrerLineaire('tranchee')}
           />
         )}
 
@@ -473,7 +479,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
               metier={metier}
               outil={outil}
               onOutil={setOutil}
-              onCloture={demarrerCloture}
+              onCloture={() => demarrerLineaire('cloture')}
               polygone={polygone}
               onAnnulerPolygone={() => setPolygone(null)}
               niveauVide={niveauVide}
@@ -539,7 +545,13 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             ) : etat.clotureSelectionnee ? (
               <ClotureSheet
                 cloture={etat.clotureSelectionnee}
-                onEnvoyerDevis={() => ouvrirTiroir({ metric: 'cloture_ml', roomId: etat.clotureSelectionnee!.id })}
+                onMaj={(patch) => etat.majCloture(etat.clotureSelectionnee!.id, patch)}
+                onEnvoyerDevis={() => {
+                  const cl = etat.clotureSelectionnee!
+                  const k = kindDe(cl)
+                  const metric = k === 'bordure' ? 'bordure_ml' : k === 'tranchee' ? 'tranchee_ml' : 'cloture_ml'
+                  ouvrirTiroir({ metric, roomId: cl.id })
+                }}
                 onSupprimer={supprimerSelection}
                 onFermer={() => etat.selectFence(null)}
               />

@@ -83,6 +83,7 @@ function estPieceValide(p: unknown): p is Piece {
   if (x.layer !== 'existant' && x.layer !== 'projet') return false
   if (!Number.isFinite(x.height)) return false
   if (x.deductionSolM2 !== undefined && !Number.isFinite(x.deductionSolM2)) return false
+  if (x.profondeurMm !== undefined && !Number.isFinite(x.profondeurMm)) return false
   if (!Array.isArray(x.vertices) || !x.vertices.every(estPointValide)) return false
   if (!Array.isArray(x.openings) || !x.openings.every(estOuvertureValide)) return false
   return true
@@ -99,6 +100,9 @@ function estSymboleValide(s: unknown): boolean {
 function estClotureValide(c: unknown): boolean {
   if (typeof c !== 'object' || c === null) return false
   const x = c as Record<string, unknown>
+  if (x.kind !== undefined && x.kind !== 'cloture' && x.kind !== 'bordure' && x.kind !== 'tranchee') return false
+  if (x.largeurMm !== undefined && !Number.isFinite(x.largeurMm)) return false
+  if (x.profondeurMm !== undefined && !Number.isFinite(x.profondeurMm)) return false
   return (
     typeof x.id === 'string' &&
     Array.isArray(x.points) &&

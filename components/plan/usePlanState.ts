@@ -69,6 +69,7 @@ export interface PlanStateApi {
   ajouterSymbole: (symbole: Symbole) => void
   supprimerSymbole: (symboleId: string) => void
   ajouterCloture: (cloture: Cloture) => void
+  majCloture: (clotureId: string, patch: Partial<Cloture>) => void
   supprimerCloture: (clotureId: string) => void
   /** Mutation SANS cran d'undo (frames de drag, après debutGeste). */
   deplacerSymboleSansUndo: (symboleId: string, dx: number, dy: number) => void
@@ -251,6 +252,18 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     [muter, surNiveau]
   )
 
+  const majCloture = useCallback(
+    (clotureId: string, patch: Partial<Cloture>) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        if (!niv) return
+        const i = niv.clotures.findIndex((c) => c.id === clotureId)
+        if (i >= 0) niv.clotures[i] = { ...niv.clotures[i], ...patch }
+      })
+    },
+    [muter, surNiveau]
+  )
+
   const changerNaturePiece = useCallback(
     (roomId: string, nature: NatureZone) => {
       muter((copie) => {
@@ -264,6 +277,9 @@ export function usePlanState(initial: PlanData): PlanStateApi {
         // au principe « on n'efface jamais le travail de l'artisan ».
         const maj = { ...niv.rooms[i] }
         delete maj.extType
+        // Une profondeur d'excavation n'a pas de sens sur une pièce intérieure :
+        // on la purge à la bascule (défense en profondeur, en plus du gate cat).
+        if (nature.kind === 'piece') delete maj.profondeurMm
         niv.rooms[i] = { ...maj, ...catExtDepuisNature(nature) }
       })
     },
@@ -629,6 +645,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     ajouterSymbole,
     supprimerSymbole,
     ajouterCloture,
+    majCloture,
     supprimerCloture,
     deplacerSymboleSansUndo,
     majSymboleSansUndo,

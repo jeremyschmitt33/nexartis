@@ -12,6 +12,7 @@
 
 import type {
   Cloture,
+  KindLineaire,
   MetresPiece,
   ModeDeduction,
   Niveau,
@@ -264,6 +265,40 @@ export function surfaceHabitableM2(pieces: Piece[]): number {
   return Math.round(total * 100) / 100;
 }
 
+/**
+ * Profondeur d'excavation/épaisseur d'une SURFACE extérieure, ou null.
+ * PRÉDICAT UNIQUE (gate cat==='ext' cuit ici) : une profondeur qui traînerait
+ * sur une pièce intérieure (ex. après une bascule de nature) produit null,
+ * donc zéro volume. `typeof === 'number'` (jamais `in`/`!== undefined` : le
+ * round-trip JSON supprime les clés undefined, cf. Symbole.hauteurMm).
+ */
+export function profondeurExt(piece: Piece): number | null {
+  return piece.cat === 'ext' && typeof piece.profondeurMm === 'number' && piece.profondeurMm > 0
+    ? piece.profondeurMm
+    : null;
+}
+
+/** Volume d'une surface extérieure en m³ (aire BRUTE × profondeur, UN seul arrondi). */
+export function volumeExtM3(piece: Piece): number {
+  const prof = profondeurExt(piece);
+  if (prof === null) return 0;
+  return Math.round((aireMm2(piece.vertices) / 1e6) * (prof / 1000) * 100) / 100;
+}
+
+/** Type de linéaire (absent === 'cloture', compat). */
+export function kindDe(c: Cloture): KindLineaire {
+  return c.kind ?? 'cloture';
+}
+
+/** Volume de déblai d'une tranchée en m³ (ml × largeur × profondeur). 0 si incomplet. */
+export function volumeTrancheeM3(c: Cloture): number {
+  if (kindDe(c) !== 'tranchee') return 0;
+  const l = c.largeurMm ?? 0;
+  const p = c.profondeurMm ?? 0;
+  if (!Number.isFinite(l) || !Number.isFinite(p) || l <= 0 || p <= 0) return 0; // garde STRICTE : jamais de volume partiel / NaN
+  return Math.round(clotureMl(c) * (l / 1000) * (p / 1000) * 100) / 100;
+}
+
 /** Surface extérieure totale (terrasses, pelouses, piscines...). */
 export function surfaceExterieureM2(pieces: Piece[]): number {
   let total = 0;
@@ -284,7 +319,11 @@ export interface TotauxExterieur {
   piscinePerimetreMl: number;
   pelouseM2: number;
   autreExtM2: number;
+  volumeM3: number;
   clotureMl: number;
+  bordureMl: number;
+  trancheeMl: number;
+  trancheeVolumeM3: number;
   portails: number;
 }
 
@@ -295,7 +334,11 @@ export function totauxExterieur(niveau: Niveau): TotauxExterieur {
     piscinePerimetreMl: 0,
     pelouseM2: 0,
     autreExtM2: 0,
+    volumeM3: 0,
     clotureMl: 0,
+    bordureMl: 0,
+    trancheeMl: 0,
+    trancheeVolumeM3: 0,
     portails: 0,
   };
   for (const p of niveau.rooms) {
@@ -307,8 +350,19 @@ export function totauxExterieur(niveau: Niveau): TotauxExterieur {
       t.piscinePerimetreMl += perimetreMl(p);
     } else if (p.extType === 'pelouse') t.pelouseM2 += s;
     else t.autreExtM2 += s;
+    t.volumeM3 += volumeExtM3(p);
   }
-  for (const c of niveau.clotures) t.clotureMl += clotureMl(c);
+  // Chaque linéaire va dans SON total : sans ce filtre, bordures et tranchées
+  // gonfleraient le total « clôture » (régression silencieuse au devis).
+  for (const c of niveau.clotures) {
+    const k = kindDe(c);
+    if (k === 'cloture') t.clotureMl += clotureMl(c);
+    else if (k === 'bordure') t.bordureMl += clotureMl(c);
+    else {
+      t.trancheeMl += clotureMl(c);
+      t.trancheeVolumeM3 += volumeTrancheeM3(c);
+    }
+  }
   for (const s of niveau.symbols) {
     if (s.type === 'portail') t.portails += 1;
   }
@@ -318,7 +372,11 @@ export function totauxExterieur(niveau: Niveau): TotauxExterieur {
   t.piscinePerimetreMl = arrondi(t.piscinePerimetreMl);
   t.pelouseM2 = arrondi(t.pelouseM2);
   t.autreExtM2 = arrondi(t.autreExtM2);
+  t.volumeM3 = arrondi(t.volumeM3);
   t.clotureMl = arrondi(t.clotureMl);
+  t.bordureMl = arrondi(t.bordureMl);
+  t.trancheeMl = arrondi(t.trancheeMl);
+  t.trancheeVolumeM3 = arrondi(t.trancheeVolumeM3);
   return t;
 }
 

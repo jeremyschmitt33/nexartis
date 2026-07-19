@@ -18,11 +18,14 @@ import type { ModeDeduction, Niveau, Piece, Symbole } from './types'
 import {
   appliquerChutes,
   clotureMl,
+  kindDe,
   perimetreMl,
   plinthesMl,
   surfaceMursM2,
   surfacePlafondM2,
   surfaceSolM2,
+  volumeExtM3,
+  volumeTrancheeM3,
 } from './metrics'
 import { compteursElec, compteursPlomberie, type MetierId } from './profils'
 
@@ -43,7 +46,7 @@ export interface LigneProposee {
   designation: string
   /** Quantité en unités finales, 2 décimales max. */
   quantite: number
-  unite: 'm²' | 'ml' | 'u'
+  unite: 'm²' | 'ml' | 'u' | 'm³'
   /** Règle de calcul affichée en sous-texte gris (jamais « conforme »). */
   regle?: string
   /** true si le métré provient du calque Projet (bandeau orange). */
@@ -161,21 +164,43 @@ function lotExterieur(niveau: Niveau): LigneProposee[] {
     if (p.cat !== 'ext') continue
     const projet = p.layer === 'projet'
     const s = surfaceSolM2(p)
-    if (s <= 0) continue
-    if (p.extType === 'terrasse') {
-      out.push(ligne(LOT_EXTERIEUR, 'ext_terrasse', p.id, `Terrasse — ${p.name}`, s, 'm²', projet))
-    } else if (p.extType === 'piscine') {
-      out.push(ligne(LOT_EXTERIEUR, 'ext_piscine', p.id, `Piscine — ${p.name}`, s, 'm²', projet, `périmètre ${perimetreMl(p).toFixed(2).replace('.', ',')} ml (margelles)`))
-    } else if (p.extType === 'pelouse') {
-      out.push(ligne(LOT_EXTERIEUR, 'ext_pelouse', p.id, `Engazonnement / pelouse — ${p.name}`, s, 'm²', projet))
-    } else {
-      out.push(ligne(LOT_EXTERIEUR, 'ext_autre', p.id, `Zone extérieure — ${p.name}`, s, 'm²', projet))
+    if (s > 0) {
+      if (p.extType === 'terrasse') {
+        out.push(ligne(LOT_EXTERIEUR, 'ext_terrasse', p.id, `Terrasse — ${p.name}`, s, 'm²', projet))
+      } else if (p.extType === 'piscine') {
+        out.push(ligne(LOT_EXTERIEUR, 'ext_piscine', p.id, `Piscine — ${p.name}`, s, 'm²', projet, `périmètre ${perimetreMl(p).toFixed(2).replace('.', ',')} ml (margelles)`))
+      } else if (p.extType === 'pelouse') {
+        out.push(ligne(LOT_EXTERIEUR, 'ext_pelouse', p.id, `Engazonnement / pelouse — ${p.name}`, s, 'm²', projet))
+      } else {
+        out.push(ligne(LOT_EXTERIEUR, 'ext_autre', p.id, `Zone extérieure — ${p.name}`, s, 'm²', projet))
+      }
+    }
+    // Volume (profondeur saisie) : UNE ligne, l'artisan la qualifie (déblai/béton)
+    // et ajuste sur le devis. Jamais deux lignes couplées au même volume.
+    const vol = volumeExtM3(p)
+    if (vol > 0) {
+      const prof = ((p.profondeurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
+      out.push(ligne(LOT_EXTERIEUR, 'ext_volume', p.id, `Volume — ${p.name}`, vol, 'm³', projet, `${s.toFixed(2).replace('.', ',')} m² × ${prof} m — à qualifier (déblai / béton)`))
     }
   }
   for (const cl of niveau.clotures) {
+    const projet = cl.layer === 'projet'
     const ml = clotureMl(cl)
     if (ml <= 0) continue
-    out.push(ligne(LOT_EXTERIEUR, 'cloture_ml', cl.id, 'Clôture / grillage', ml, 'ml', cl.layer === 'projet', 'longueur de la polyligne tracée'))
+    const k = kindDe(cl)
+    if (k === 'bordure') {
+      out.push(ligne(LOT_EXTERIEUR, 'bordure_ml', cl.id, 'Bordure', ml, 'ml', projet, 'longueur de la polyligne tracée'))
+    } else if (k === 'tranchee') {
+      out.push(ligne(LOT_EXTERIEUR, 'tranchee_ml', cl.id, 'Tranchée', ml, 'ml', projet, 'longueur de la polyligne tracée'))
+      const vol = volumeTrancheeM3(cl)
+      if (vol > 0) {
+        const la = ((cl.largeurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
+        const pr = ((cl.profondeurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
+        out.push(ligne(LOT_EXTERIEUR, 'tranchee_volume', cl.id, 'Tranchée — volume', vol, 'm³', projet, `${ml.toFixed(2).replace('.', ',')} ml × ${la} × ${pr} m — à qualifier (déblai / béton)`))
+      }
+    } else {
+      out.push(ligne(LOT_EXTERIEUR, 'cloture_ml', cl.id, 'Clôture / grillage', ml, 'ml', projet, 'longueur de la polyligne tracée'))
+    }
   }
   const portails = niveau.symbols.filter((s) => s.type === 'portail').length
   if (portails > 0) out.push(ligne(LOT_EXTERIEUR, 'portail_u', null, 'Portail — fourniture et pose', portails, 'u', false))

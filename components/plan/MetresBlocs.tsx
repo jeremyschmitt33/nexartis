@@ -341,7 +341,7 @@ export function BlocPlombier({ roomId, symboles, envoyer }: { roomId: string; sy
 export function BlocExterieur({ niveau, envoyer }: { niveau: Niveau; envoyer: Envoyer }) {
   const t = totauxExterieur(niveau)
   const vide =
-    t.terrasseM2 === 0 && t.piscineM2 === 0 && t.pelouseM2 === 0 && t.autreExtM2 === 0 && t.clotureMl === 0 && t.portails === 0
+    t.terrasseM2 === 0 && t.piscineM2 === 0 && t.pelouseM2 === 0 && t.autreExtM2 === 0 && t.volumeM3 === 0 && t.clotureMl === 0 && t.bordureMl === 0 && t.trancheeMl === 0 && t.portails === 0
   if (vide) return null
   return (
     <div className="mt-3">
@@ -367,6 +367,9 @@ export function BlocExterieur({ niveau, envoyer }: { niveau: Niveau; envoyer: En
         {t.autreExtM2 > 0 && (
           <Ligne label="Autres zones ext." valeur={fmtNombreFr(t.autreExtM2)} unite="m²" onEnvoyer={() => envoyer({ metric: 'ext_autre' })} />
         )}
+        {t.volumeM3 > 0 && (
+          <Ligne label="Volume (déblai / béton)" sous="profondeur × surface — à qualifier sur le devis" valeur={fmtNombreFr(t.volumeM3)} unite="m³" onEnvoyer={() => envoyer({ metric: 'ext_volume' })} />
+        )}
         {t.clotureMl > 0 && (
           <Ligne
             label="Clôture / grillage"
@@ -375,6 +378,15 @@ export function BlocExterieur({ niveau, envoyer }: { niveau: Niveau; envoyer: En
             unite="ml"
             onEnvoyer={() => envoyer({ metric: 'cloture_ml' })}
           />
+        )}
+        {t.bordureMl > 0 && (
+          <Ligne label="Bordure" valeur={fmtNombreFr(t.bordureMl)} unite="ml" onEnvoyer={() => envoyer({ metric: 'bordure_ml' })} />
+        )}
+        {t.trancheeMl > 0 && (
+          <Ligne label="Tranchée" valeur={fmtNombreFr(t.trancheeMl)} unite="ml" onEnvoyer={() => envoyer({ metric: 'tranchee_ml' })} />
+        )}
+        {t.trancheeVolumeM3 > 0 && (
+          <Ligne label="Tranchée — volume" sous="à qualifier (déblai / béton)" valeur={fmtNombreFr(t.trancheeVolumeM3)} unite="m³" onEnvoyer={() => envoyer({ metric: 'tranchee_volume' })} />
         )}
         {t.portails > 0 && (
           <Ligne label="Portail" valeur={String(t.portails)} unite="u" onEnvoyer={() => envoyer({ metric: 'portail_u' })} />

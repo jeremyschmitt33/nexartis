@@ -79,6 +79,8 @@ export interface Piece {
   layer: CalqueId;
   cat: CategorieZone;
   extType?: TypeExterieur;
+  /** Zone extérieure : profondeur/épaisseur en mm -> volume (m³). Lu SEULEMENT si cat==='ext'. */
+  profondeurMm?: number;
   vertices: PointMm[];
   /** Hauteur sous plafond en mm (défaut : heightDefault du niveau). */
   height: number;
@@ -103,11 +105,20 @@ export interface Piece {
   avancementPar?: string;
 }
 
-/** Clôture / grillage : polyligne OUVERTE (non fermée), métrée en ml. */
+/** Type de linéaire : clôture (défaut), bordure, ou tranchée (largeur+profondeur -> volume). */
+export type KindLineaire = 'cloture' | 'bordure' | 'tranchee';
+
+/** Clôture / bordure / tranchée : polyligne OUVERTE (non fermée), métrée en ml. */
 export interface Cloture {
   id: string;
   layer: CalqueId;
   points: PointMm[];
+  /** Absent === 'cloture' (compat ascendante des plans déjà en base). */
+  kind?: KindLineaire;
+  /** Tranchée uniquement : largeur en mm (pour le volume de déblai). */
+  largeurMm?: number;
+  /** Tranchée uniquement : profondeur en mm (pour le volume de déblai). */
+  profondeurMm?: number;
 }
 
 /** Symbole métier posé sur le plan (prise, radiateur, portail...). */

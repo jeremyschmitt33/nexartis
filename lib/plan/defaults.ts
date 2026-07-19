@@ -16,6 +16,7 @@ import type {
   CategorieZone,
   Cloture,
   EtatAvancement,
+  KindLineaire,
   NatureZone,
   Niveau,
   Ouverture,
@@ -445,10 +446,12 @@ export function creerPiecePoly(
 }
 
 /** Clôture / grillage : polyligne OUVERTE (points en mm entiers), métrée en ml. */
-export function creerCloture(layer: CalqueId, points: PointMm[]): Cloture {
+export function creerCloture(layer: CalqueId, points: PointMm[], kind: KindLineaire = 'cloture'): Cloture {
   return {
     id: genId(),
     layer,
+    // On n'écrit `kind` que s'il n'est pas 'cloture' (JSONB minimal, compat).
+    ...(kind !== 'cloture' ? { kind } : {}),
     points: points.map(([x, y]): PointMm => [Math.round(x), Math.round(y)]),
   }
 }

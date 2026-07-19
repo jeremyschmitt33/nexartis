@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CalqueId, NatureZone, Niveau, PointMm, TypeOuverture } from '@/lib/plan/types'
+import type { CalqueId, KindLineaire, NatureZone, Niveau, PointMm, TypeOuverture } from '@/lib/plan/types'
 import { estDansPolygone, snapMm } from '@/lib/plan/geometry'
 import {
   cadrerSur,
@@ -48,6 +48,8 @@ export interface PolygoneEnCours {
   mode?: 'piece' | 'cloture'
   /** Nature de la zone à créer (mode 'piece'). Absente pour une clôture. */
   nature?: NatureZone
+  /** Type de linéaire (mode 'cloture') : clôture / bordure / tranchée. */
+  kindLineaire?: KindLineaire
 }
 
 export interface PlanCanvasProps {
