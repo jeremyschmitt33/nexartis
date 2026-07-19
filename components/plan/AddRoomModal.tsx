@@ -8,14 +8,25 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import type { CalqueId } from '@/lib/plan/types'
+import type { CalqueId, NatureZone, TypeExterieur } from '@/lib/plan/types'
 import { CHIPS_BASE, CHIPS_PLUS, lireMetresEnMm, COTE_MIN_MM, COTE_MAX_MM } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
 export type FormePiece = 'rect' | 'L' | 'poly'
 
+/** Libellés par défaut des sous-types de surface extérieure. */
+const SURFACE_LABELS: Record<TypeExterieur, string> = {
+  terrasse: 'Terrasse',
+  piscine: 'Piscine',
+  pelouse: 'Pelouse',
+  autre_ext: 'Zone extérieure',
+}
+const SURFACE_ORDRE: TypeExterieur[] = ['terrasse', 'piscine', 'pelouse', 'autre_ext']
+
 export interface DemandePiece {
   nom: string
+  /** Nature décidée par l'outil (le bouton), jamais par le nom. */
+  nature: NatureZone
   forme: FormePiece
   calque: CalqueId
   /** Dimensions en mm (absentes pour un polygone, dessiné au clic). */
@@ -31,8 +42,8 @@ export interface DemandePiece {
 export interface AddRoomModalProps {
   open: boolean
   calqueParDefaut: CalqueId
-  /** Type pré-sélectionné à l'ouverture (palette Extérieur : Terrasse…). */
-  typeInitial?: string | null
+  /** Nature à l'ouverture : pièce (défaut) ou surface extérieure (palette). */
+  natureInitiale?: NatureZone
   onValider: (demande: DemandePiece) => void
   onFermer: () => void
 }
@@ -43,9 +54,12 @@ const FORMES: { key: FormePiece; label: string }[] = [
   { key: 'poly', label: 'Polygone libre' },
 ]
 
-export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null, onValider, onFermer }: AddRoomModalProps) {
+export default function AddRoomModal({ open, calqueParDefaut, natureInitiale = { kind: 'piece' }, onValider, onFermer }: AddRoomModalProps) {
+  const surface = natureInitiale.kind === 'surface'
   const [type, setType] = useState<string>('Chambre')
   const [nomLibre, setNomLibre] = useState('')
+  const [extType, setExtType] = useState<TypeExterieur>('terrasse')
+  const [nomSurface, setNomSurface] = useState('')
   const [voirTout, setVoirTout] = useState(false)
   const [forme, setForme] = useState<FormePiece>('rect')
   const [calque, setCalque] = useState<CalqueId>(calqueParDefaut)
@@ -85,13 +99,13 @@ export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null
     return () => clearTimeout(t)
   }, [open, forme])
 
-  // Type pré-sélectionné (palette Extérieur) : chip cochée + section dépliée
-  // si elle est derrière « Voir tout » (Terrasse / Piscine / Pelouse).
+  // Surface (palette Extérieur) : sous-type pré-sélectionné + nom par défaut
+  // remis au libellé du sous-type à l'ouverture (nom TOUJOURS éditable ensuite).
   useEffect(() => {
-    if (!open || !typeInitial) return
-    setType(typeInitial)
-    if ((CHIPS_PLUS as readonly string[]).includes(typeInitial)) setVoirTout(true)
-  }, [open, typeInitial])
+    if (!open || natureInitiale.kind !== 'surface') return
+    setExtType(natureInitiale.extType)
+    setNomSurface(SURFACE_LABELS[natureInitiale.extType])
+  }, [open, natureInitiale])
 
   useEffect(() => {
     if (!open) return
@@ -105,9 +119,14 @@ export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null
   if (!open) return null
 
   const valider = (continuer = false) => {
-    const nom = type === '__libre' ? nomLibre.trim() || 'Pièce' : type
+    const nature: NatureZone = surface ? { kind: 'surface', extType } : { kind: 'piece' }
+    const nom = surface
+      ? nomSurface.trim() || SURFACE_LABELS[extType]
+      : type === '__libre'
+        ? nomLibre.trim() || 'Pièce'
+        : type
     if (forme === 'poly') {
-      onValider({ nom, forme, calque })
+      onValider({ nom, nature, forme, calque })
       return
     }
     const w = lireMetresEnMm(longueur)
@@ -116,7 +135,7 @@ export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null
       toast.warning('Dimensions invalides', { description: 'Saisissez entre 0,5 et 30 m (ex. 4,5).' })
       return
     }
-    onValider({ nom, forme, calque, largeurMm: w, hauteurMm: h, continuer })
+    onValider({ nom, nature, forme, calque, largeurMm: w, hauteurMm: h, continuer })
     if (continuer) {
       // On vide les cotes et on rend la main au champ Longueur : l'artisan
       // enchaîne la pièce suivante sans lever les yeux ni viser un champ.
@@ -161,31 +180,67 @@ export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null
       <button type="button" aria-label="Fermer" onClick={onFermer} className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
       <div className="relative max-h-[88vh] w-full max-w-[520px] overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
         <h2 id="ajout-piece-titre" className="mb-4 text-[17px] font-extrabold tracking-tight text-navy">
-          Ajouter une pièce
+          {surface ? 'Ajouter une zone extérieure' : 'Ajouter une pièce'}
         </h2>
 
-        <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Type de pièce</span>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {CHIPS_BASE.map((n) => chip(n))}
-          {chip('Autre…', '__libre')}
-        </div>
-        {voirTout && <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{CHIPS_PLUS.map((n) => chip(n))}</div>}
-        <button
-          type="button"
-          onClick={() => setVoirTout((v) => !v)}
-          className="mt-2 w-full rounded-xl border border-dashed border-gray-300 py-1.5 text-[12px] font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-navy"
-        >
-          {voirTout ? 'Réduire' : 'Voir tout'}
-        </button>
-        {type === '__libre' && (
-          <input
-            ref={nomLibreRef}
-            value={nomLibre}
-            onChange={(e) => setNomLibre(e.target.value)}
-            placeholder="Nom de la pièce (ex. Atelier)"
-            aria-label="Nom libre de la pièce"
-            className="mt-2 w-full rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-[14px] text-navy focus:border-orange focus:bg-white focus:outline-none"
-          />
+        {surface ? (
+          <>
+            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Type de surface</span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {SURFACE_ORDRE.map((t) => {
+                const sel = extType === t
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setExtType(t)}
+                    aria-pressed={sel}
+                    className={`rounded-xl border-[1.5px] px-2 py-2 font-hanken text-[12.5px] font-semibold transition-colors ${
+                      sel ? 'border-orange bg-orange/5 text-orange' : 'border-gray-200 bg-white text-navy hover:border-gray-300'
+                    }`}
+                  >
+                    {SURFACE_LABELS[t]}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-2 rounded-lg bg-sky/10 px-3 py-2 font-hanken text-[11.5px] leading-snug text-navy">
+              Surface au sol uniquement — pas de murs, pas de plafond. N&apos;entre jamais dans la surface habitable ni dans les métrés intérieurs.
+            </p>
+            <input
+              value={nomSurface}
+              onChange={(e) => setNomSurface(e.target.value)}
+              placeholder="Nom (ex. Terrasse Sud)"
+              aria-label="Nom de la zone extérieure"
+              className="mt-2 w-full rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-[14px] text-navy focus:border-orange focus:bg-white focus:outline-none"
+            />
+          </>
+        ) : (
+          <>
+            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Type de pièce</span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CHIPS_BASE.map((n) => chip(n))}
+              {chip('Autre…', '__libre')}
+            </div>
+            {voirTout && <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{CHIPS_PLUS.map((n) => chip(n))}</div>}
+            <button
+              type="button"
+              onClick={() => setVoirTout((v) => !v)}
+              className="mt-2 w-full rounded-xl border border-dashed border-gray-300 py-1.5 text-[12px] font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-navy"
+            >
+              {voirTout ? 'Réduire' : 'Voir tout'}
+            </button>
+            {type === '__libre' && (
+              <input
+                ref={nomLibreRef}
+                value={nomLibre}
+                onChange={(e) => setNomLibre(e.target.value)}
+                placeholder="Nom de la pièce (ex. Atelier)"
+                aria-label="Nom libre de la pièce"
+                className="mt-2 w-full rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-[14px] text-navy focus:border-orange focus:bg-white focus:outline-none"
+              />
+            )}
+          </>
         )}
 
         <span className="mb-2 mt-4 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Forme</span>
@@ -317,7 +372,7 @@ export default function AddRoomModal({ open, calqueParDefaut, typeInitial = null
             onClick={() => valider()}
             className="h-11 rounded-[12px] bg-gradient-to-r from-[#ff9d4d] to-[#ff7a1a] px-5 text-[14px] font-bold text-white shadow-[0_8px_20px_rgba(255,122,26,0.35)] transition-all hover:brightness-105"
           >
-            {forme === 'poly' ? 'Dessiner sur le plan' : 'Ajouter la pièce'}
+            {forme === 'poly' ? 'Dessiner sur le plan' : surface ? 'Ajouter la zone' : 'Ajouter la pièce'}
           </button>
         </div>
       </div>

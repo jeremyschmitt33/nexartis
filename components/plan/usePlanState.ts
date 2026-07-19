@@ -9,8 +9,8 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { Cloture, Niveau, Ouverture, Piece, PlanData, PointMm, Symbole } from '@/lib/plan/types'
-import { genId, niveauVide, nomAvecSuffixe } from '@/lib/plan/defaults'
+import type { Cloture, NatureZone, Niveau, Ouverture, Piece, PlanData, PointMm, Symbole } from '@/lib/plan/types'
+import { catExtDepuisNature, genId, niveauVide, nomAvecSuffixe } from '@/lib/plan/defaults'
 import {
   recalerOuvertures,
   redimensionnerParCote,
@@ -59,6 +59,8 @@ export interface PlanStateApi {
   deplacerPieceSansUndo: (roomId: string, dx: number, dy: number) => void
   ajouterPiece: (piece: Piece) => void
   majPiece: (roomId: string, patch: Partial<Piece>) => void
+  /** Reclasse une zone (pièce ⇄ surface). Ouvertures conservées (dormantes). */
+  changerNaturePiece: (roomId: string, nature: NatureZone) => void
   redimensionner: (roomId: string, dim: 'w' | 'h', mm: number) => ResultatCote
   supprimerPiece: (roomId: string) => Piece | null
   dupliquerPiece: (roomId: string) => void
@@ -244,6 +246,25 @@ export function usePlanState(initial: PlanData): PlanStateApi {
         if (!niv) return
         const i = niv.rooms.findIndex((r) => r.id === roomId)
         if (i >= 0) niv.rooms[i] = { ...niv.rooms[i], ...patch }
+      })
+    },
+    [muter, surNiveau]
+  )
+
+  const changerNaturePiece = useCallback(
+    (roomId: string, nature: NatureZone) => {
+      muter((copie) => {
+        const niv = surNiveau(copie)
+        if (!niv) return
+        const i = niv.rooms.findIndex((r) => r.id === roomId)
+        if (i < 0) return
+        // Réapplique le couple cat/extType de la nature choisie. Les ouvertures
+        // et symboles NE SONT PAS effacés : ils deviennent dormants (non comptés,
+        // non dessinés sur une surface) et reviennent si l'on rebascule — fidèle
+        // au principe « on n'efface jamais le travail de l'artisan ».
+        const maj = { ...niv.rooms[i] }
+        delete maj.extType
+        niv.rooms[i] = { ...maj, ...catExtDepuisNature(nature) }
       })
     },
     [muter, surNiveau]
@@ -599,6 +620,7 @@ export function usePlanState(initial: PlanData): PlanStateApi {
     deplacerPieceSansUndo,
     ajouterPiece,
     majPiece,
+    changerNaturePiece,
     redimensionner,
     supprimerPiece,
     dupliquerPiece,

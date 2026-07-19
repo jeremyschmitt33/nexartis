@@ -8,15 +8,17 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { EtatAvancement, Piece } from '@/lib/plan/types'
+import type { CategorieZone, EtatAvancement, NatureZone, Piece, TypeExterieur } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
 import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2 } from '@/lib/plan/metrics'
-import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
+import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM, nomEvoqueExterieur } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
 export interface RoomSheetProps {
   piece: Piece
   onMaj: (patch: Partial<Piece>) => void
+  /** Reclasse la zone (pièce ⇄ surface extérieure). */
+  onNature: (nature: NatureZone) => void
   /** Change l'état d'avancement (le parent y ajoute la date + l'auteur, Push 7B). */
   onAvancement: (etat: EtatAvancement) => void
   onDupliquer: () => void
@@ -27,11 +29,19 @@ export interface RoomSheetProps {
   children?: React.ReactNode
 }
 
+const NATURE_OPTIONS: { key: string; label: string; cat: CategorieZone; extType?: TypeExterieur; nature: NatureZone }[] = [
+  { key: 'int', label: 'Intérieur', cat: 'int', nature: { kind: 'piece' } },
+  { key: 'terrasse', label: 'Terrasse', cat: 'ext', extType: 'terrasse', nature: { kind: 'surface', extType: 'terrasse' } },
+  { key: 'piscine', label: 'Piscine', cat: 'ext', extType: 'piscine', nature: { kind: 'surface', extType: 'piscine' } },
+  { key: 'pelouse', label: 'Pelouse', cat: 'ext', extType: 'pelouse', nature: { kind: 'surface', extType: 'pelouse' } },
+  { key: 'autre_ext', label: 'Autre ext.', cat: 'ext', extType: 'autre_ext', nature: { kind: 'surface', extType: 'autre_ext' } },
+]
+
 function Etiquette({ children }: { children: React.ReactNode }) {
   return <span className="mb-1.5 block font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500">{children}</span>
 }
 
-export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
+export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
   const [nom, setNom] = useState(piece.name)
   const [hsp, setHsp] = useState(mmVersSaisieM(piece.height))
 
@@ -92,6 +102,58 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
             aria-label="Nom de la pièce"
             className="w-full rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 font-hanken text-[14px] text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
           />
+        </div>
+
+        {/* Avertissement DOUX (non bloquant) : le nom évoque l'extérieur alors
+            que la zone est classée Intérieur. `nomEvoqueExterieur` NE DÉCIDE
+            RIEN — c'est l'artisan qui tranche, d'un clic. Ferme le bug « Grande
+            terrasse » côté données déjà en base : une zone mal classée devient
+            enfin corrigeable, ici, sans SQL. */}
+        {piece.cat !== 'ext' && nomEvoqueExterieur(piece.name) && (
+          <div className="rounded-xl border border-orange/40 bg-orange/5 px-3 py-2.5">
+            <p className="font-hanken text-[11.5px] font-semibold leading-snug text-navy">
+              Cette zone s’appelle «&nbsp;{piece.name}&nbsp;» mais elle est classée
+              Intérieur — donc ses murs, son plafond et ses plinthes sont facturés.
+              Si c’est une zone extérieure, reclassez-la.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const t = nomEvoqueExterieur(piece.name)
+                if (t) onNature({ kind: 'surface', extType: t })
+              }}
+              className="mt-2 rounded-lg border-[1.5px] border-orange bg-white px-3 py-1.5 font-hanken text-[12px] font-bold text-orange transition-colors hover:bg-orange/10"
+            >
+              Reclasser en extérieur
+            </button>
+          </div>
+        )}
+
+        <div>
+          <Etiquette>Nature</Etiquette>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {NATURE_OPTIONS.map((opt) => {
+              const actif = opt.cat === 'int' ? piece.cat === 'int' : piece.cat === 'ext' && piece.extType === opt.extType
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => onNature(opt.nature)}
+                  aria-pressed={actif}
+                  className={`rounded-xl border-[1.5px] px-2.5 py-2 font-hanken text-[12.5px] font-semibold transition-colors ${
+                    actif ? 'border-orange bg-orange/5 text-orange' : 'border-gray-200 bg-white text-navy hover:border-gray-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
+            {piece.cat === 'ext'
+              ? 'Surface extérieure — comptée seulement en m² au sol, jamais de murs ni de plafond.'
+              : 'Pièce intérieure — génère murs, plafond, sol et plinthes dans le devis.'}
+          </p>
         </div>
 
         <div>
@@ -205,7 +267,7 @@ export default function RoomSheet({ piece, onMaj, onAvancement, onDupliquer, onS
           </div>
         </div>
 
-        {piece.openings.length > 0 && (
+        {piece.cat !== 'ext' && piece.openings.length > 0 && (
           <div>
             <Etiquette>Ouvertures</Etiquette>
             <ul className="space-y-1.5">

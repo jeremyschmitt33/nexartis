@@ -469,9 +469,10 @@ export default function PlanRender({
       ))}
       {tri.map((r) => (
         <g key={r.id} opacity={opacite(r)}>
-          {r.openings.map((o) => (
-            <RenduOuverture key={o.id} piece={r} o={o} />
-          ))}
+          {r.cat !== 'ext' &&
+            r.openings.map((o) => (
+              <RenduOuverture key={o.id} piece={r} o={o} />
+            ))}
         </g>
       ))}
       {tri.map((r) => (

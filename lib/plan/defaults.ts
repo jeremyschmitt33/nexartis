@@ -13,8 +13,10 @@
 
 import type {
   CalqueId,
+  CategorieZone,
   Cloture,
   EtatAvancement,
+  NatureZone,
   Niveau,
   Ouverture,
   Piece,
@@ -203,10 +205,6 @@ export const CHIPS_PLUS = [
   'Combles',
   'Mezzanine',
   'Véranda',
-  'Terrasse',
-  'Piscine',
-  'Pelouse',
-  'Balcon',
   'Local technique',
   'Escalier',
 ] as const
@@ -238,14 +236,60 @@ export function nomAvecSuffixe(base: string, existants: string[]): string {
   return base + ' ' + n
 }
 
-/** Déduit le sous-type extérieur à partir du nom choisi (Terrasse, Piscine...). */
-export function extTypeDe(nom: string): TypeExterieur | null {
+/** Sous-types extérieurs valides (source de vérité runtime). */
+export const EXT_TYPES_VALIDES = ['terrasse', 'piscine', 'pelouse', 'autre_ext'] as const
+
+/**
+ * ⚠️ ALERTE UNIQUEMENT — NE DÉCIDE JAMAIS LA NATURE D'UNE ZONE.
+ * Ancien `extTypeDe` (qui décidait la catégorie via le nom : bug « Grande
+ * terrasse »). La nature est désormais posée par l'OUTIL (voir NatureZone +
+ * catExtDepuisNature), jamais par le nom. Ne sert QU'À proposer un
+ * avertissement doux dans RoomSheet quand un nom évoque l'extérieur alors que
+ * la zone est classée intérieur. `includes` (et non `startsWith`) : large
+ * exprès, car elle ne décide rien — elle suggère seulement de vérifier.
+ */
+export function nomEvoqueExterieur(nom: string): TypeExterieur | null {
   const n = nom.toLowerCase()
-  if (n.startsWith('terrasse')) return 'terrasse'
-  if (n.startsWith('piscine')) return 'piscine'
-  if (n.startsWith('pelouse') || n.startsWith('gazon') || n.startsWith('jardin')) return 'pelouse'
-  if (n.startsWith('balcon')) return 'autre_ext'
+  if (n.includes('terrasse')) return 'terrasse'
+  if (n.includes('piscine') || n.includes('bassin')) return 'piscine'
+  if (n.includes('pelouse') || n.includes('gazon') || n.includes('jardin')) return 'pelouse'
+  if (n.includes('balcon') || n.includes('cour') || n.includes('terrain') || n.includes('allée') || n.includes('allee')) return 'autre_ext'
   return null
+}
+
+/** Mappe la NATURE (décidée par l'outil) vers le couple plat cat/extType stocké. */
+export function catExtDepuisNature(nature: NatureZone): { cat: CategorieZone; extType?: TypeExterieur } {
+  return nature.kind === 'surface' ? { cat: 'ext', extType: nature.extType } : { cat: 'int' }
+}
+
+/**
+ * Normalise la FORME d'une pièce venant de la base — JAMAIS sa nature.
+ * - `cat` absent/invalide -> 'int' (défaut sûr) ; ne reclasse JAMAIS un 'int'
+ *   ou 'ext' valide (ce serait re-deviner en silence = viol de la règle sacrée) ;
+ * - surface sans sous-type valide -> 'autre_ext' ;
+ * - pièce intérieure : on retire tout extType orphelin (inerte mais trompeur).
+ * Purement défensif : aucune valeur légitime n'est modifiée.
+ */
+export function normaliserPieceForme(p: Piece): Piece {
+  if (p.cat !== 'int' && p.cat !== 'ext') {
+    // cat absent/corrompu : si un sous-type extérieur valide est présent, on le
+    // respecte (surface) ; sinon défaut sûr en intérieur.
+    if (EXT_TYPES_VALIDES.includes(p.extType as TypeExterieur)) {
+      return { ...p, cat: 'ext', extType: p.extType as TypeExterieur }
+    }
+    const maj = { ...p }
+    delete maj.extType
+    maj.cat = 'int'
+    return maj
+  }
+  if (p.cat === 'ext') {
+    const extType = EXT_TYPES_VALIDES.includes(p.extType as TypeExterieur) ? (p.extType as TypeExterieur) : 'autre_ext'
+    return p.extType === extType ? p : { ...p, extType }
+  }
+  if (p.extType === undefined) return p
+  const maj = { ...p }
+  delete maj.extType
+  return maj
 }
 
 /**
@@ -316,7 +360,7 @@ export function normaliserPlanData(brut: unknown): PlanData {
       typeof niv.heightDefault === 'number' && niv.heightDefault > 0
         ? niv.heightDefault
         : HSP_DEFAUT_MM,
-    rooms: Array.isArray(niv.rooms) ? niv.rooms : [],
+    rooms: Array.isArray(niv.rooms) ? niv.rooms.map(normaliserPieceForme) : [],
     clotures: Array.isArray(niv.clotures) ? niv.clotures : [],
     symbols: Array.isArray(niv.symbols) ? niv.symbols : [],
   }))
@@ -326,6 +370,7 @@ export function normaliserPlanData(brut: unknown): PlanData {
 
 /** Pièce rectangulaire (sommets CCW). Dimensions et position en mm. */
 export function creerPieceRect(
+  nature: NatureZone,
   name: string,
   layer: CalqueId,
   x: number,
@@ -334,13 +379,11 @@ export function creerPieceRect(
   hauteur: number,
   hsp: number
 ): Piece {
-  const ext = extTypeDe(name)
   return {
     id: genId(),
     name,
     layer,
-    cat: ext ? 'ext' : 'int',
-    ...(ext ? { extType: ext } : {}),
+    ...catExtDepuisNature(nature),
     vertices: rectanglePolygone(x, y, largeur, hauteur),
     height: hsp,
     openings: [],
@@ -352,6 +395,7 @@ export function creerPieceRect(
  * de cutW × cutH (comme la maquette : découpe = moitié arrondie à la grille).
  */
 export function creerPieceL(
+  nature: NatureZone,
   name: string,
   layer: CalqueId,
   x: number,
@@ -370,13 +414,11 @@ export function creerPieceL(
     [x + largeur - cutW, y + hauteur],
     [x, y + hauteur],
   ]
-  const ext = extTypeDe(name)
   return {
     id: genId(),
     name,
     layer,
-    cat: ext ? 'ext' : 'int',
-    ...(ext ? { extType: ext } : {}),
+    ...catExtDepuisNature(nature),
     vertices: normaliserCCW(pts),
     height: hsp,
     openings: [],
@@ -385,18 +427,17 @@ export function creerPieceL(
 
 /** Pièce polygone libre à partir des points cliqués (déjà en mm). */
 export function creerPiecePoly(
+  nature: NatureZone,
   name: string,
   layer: CalqueId,
   points: PointMm[],
   hsp: number
 ): Piece {
-  const ext = extTypeDe(name)
   return {
     id: genId(),
     name,
     layer,
-    cat: ext ? 'ext' : 'int',
-    ...(ext ? { extType: ext } : {}),
+    ...catExtDepuisNature(nature),
     vertices: normaliserCCW(points),
     height: hsp,
     openings: [],

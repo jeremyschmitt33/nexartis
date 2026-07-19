@@ -32,6 +32,16 @@ export type CategorieZone = 'int' | 'ext';
 export type TypeExterieur = 'terrasse' | 'piscine' | 'pelouse' | 'autre_ext';
 
 /**
+ * Nature d'une zone, DÉCIDÉE À LA CRÉATION par l'outil (le bouton), jamais par
+ * le nom. Union discriminée : une surface porte toujours son sous-type, une
+ * pièce n'en a jamais. Canal explicite qui remplace la devinette du nom.
+ * Mappée vers le couple plat cat/extType de Piece par catExtDepuisNature.
+ */
+export type NatureZone =
+  | { kind: 'piece' }
+  | { kind: 'surface'; extType: TypeExterieur };
+
+/**
  * État d'avancement d'une pièce sur le chantier (mode Avancement, Push 7).
  * Absent sur une pièce = 'a_faire' (rien n'a démarré, plan neutre).
  * 'termine' et 'receptionne' valent tous deux 100 % ; 'receptionne' marque

@@ -72,6 +72,14 @@ function estPieceValide(p: unknown): p is Piece {
   const x = p as Record<string, unknown>
   if (typeof x.id !== 'string' || typeof x.name !== 'string') return false
   if (x.cat !== 'int' && x.cat !== 'ext') return false
+  if (
+    x.extType !== undefined &&
+    x.extType !== 'terrasse' &&
+    x.extType !== 'piscine' &&
+    x.extType !== 'pelouse' &&
+    x.extType !== 'autre_ext'
+  )
+    return false
   if (x.layer !== 'existant' && x.layer !== 'projet') return false
   if (!Number.isFinite(x.height)) return false
   if (x.deductionSolM2 !== undefined && !Number.isFinite(x.deductionSolM2)) return false

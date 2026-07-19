@@ -11,7 +11,7 @@
  * `outilsMobiles` fournit la même liste à la barre mobile de PlanEditor.
  */
 
-import type { TypeOuverture } from '@/lib/plan/types'
+import type { TypeExterieur, TypeOuverture } from '@/lib/plan/types'
 import { PROFILS, profilDe, type MetierId } from '@/lib/plan/profils'
 import { labelSymbole } from '@/lib/plan/symboles'
 import { IconeSymbole } from './SymboleSvg'
@@ -44,8 +44,14 @@ export function groupesSymboles(metier: MetierId): GroupeSymboles[] {
   return [{ titre: profil.label, outils: versOutils(profil.symboles) }]
 }
 
-/** Zones extérieures créées via la modale pièce (chips pré-sélectionnées). */
-export const ZONES_EXTERIEURES = ['Terrasse', 'Piscine', 'Pelouse'] as const
+/** Zones extérieures (SURFACES sans murs). La nature est portée par l'OUTIL,
+ *  jamais par le nom : chaque entrée pose son sous-type explicitement. */
+export const ZONES_EXTERIEURES: { extType: TypeExterieur; label: string; icone: string }[] = [
+  { extType: 'terrasse', label: 'Terrasse', icone: 'Terrasse' },
+  { extType: 'piscine', label: 'Piscine', icone: 'Piscine' },
+  { extType: 'pelouse', label: 'Pelouse', icone: 'Pelouse' },
+  { extType: 'autre_ext', label: 'Autre extérieur', icone: 'Autre' },
+]
 
 /** Liste plate pour la barre d'outils mobile (portail inclus, Push 3b). */
 export function outilsMobiles(metier: MetierId): { key: Outil; label: string }[] {
@@ -157,8 +163,8 @@ export interface PlanPaletteProps {
   outil: Outil
   onOutil: (outil: Outil) => void
   onAjouterPiece: () => void
-  /** Ouvre la modale pièce avec le type de zone pré-sélectionné (Terrasse…). */
-  onZoneExt: (nom: string) => void
+  /** Ouvre la modale avec une SURFACE extérieure du sous-type donné. */
+  onZoneExt: (extType: TypeExterieur) => void
   /** Démarre le tracé d'une clôture (polyligne ouverte). */
   onCloture: () => void
 }
@@ -220,15 +226,15 @@ export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, on
       ))}
 
       {titre('Extérieur')}
-      {ZONES_EXTERIEURES.map((nom) => (
+      {ZONES_EXTERIEURES.map((z) => (
         <button
-          key={nom}
+          key={z.extType}
           type="button"
-          onClick={() => onZoneExt(nom)}
+          onClick={() => onZoneExt(z.extType)}
           className="flex w-full items-center gap-2 rounded-xl border-[1.5px] border-transparent px-2.5 py-2 text-left font-hanken text-[12.5px] font-semibold text-navy transition-colors hover:bg-gray-50"
         >
-          <IconeExt type={nom} />
-          <span className="truncate">{nom}</span>
+          <IconeExt type={z.icone} />
+          <span className="truncate">{z.label}</span>
         </button>
       ))}
       <button

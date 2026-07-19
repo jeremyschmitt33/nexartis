@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { EtatAvancement, ModeDeduction, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
+import type { EtatAvancement, ModeDeduction, NatureZone, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
 import { aireMm2, estDansPolygone, fmtNombreFr, fmtSurfaceM2 } from '@/lib/plan/geometry'
 import { OUVERTURE_DEFAUTS, creerCloture, creerPieceL, creerPiecePoly, creerPieceRect, nomAvecSuffixe } from '@/lib/plan/defaults'
 import { positionNouvellePiece, preparerOuverture, projeterSurClotures } from '@/lib/plan/edition'
@@ -60,7 +60,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   const [metier, setMetier] = useState<MetierId>(profilDe(metierInitial).id)
   const [outil, setOutil] = useState<Outil>('select')
   const [modalOuverte, setModalOuverte] = useState(false)
-  const [typeInitial, setTypeInitial] = useState<string | null>(null)
+  const [natureModale, setNatureModale] = useState<NatureZone>({ kind: 'piece' })
   const [polygone, setPolygone] = useState<PolygoneEnCours | null>(null)
   const [annulation, setAnnulation] = useState<{ nom: string; baseVersion: number } | null>(null)
   const annulationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -210,8 +210,8 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
   })
 
   // ── Ajout de pièce / zone extérieure (modale) ─────────────────────────────
-  const ouvrirModal = (type: string | null) => {
-    setTypeInitial(type)
+  const ouvrirModal = (nature: NatureZone) => {
+    setNatureModale(nature)
     setModalOuverte(true)
   }
 
@@ -224,7 +224,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     if (demande.forme === 'poly') {
       setOutil('select')
       etat.selectRoom(null)
-      setPolygone({ nom: nomPiece, calque: demande.calque, mode: 'piece' })
+      setPolygone({ nom: nomPiece, calque: demande.calque, mode: 'piece', nature: demande.nature })
       toast.info('Dessinez la pièce sur le plan', {
         description: 'Cliquez chaque angle — double-clic ou clic sur le premier point pour fermer.',
       })
@@ -234,8 +234,8 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
     const hsp = etat.niveau.heightDefault
     const piece =
       demande.forme === 'L'
-        ? creerPieceL(nomPiece, demande.calque, x, y, demande.largeurMm ?? 3500, demande.hauteurMm ?? 3000, hsp)
-        : creerPieceRect(nomPiece, demande.calque, x, y, demande.largeurMm ?? 3500, demande.hauteurMm ?? 3000, hsp)
+        ? creerPieceL(demande.nature, nomPiece, demande.calque, x, y, demande.largeurMm ?? 3500, demande.hauteurMm ?? 3000, hsp)
+        : creerPieceRect(demande.nature, nomPiece, demande.calque, x, y, demande.largeurMm ?? 3500, demande.hauteurMm ?? 3000, hsp)
     etat.ajouterPiece(piece)
     toast.success(`${nomPiece} ajoutée — ${fmtSurfaceM2(aireMm2(piece.vertices))}`, {
       description: 'Glissez-la sur le plan pour la positionner.',
@@ -276,7 +276,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
       toast.warning('La forme est trop petite — dessinez-la plus grande.')
       return
     }
-    const piece = creerPiecePoly(p.nom, p.calque, points, etat.niveau.heightDefault)
+    const piece = creerPiecePoly(p.nature ?? { kind: 'piece' }, p.nom, p.calque, points, etat.niveau.heightDefault)
     etat.ajouterPiece(piece)
     toast.success(`${p.nom} ajoutée — ${fmtSurfaceM2(aireMm2(piece.vertices))}`, {
       description: 'Surface calculée sur la forme réelle.',
@@ -438,8 +438,8 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             metier={metier}
             outil={outil}
             onOutil={setOutil}
-            onAjouterPiece={() => ouvrirModal(null)}
-            onZoneExt={(nomZone) => ouvrirModal(nomZone)}
+            onAjouterPiece={() => ouvrirModal({ kind: 'piece' })}
+            onZoneExt={(extType) => ouvrirModal({ kind: 'surface', extType })}
             onCloture={demarrerCloture}
           />
         )}
@@ -477,7 +477,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
               polygone={polygone}
               onAnnulerPolygone={() => setPolygone(null)}
               niveauVide={niveauVide}
-              onAjouterPiece={() => ouvrirModal(null)}
+              onAjouterPiece={() => ouvrirModal({ kind: 'piece' })}
               annulation={annulation}
               onAnnulerSuppression={() => {
                 setAnnulation(null)
@@ -498,6 +498,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
               <RoomSheet
                 piece={etat.pieceSelectionnee}
                 onMaj={(patch) => etat.majPiece(etat.pieceSelectionnee!.id, patch)}
+                onNature={(nature) => etat.changerNaturePiece(etat.pieceSelectionnee!.id, nature)}
                 onAvancement={marquerAvancement}
                 onDupliquer={() => etat.dupliquerPiece(etat.pieceSelectionnee!.id)}
                 onSupprimer={supprimerSelection}
@@ -550,7 +551,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
       <AddRoomModal
         open={modalOuverte}
         calqueParDefaut={vue === 'projet' ? 'projet' : 'existant'}
-        typeInitial={typeInitial}
+        natureInitiale={natureModale}
         onValider={validerAjout}
         onFermer={() => setModalOuverte(false)}
       />
