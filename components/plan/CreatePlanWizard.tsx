@@ -89,6 +89,14 @@ function IconeMetier({ id }: { id: MetierId }) {
           <path d="M4 12h16M12 4v16" />
         </svg>
       )
+    case 'maconnerie':
+      return (
+        <svg {...p}>
+          <rect x="3" y="5" width="18" height="4.5" rx="0.5" />
+          <rect x="3" y="14.5" width="18" height="4.5" rx="0.5" />
+          <path d="M9 5v4.5M15 5v4.5M6 14.5V19M12 14.5V19M18 14.5V19" />
+        </svg>
+      )
     default:
       // 'tce' et repli : cube « Tous les métrés » (même icône que VueMetierPill)
       return (

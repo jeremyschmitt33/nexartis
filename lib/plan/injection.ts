@@ -36,6 +36,7 @@ export const LOT_PLATRERIE = 'Plâtrerie'
 export const LOT_ELECTRICITE = 'Électricité'
 export const LOT_PLOMBERIE = 'Plomberie'
 export const LOT_MENUISERIE = 'Menuiserie'
+export const LOT_MACONNERIE = 'Maçonnerie'
 export const LOT_EXTERIEUR = 'Extérieur / Paysagisme'
 
 /** Une ligne de métré proposée dans le tiroir devis. */
@@ -157,6 +158,27 @@ function lotPlomberie(piece: Piece, symbolesPiece: Symbole[]): LigneProposee[] {
   ]
 }
 
+/* ── Lot Maçonnerie : dalle + chape (surface au sol, jamais partagée) ──────── */
+
+/**
+ * Dalle et chape, une ligne CHACUNE par pièce intérieure, en m² de surface au
+ * sol. On reste en m² (et non m³) TANT qu'aucune épaisseur n'est saisie : le
+ * maçon chiffre au m² pour une épaisseur donnée, ou on ajoutera un volume le
+ * jour où l'épaisseur sera saisie — jamais une épaisseur devinée.
+ *
+ * Pas de murs ni de semelles ici : par pièce, un mur mitoyen serait compté deux
+ * fois. Ces métrés-là exigent le CONTOUR du bâtiment (à venir).
+ */
+function lotMaconnerie(piece: Piece): LigneProposee[] {
+  const projet = piece.layer === 'projet'
+  const sol = surfaceSolM2(piece)
+  if (sol <= 0) return []
+  return [
+    ligne(LOT_MACONNERIE, 'dalle_beton', piece.id, `Dalle béton — ${piece.name}`, sol, 'm²', projet, 'surface au sol'),
+    ligne(LOT_MACONNERIE, 'chape', piece.id, `Chape — ${piece.name}`, sol, 'm²', projet, 'surface au sol'),
+  ]
+}
+
 /* ── Lot Menuiserie : portes / fenêtres déjà dessinées, une ligne par ouvrant ─ */
 
 /** Libellés des ouvrants (mêmes termes que la palette d'outils). */
@@ -274,6 +296,7 @@ export function construireProposition(
     if (tous || metier === 'electricien') out.push(...lotElectricite(p, symbolesDe(p.id)))
     if (tous || metier === 'plombier') out.push(...lotPlomberie(p, symbolesDe(p.id)))
     if (tous || metier === 'menuiserie') out.push(...lotMenuiserie(p))
+    if (tous || metier === 'maconnerie') out.push(...lotMaconnerie(p))
   }
   out.push(...lotExterieur(niveau))
   return out

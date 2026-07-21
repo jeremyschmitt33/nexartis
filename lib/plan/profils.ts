@@ -8,8 +8,8 @@
  *
  * - Profils ACTIFS : peintre, carreleur/solier, plaquiste, électricien,
  *   plombier, menuiserie, TCE (« Tous les métrés », toujours en 1re position).
- * - maconnerie / chauffagiste : configurés mais `actif: false`
- *   (flag off tant que leurs métrés ne sont pas branchés / validés).
+ * - chauffagiste : configuré mais `actif: false`
+ *   (flag off tant que ses métrés ne sont pas branchés / validés).
  * - NF C 15-100 : TOUJOURS « suggestion indicative — à vérifier »,
  *   JAMAIS « conforme » (la conformité, c'est le Consuel).
  */
@@ -148,7 +148,7 @@ export const PROFILS: Record<MetierId, ProfilMetier> = {
     id: 'maconnerie',
     label: 'Maçonnerie',
     icone: 'maconnerie',
-    actif: false,
+    actif: true, // activé 21/07/2026 : dalle + chape au devis
     deductionDefaut: 'totale',
     metres: ['sol', 'murs'],
     symboles: [],
@@ -182,6 +182,7 @@ export const ORDRE_VUES: MetierId[] = [
   'electricien',
   'plombier',
   'menuiserie',
+  'maconnerie',
 ]
 
 /** Métiers proposés à l'étape 1 du wizard de création (6 actifs). */
@@ -192,6 +193,7 @@ export const METIERS_WIZARD: MetierId[] = [
   'peintre',
   'carreleur_solier',
   'plaquiste',
+  'maconnerie',
   'tce',
 ]
 
