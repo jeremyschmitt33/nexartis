@@ -17,9 +17,9 @@
  * modifient toujours en 2D (Étape 1 ; la sélection au clic viendra plus tard).
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Grid, Html, Line, OrbitControls } from '@react-three/drei'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { ContactShadows, Grid, Html, Line, OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { Niveau } from '@/lib/plan/types'
@@ -93,7 +93,7 @@ function prepararCalque(calque: Calque3d, projet: boolean): CalquePrep {
   return {
     sols,
     murs,
-    mursCouleur: projet ? C.orange : '#cdd6e8',
+    mursCouleur: projet ? C.orange : '#eceae4',
     mursOpacite: projet ? 0.5 : 1,
     vitres,
     clotures: calque.clotures,
@@ -292,6 +292,34 @@ function CalqueRender({
   )
 }
 
+/**
+ * Anime la caméra vers une position/cible cible (« preset ») en douceur, via
+ * lerp à chaque frame. C'est ce qui rend la bascule « À plat » / « Vue 3D »
+ * fluide au lieu de sauter. L'animation s'arrête d'elle-même une fois proche,
+ * ou dès que l'utilisateur reprend la main (OrbitControls onStart -> presetRef
+ * remis à null par le parent).
+ */
+function CameraRig({
+  presetRef,
+  controlsRef,
+}: {
+  presetRef: MutableRefObject<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>
+}) {
+  useFrame(({ camera }) => {
+    const p = presetRef.current
+    const ctrl = controlsRef.current
+    if (!p || !ctrl) return
+    camera.position.lerp(p.pos, 0.12)
+    ctrl.target.lerp(p.target, 0.12)
+    ctrl.update()
+    if (camera.position.distanceTo(p.pos) < 0.03 && ctrl.target.distanceTo(p.target) < 0.03) {
+      presetRef.current = null
+    }
+  })
+  return null
+}
+
 /* ── Composant principal ──────────────────────────────────────────────────── */
 
 export interface Scene3dViewProps {
@@ -307,6 +335,7 @@ export interface Scene3dViewProps {
 export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dViewProps) {
   const [mode, setMode] = useState<'avant' | 'apres'>('apres')
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
+  const presetRef = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null)
 
   const data = useMemo(() => construireScene3dReelle(niveau, { avancementVisible: true }), [niveau])
 
@@ -334,11 +363,18 @@ export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dVie
     }
   }, [data])
 
+  // Presets de caméra animés (cf. CameraRig).
+  const allerA = (pos: [number, number, number], target: [number, number, number]) => {
+    presetRef.current = { pos: new THREE.Vector3(...pos), target: new THREE.Vector3(...target) }
+  }
+  const vueDeDessus = () => allerA([0.001, data.rayon * 3, 0.001], [0, 0, 0]) // « À plat » orthogonal-like
+  const vue3d = () => allerA(cadre.position, cadre.target)
+
   const vide = data.emprise === null
   const grille = Math.max(20, Math.ceil(data.rayon * 2.4))
 
   return (
-    <div className="absolute inset-0 z-20" style={{ backgroundColor: C.fond }}>
+    <div className="absolute inset-0 z-20" style={{ background: 'linear-gradient(180deg, #fbfcfe 0%, #eaeef4 55%, #e2e8f1 100%)' }}>
       {vide ? (
         <div className="flex h-full items-center justify-center px-6">
           <div className="rounded-2xl border border-gray-200 bg-white px-6 py-6 text-center shadow-lg">
@@ -353,14 +389,24 @@ export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dVie
           shadows={false}
           dpr={[1, 2]}
           camera={{ position: cadre.position, fov: 45, near: 0.05, far: cadre.far }}
+          gl={{ alpha: true, antialias: true }}
           style={{ width: '100%', height: '100%' }}
           onPointerMissed={() => onSelect?.(null)}
         >
-          <color attach="background" args={[C.fond]} />
           <hemisphereLight args={[0xffffff, 0xb9c2d0, 0.75]} />
           <ambientLight intensity={0.45} />
-          <directionalLight position={[data.rayon * 1.2, data.hauteurMax * 3 + 4, data.rayon * 0.6]} intensity={0.85} />
+          <directionalLight position={[data.rayon * 1.2, data.hauteurMax * 3 + 4, data.rayon * 0.6]} intensity={0.95} />
           <directionalLight position={[-data.rayon, data.hauteurMax * 2, -data.rayon]} intensity={0.25} />
+
+          <ContactShadows
+            position={[0, 0.001, 0]}
+            opacity={0.32}
+            scale={grille}
+            blur={2.6}
+            far={data.hauteurMax + 0.6}
+            resolution={1024}
+            color="#1a2d5a"
+          />
 
           <Grid
             args={[grille, grille]}
@@ -380,9 +426,12 @@ export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dVie
           <CalqueRender prep={existant} selectedId={selectedId} onSelect={onSelect} />
           {mode === 'apres' && <CalqueRender prep={projet} selectedId={selectedId} onSelect={onSelect} />}
 
+          <CameraRig presetRef={presetRef} controlsRef={controlsRef} />
+
           <OrbitControls
             ref={controlsRef}
             makeDefault
+            onStart={() => (presetRef.current = null)}
             target={cadre.target}
             enableDamping
             dampingFactor={0.08}
@@ -419,14 +468,27 @@ export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dVie
           </div>
           <button
             type="button"
-            onClick={() => controlsRef.current?.reset()}
+            onClick={vueDeDessus}
+            title="Remettre le plan à plat (vue du dessus)"
             className="inline-flex h-9 items-center gap-1.5 rounded-xl border-[1.5px] border-gray-200 px-3.5 font-hanken text-[12.5px] font-bold text-navy transition-colors hover:border-orange"
           >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 12a9 9 0 1 0 3-6.7" />
-              <path d="M3 4v5h5" />
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="4" y="4" width="16" height="16" rx="1.5" />
+              <path d="M4 10h16M10 4v16" />
             </svg>
-            Recadrer
+            À plat
+          </button>
+          <button
+            type="button"
+            onClick={vue3d}
+            title="Revenir à la vue 3D"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border-[1.5px] border-gray-200 px-3.5 font-hanken text-[12.5px] font-bold text-navy transition-colors hover:border-orange"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" />
+              <path d="M12 2v20M3 7l9 5 9-5" />
+            </svg>
+            Vue 3D
           </button>
         </div>
       )}

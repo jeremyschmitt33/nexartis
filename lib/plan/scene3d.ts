@@ -52,6 +52,14 @@ const POTEAU_HAUTEUR_MM = 900
 /** Espacement des poteaux le long de la clôture (mm) — repris d'iso.ts. */
 const PAS_POTEAU_MM = 1600
 
+/**
+ * Épaisseur donnée aux murs en 3D (mm). Les sommets d'une pièce sont les cotes
+ * INTÉRIEURES finies : le mur est centré sur l'arête (±moitié de chaque côté),
+ * ce qui suffit pour un rendu de présentation. Ce n'est PAS une donnée métier
+ * (aucun métré ne l'utilise), juste du relief visuel. ~120 mm ≈ une cloison.
+ */
+const EPAISSEUR_MUR_MM = 120
+
 /** Point du monde 3D en mètres (Y vers le haut). */
 export interface V3 {
   x: number
@@ -245,6 +253,7 @@ export function construireScene3dReelle(
     }
 
     const quads: Quad3[] = []
+    const half = EPAISSEUR_MUR_MM / 2
     for (let i = 0; i < n; i++) {
       const a = verts[i]
       const b = verts[(i + 1) % n]
@@ -252,14 +261,42 @@ export function construireScene3dReelle(
       const dy = b[1] - a[1]
       const L = Math.hypot(dx, dy)
       if (L < 1) continue
+      const ux = dx / L
+      const uy = dy / L
+      // Normale horizontale de l'arête (direction de l'épaisseur du mur).
+      const nx = uy
+      const ny = -ux
 
-      /** Sous-quad du mur entre t1..t2 mm le long de l'arête, z1..z2 mm. */
+      /** Surface CENTRALE du mur (sans épaisseur) — utilisée pour les vitres. */
       const quad = (t1: number, t2: number, z1: number, z2: number): Quad3 => {
-        const x1 = a[0] + (dx / L) * t1
-        const y1 = a[1] + (dy / L) * t1
-        const x2 = a[0] + (dx / L) * t2
-        const y2 = a[1] + (dy / L) * t2
+        const x1 = a[0] + ux * t1
+        const y1 = a[1] + uy * t1
+        const x2 = a[0] + ux * t2
+        const y2 = a[1] + uy * t2
         return [P(x1, y1, z1), P(x2, y1, z1), P(x2, y2, z2), P(x1, y2, z2)]
+      }
+
+      /** Sommet du mur ÉPAIS : décalé de s·half le long de la normale (s = ±1). */
+      const q = (t: number, z: number, s: number): V3 =>
+        P(a[0] + ux * t + s * half * nx, a[1] + uy * t + s * half * ny, z)
+
+      /**
+       * Les 6 faces d'un tronçon de mur ÉPAIS (t1..t2, z1..z2). C'est ce qui
+       * donne le relief plein ET les TABLEAUX d'ouverture : le dessous d'un
+       * linteau et les côtés (jambages) d'une baie deviennent visibles.
+       * DoubleSide dans la vue -> le sens d'enroulement n'affecte pas l'affichage.
+       */
+      const boxFaces = (t1: number, t2: number, z1: number, z2: number): Quad3[] => {
+        const A1o = q(t1, z1, 1), B1o = q(t2, z1, 1), B2o = q(t2, z2, 1), A2o = q(t1, z2, 1)
+        const A1i = q(t1, z1, -1), B1i = q(t2, z1, -1), B2i = q(t2, z2, -1), A2i = q(t1, z2, -1)
+        return [
+          [A1o, B1o, B2o, A2o], // face extérieure
+          [B1i, A1i, A2i, B2i], // face intérieure
+          [A2o, B2o, B2i, A2i], // dessus (arase)
+          [B1o, A1o, A1i, B1i], // dessous
+          [A1i, A1o, A2o, A2i], // about côté t1 (tableau)
+          [B1o, B1i, B2i, B2o], // about côté t2 (tableau)
+        ]
       }
 
       const ouvertures = (parArete.get(i) ?? [])
@@ -270,14 +307,14 @@ export function construireScene3dReelle(
       let cur = 0
       for (const o of ouvertures) {
         if (o.offset < cur) continue // chevauchement : 2e ouverture ignorée (parité iso)
-        if (o.offset > cur) quads.push(quad(cur, o.offset, 0, hsp))
+        if (o.offset > cur) quads.push(...boxFaces(cur, o.offset, 0, hsp))
         const fin = o.offset + o.width
-        if (o.sill > 0) quads.push(quad(o.offset, fin, 0, o.sill)) // sous l'allège
-        if (o.top < hsp) quads.push(quad(o.offset, fin, o.top, hsp)) // linteau
+        if (o.sill > 0) quads.push(...boxFaces(o.offset, fin, 0, o.sill)) // sous l'allège
+        if (o.top < hsp) quads.push(...boxFaces(o.offset, fin, o.top, hsp)) // linteau
         if (o.vitre) sc.vitres.push({ quad: quad(o.offset, fin, o.sill, o.top) })
         cur = fin
       }
-      if (cur < L) quads.push(quad(cur, L, 0, hsp))
+      if (cur < L) quads.push(...boxFaces(cur, L, 0, hsp))
     }
     const projet = piece.layer === 'projet'
     sc.murs.push({ quads, couleur: projet ? C.orange : COULEUR_MUR, opacite: projet ? 0.5 : 1 })
