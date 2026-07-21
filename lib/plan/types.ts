@@ -29,7 +29,7 @@ export type ModeDeduction =
 export type CategorieZone = 'int' | 'ext';
 
 /** Sous-type d'une zone extérieure. */
-export type TypeExterieur = 'terrasse' | 'piscine' | 'pelouse' | 'autre_ext';
+export type TypeExterieur = 'terrasse' | 'piscine' | 'pelouse' | 'allee' | 'autre_ext';
 
 /**
  * Nature d'une zone, DÉCIDÉE À LA CRÉATION par l'outil (le bouton), jamais par

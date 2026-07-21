@@ -183,6 +183,7 @@ function solDe(piece: Piece): { couleur: string; opacite: number; bord?: string 
   if (piece.cat === 'ext') {
     if (piece.extType === 'piscine') return { couleur: C.sky, opacite: 0.45, bord: C.sky }
     if (piece.extType === 'pelouse') return { couleur: C.pelouse, opacite: 0.4, bord: C.pelouse }
+    if (piece.extType === 'allee') return { couleur: '#c9c4bb', opacite: 0.8, bord: C.navy }
     return { couleur: C.blanc, opacite: 0.85, bord: C.navy }
   }
   return { couleur: COULEUR_SOL_INT, opacite: 1, bord: C.navy }

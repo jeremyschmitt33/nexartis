@@ -19,9 +19,10 @@ const SURFACE_LABELS: Record<TypeExterieur, string> = {
   terrasse: 'Terrasse',
   piscine: 'Piscine',
   pelouse: 'Pelouse',
+  allee: 'Allée',
   autre_ext: 'Zone extérieure',
 }
-const SURFACE_ORDRE: TypeExterieur[] = ['terrasse', 'piscine', 'pelouse', 'autre_ext']
+const SURFACE_ORDRE: TypeExterieur[] = ['terrasse', 'piscine', 'pelouse', 'allee', 'autre_ext']
 
 export interface DemandePiece {
   nom: string

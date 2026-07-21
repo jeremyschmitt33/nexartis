@@ -77,6 +77,7 @@ function estPieceValide(p: unknown): p is Piece {
     x.extType !== 'terrasse' &&
     x.extType !== 'piscine' &&
     x.extType !== 'pelouse' &&
+    x.extType !== 'allee' &&
     x.extType !== 'autre_ext'
   )
     return false

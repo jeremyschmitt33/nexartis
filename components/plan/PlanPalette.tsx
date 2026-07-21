@@ -50,6 +50,7 @@ export const ZONES_EXTERIEURES: { extType: TypeExterieur; label: string; icone: 
   { extType: 'terrasse', label: 'Terrasse', icone: 'Terrasse' },
   { extType: 'piscine', label: 'Piscine', icone: 'Piscine' },
   { extType: 'pelouse', label: 'Pelouse', icone: 'Pelouse' },
+  { extType: 'allee', label: 'Allée', icone: 'Allee' },
   { extType: 'autre_ext', label: 'Autre extérieur', icone: 'Autre' },
 ]
 
@@ -140,6 +141,13 @@ function IconeExt({ type }: { type: string }) {
     return (
       <svg {...common}>
         <path d="M7 20v-6c0-2-1-3.5-2.5-4.5M12 20v-8c0-2.5-1-4.5-3-6M12 20v-8c0-2.5 1-4.5 3-6M17 20v-6c0-2 1-3.5 2.5-4.5" />
+      </svg>
+    )
+  if (type === 'Allee')
+    return (
+      <svg {...common}>
+        <path d="M8 3L5 21M16 3l3 18" />
+        <path d="M6.5 9h11M5.7 15h12.6" />
       </svg>
     )
   if (type === 'Cloture')

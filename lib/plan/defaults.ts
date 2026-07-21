@@ -238,7 +238,7 @@ export function nomAvecSuffixe(base: string, existants: string[]): string {
 }
 
 /** Sous-types extérieurs valides (source de vérité runtime). */
-export const EXT_TYPES_VALIDES = ['terrasse', 'piscine', 'pelouse', 'autre_ext'] as const
+export const EXT_TYPES_VALIDES = ['terrasse', 'piscine', 'pelouse', 'allee', 'autre_ext'] as const
 
 /**
  * ⚠️ ALERTE UNIQUEMENT — NE DÉCIDE JAMAIS LA NATURE D'UNE ZONE.
@@ -254,7 +254,8 @@ export function nomEvoqueExterieur(nom: string): TypeExterieur | null {
   if (n.includes('terrasse')) return 'terrasse'
   if (n.includes('piscine') || n.includes('bassin')) return 'piscine'
   if (n.includes('pelouse') || n.includes('gazon') || n.includes('jardin')) return 'pelouse'
-  if (n.includes('balcon') || n.includes('cour') || n.includes('terrain') || n.includes('allée') || n.includes('allee')) return 'autre_ext'
+  if (n.includes('allée') || n.includes('allee') || n.includes('chemin')) return 'allee'
+  if (n.includes('balcon') || n.includes('cour') || n.includes('terrain')) return 'autre_ext'
   return null
 }
 

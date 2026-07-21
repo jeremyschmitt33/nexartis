@@ -212,6 +212,8 @@ function lotExterieur(niveau: Niveau): LigneProposee[] {
         out.push(ligne(LOT_EXTERIEUR, 'ext_piscine', p.id, `Piscine — ${p.name}`, s, 'm²', projet, `périmètre ${perimetreMl(p).toFixed(2).replace('.', ',')} ml (margelles)`))
       } else if (p.extType === 'pelouse') {
         out.push(ligne(LOT_EXTERIEUR, 'ext_pelouse', p.id, `Engazonnement / pelouse — ${p.name}`, s, 'm²', projet))
+      } else if (p.extType === 'allee') {
+        out.push(ligne(LOT_EXTERIEUR, 'ext_allee', p.id, `Allée — ${p.name}`, s, 'm²', projet, 'surface à revêtir (enrobé / béton / pavés — à qualifier)'))
       } else {
         out.push(ligne(LOT_EXTERIEUR, 'ext_autre', p.id, `Zone extérieure — ${p.name}`, s, 'm²', projet))
       }
@@ -221,7 +223,7 @@ function lotExterieur(niveau: Niveau): LigneProposee[] {
     const vol = volumeExtM3(p)
     if (vol > 0) {
       const prof = ((p.profondeurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
-      out.push(ligne(LOT_EXTERIEUR, 'ext_volume', p.id, `Volume — ${p.name}`, vol, 'm³', projet, `${s.toFixed(2).replace('.', ',')} m² × ${prof} m — à qualifier (déblai / béton)`))
+      out.push(ligne(LOT_EXTERIEUR, 'ext_volume', p.id, `Volume — ${p.name}`, vol, 'm³', projet, `${s.toFixed(2).replace('.', ',')} m² × ${prof} m — à qualifier (déblai / évacuation / grave / béton)`))
     }
   }
   for (const cl of niveau.clotures) {
