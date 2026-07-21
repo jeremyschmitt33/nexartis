@@ -8,8 +8,7 @@
  *
  * - Profils ACTIFS : peintre, carreleur/solier, plaquiste, électricien,
  *   plombier, menuiserie, TCE (« Tous les métrés », toujours en 1re position).
- * - chauffagiste : configuré mais `actif: false`
- *   (flag off tant que ses métrés ne sont pas branchés / validés).
+ * - (tous les profils sont désormais actifs — métrés branchés au 21/07/2026).
  * - NF C 15-100 : TOUJOURS « suggestion indicative — à vérifier »,
  *   JAMAIS « conforme » (la conformité, c'est le Consuel).
  */
@@ -85,6 +84,9 @@ export const SYMBOLES_PLOMBIER = [
   'robinet_ext',
 ] as const
 
+/** Palette chauffagiste. */
+export const SYMBOLES_CHAUFFAGISTE = ['radiateur'] as const
+
 export const PROFILS: Record<MetierId, ProfilMetier> = {
   tce: {
     id: 'tce',
@@ -93,7 +95,7 @@ export const PROFILS: Record<MetierId, ProfilMetier> = {
     actif: true,
     deductionDefaut: 'totale',
     metres: ['sol', 'chutes', 'murs', 'plafond', 'plinthes', 'compteurs_elec', 'nfc15100', 'compteurs_eau'],
-    symboles: [...SYMBOLES_ELECTRICIEN, ...SYMBOLES_PLOMBIER],
+    symboles: [...SYMBOLES_ELECTRICIEN, ...SYMBOLES_PLOMBIER, ...SYMBOLES_CHAUFFAGISTE],
   },
   peintre: {
     id: 'peintre',
@@ -166,10 +168,10 @@ export const PROFILS: Record<MetierId, ProfilMetier> = {
     id: 'chauffagiste',
     label: 'Chauffage',
     icone: 'chauffagiste',
-    actif: false,
+    actif: true, // activé 21/07/2026 : radiateurs + plancher chauffant
     deductionDefaut: 'totale',
     metres: ['compteurs_eau'],
-    symboles: [],
+    symboles: [...SYMBOLES_CHAUFFAGISTE],
   },
 }
 
@@ -183,6 +185,7 @@ export const ORDRE_VUES: MetierId[] = [
   'plombier',
   'menuiserie',
   'maconnerie',
+  'chauffagiste',
 ]
 
 /** Métiers proposés à l'étape 1 du wizard de création (6 actifs). */
@@ -194,6 +197,7 @@ export const METIERS_WIZARD: MetierId[] = [
   'carreleur_solier',
   'plaquiste',
   'maconnerie',
+  'chauffagiste',
   'tce',
 ]
 

@@ -37,6 +37,7 @@ export const LOT_ELECTRICITE = 'Électricité'
 export const LOT_PLOMBERIE = 'Plomberie'
 export const LOT_MENUISERIE = 'Menuiserie'
 export const LOT_MACONNERIE = 'Maçonnerie'
+export const LOT_CHAUFFAGE = 'Chauffage'
 export const LOT_EXTERIEUR = 'Extérieur / Paysagisme'
 
 /** Une ligne de métré proposée dans le tiroir devis. */
@@ -156,6 +157,18 @@ function lotPlomberie(piece: Piece, symbolesPiece: Symbole[]): LigneProposee[] {
   return [
     ligne(LOT_PLOMBERIE, 'eau_points', piece.id, `Alimentation point d'eau — ${piece.name}`, c.pointsEau, 'u', projet, 'WC, lavabo, douche, baignoire…'),
   ]
+}
+
+/* ── Lot Chauffage : radiateurs posés (u) + plancher chauffant (m²) ────────── */
+
+function lotChauffage(piece: Piece, symbolesPiece: Symbole[]): LigneProposee[] {
+  const projet = piece.layer === 'projet'
+  const out: LigneProposee[] = []
+  const radiateurs = symbolesPiece.filter((s) => s.type === 'radiateur').length
+  if (radiateurs > 0) out.push(ligne(LOT_CHAUFFAGE, 'chauffage_radiateurs', piece.id, `Radiateurs — ${piece.name}`, radiateurs, 'u', projet))
+  const sol = surfaceSolM2(piece)
+  if (sol > 0) out.push(ligne(LOT_CHAUFFAGE, 'plancher_chauffant', piece.id, `Plancher chauffant — ${piece.name}`, sol, 'm²', projet, 'surface au sol'))
+  return out
 }
 
 /* ── Lot Maçonnerie : dalle + chape (surface au sol, jamais partagée) ──────── */
@@ -297,6 +310,7 @@ export function construireProposition(
     if (tous || metier === 'plombier') out.push(...lotPlomberie(p, symbolesDe(p.id)))
     if (tous || metier === 'menuiserie') out.push(...lotMenuiserie(p))
     if (tous || metier === 'maconnerie') out.push(...lotMaconnerie(p))
+    if (tous || metier === 'chauffagiste') out.push(...lotChauffage(p, symbolesDe(p.id)))
   }
   out.push(...lotExterieur(niveau))
   return out

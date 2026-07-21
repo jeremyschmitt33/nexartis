@@ -37,6 +37,7 @@ export function groupesSymboles(metier: MetierId): GroupeSymboles[] {
     return [
       { titre: PROFILS.electricien.label, outils: versOutils(PROFILS.electricien.symboles) },
       { titre: PROFILS.plombier.label, outils: versOutils(PROFILS.plombier.symboles) },
+      { titre: PROFILS.chauffagiste.label, outils: versOutils(PROFILS.chauffagiste.symboles) },
     ]
   }
   const profil = profilDe(metier)

@@ -46,7 +46,7 @@ export interface DefSymbole {
   type: string
   /** Libellé FR (palette, panneau, aria-labels). */
   label: string
-  metier: 'electricien' | 'plombier' | 'exterieur'
+  metier: 'electricien' | 'plombier' | 'exterieur' | 'chauffagiste'
   /** Pose physique : seule autorité pour « ce symbole est-il mural ? ». */
   pose: PoseSymbole
   /** Demi-encombrement en mm : zone cliquable + anneau de sélection. */
@@ -63,7 +63,7 @@ export interface DefSymbole {
 const S = (
   type: string,
   label: string,
-  metier: 'electricien' | 'plombier' | 'exterieur',
+  metier: 'electricien' | 'plombier' | 'exterieur' | 'chauffagiste',
   pose: PoseSymbole,
   rayon: number,
   formes: FormeSymbole[],
@@ -225,9 +225,22 @@ const EXTERIEUR: DefSymbole[] = [
   ]),
 ]
 
+/* ── Chauffagiste ── radiateur vu de dessus (empreinte au sol) ─────────────── */
+
+const CHAUFFAGE: DefSymbole[] = [
+  S('radiateur', 'Radiateur', 'chauffagiste', 'sol', 480, [
+    { forme: 'rect', x: -420, y: -140, w: 840, h: 280, rx: 40 },
+    { forme: 'ligne', x1: -280, y1: -140, x2: -280, y2: 140 },
+    { forme: 'ligne', x1: -140, y1: -140, x2: -140, y2: 140 },
+    { forme: 'ligne', x1: 0, y1: -140, x2: 0, y2: 140 },
+    { forme: 'ligne', x1: 140, y1: -140, x2: 140, y2: 140 },
+    { forme: 'ligne', x1: 280, y1: -140, x2: 280, y2: 140 },
+  ]),
+]
+
 /** Catalogue complet, indexé par type. */
 export const SYMBOLES: Record<string, DefSymbole> = Object.fromEntries(
-  [...ELEC, ...PLOMBERIE, ...EXTERIEUR].map((d) => [d.type, d])
+  [...ELEC, ...PLOMBERIE, ...EXTERIEUR, ...CHAUFFAGE].map((d) => [d.type, d])
 )
 
 /** Définition d'un symbole, ou null si le type est inconnu (donnée ancienne). */
