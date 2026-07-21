@@ -505,6 +505,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
                 piece={etat.pieceSelectionnee}
                 onMaj={(patch) => etat.majPiece(etat.pieceSelectionnee!.id, patch)}
                 onNature={(nature) => etat.changerNaturePiece(etat.pieceSelectionnee!.id, nature)}
+                onRedimensionner={(dim, mm) => etat.redimensionner(etat.pieceSelectionnee!.id, dim, mm)}
                 onAvancement={marquerAvancement}
                 onDupliquer={() => etat.dupliquerPiece(etat.pieceSelectionnee!.id)}
                 onSupprimer={supprimerSelection}

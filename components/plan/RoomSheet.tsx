@@ -10,6 +10,8 @@
 import { useEffect, useState } from 'react'
 import type { CategorieZone, EtatAvancement, NatureZone, Piece, TypeExterieur } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
+import { bornesPiece } from '@/lib/plan/edition'
+import type { ResultatCote } from './usePlanState'
 import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2, volumeExtM3 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM, nomEvoqueExterieur } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
@@ -19,6 +21,8 @@ export interface RoomSheetProps {
   onMaj: (patch: Partial<Piece>) => void
   /** Reclasse la zone (pièce ⇄ surface extérieure). */
   onNature: (nature: NatureZone) => void
+  /** Redimensionne l'emprise (même chemin que le clic-sur-cote : refus si mur trop court). */
+  onRedimensionner: (dim: 'w' | 'h', mm: number) => ResultatCote
   /** Change l'état d'avancement (le parent y ajoute la date + l'auteur, Push 7B). */
   onAvancement: (etat: EtatAvancement) => void
   onDupliquer: () => void
@@ -41,17 +45,27 @@ function Etiquette({ children }: { children: React.ReactNode }) {
   return <span className="mb-1.5 block font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500">{children}</span>
 }
 
-export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
+export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, onAvancement, onDupliquer, onSupprimer, onSupprimerOuverture, onFermer, children }: RoomSheetProps) {
   const [nom, setNom] = useState(piece.name)
   const [hsp, setHsp] = useState(mmVersSaisieM(piece.height))
   const [prof, setProf] = useState(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
+  const [lng, setLng] = useState('')
+  const [lrg, setLrg] = useState('')
+  const [errDim, setErrDim] = useState<string | null>(null)
 
   // Resynchronise les brouillons quand la sélection change.
+  const b = bornesPiece(piece)
+  const wMm = b.x2 - b.x1
+  const hMm = b.y2 - b.y1
+
   useEffect(() => {
     setNom(piece.name)
     setHsp(mmVersSaisieM(piece.height))
     setProf(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
-  }, [piece.id, piece.name, piece.height, piece.profondeurMm])
+    setLng(mmVersSaisieM(wMm))
+    setLrg(mmVersSaisieM(hMm))
+    setErrDim(null)
+  }, [piece.id, piece.name, piece.height, piece.profondeurMm, wMm, hMm])
 
   const commitNom = () => {
     const propre = nom.trim()
@@ -82,6 +96,39 @@ export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupl
       return
     }
     if (mm !== piece.profondeurMm) onMaj({ profondeurMm: mm })
+  }
+
+  // Redimensionnement par le panneau : MÊME chemin que le clic-sur-cote
+  // (onRedimensionner -> etat.redimensionner -> recalerOuvertures). Commit au
+  // BLUR/Entrée seulement (pas à chaque frappe : évite la tempête de refus), et
+  // un refus « mur trop court » s'affiche EN ERREUR INLINE, jamais en toast, et
+  // ne mute jamais le modèle. La cote saisie reste sacrée.
+  const commitDim = (dim: 'w' | 'h', val: string, setSelf: (v: string) => void) => {
+    const cur = dim === 'w' ? wMm : hMm
+    const mm = lireMetresEnMm(val)
+    if (mm === null) {
+      setErrDim('Valeur invalide (ex. 4,5).')
+      setSelf(mmVersSaisieM(cur))
+      return
+    }
+    // Rien n'a changé (ou simple focus/blur) : on normalise l'affichage et on
+    // NE rejoue PAS de redimensionnement (pas de mutation ni d'autosave inutile).
+    if (mm === cur) {
+      setErrDim(null)
+      setSelf(mmVersSaisieM(cur))
+      return
+    }
+    const r = onRedimensionner(dim, mm)
+    if (!r.ok) {
+      setErrDim(r.description ?? r.message)
+      setSelf(mmVersSaisieM(cur))
+      return
+    }
+    // Succès : le champ reflète EXACTEMENT la valeur appliquée — jamais un
+    // affichage qui mentirait sur la cote réelle de la pièce.
+    setErrDim(null)
+    setSelf(mmVersSaisieM(mm))
+    if (r.info) toast.info(r.info)
   }
 
   const surface = surfaceSolM2(piece)
@@ -302,6 +349,55 @@ export default function RoomSheet({ piece, onMaj, onNature, onAvancement, onDupl
             </p>
           </div>
         )}
+
+        <div>
+          <Etiquette>Dimensions (hors-tout)</Etiquette>
+          <div className="flex items-end gap-2">
+            <div>
+              <span className="mb-1 block font-hanken text-[10.5px] text-gray-500">Longueur</span>
+              <input
+                value={lng}
+                onChange={(e) => setLng(e.target.value)}
+                onBlur={() => commitDim('w', lng, setLng)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                inputMode="decimal"
+                aria-label="Longueur en mètres"
+                className="w-20 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-2 py-2 text-center font-spline-mono text-[14px] font-medium text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
+              />
+            </div>
+            <span className="pb-2 text-gray-400" aria-hidden="true">×</span>
+            <div>
+              <span className="mb-1 block font-hanken text-[10.5px] text-gray-500">Largeur</span>
+              <input
+                value={lrg}
+                onChange={(e) => setLrg(e.target.value)}
+                onBlur={() => commitDim('h', lrg, setLrg)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                inputMode="decimal"
+                aria-label="Largeur en mètres"
+                className="w-20 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-2 py-2 text-center font-spline-mono text-[14px] font-medium text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
+              />
+            </div>
+            <span className="pb-2 font-hanken text-[13px] text-gray-500">m</span>
+          </div>
+          {errDim ? (
+            <p className="mt-1.5 font-hanken text-[11.5px] font-semibold leading-snug text-red-600">{errDim}</p>
+          ) : (
+            <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
+              Modifie l&apos;emprise de la pièce — même effet que cliquer une cote sur le plan.
+            </p>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-gray-100 bg-[#fafbfc] px-3 py-2.5 text-center">
