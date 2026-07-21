@@ -14,7 +14,7 @@
  *   dans le devis (montants toujours éditables, jamais imposés).
  */
 
-import type { ModeDeduction, Niveau, Piece, Symbole } from './types'
+import type { ModeDeduction, Niveau, Piece, Symbole, TypeOuverture } from './types'
 import {
   appliquerChutes,
   clotureMl,
@@ -35,6 +35,7 @@ export const LOT_CARRELAGE = 'Carrelage / sols'
 export const LOT_PLATRERIE = 'Plâtrerie'
 export const LOT_ELECTRICITE = 'Électricité'
 export const LOT_PLOMBERIE = 'Plomberie'
+export const LOT_MENUISERIE = 'Menuiserie'
 export const LOT_EXTERIEUR = 'Extérieur / Paysagisme'
 
 /** Une ligne de métré proposée dans le tiroir devis. */
@@ -156,6 +157,46 @@ function lotPlomberie(piece: Piece, symbolesPiece: Symbole[]): LigneProposee[] {
   ]
 }
 
+/* ── Lot Menuiserie : portes / fenêtres déjà dessinées, une ligne par ouvrant ─ */
+
+/** Libellés des ouvrants (mêmes termes que la palette d'outils). */
+const LABELS_OUV: Record<TypeOuverture, string> = {
+  porte: 'Porte',
+  fenetre: 'Fenêtre',
+  porte_fenetre: 'Porte-fenêtre',
+  baie: 'Baie vitrée',
+}
+
+/**
+ * Une ligne PAR ouvrant, avec ses dimensions RÉELLES (largeur × hauteur saisies,
+ * jamais devinées) : le menuisier chiffre chaque menuiserie à sa taille. Le
+ * comptage suit le modèle des ouvertures — une mitoyenne est déclarée UNE fois
+ * (portée par une seule pièce), donc jamais comptée deux fois. `metric` inclut
+ * l'id de l'ouverture -> clé anti-doublon unique même si deux ouvrants
+ * identiques sont dans la même pièce.
+ */
+function lotMenuiserie(piece: Piece): LigneProposee[] {
+  const projet = piece.layer === 'projet'
+  const out: LigneProposee[] = []
+  for (const o of piece.openings) {
+    if (o.width <= 0 || o.height <= 0) continue
+    const dims = `${Math.round(o.width)} × ${Math.round(o.height)} mm`
+    out.push(
+      ligne(
+        LOT_MENUISERIE,
+        `menuiserie_${o.id}`,
+        piece.id,
+        `${LABELS_OUV[o.type]} ${dims} — ${piece.name}`,
+        1,
+        'u',
+        projet,
+        o.sharedWith ? 'ouverture mitoyenne (comptée une fois)' : dims,
+      ),
+    )
+  }
+  return out
+}
+
 /* ── Lot Extérieur (toutes vues) : zones, clôtures, portails ──────────────── */
 
 function lotExterieur(niveau: Niveau): LigneProposee[] {
@@ -230,6 +271,7 @@ export function construireProposition(
     if (tous || metier === 'plaquiste') out.push(...lotPlatrerie(p))
     if (tous || metier === 'electricien') out.push(...lotElectricite(p, symbolesDe(p.id)))
     if (tous || metier === 'plombier') out.push(...lotPlomberie(p, symbolesDe(p.id)))
+    if (tous || metier === 'menuiserie') out.push(...lotMenuiserie(p))
   }
   out.push(...lotExterieur(niveau))
   return out

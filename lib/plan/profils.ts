@@ -6,10 +6,10 @@
  * calcule TOUT en permanence ; le profil métier ne fait que FILTRER l'affichage
  * (palette de symboles + panneau métrés). Le plan JSONB reste agnostique.
  *
- * - 6 profils ACTIFS : peintre, carreleur/solier, plaquiste, électricien,
- *   plombier, TCE (« Tous les métrés », toujours en 1re position).
- * - maconnerie / menuiserie / chauffagiste : configurés mais `actif: false`
- *   (flag off tant que non validés par un artisan du métier réel).
+ * - Profils ACTIFS : peintre, carreleur/solier, plaquiste, électricien,
+ *   plombier, menuiserie, TCE (« Tous les métrés », toujours en 1re position).
+ * - maconnerie / chauffagiste : configurés mais `actif: false`
+ *   (flag off tant que leurs métrés ne sont pas branchés / validés).
  * - NF C 15-100 : TOUJOURS « suggestion indicative — à vérifier »,
  *   JAMAIS « conforme » (la conformité, c'est le Consuel).
  */
@@ -157,7 +157,7 @@ export const PROFILS: Record<MetierId, ProfilMetier> = {
     id: 'menuiserie',
     label: 'Menuiserie',
     icone: 'menuiserie',
-    actif: false,
+    actif: true, // activé 21/07/2026 : les ouvertures dessinées partent au devis
     deductionDefaut: 'totale',
     metres: [],
     symboles: [],
@@ -181,12 +181,14 @@ export const ORDRE_VUES: MetierId[] = [
   'plaquiste',
   'electricien',
   'plombier',
+  'menuiserie',
 ]
 
 /** Métiers proposés à l'étape 1 du wizard de création (6 actifs). */
 export const METIERS_WIZARD: MetierId[] = [
   'electricien',
   'plombier',
+  'menuiserie',
   'peintre',
   'carreleur_solier',
   'plaquiste',
