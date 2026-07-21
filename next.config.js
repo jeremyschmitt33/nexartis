@@ -2,6 +2,11 @@
 const nextConfig = {
   poweredByHeader: false,
 
+  // Étape 1 « vraie 3D » (21/07/2026) : three.js et l'écosystème @react-three
+  // sont livrés en ESM moderne. transpilePackages garantit que Next 14 les
+  // compile correctement (drei importe three/examples et three-stdlib).
+  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
+
   // Factur-X : node-zugferd fait un `await import("xsd-schema-validator")` vers une
   // dependance OPTIONNELLE (validateur Java) non installee. Webpack tente de la
   // resoudre au build et echoue ("Module not found"). On externalise donc le

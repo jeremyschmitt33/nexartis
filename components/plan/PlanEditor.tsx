@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import type { EtatAvancement, KindLineaire, ModeDeduction, NatureZone, PlanData, PointMm, TypeOuverture } from '@/lib/plan/types'
 import { aireMm2, estDansPolygone, fmtNombreFr, fmtSurfaceM2 } from '@/lib/plan/geometry'
@@ -37,9 +38,23 @@ import SymboleSheet from './SymboleSheet'
 import ClotureSheet from './ClotureSheet'
 import DevisDrawer, { type PreSelection } from './DevisDrawer'
 import AddRoomModal, { type DemandePiece } from './AddRoomModal'
-import Iso3dView from './Iso3dView'
 import PlanRecapAvancement from './PlanRecapAvancement'
 import type { VueCalque } from './PlanRender'
+
+/**
+ * Vraie 3D interactive (Étape 1, 21/07/2026) : chargée dynamiquement SANS SSR —
+ * three.js/WebGL n'existe pas côté serveur, un rendu serveur planterait. Elle
+ * remplace la vue iso figée derrière le même bouton 3D ; Iso3dView.tsx reste sur
+ * le disque comme référence/repli tant que la parité n'est pas validée en prod.
+ */
+const Scene3dView = dynamic(() => import('./Scene3dView'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ backgroundColor: '#f6f8fb' }}>
+      <p className="font-hanken text-[13px] font-semibold text-gray-500">Chargement de la vue 3D…</p>
+    </div>
+  ),
+})
 
 export interface PlanEditorProps {
   planId: string
@@ -493,7 +508,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
           )}
 
           {/* Push 6 — vue 3D : surcouche opaque au-dessus du canvas 2D */}
-          {mode3d && <Iso3dView niveau={etat.niveau} nomPlan={nom} />}
+          {mode3d && <Scene3dView niveau={etat.niveau} nomPlan={nom} />}
         </div>
 
         {/* Panneau droit : pièce (RoomSheet + métrés), symbole ou clôture.
