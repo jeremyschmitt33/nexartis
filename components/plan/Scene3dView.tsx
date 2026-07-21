@@ -189,13 +189,18 @@ function GlypheHtml({ s }: { s: Symbole3d }) {
   const def = defSymbole(s.type)
   if (!def) return null
   const R = def.rayon
+  // Taille ÉCRAN fixe du marqueur (px). Le glyphe est dessiné dans l'espace
+  // natif du symbole (rayon ~360 u) via le viewBox ; on le réduit ici à un petit
+  // marqueur. BUG corrigé : on mettait width=2*rayon (~720px) puis distanceFactor
+  // -> un rond blanc géant en 3D. On fixe une taille pixel raisonnable.
+  const PX = 30
   return (
-    <Html position={[s.at.x, s.at.y, s.at.z]} center distanceFactor={9} pointerEvents="none" zIndexRange={[20, 0]}>
+    <Html position={[s.at.x, s.at.y, s.at.z]} center distanceFactor={8} pointerEvents="none" zIndexRange={[20, 0]}>
       <svg
-        width={2 * R}
-        height={2 * R}
+        width={PX}
+        height={PX}
         viewBox={`${-R} ${-R} ${2 * R} ${2 * R}`}
-        style={{ overflow: 'visible', pointerEvents: 'none' }}
+        style={{ overflow: 'visible', pointerEvents: 'none', filter: 'drop-shadow(0 1px 1px rgba(15,26,58,0.25))' }}
       >
         {s.pose === 'billboard' && <circle cx={0} cy={0} r={R} fill={C.blanc} fillOpacity={0.9} />}
         <g transform={`rotate(${s.rotationDeg})`}>
