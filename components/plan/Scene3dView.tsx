@@ -135,6 +135,7 @@ function SolsCalque({
               geometry={geo}
               rotation-x={Math.PI / 2}
               position-y={sol.yOffset}
+              receiveShadow
               raycast={selectable ? undefined : () => null}
               onClick={
                 selectable
@@ -265,7 +266,7 @@ function CalqueRender({
     <group>
       <SolsCalque prep={prep} selectedId={selectedId} onSelect={onSelect} />
       {prep.murs && (
-        <mesh geometry={prep.murs}>
+        <mesh geometry={prep.murs} castShadow receiveShadow>
           <meshStandardMaterial
             color={prep.mursCouleur}
             transparent={prep.mursOpacite < 1}
@@ -386,21 +387,37 @@ export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dVie
         </div>
       ) : (
         <Canvas
-          shadows={false}
+          shadows
           dpr={[1, 2]}
           camera={{ position: cadre.position, fov: 45, near: 0.05, far: cadre.far }}
           gl={{ alpha: true, antialias: true }}
           style={{ width: '100%', height: '100%' }}
           onPointerMissed={() => onSelect?.(null)}
         >
-          <hemisphereLight args={[0xffffff, 0xb9c2d0, 0.75]} />
-          <ambientLight intensity={0.45} />
-          <directionalLight position={[data.rayon * 1.2, data.hauteurMax * 3 + 4, data.rayon * 0.6]} intensity={0.95} />
-          <directionalLight position={[-data.rayon, data.hauteurMax * 2, -data.rayon]} intensity={0.25} />
+          <hemisphereLight args={[0xffffff, 0xb9c2d0, 0.55]} />
+          <ambientLight intensity={0.3} />
+          {/* Lumière PRINCIPALE : projette de vraies ombres (profondeur « photo »).
+              La caméra d'ombre orthographique est dimensionnée sur l'emprise. */}
+          <directionalLight
+            castShadow
+            position={[data.rayon * 1.5, data.hauteurMax * 3 + 5, data.rayon * 1.0]}
+            intensity={1.05}
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-near={0.1}
+            shadow-camera-far={data.rayon * 12}
+            shadow-camera-left={-data.rayon * 1.8}
+            shadow-camera-right={data.rayon * 1.8}
+            shadow-camera-top={data.rayon * 1.8}
+            shadow-camera-bottom={-data.rayon * 1.8}
+            shadow-normalBias={0.04}
+            shadow-bias={-0.0004}
+          />
+          <directionalLight position={[-data.rayon, data.hauteurMax * 2, -data.rayon]} intensity={0.3} />
 
           <ContactShadows
             position={[0, 0.001, 0]}
-            opacity={0.32}
+            opacity={0.18}
             scale={grille}
             blur={2.6}
             far={data.hauteurMax + 0.6}
