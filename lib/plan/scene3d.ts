@@ -300,6 +300,15 @@ export function construireScene3dReelle(
         ]
       }
 
+      /**
+       * Tronçon de mur PLEIN (0..hsp). Aux VRAIS coins de la pièce (début t=0 /
+       * fin t=L de l'arête), on prolonge de `half` : les deux murs perpendiculaires
+       * se chevauchent alors franchement au lieu de laisser une petite marche à
+       * l'angle. Invisible ailleurs (même couleur), corrige le défaut d'angle.
+       */
+      const mur = (t1: number, t2: number): Quad3[] =>
+        boxFaces(t1 === 0 ? -half : t1, t2 === L ? L + half : t2, 0, hsp)
+
       const ouvertures = (parArete.get(i) ?? [])
         .map((o) => normaliserOuverture(o, L, hsp))
         .filter((o): o is OuvNorm => o !== null)
@@ -308,14 +317,14 @@ export function construireScene3dReelle(
       let cur = 0
       for (const o of ouvertures) {
         if (o.offset < cur) continue // chevauchement : 2e ouverture ignorée (parité iso)
-        if (o.offset > cur) quads.push(...boxFaces(cur, o.offset, 0, hsp))
+        if (o.offset > cur) quads.push(...mur(cur, o.offset))
         const fin = o.offset + o.width
         if (o.sill > 0) quads.push(...boxFaces(o.offset, fin, 0, o.sill)) // sous l'allège
         if (o.top < hsp) quads.push(...boxFaces(o.offset, fin, o.top, hsp)) // linteau
         if (o.vitre) sc.vitres.push({ quad: quad(o.offset, fin, o.sill, o.top) })
         cur = fin
       }
-      if (cur < L) quads.push(...boxFaces(cur, L, 0, hsp))
+      if (cur < L) quads.push(...mur(cur, L))
     }
     const projet = piece.layer === 'projet'
     sc.murs.push({ quads, couleur: projet ? C.orange : COULEUR_MUR, opacite: projet ? 0.5 : 1 })

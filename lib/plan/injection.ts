@@ -258,7 +258,7 @@ function lotExterieur(niveau: Niveau): LigneProposee[] {
     const vol = volumeExtM3(p)
     if (vol > 0) {
       const prof = ((p.profondeurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
-      out.push(ligne(LOT_EXTERIEUR, 'ext_volume', p.id, `Volume — ${p.name}`, vol, 'm³', projet, `${s.toFixed(2).replace('.', ',')} m² × ${prof} m — à qualifier (déblai / évacuation / grave / béton)`))
+      out.push(ligne(LOT_EXTERIEUR, 'ext_volume', p.id, `Volume — ${p.name}`, vol, 'm³', projet, `${s.toFixed(2).replace('.', ',')} m² × ${prof} m — à qualifier (déblai / grave / béton)`))
     }
   }
   for (const cl of niveau.clotures) {
