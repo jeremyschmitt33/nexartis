@@ -110,32 +110,66 @@ function disposerCalque(prep: CalquePrep) {
 
 /* ── Sous-composants de rendu ─────────────────────────────────────────────── */
 
-function SolsCalque({ prep }: { prep: CalquePrep }) {
+function SolsCalque({
+  prep,
+  selectedId,
+  onSelect,
+}: {
+  prep: CalquePrep
+  selectedId?: string | null
+  onSelect?: (id: string | null) => void
+}) {
   return (
     <>
-      {prep.sols.map(({ geo, sol }, i) => (
-        <group key={i}>
-          <mesh geometry={geo} rotation-x={Math.PI / 2} position-y={sol.yOffset}>
-            <meshStandardMaterial
-              color={sol.couleur}
-              transparent={sol.opacite < 1}
-              opacity={sol.opacite}
-              side={THREE.DoubleSide}
-              roughness={0.95}
-              metalness={0}
-            />
-          </mesh>
-          {sol.bord && (
-            <Line
-              points={[...sol.contour, sol.contour[0]].map(
-                ([x, z]): [number, number, number] => [x, sol.yOffset + 0.012, z],
-              )}
-              color={sol.bord}
-              lineWidth={1.6}
-            />
-          )}
-        </group>
-      ))}
+      {prep.sols.map(({ geo, sol }, i) => {
+        // Un sol n'est cliquable que s'il porte un pieceId (sols de base des
+        // pièces). Les surfaces superposées (teinte d'avancement) ont
+        // `raycast` désactivé : elles ne doivent NI intercepter le clic (sinon
+        // le rayon toucherait la teinte au lieu du sol, en dessous), NI être
+        // sélectionnées.
+        const selectable = !!sol.pieceId
+        const selectionne = selectable && sol.pieceId === selectedId
+        return (
+          <group key={i}>
+            <mesh
+              geometry={geo}
+              rotation-x={Math.PI / 2}
+              position-y={sol.yOffset}
+              raycast={selectable ? undefined : () => null}
+              onClick={
+                selectable
+                  ? (e) => {
+                      e.stopPropagation()
+                      onSelect?.(sol.pieceId ?? null)
+                    }
+                  : undefined
+              }
+              onPointerOver={selectable ? () => (document.body.style.cursor = 'pointer') : undefined}
+              onPointerOut={selectable ? () => (document.body.style.cursor = 'auto') : undefined}
+            >
+              <meshStandardMaterial
+                color={sol.couleur}
+                transparent={sol.opacite < 1}
+                opacity={sol.opacite}
+                side={THREE.DoubleSide}
+                roughness={0.95}
+                metalness={0}
+                emissive={selectionne ? C.orange : '#000000'}
+                emissiveIntensity={selectionne ? 0.22 : 0}
+              />
+            </mesh>
+            {sol.bord && (
+              <Line
+                points={[...sol.contour, sol.contour[0]].map(
+                  ([x, z]): [number, number, number] => [x, sol.yOffset + 0.012, z],
+                )}
+                color={selectionne ? C.orange : sol.bord}
+                lineWidth={selectionne ? 3 : 1.6}
+              />
+            )}
+          </group>
+        )
+      })}
     </>
   )
 }
@@ -213,10 +247,18 @@ function EtiquetteHtml({ e }: { e: Etiquette3d }) {
   )
 }
 
-function CalqueRender({ prep }: { prep: CalquePrep }) {
+function CalqueRender({
+  prep,
+  selectedId,
+  onSelect,
+}: {
+  prep: CalquePrep
+  selectedId?: string | null
+  onSelect?: (id: string | null) => void
+}) {
   return (
     <group>
-      <SolsCalque prep={prep} />
+      <SolsCalque prep={prep} selectedId={selectedId} onSelect={onSelect} />
       {prep.murs && (
         <mesh geometry={prep.murs}>
           <meshStandardMaterial
@@ -251,9 +293,13 @@ export interface Scene3dViewProps {
   niveau: Niveau
   /** Nom du plan (réservé aux évolutions : capture, titre). */
   nomPlan: string
+  /** Id de la pièce sélectionnée (surbrillance) — piloté par PlanEditor. */
+  selectedId?: string | null
+  /** Clic sur une pièce (ou le vide → null) : demande de sélection. */
+  onSelect?: (id: string | null) => void
 }
 
-export default function Scene3dView({ niveau }: Scene3dViewProps) {
+export default function Scene3dView({ niveau, selectedId, onSelect }: Scene3dViewProps) {
   const [mode, setMode] = useState<'avant' | 'apres'>('apres')
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
 
@@ -265,6 +311,13 @@ export default function Scene3dView({ niveau }: Scene3dViewProps) {
   // Libération mémoire GPU quand la géométrie change ou au démontage.
   useEffect(() => () => disposerCalque(existant), [existant])
   useEffect(() => () => disposerCalque(projet), [projet])
+
+  // Filet de sécurité : si la vue 3D est démontée alors que le curseur survole
+  // une pièce (ex. Échap pour revenir en 2D pendant le survol), onPointerOut
+  // peut ne pas se déclencher — on remet le curseur par défaut au démontage.
+  useEffect(() => () => {
+    document.body.style.cursor = 'auto'
+  }, [])
 
   const cadre = useMemo(() => {
     const r = data.rayon
@@ -296,6 +349,7 @@ export default function Scene3dView({ niveau }: Scene3dViewProps) {
           dpr={[1, 2]}
           camera={{ position: cadre.position, fov: 45, near: 0.05, far: cadre.far }}
           style={{ width: '100%', height: '100%' }}
+          onPointerMissed={() => onSelect?.(null)}
         >
           <color attach="background" args={[C.fond]} />
           <hemisphereLight args={[0xffffff, 0xb9c2d0, 0.75]} />
@@ -315,10 +369,11 @@ export default function Scene3dView({ niveau }: Scene3dViewProps) {
             fadeStrength={1.2}
             infiniteGrid={false}
             position={[0, -0.002, 0]}
+            raycast={() => null}
           />
 
-          <CalqueRender prep={existant} />
-          {mode === 'apres' && <CalqueRender prep={projet} />}
+          <CalqueRender prep={existant} selectedId={selectedId} onSelect={onSelect} />
+          {mode === 'apres' && <CalqueRender prep={projet} selectedId={selectedId} onSelect={onSelect} />}
 
           <OrbitControls
             ref={controlsRef}

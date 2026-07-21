@@ -508,12 +508,22 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
           )}
 
           {/* Push 6 — vue 3D : surcouche opaque au-dessus du canvas 2D */}
-          {mode3d && <Scene3dView niveau={etat.niveau} nomPlan={nom} />}
+          {mode3d && (
+            <Scene3dView
+              niveau={etat.niveau}
+              nomPlan={nom}
+              selectedId={etat.pieceSelectionnee?.id ?? null}
+              onSelect={(id) => etat.selectRoom(id)}
+            />
+          )}
         </div>
 
         {/* Panneau droit : pièce (RoomSheet + métrés), symbole ou clôture.
-            Push 6 : masqué en 3D (la sélection est vidée à l'entrée en 3D). */}
-        {!mode3d && (etat.pieceSelectionnee || etat.symboleSelectionne || etat.clotureSelectionnee) && (
+            Étape 2 (3D) : en 3D on peut cliquer une pièce → ce panneau s'ouvre
+            pour éditer ses dimensions ; le redimensionnement se voit en direct
+            dans la 3D. Symbole/clôture restent réservés à la 2D (pas de
+            sélection au clic en 3D pour l'instant). */}
+        {(etat.pieceSelectionnee || (!mode3d && (etat.symboleSelectionne || etat.clotureSelectionnee))) && (
           <aside className="absolute inset-x-0 bottom-0 z-30 max-h-[48%] overflow-hidden rounded-t-2xl border-t border-gray-200 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:w-[320px] lg:flex-shrink-0 lg:rounded-none lg:border-l lg:border-t-0 lg:shadow-none">
             {etat.pieceSelectionnee ? (
               <RoomSheet

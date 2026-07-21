@@ -72,6 +72,10 @@ export interface Sol3d {
   contour: [number, number][]
   couleur: string
   opacite: number
+  /** Id de la pièce si ce sol est SÉLECTIONNABLE au clic (sols de base des
+   * pièces ; absent sur les surfaces superposées comme la teinte d'avancement,
+   * qui ne doivent ni intercepter le clic ni être sélectionnées). */
+  pieceId?: string
   /** Couleur du liseré de contour (silhouette franche), absent = pas de liseré. */
   bord?: string
   yOffset: number
@@ -215,7 +219,7 @@ export function construireScene3dReelle(
 
     const contour = verts.map((v): [number, number] => [(v[0] - cx) / 1000, (v[1] - cy) / 1000])
     const stylesSol = solDe(piece)
-    sc.sols.push({ contour, couleur: stylesSol.couleur, opacite: stylesSol.opacite, bord: stylesSol.bord, yOffset: 0 })
+    sc.sols.push({ contour, couleur: stylesSol.couleur, opacite: stylesSol.opacite, bord: stylesSol.bord, yOffset: 0, pieceId: piece.id })
 
     // Teinte d'avancement (parité 2D/iso) : superposée, sans liseré, calque
     // existant seulement, au-dessus de son sol.
