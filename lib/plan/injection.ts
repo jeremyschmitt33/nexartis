@@ -21,6 +21,7 @@ import {
   kindDe,
   perimetreMl,
   plinthesMl,
+  surfaceMurM2,
   surfaceMursM2,
   surfacePlafondM2,
   surfaceSolM2,
@@ -283,6 +284,13 @@ function lotExterieur(niveau: Niveau): LigneProposee[] {
         const pr = ((cl.profondeurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
         out.push(ligne(LOT_EXTERIEUR, 'tranchee_volume', cl.id, 'Tranchée — volume', vol, 'm³', projet, `${ml.toFixed(2).replace('.', ',')} ml × ${la} × ${pr} m — à qualifier (déblai / béton)`))
       }
+    } else if (k === 'mur') {
+      const surf = surfaceMurM2(cl)
+      if (surf > 0) {
+        const h = ((cl.hauteurMm ?? 0) / 1000).toFixed(2).replace('.', ',')
+        out.push(ligne(LOT_EXTERIEUR, 'mur_surface', cl.id, 'Mur extérieur / façade — surface', surf, 'm²', projet, `${ml.toFixed(2).replace('.', ',')} ml × ${h} m`))
+      }
+      out.push(ligne(LOT_EXTERIEUR, 'mur_ml', cl.id, 'Mur extérieur — linéaire (base)', ml, 'ml', projet, 'base (semelle / arase)'))
     } else {
       out.push(ligne(LOT_EXTERIEUR, 'cloture_ml', cl.id, 'Clôture / grillage', ml, 'ml', projet, 'longueur de la polyligne tracée'))
     }

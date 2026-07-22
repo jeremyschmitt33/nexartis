@@ -180,9 +180,11 @@ export interface PlanPaletteProps {
   onBordure: () => void
   /** Démarre le tracé d'une tranchée (polyligne ouverte, ml + volume). */
   onTranchee: () => void
+  /** Démarre le tracé d'un mur extérieur / façade (polyligne + hauteur). */
+  onMur: () => void
 }
 
-export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, onZoneExt, onCloture, onBordure, onTranchee }: PlanPaletteProps) {
+export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, onZoneExt, onCloture, onBordure, onTranchee, onMur }: PlanPaletteProps) {
   const groupes = groupesSymboles(metier)
 
   const bouton = (key: Outil, label: string, icone: React.ReactNode) => (
@@ -273,6 +275,14 @@ export default function PlanPalette({ metier, outil, onOutil, onAjouterPiece, on
       >
         <IconeExt type="Cloture" />
         <span className="truncate">Tranchée</span>
+      </button>
+      <button
+        type="button"
+        onClick={onMur}
+        className="flex w-full items-center gap-2 rounded-xl border-[1.5px] border-transparent px-2.5 py-2 text-left font-hanken text-[12.5px] font-semibold text-navy transition-colors hover:bg-gray-50"
+      >
+        <IconeExt type="Cloture" />
+        <span className="truncate">Mur extérieur</span>
       </button>
       {bouton('sym:portail', 'Portail', <IconeExt type="Portail" />)}
 

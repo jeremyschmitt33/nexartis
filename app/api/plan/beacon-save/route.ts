@@ -102,7 +102,8 @@ function estSymboleValide(s: unknown): boolean {
 function estClotureValide(c: unknown): boolean {
   if (typeof c !== 'object' || c === null) return false
   const x = c as Record<string, unknown>
-  if (x.kind !== undefined && x.kind !== 'cloture' && x.kind !== 'bordure' && x.kind !== 'tranchee') return false
+  if (x.kind !== undefined && x.kind !== 'cloture' && x.kind !== 'bordure' && x.kind !== 'tranchee' && x.kind !== 'mur') return false
+  if (x.hauteurMm !== undefined && !Number.isFinite(x.hauteurMm)) return false
   if (x.largeurMm !== undefined && !Number.isFinite(x.largeurMm)) return false
   if (x.profondeurMm !== undefined && !Number.isFinite(x.profondeurMm)) return false
   return (

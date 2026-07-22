@@ -462,6 +462,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
             onCloture={() => demarrerLineaire('cloture')}
             onBordure={() => demarrerLineaire('bordure')}
             onTranchee={() => demarrerLineaire('tranchee')}
+            onMur={() => demarrerLineaire('mur')}
           />
         )}
 
@@ -575,7 +576,7 @@ export default function PlanEditor({ planId, nomInitial, dataInitiale, metierIni
                 onEnvoyerDevis={() => {
                   const cl = etat.clotureSelectionnee!
                   const k = kindDe(cl)
-                  const metric = k === 'bordure' ? 'bordure_ml' : k === 'tranchee' ? 'tranchee_ml' : 'cloture_ml'
+                  const metric = k === 'bordure' ? 'bordure_ml' : k === 'tranchee' ? 'tranchee_ml' : k === 'mur' ? 'mur_surface' : 'cloture_ml'
                   ouvrirTiroir({ metric, roomId: cl.id })
                 }}
                 onSupprimer={supprimerSelection}

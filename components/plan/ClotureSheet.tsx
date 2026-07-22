@@ -7,9 +7,9 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { Cloture } from '@/lib/plan/types'
+import type { Cloture, KindLineaire } from '@/lib/plan/types'
 import { fmtNombreFr } from '@/lib/plan/geometry'
-import { clotureMl, kindDe, volumeTrancheeM3 } from '@/lib/plan/metrics'
+import { clotureMl, kindDe, surfaceMurM2, volumeTrancheeM3 } from '@/lib/plan/metrics'
 import { lireMetresEnMm, mmVersSaisieM } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
@@ -21,25 +21,29 @@ export interface ClotureSheetProps {
   onFermer: () => void
 }
 
-const LABELS: Record<'cloture' | 'bordure' | 'tranchee', { titre: string; unite: string; supp: string }> = {
+const LABELS: Record<KindLineaire, { titre: string; unite: string; supp: string }> = {
   cloture: { titre: 'Clôture / grillage', unite: 'ml de clôture / grillage', supp: 'la clôture' },
   bordure: { titre: 'Bordure', unite: 'ml de bordure', supp: 'la bordure' },
   tranchee: { titre: 'Tranchée', unite: 'ml de tranchée', supp: 'la tranchée' },
+  mur: { titre: 'Mur extérieur / façade', unite: 'ml de mur (base)', supp: 'le mur' },
 }
 
 export default function ClotureSheet({ cloture, onMaj, onEnvoyerDevis, onSupprimer, onFermer }: ClotureSheetProps) {
   const kind = kindDe(cloture)
   const ml = clotureMl(cloture)
   const volume = volumeTrancheeM3(cloture)
+  const surface = surfaceMurM2(cloture)
   const meta = LABELS[kind]
 
   const [largeur, setLargeur] = useState(cloture.largeurMm ? mmVersSaisieM(cloture.largeurMm) : '')
   const [profondeur, setProfondeur] = useState(cloture.profondeurMm ? mmVersSaisieM(cloture.profondeurMm) : '')
+  const [hauteur, setHauteur] = useState(cloture.hauteurMm ? mmVersSaisieM(cloture.hauteurMm) : '')
 
   useEffect(() => {
     setLargeur(cloture.largeurMm ? mmVersSaisieM(cloture.largeurMm) : '')
     setProfondeur(cloture.profondeurMm ? mmVersSaisieM(cloture.profondeurMm) : '')
-  }, [cloture.id, cloture.largeurMm, cloture.profondeurMm])
+    setHauteur(cloture.hauteurMm ? mmVersSaisieM(cloture.hauteurMm) : '')
+  }, [cloture.id, cloture.largeurMm, cloture.profondeurMm, cloture.hauteurMm])
 
   const commitLargeur = () => {
     const t = largeur.trim()
@@ -69,6 +73,21 @@ export default function ClotureSheet({ cloture, onMaj, onEnvoyerDevis, onSupprim
       return
     }
     if (mm !== cloture.profondeurMm) onMaj({ profondeurMm: mm })
+  }
+
+  const commitHauteur = () => {
+    const t = hauteur.trim()
+    if (t === '') {
+      if (cloture.hauteurMm !== undefined) onMaj({ hauteurMm: undefined })
+      return
+    }
+    const mm = lireMetresEnMm(t)
+    if (mm === null || mm < 10 || mm > 20000) {
+      toast.warning('Hauteur invalide', { description: 'Saisissez entre 0,01 et 20 m (ex. 2,50).' })
+      setHauteur(cloture.hauteurMm ? mmVersSaisieM(cloture.hauteurMm) : '')
+      return
+    }
+    if (mm !== cloture.hauteurMm) onMaj({ hauteurMm: mm })
   }
 
   return (
@@ -141,6 +160,33 @@ export default function ClotureSheet({ cloture, onMaj, onEnvoyerDevis, onSupprim
           </div>
         )}
 
+        {kind === 'mur' && (
+          <div>
+            <span className="mb-1.5 block font-hanken text-[11px] font-semibold uppercase tracking-wider text-gray-500">Hauteur (pour la surface)</span>
+            <div className="flex items-center gap-1.5">
+              <input
+                value={hauteur}
+                onChange={(e) => setHauteur(e.target.value)}
+                onBlur={commitHauteur}
+                inputMode="decimal"
+                aria-label="Hauteur du mur en mètres"
+                placeholder="2,50"
+                className="w-20 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-2 py-2 text-center font-spline-mono text-[14px] font-medium text-navy focus:border-orange focus:bg-white focus:outline-none"
+              />
+              <span className="text-[13px] text-gray-500">m</span>
+            </div>
+            {surface > 0 ? (
+              <p className="mt-2 rounded-lg bg-sky/10 px-3 py-2 font-hanken text-[12px] leading-snug text-navy">
+                Surface : <span className="font-bold">{fmtNombreFr(surface)} m²</span> — façade / enduit / mur (ml × hauteur).
+              </p>
+            ) : (
+              <p className="mt-2 font-hanken text-[11.5px] leading-snug text-gray-500">
+                Renseignez la hauteur pour calculer la surface.
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="font-hanken text-[11.5px] leading-snug text-gray-500">
           Calque : <span className={`font-bold ${cloture.layer === 'projet' ? 'text-orange' : 'text-navy'}`}>{cloture.layer === 'projet' ? 'Projet' : 'Existant'}</span>
           {' · '}longueur réelle de la polyligne tracée, métré indicatif à vérifier avant chiffrage.
@@ -151,7 +197,7 @@ export default function ClotureSheet({ cloture, onMaj, onEnvoyerDevis, onSupprim
           onClick={onEnvoyerDevis}
           className="w-full rounded-xl bg-gradient-to-r from-[#ff9d4d] to-[#ff7a1a] px-4 py-2.5 font-hanken text-[13.5px] font-bold text-white shadow-[0_8px_20px_rgba(255,122,26,0.35)] transition-all hover:brightness-105"
         >
-          Envoyer au devis ({fmtNombreFr(ml)} ml{volume > 0 ? ` + ${fmtNombreFr(volume)} m³` : ''})
+          Envoyer au devis ({fmtNombreFr(ml)} ml{volume > 0 ? ` + ${fmtNombreFr(volume)} m³` : ''}{surface > 0 ? ` + ${fmtNombreFr(surface)} m²` : ''})
         </button>
 
         <div className="border-t border-gray-100 pt-4">

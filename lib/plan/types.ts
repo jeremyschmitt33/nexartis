@@ -109,7 +109,7 @@ export interface Piece {
 }
 
 /** Type de linéaire : clôture (défaut), bordure, ou tranchée (largeur+profondeur -> volume). */
-export type KindLineaire = 'cloture' | 'bordure' | 'tranchee';
+export type KindLineaire = 'cloture' | 'bordure' | 'tranchee' | 'mur';
 
 /** Clôture / bordure / tranchée : polyligne OUVERTE (non fermée), métrée en ml. */
 export interface Cloture {
@@ -120,6 +120,8 @@ export interface Cloture {
   kind?: KindLineaire;
   /** Tranchée uniquement : largeur en mm (pour le volume de déblai). */
   largeurMm?: number;
+  /** Hauteur en mm (kind 'mur') : surface = ml × hauteur (façade / mur). */
+  hauteurMm?: number;
   /** Tranchée uniquement : profondeur en mm (pour le volume de déblai). */
   profondeurMm?: number;
 }

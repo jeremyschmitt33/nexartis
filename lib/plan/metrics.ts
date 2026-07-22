@@ -294,6 +294,15 @@ export function volumeExtM3(piece: Piece): number {
   return Math.round((aireMm2(piece.vertices) / 1e6) * (prof / 1000) * 100) / 100;
 }
 
+/** Surface d'un mur extérieur / façade en m² (ml × hauteur). 0 si pas 'mur'
+ * ou hauteur absente. Hauteur saisie explicitement, jamais devinée. */
+export function surfaceMurM2(c: Cloture): number {
+  if ((c.kind ?? 'cloture') !== 'mur') return 0
+  const h = c.hauteurMm
+  if (typeof h !== 'number' || !Number.isFinite(h) || h <= 0) return 0
+  return Math.round(clotureMl(c) * (h / 1000) * 100) / 100
+}
+
 /** Type de linéaire (absent === 'cloture', compat). */
 export function kindDe(c: Cloture): KindLineaire {
   return c.kind ?? 'cloture';
