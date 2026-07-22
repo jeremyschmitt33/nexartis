@@ -23,10 +23,10 @@ interface Chip {
 }
 
 const CHIPS: Chip[] = [
-  { label: 'Devis signe',     sublabel: 'M. Dupont - 2 480 EUR',         dotColor: 'var(--mint)',    corner: 'tl', offsetX: 0, offsetY: 10, delay: 0.20 },
-  { label: 'Alerte conflit',  sublabel: 'Michel R. deja affecte jeudi',  dotColor: 'var(--accent)',  corner: 'tr', offsetX: 0, offsetY: 60, delay: 0.40, alert: true },
-  { label: '6 620 EUR facture', sublabel: 'Ce mois-ci - +18%',           dotColor: 'var(--electric)', corner: 'bl', offsetX: 0, offsetY: 60, delay: 0.60 },
-  { label: 'Relance impayes', sublabel: 'Rappel envoye en 1 clic',       dotColor: 'var(--violet)',   corner: 'br', offsetX: 0, offsetY: 10, delay: 0.80 },
+  { label: 'Devis signé',     sublabel: 'M. Dupont - 2 480 EUR',         dotColor: 'var(--mint)',    corner: 'tl', offsetX: 0, offsetY: 10, delay: 0.20 },
+  { label: 'Alerte conflit',  sublabel: 'Michel R. déjà affecté jeudi',  dotColor: 'var(--accent)',  corner: 'tr', offsetX: 0, offsetY: 60, delay: 0.40, alert: true },
+  { label: '6 620 EUR facturé', sublabel: 'Ce mois-ci - +18%',           dotColor: 'var(--electric)', corner: 'bl', offsetX: 0, offsetY: 60, delay: 0.60 },
+  { label: 'Relance impayés', sublabel: 'Rappel envoyé en 1 clic',       dotColor: 'var(--violet)',   corner: 'br', offsetX: 0, offsetY: 10, delay: 0.80 },
 ]
 
 function chipPositionClasses(corner: Chip['corner']): string {
@@ -98,7 +98,7 @@ export default function HeroOrbital() {
                 style={{ boxShadow: '0 0 10px var(--accent)' }}
                 aria-hidden="true"
               />
-              Concu en Gironde - Pour les artisans de toute la France
+              Conçu en Gironde - Pour les artisans de toute la France
             </span>
           </div>
 
@@ -115,8 +115,8 @@ export default function HeroOrbital() {
           </h1>
 
           <p className="reveal reveal-delay-2 mt-5 lg:mt-6 mx-auto lg:mx-0 max-w-[560px] text-[16px] sm:text-[17px] lg:text-[18px] text-ink-2 leading-[1.55]">
-            Devis, factures, planning et suivi financier - reunis dans une seule application,
-            pensee pour tous les artisans.
+            Devis, factures, planning et suivi financier - réunis dans une seule application,
+            pensée pour tous les artisans.
           </p>
 
           <div className="reveal reveal-delay-3 mt-7 lg:mt-8 flex flex-wrap gap-3 justify-center lg:justify-start items-center">
@@ -141,7 +141,7 @@ export default function HeroOrbital() {
           <p className="reveal reveal-delay-4 mt-4 lg:mt-5 text-[13px] text-ink-3 font-medium">
             Sans carte bancaire <span className="opacity-40 mx-1">-</span>
             Sans engagement <span className="opacity-40 mx-1">-</span>
-            Pret en 10 minutes
+            Prêt en 10 minutes
           </p>
         </div>
 
@@ -232,11 +232,11 @@ export default function HeroOrbital() {
 
                 <div className="grid grid-cols-2 gap-2 px-4 pt-1">
                   <div className="rounded-[12px] bg-white/[0.04] border border-white/[0.08] p-2.5">
-                    <div className="text-[9px] text-ink-3 font-semibold">CA Facture</div>
+                    <div className="text-[9px] text-ink-3 font-semibold">CA Facturé</div>
                     <div className="text-[16px] font-hanken font-bold text-electric-2 mt-0.5 tabular-nums">6 620 EUR</div>
                   </div>
                   <div className="rounded-[12px] bg-white/[0.04] border border-white/[0.08] p-2.5">
-                    <div className="text-[9px] text-ink-3 font-semibold">Encaisse</div>
+                    <div className="text-[9px] text-ink-3 font-semibold">Encaissé</div>
                     <div className="text-[16px] font-hanken font-bold mt-0.5 tabular-nums" style={{ color: 'var(--mint)' }}>2 110 EUR</div>
                   </div>
                 </div>
@@ -248,7 +248,7 @@ export default function HeroOrbital() {
                 <div className="px-4 flex flex-col gap-1.5">
                   {[
                     { col: 'var(--electric)', t: 'Installation tableau', s: 'M. Dupont - Lun 08:30', tick: false },
-                    { col: 'var(--accent)',   t: 'Renovation cuisine',   s: 'M. Martin - Jeu 09:00', tick: true  },
+                    { col: 'var(--accent)',   t: 'Rénovation cuisine',   s: 'M. Martin - Jeu 09:00', tick: true  },
                     { col: 'var(--mint)',     t: 'Pose carrelage',       s: 'M. Bernard - Ven 14:00', tick: false },
                   ].map((r) => (
                     <div

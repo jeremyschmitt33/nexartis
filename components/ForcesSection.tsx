@@ -42,7 +42,7 @@ interface Force {
 const forces: Force[] = [
   {
     title: "Parle votre langue, pas celle des comptables",
-    text: "Chantier, devis, attestation TVA : le vocabulaire de votre metier, zero jargon de logiciel. Vous comprenez tout des le premier ecran.",
+    text: "Chantier, devis, attestation TVA : le vocabulaire de votre métier, zéro jargon de logiciel. Vous comprenez tout dès le premier écran.",
     proof: "Prise en main en moins de 10 minutes",
     accent: "#ff9d4d",
     proofTone: "accent",
@@ -55,8 +55,8 @@ const forces: Force[] = [
   },
   {
     title: "Conforme, sans y penser une seconde",
-    text: "Mentions obligatoires, TVA 5,5/10/20 %, attestations renovation, numerotation continue : tout est genere automatiquement. Vos documents sont en regle sans effort.",
-    proof: "Mentions legales francaises completes",
+    text: "Mentions obligatoires, TVA 5,5/10/20 %, attestations rénovation, numérotation continue : tout est généré automatiquement. Vos documents sont en règle sans effort.",
+    proof: "Mentions légales françaises complètes",
     accent: "#6aa0ff",
     proofTone: "electric",
     svgPaths: (
@@ -68,9 +68,9 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Le planning qui vous evite les doublons",
-    text: "La plupart des outils BTP grand public ne vous previennent pas quand un equipier est affecte deux fois le meme jour. Nexartis vous alerte en direct, avant que ca coince sur le chantier.",
-    proof: "Rare sur le marche",
+    title: "Le planning qui vous évite les doublons",
+    text: "La plupart des outils BTP grand public ne vous préviennent pas quand un équipier est affecté deux fois le même jour. Nexartis vous alerte en direct, avant que ça coince sur le chantier.",
+    proof: "Rare sur le marché",
     accent: "#ff7a1a",
     proofTone: "accent",
     svgPaths: (
@@ -85,8 +85,8 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Vos donnees restent en Europe, et a vous",
-    text: "Hebergement conforme RGPD, isolation stricte par compte (chiffrement et RLS). Vos chantiers et vos clients ne sont jamais vendus, jamais partages.",
+    title: "Vos données restent en Europe, et à vous",
+    text: "Hébergement conforme RGPD, isolation stricte par compte (chiffrement et RLS). Vos chantiers et vos clients ne sont jamais vendus, jamais partagés.",
     proof: "RGPD Europe",
     accent: "#2fd6a0",
     proofTone: "mint",
@@ -98,9 +98,9 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Prets pour la facture electronique, en avance",
-    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026). L'emission de vos propres factures est deja prete pour votre echeance (a partir du 1er septembre 2027). Plateforme agreee.",
-    proof: "Reception 2026 · Emission 2027",
+    title: "Prêts pour la facture électronique, en avance",
+    text: "Recevez dès aujourd'hui les factures électroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026). L'émission de vos propres factures est déjà prête pour votre échéance (à partir du 1er septembre 2027). Plateforme agréée.",
+    proof: "Réception 2026 · Émission 2027",
     accent: "#8b6dff",
     proofTone: "violet",
     svgPaths: (
@@ -112,9 +112,9 @@ const forces: Force[] = [
     ),
   },
   {
-    title: "Deux offres claires, zero surprise sur la facture",
-    text: "Essentiel pour chiffrer et facturer, Complet pour piloter une equipe. Dans votre offre, tout est inclus : pas de module premium surprise, pas de cout par client ni par chantier.",
-    proof: "Aucun surcout cache",
+    title: "Deux offres claires, zéro surprise sur la facture",
+    text: "Essentiel pour chiffrer et facturer, Complet pour piloter une équipe. Dans votre offre, tout est inclus : pas de module premium surprise, pas de coût par client ni par chantier.",
+    proof: "Aucun surcoût caché",
     accent: "#6aa0ff",
     proofTone: "electric",
     svgPaths: (
@@ -128,12 +128,12 @@ const forces: Force[] = [
 ];
 
 const comparison = [
-  { label: "Vocabulaire metier BTP", classic: false, nexartis: true },
-  { label: "Alertes conflit planning en temps reel", classic: false, nexartis: true },
-  { label: "Mentions legales francaises automatiques", classic: false, nexartis: true },
-  { label: "Donnees hebergees en Europe", classic: false, nexartis: true },
-  { label: "Reception des e-factures fournisseurs (2026)", classic: false, nexartis: true },
-  { label: "Deux offres claires, sans surcout cache", classic: false, nexartis: true },
+  { label: "Vocabulaire métier BTP", classic: false, nexartis: true },
+  { label: "Alertes conflit planning en temps réel", classic: false, nexartis: true },
+  { label: "Mentions légales françaises automatiques", classic: false, nexartis: true },
+  { label: "Données hébergées en Europe", classic: false, nexartis: true },
+  { label: "Réception des e-factures fournisseurs (2026)", classic: false, nexartis: true },
+  { label: "Deux offres claires, sans surcoût caché", classic: false, nexartis: true },
 ];
 
 const proofToneMap: Record<Force["proofTone"], { color: string; bg: string; border: string }> = {
@@ -169,7 +169,7 @@ export default function ForcesSection() {
             Ce qui change vraiment avec Nexartis
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[620px] mx-auto">
-            Six raisons concretes pour lesquelles les artisans francais choisissent Nexartis plutot qu&apos;un outil generaliste.
+            Six raisons concrètes pour lesquelles les artisans français choisissent Nexartis plutôt qu&apos;un outil généraliste.
           </p>
         </div>
 
@@ -252,7 +252,7 @@ export default function ForcesSection() {
                   Solutions classiques
                 </span>
                 <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-3 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.06]">
-                  Generaliste
+                  Généraliste
                 </span>
               </div>
               <ul className="space-y-3">
@@ -302,7 +302,7 @@ export default function ForcesSection() {
                         borderColor: "color-mix(in srgb, #ff7a1a 32%, transparent)",
                       }}
                     >
-                      Specialise BTP
+                      Spécialisé BTP
                     </span>
                   </div>
                   <ul className="space-y-3">
@@ -333,7 +333,7 @@ export default function ForcesSection() {
         <div className="reveal flex flex-col sm:flex-row items-center justify-between gap-5 rounded-[22px] p-[28px] sm:p-[32px] bg-white/[0.04] border border-white/[0.09] backdrop-blur-[6px]">
           <div className="text-center sm:text-left">
             <p className="text-[17px] sm:text-[19px] font-[800] text-ink tracking-[-0.01em] mb-1">
-              Testez tout ca sur vos vrais chantiers
+              Testez tout ça sur vos vrais chantiers
             </p>
             <p className="text-[14px] text-ink-2 font-medium">
               14 jours d&apos;essai gratuit. Aucune carte bancaire requise.

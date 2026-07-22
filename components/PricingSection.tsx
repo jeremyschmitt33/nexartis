@@ -182,7 +182,7 @@ export default function PricingSection() {
                   Essentiel
                 </h3>
                 <p className="text-[14px] text-ink-3 font-medium leading-snug">
-                  Tout pour chiffrer, facturer et etre paye. Parfait quand vous travaillez seul.
+                  Tout pour chiffrer, facturer et être payé. Parfait quand vous travaillez seul.
                 </p>
               </div>
 
@@ -228,7 +228,7 @@ export default function PricingSection() {
                 href="/register?plan=essential"
                 className="block text-center rounded-[14px] py-3.5 px-6 font-hanken font-bold text-[15px] bg-white/[0.08] text-ink border border-white/[0.16] hover:bg-white/[0.12] hover:border-white/[0.24] transition-all duration-300"
               >
-                Demarrer avec Essentiel
+                Démarrer avec Essentiel
               </Link>
               <p className="text-center text-[12px] text-ink-3 mt-3">
                 Essai gratuit 14 jours · Sans carte bancaire
@@ -275,7 +275,7 @@ export default function PricingSection() {
                 </div>
 
                 <p className="text-[14px] text-ink-3 font-medium leading-snug mb-4">
-                  L&apos;Essentiel + le planning et l&apos;equipe. Pour qui jongle entre plusieurs chantiers.
+                  L&apos;Essentiel + le planning et l&apos;équipe. Pour qui jongle entre plusieurs chantiers.
                 </p>
 
                 {/* Prix */}

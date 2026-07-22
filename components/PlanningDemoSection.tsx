@@ -148,10 +148,10 @@ export default function PlanningDemoSection() {
                 boxShadow: "0 0 10px currentColor",
               }}
             />
-            ★ Fonctionnalite exclusive Nexartis
+            ★ Fonctionnalité exclusive Nexartis
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Le planning qui pense a votre place
+            Le planning qui pense à votre place
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
             Chez tous les concurrents, le planning est une simple liste. Chez Nexartis, c&apos;est un vrai outil de travail.

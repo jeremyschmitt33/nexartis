@@ -23,8 +23,8 @@ interface FeatureCard {
 const cards: FeatureCard[] = [
   {
     title: "Un devis pro en 2 minutes, pas en 2 heures",
-    text: "Choisissez le client, ajoutez vos prestations, envoyez par email. Votre client signe en ligne depuis son telephone. Le chantier peut demarrer.",
-    tag: "✓ Conforme legalement",
+    text: "Choisissez le client, ajoutez vos prestations, envoyez par email. Votre client signe en ligne depuis son téléphone. Le chantier peut démarrer.",
+    tag: "✓ Conforme légalement",
     accent: "#6aa0ff",
     svgPaths: (
       <>
@@ -36,8 +36,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Fini les deux equipes sur le meme chantier",
-    text: "Glissez vos chantiers sur le calendrier. Si vous affectez quelqu'un deux fois le meme jour, une alerte orange apparait aussitot. Plus jamais de double-booking.",
+    title: "Fini les deux équipes sur le même chantier",
+    text: "Glissez vos chantiers sur le calendrier. Si vous affectez quelqu'un deux fois le même jour, une alerte orange apparaît aussitôt. Plus jamais de double-booking.",
     tag: "★ Exclusif Nexartis",
     exclusive: true,
     accent: "#ff9d4d",
@@ -51,9 +51,9 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Savez enfin ou vous en etes, d'un coup d'oeil",
-    text: "Ce que vous avez facture ce mois-ci, ce qui reste a encaisser, ce qui tombe la semaine prochaine. Vos chiffres clairs, sans tableur ni calcul.",
-    tag: "✓ Temps reel",
+    title: "Savez enfin où vous en êtes, d'un coup d'œil",
+    text: "Ce que vous avez facturé ce mois-ci, ce qui reste à encaisser, ce qui tombe la semaine prochaine. Vos chiffres clairs, sans tableur ni calcul.",
+    tag: "✓ Temps réel",
     accent: "#2fd6a0",
     svgPaths: (
       <>
@@ -65,8 +65,8 @@ const cards: FeatureCard[] = [
   },
   {
     title: "Vos relances tournent toutes seules",
-    text: "Relances email automatiques, SMS de relance pret a envoyer depuis votre telephone (gratuit), ou relance manuelle en 1 clic. Les clients qui n'ont pas paye remontent en haut de votre tableau de bord. Vous n'oubliez plus une facture.",
-    tag: "✓ Relances integrees",
+    text: "Relances email automatiques, SMS de relance prêt à envoyer depuis votre téléphone (gratuit), ou relance manuelle en 1 clic. Les clients qui n'ont pas payé remontent en haut de votre tableau de bord. Vous n'oubliez plus une facture.",
+    tag: "✓ Relances intégrées",
     accent: "#8b6dff",
     svgPaths: (
       <>
@@ -76,15 +76,15 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "La facture electronique, deja prete pour vous",
-    text: "Recevez des aujourd'hui les factures electroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026). L'emission de vos propres factures est prete pour votre echeance (a partir du 1er septembre 2027). Plateforme agreee, donnees chiffrees.",
-    tag: "✓ Reception 2026 · Emission 2027",
+    title: "La facture électronique, déjà prête pour vous",
+    text: "Recevez dès aujourd'hui les factures électroniques de vos fournisseurs dans Nexartis (obligation au 1er septembre 2026). L'émission de vos propres factures est prête pour votre échéance (à partir du 1er septembre 2027). Plateforme agréée, données chiffrées.",
+    tag: "✓ Réception 2026 · Émission 2027",
     accent: "#ff7a1a",
     svgPaths: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
   },
   {
-    title: "Payez-moi : un QR, et c'est vire",
-    text: "Chaque facture PDF porte un QR de virement SEPA. Votre client le scanne, son virement est deja pre-rempli, il valide. Vous etes paye plus vite, et sans commission car c'est un virement.",
+    title: "Payez-moi : un QR, et c'est viré",
+    text: "Chaque facture PDF porte un QR de virement SEPA. Votre client le scanne, son virement est déjà pré-rempli, il valide. Vous êtes payé plus vite, et sans commission car c'est un virement.",
     tag: "✓ QR virement SEPA",
     accent: "#2fd6a0",
     svgPaths: (
@@ -99,7 +99,7 @@ const cards: FeatureCard[] = [
   },
   {
     title: "Vos calculs de chantier, sans vous tromper",
-    text: "Beton, carrelage, peinture, section de cable, puissance de chauffe, taux horaire... 10 calculatrices metier sous la main. Et votre CA a declarer a l'URSSAF, calcule en 1 clic.",
+    text: "Béton, carrelage, peinture, section de câble, puissance de chauffe, taux horaire... 10 calculatrices métier sous la main. Et votre CA à déclarer à l'URSSAF, calculé en 1 clic.",
     tag: "✓ 10 calculatrices",
     accent: "#6aa0ff",
     svgPaths: (
@@ -116,7 +116,7 @@ const cards: FeatureCard[] = [
   },
   {
     title: "Vous ne partez jamais d'une feuille blanche",
-    text: "Plus de 700 prestations par metier vous sont proposees en autocompletion : vous tapez, vous choisissez, c'est rempli. Et vous ajoutez vos propres lignes dans votre bibliotheque perso.",
+    text: "Plus de 700 prestations par métier vous sont proposées en autocomplétion : vous tapez, vous choisissez, c'est rempli. Et vous ajoutez vos propres lignes dans votre bibliothèque perso.",
     tag: "✓ +700 prestations",
     accent: "#2fd6a0",
     svgPaths: (
@@ -128,7 +128,7 @@ const cards: FeatureCard[] = [
   },
   {
     title: "Vos photos avant/apres, jamais perdues",
-    text: "Classees par client et par album, vos photos de chantier sont la quand vous en avez besoin. Fini de scroller 2000 photos pour retrouver le bon chantier.",
+    text: "Classées par client et par album, vos photos de chantier sont là quand vous en avez besoin. Fini de scroller 2000 photos pour retrouver le bon chantier.",
     tag: "✓ Photos par client",
     accent: "#ff9d4d",
     svgPaths: (
@@ -140,8 +140,8 @@ const cards: FeatureCard[] = [
     ),
   },
   {
-    title: "Pense pour le terrain, dans votre poche",
-    text: "Faites un devis depuis le chantier, sur smartphone ou tablette. Votre client signe dans la foulee sur son telephone. Tout marche sans installer d'appli.",
+    title: "Pensé pour le terrain, dans votre poche",
+    text: "Faites un devis depuis le chantier, sur smartphone ou tablette. Votre client signe dans la foulée sur son téléphone. Tout marche sans installer d'appli.",
     tag: "✓ Web responsive",
     accent: "#6aa0ff",
     svgPaths: (
@@ -180,13 +180,13 @@ export default function FeaturesSection() {
                 boxShadow: "0 0 10px currentColor",
               }}
             />
-            Fonctionnalites
+            Fonctionnalités
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
             Tout votre quotidien d&apos;artisan, dans un seul outil
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
-            Du devis au paiement. Simple a prendre en main, fait pour durer.
+            Du devis au paiement. Simple à prendre en main, fait pour durer.
           </p>
         </div>
 

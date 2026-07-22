@@ -10,43 +10,43 @@ import { useState } from "react";
 const faqs = [
   {
     q: "Nexartis est-il accessible si je n'utilise pas beaucoup les outils informatiques ?",
-    a: "Nexartis a ete concu specifiquement pour les artisans, qu'ils soient ou non a l'aise avec les outils numeriques. La prise en main est guidee pas a pas. En regle generale, les premiers devis sont crees dans les dix minutes suivant l'inscription.",
+    a: "Nexartis a été conçu spécifiquement pour les artisans, qu'ils soient ou non à l'aise avec les outils numériques. La prise en main est guidée pas à pas. En règle générale, les premiers devis sont créés dans les dix minutes suivant l'inscription.",
   },
   {
     q: "L'application Nexartis est-elle disponible sur smartphone ?",
-    a: "Oui, sur tous les telephones Android et iPhone via votre navigateur. Nexartis est une application web responsive qui fonctionne aussi bien sur un telephone que sur un ordinateur. Vous pouvez creer un devis depuis votre chantier.",
+    a: "Oui, sur tous les téléphones Android et iPhone via votre navigateur. Nexartis est une application web responsive qui fonctionne aussi bien sur un téléphone que sur un ordinateur. Vous pouvez créer un devis depuis votre chantier.",
   },
   {
     q: "Est-il possible d'essayer Nexartis avant de souscrire ?",
-    a: "Oui, et sans risque. 14 jours d'essai complet, gratuit, sans entrer votre carte bancaire. Vous testez tout, en conditions reelles, avant de decider.",
+    a: "Oui, et sans risque. 14 jours d'essai complet, gratuit, sans entrer votre carte bancaire. Vous testez tout, en conditions réelles, avant de décider.",
   },
   {
-    q: "Nexartis est-il conforme a la reforme de la facturation electronique ?",
-    a: "Oui. La reception des factures electroniques de vos fournisseurs est deja active dans Nexartis — c'est l'obligation qui demarre le 1er septembre 2026. L'emission de vos propres factures au format electronique est prete pour l'echeance qui vous concerne (a partir du 1er septembre 2027 selon la taille de votre entreprise). Nexartis passe par une plateforme agreee.",
+    q: "Nexartis est-il conforme à la réforme de la facturation électronique ?",
+    a: "Oui. La réception des factures électroniques de vos fournisseurs est déjà active dans Nexartis — c'est l'obligation qui démarre le 1er septembre 2026. L'émission de vos propres factures au format électronique est prête pour l'échéance qui vous concerne (à partir du 1er septembre 2027 selon la taille de votre entreprise). Nexartis passe par une plateforme agréée.",
   },
   {
-    q: "Comment resilier mon abonnement Nexartis ?",
-    a: "La resiliation s'effectue directement depuis votre espace Nexartis, sans formulaire, sans appel telephonique et sans penalite.",
+    q: "Comment résilier mon abonnement Nexartis ?",
+    a: "La résiliation s'effectue directement depuis votre espace Nexartis, sans formulaire, sans appel téléphonique et sans pénalité.",
   },
   {
     q: "Comment fonctionne le planning de chantier Nexartis ?",
-    a: "Vous voyez tous vos chantiers sur une semaine, avec des couleurs differentes pour chaque client. Vous pouvez deplacer un chantier en le glissant avec votre doigt. Si vous essayez de mettre deux personnes au meme endroit le meme jour, Nexartis vous previent avec une alerte orange.",
+    a: "Vous voyez tous vos chantiers sur une semaine, avec des couleurs différentes pour chaque client. Vous pouvez déplacer un chantier en le glissant avec votre doigt. Si vous essayez de mettre deux personnes au même endroit le même jour, Nexartis vous prévient avec une alerte orange.",
   },
   {
-    q: "Nexartis gere-t-il les equipes avec plusieurs intervenants ?",
-    a: "Oui. Avec l'offre Complet, la gestion d'equipe et des intervenants (chefs de chantier, apprentis) est disponible dans un planning unifie, avec alertes en cas de conflit d'affectation.",
+    q: "Nexartis gère-t-il les équipes avec plusieurs intervenants ?",
+    a: "Oui. Avec l'offre Complet, la gestion d'équipe et des intervenants (chefs de chantier, apprentis) est disponible dans un planning unifié, avec alertes en cas de conflit d'affectation.",
   },
   {
-    q: "Ou sont hebergees mes donnees et comment sont-elles protegees ?",
-    a: "Vos donnees sont hebergees dans l'Union europeenne (Allemagne), sur des serveurs conformes RGPD. Elles ne sont jamais vendues. Vous pouvez exporter chaque devis et facture au format PDF a tout moment.",
+    q: "Où sont hébergées mes données et comment sont-elles protégées ?",
+    a: "Vos données sont hébergées dans l'Union européenne (Allemagne), sur des serveurs conformes RGPD. Elles ne sont jamais vendues. Vous pouvez exporter chaque devis et facture au format PDF à tout moment.",
   },
   {
     q: "Nexartis peut-il remplacer mon expert-comptable ?",
-    a: "Non, et ce n'est pas son but. Nexartis vous aide a creer vos devis et factures, et a les envoyer a votre comptable en un clic au format qu'il utilise. Ca lui fait gagner du temps, et donc ca vous coute moins cher.",
+    a: "Non, et ce n'est pas son but. Nexartis vous aide à créer vos devis et factures, et à les envoyer à votre comptable en un clic au format qu'il utilise. Ça lui fait gagner du temps, et donc ça vous coûte moins cher.",
   },
   {
-    q: "Comment Nexartis propose-t-il autant de fonctionnalites a un prix aussi juste ?",
-    a: "Parce qu'on pense qu'un bon logiciel artisan ne devrait pas couter une fortune. On a fait le choix d'un prix honnete : 15 €/mois pour l'Essentiel, 25 €/mois pour le Complet (avec le planning et le devis vocal par IA). Pas de palier surprise, pas de frais caches.",
+    q: "Comment Nexartis propose-t-il autant de fonctionnalités à un prix aussi juste ?",
+    a: "Parce qu'on pense qu'un bon logiciel artisan ne devrait pas coûter une fortune. On a fait le choix d'un prix honnête : 15 €/mois pour l'Essentiel, 25 €/mois pour le Complet (avec le planning et le devis vocal par IA). Pas de palier surprise, pas de frais cachés.",
   },
 ];
 

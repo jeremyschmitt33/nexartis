@@ -39,11 +39,11 @@ export default function CtaSection() {
 
           <div className="relative z-[1]">
             <h2 className="landing-text-grad text-[30px] sm:text-[44px] font-[800] tracking-[-0.03em] mb-4">
-              Prenez le controle de votre gestion d&apos;entreprise
+              Prenez le contrôle de votre gestion d&apos;entreprise
             </h2>
 
             <p className="text-[17px] sm:text-[18px] text-ink-2 max-w-[480px] mx-auto mb-9">
-              14 jours d&apos;acces complet, gratuit, sans carte bancaire requise.
+              14 jours d&apos;accès complet, gratuit, sans carte bancaire requise.
             </p>
 
             <Link
@@ -54,7 +54,7 @@ export default function CtaSection() {
             </Link>
 
             <p className="mt-7 text-[13.5px] text-ink-3 font-medium">
-              Vos donnees sont hebergees dans l&apos;Union europeenne et ne sont jamais partagees.
+              Vos données sont hébergées dans l&apos;Union européenne et ne sont jamais partagées.
             </p>
             <p className="mt-2 text-[13.5px] text-ink-3 font-medium">
               Une question ?{" "}

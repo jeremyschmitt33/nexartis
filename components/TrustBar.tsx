@@ -7,10 +7,10 @@
 // - "Donnees hebergees en France" -> "Donnees hebergees en Europe . RGPD strict"
 // - "Support reactif par email" (inchange, vrai)
 const items = [
-  "Mentions Factur-X 2026 incluses",
-  "Mentions legales BTP francaises completes",
-  "Donnees hebergees en Europe · RGPD strict",
-  "Support reactif par email",
+  "Facturation électronique intégrée",
+  "Mentions légales BTP françaises complètes",
+  "Données hébergées en Europe · RGPD strict",
+  "Support réactif par email",
 ];
 
 export default function TrustBar() {

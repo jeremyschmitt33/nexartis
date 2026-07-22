@@ -6,8 +6,8 @@
 const problems = [
   {
     num: "01",
-    title: "Un prix juste, sans option cachee",
-    text: "Beaucoup de solutions grimpent vite a 50 ou 100 euros par mois une fois toutes les fonctions debloquees. Nexartis demarre a 15 euros par mois, et ce que vous voyez est ce que vous payez.",
+    title: "Un prix juste, sans option cachée",
+    text: "Beaucoup de solutions grimpent vite à 50 ou 100 euros par mois une fois toutes les fonctions débloquées. Nexartis démarre à 15 euros par mois, et ce que vous voyez est ce que vous payez.",
     accent: "var(--mint, #2fd6a0)",
     svgPaths: (
       <>
@@ -19,8 +19,8 @@ const problems = [
   },
   {
     num: "02",
-    title: "Un planning qui vous evite les couacs",
-    text: "La plupart des logiciels se contentent d'un calendrier basique, sans detecter les conflits. Nexartis vous alerte sur-le-champ si un intervenant est deja pris sur un autre chantier le meme jour.",
+    title: "Un planning qui vous évite les couacs",
+    text: "La plupart des logiciels se contentent d'un calendrier basique, sans détecter les conflits. Nexartis vous alerte sur-le-champ si un intervenant est déjà pris sur un autre chantier le même jour.",
     accent: "var(--accent-2, #ff9d4d)",
     svgPaths: (
       <>
@@ -34,7 +34,7 @@ const problems = [
   {
     num: "03",
     title: "Fait pour le chantier, pas pour le bureau",
-    text: "Nexartis tourne aussi bien sur smartphone que sur ordinateur. L'interface va a l'essentiel pour etre utilisable vite, les mains dans le platre, directement depuis vos chantiers.",
+    text: "Nexartis tourne aussi bien sur smartphone que sur ordinateur. L'interface va à l'essentiel pour être utilisable vite, les mains dans le plâtre, directement depuis vos chantiers.",
     accent: "var(--electric-2, #6aa0ff)",
     svgPaths: (
       <>
@@ -63,10 +63,10 @@ export default function ProblemSection() {
             Pourquoi Nexartis
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Vos galeres du quotidien, reglees une bonne fois
+            Vos galères du quotidien, réglées une bonne fois
           </h2>
           <p className="text-[17px] text-ink-2 font-medium max-w-[560px] mx-auto">
-            Trois problemes que les artisans vivent chaque jour, regles dans un seul logiciel.
+            Trois problèmes que les artisans vivent chaque jour, réglés dans un seul logiciel.
           </p>
         </div>
 
