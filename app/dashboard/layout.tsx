@@ -65,6 +65,7 @@ import {
   Layers,
   MessageCircle,
   Network,
+  HardHat,
 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
@@ -103,6 +104,7 @@ const NAV_DIRECT: NavItem[] = [
   { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
   { label: 'Messagerie', href: '/dashboard/messagerie', icon: MessageCircle },
   { label: 'Mon réseau', href: '/dashboard/reseau', icon: Network },
+  { label: 'Chantiers confiés', href: '/dashboard/chantiers-confies', icon: HardHat },
   // Plans 2D/3D : onglet à venir (module en construction) — teaser non cliquable.
   { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, soon: true },
 ]
@@ -170,6 +172,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/chantiers': 'Chantiers',
   '/dashboard/messagerie': 'Messagerie',
   '/dashboard/reseau': 'Mon réseau',
+  '/dashboard/chantiers-confies': 'Chantiers qu\'on m\'a confiés',
   '/dashboard/devis': 'Devis',
   '/dashboard/devis/nouveau': 'Nouveau devis',
   '/dashboard/factures': 'Factures',
@@ -1242,6 +1245,27 @@ export default function DashboardLayout({
     return () => { annule = true }
   }, [pathname])
 
+  // Chantiers confiés — badge « N invitations » de collaboration en attente.
+  // RPC `mes_chantiers_confies` (Phase 3) ; on compte les statut 'invite'.
+  const [partagesRecus, setPartagesRecus] = useState(0)
+  useEffect(() => {
+    let annule = false
+    async function compter() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase.rpc('mes_chantiers_confies')
+        if (!annule && !error && Array.isArray(data)) {
+          const n = (data as Array<Record<string, unknown>>).filter((c) => c.statut === 'invite').length
+          setPartagesRecus(n)
+        }
+      } catch {
+        /* RPC absente ou accès refusé : pas de badge */
+      }
+    }
+    void compter()
+    return () => { annule = true }
+  }, [pathname])
+
   // QW2 -- Badges sidebar
   const sidebarBadges: Record<string, number> = useMemo(() => {
     const now = Date.now()
@@ -1274,8 +1298,10 @@ export default function DashboardLayout({
       '/dashboard/reseau': demandesReseau,
       // Messagerie — « N messages non lus » (toutes conversations confondues)
       '/dashboard/messagerie': messagesNonLus,
+      // Chantiers confiés — « N invitations » de collaboration en attente
+      '/dashboard/chantiers-confies': partagesRecus,
     }
-  }, [devisData, facturesData, banqueAPointer, demandesReseau, messagesNonLus])
+  }, [devisData, facturesData, banqueAPointer, demandesReseau, messagesNonLus, partagesRecus])
 
   // QW4 -- showBack
   const showBack = useMemo(() => {

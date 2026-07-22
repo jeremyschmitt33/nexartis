@@ -40,6 +40,7 @@ import {
   type DocPartageable,
 } from '@/lib/hooks-messagerie'
 import { MESSAGERIE_FICHIER_ACCEPT, JustificatifError } from '@/lib/messagerie-fichiers'
+import { confierLot } from '@/lib/hooks-collab'
 import {
   Search, Plus, ArrowLeft, Send, MessageCircle, Users, Network, X, Loader2, Pin, UserPlus,
   Paperclip, FileText, Maximize2, Receipt, HardHat, MapPin, Phone,
@@ -583,6 +584,87 @@ function PartageDocModal({ onClose, onPick }: {
   )
 }
 
+// ─── Modale : confier un lot de chantier à ce confrère (collaboration) ───────
+
+function ConfierLotModal({ onClose, onConfier }: {
+  onClose: () => void
+  onConfier: (chantierId: string, lot: string) => void
+}) {
+  const { chantiers, loading } = useChantiersPartageables()
+  const [chantierId, setChantierId] = useState<string>('')
+  const [lot, setLot] = useState('')
+  const [envoi, setEnvoi] = useState(false)
+
+  async function submit() {
+    if (!chantierId || envoi) return
+    setEnvoi(true)
+    await onConfier(chantierId, lot)
+    setEnvoi(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
+      <div className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-2xl shadow-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h2 className="font-bold text-navy font-manrope">Confier un lot</h2>
+          <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors" aria-label="Fermer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-4 overflow-y-auto">
+          <p className="text-[13px] text-gray-500 leading-relaxed">
+            Votre confrère verra les infos de travail du chantier (et le client), mais jamais vos
+            devis, factures ou finances.
+          </p>
+          <div>
+            <label className="block text-[13px] font-semibold text-navy mb-1.5">Chantier</label>
+            {loading ? (
+              <div className="h-11 bg-gray-100 rounded-xl animate-pulse" />
+            ) : chantiers.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucun chantier disponible.</p>
+            ) : (
+              <select
+                value={chantierId}
+                onChange={(e) => setChantierId(e.target.value)}
+                className="w-full h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm text-navy focus:outline-none focus:ring-2 focus:ring-sky/40"
+              >
+                <option value="">— Choisir un chantier —</option>
+                {chantiers.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.titre || 'Chantier'}{ch.ville_chantier ? ` — ${ch.ville_chantier}` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div>
+            <label className="block text-[13px] font-semibold text-navy mb-1.5">
+              Le lot confié <span className="text-gray-400 font-normal">(optionnel)</span>
+            </label>
+            <input
+              value={lot}
+              onChange={(e) => setLot(e.target.value)}
+              placeholder="Ex : Plâtrerie étage 1, Peinture façade…"
+              maxLength={200}
+              className="w-full h-11 px-3 rounded-xl border border-gray-200 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky/40"
+            />
+          </div>
+        </div>
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={submit}
+            disabled={!chantierId || envoi}
+            className="w-full h-11 rounded-xl bg-orange text-white font-semibold flex items-center justify-center gap-2 hover:bg-orange-hover transition-colors disabled:opacity-40"
+          >
+            {envoi ? <Loader2 className="w-5 h-5 animate-spin" /> : <HardHat className="w-5 h-5" />}
+            Confier ce lot
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Ligne de contact (modale « nouvelle discussion ») ───────────────────────
 
 function PickerRow({ c, onPick }: { c: Contact; onPick: (c: Contact) => void }) {
@@ -653,6 +735,7 @@ function ConversationView({
   const [envoi, setEnvoi] = useState(false)
   const [envoiFichier, setEnvoiFichier] = useState(false)
   const [showPartage, setShowPartage] = useState(false)
+  const [showConfier, setShowConfier] = useState(false)
   const filRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -734,6 +817,18 @@ function ConversationView({
     }
   }
 
+  async function confier(chantierId: string, lot: string) {
+    const autre = conversation?.autre_user_id
+    if (!autre) return
+    try {
+      await confierLot(chantierId, autre, lot)
+      setShowConfier(false)
+      alert('Lot confié. Votre confrère le retrouvera dans « Chantiers qu\'on m\'a confiés » pour accepter.')
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
   let dernierJour = ''
 
   return (
@@ -750,6 +845,17 @@ function ConversationView({
           <div className="font-bold text-[15px] truncate font-manrope">{titre}</div>
           {sousTitre && <div className="text-[11px] text-white/60 truncate">{sousTitre}</div>}
         </div>
+        {/* Confier un lot de chantier (collaboration) — 1-à-1 seulement. */}
+        {!estGroupe && conversation?.autre_user_id && (
+          <button
+            onClick={() => setShowConfier(true)}
+            className="flex-shrink-0 h-8 pl-2 pr-2.5 rounded-lg bg-white/15 hover:bg-white/25 transition-colors flex items-center gap-1.5 text-[12px] font-semibold"
+            title="Confier un lot de chantier à ce confrère"
+          >
+            <HardHat className="w-4 h-4" />
+            <span className="hidden sm:inline">Confier un lot</span>
+          </button>
+        )}
       </header>
 
       {/* Consigne épinglée (lecture seule en V1) */}
@@ -879,6 +985,7 @@ function ConversationView({
       </div>
 
       {showPartage && <PartageDocModal onClose={() => setShowPartage(false)} onPick={partager} />}
+      {showConfier && <ConfierLotModal onClose={() => setShowConfier(false)} onConfier={confier} />}
     </div>
   )
 }
