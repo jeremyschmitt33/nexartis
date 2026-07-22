@@ -22,8 +22,9 @@
 // ============================================================================
 
 import { useState } from 'react'
-import { ShieldCheck, UserPlus, X } from 'lucide-react'
+import { ShieldCheck, UserPlus, X, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   PremiumCard,
   PremiumButton,
@@ -39,7 +40,7 @@ import {
   type EntrepriseMembre,
   type MembreStatut,
 } from '@/lib/hooks-equipe'
-import { useEntreprise, useIntervenants } from '@/lib/hooks'
+import { useEntreprise, useIntervenants, useUser } from '@/lib/hooks'
 import { getEffectivePlan } from '@/lib/plans'
 import {
   ROLE_LABELS,
@@ -287,6 +288,8 @@ export default function ComptesAccesSection() {
   const { entreprise, loading: entLoading } = useEntreprise()
   const { membres, loading: membresLoading, refetch } = useEntrepriseMembres()
   const confirm = useConfirm()
+  const router = useRouter()
+  const { user } = useUser()
 
   const [showInviter, setShowInviter] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
@@ -461,22 +464,42 @@ export default function ComptesAccesSection() {
                   )}
                 </div>
 
-                {peutRevoquer && (
-                  <button
-                    type="button"
-                    onClick={() => handleRevoke(m)}
-                    disabled={revoking === m.id}
-                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-[1.5px] border-red-200 text-red-600 text-xs font-hanken font-bold hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
-                  >
-                    {revoking === m.id
-                      ? enAttente
-                        ? 'Annulation...'
-                        : 'Révocation...'
-                      : enAttente
-                        ? "Annuler l'invitation"
-                        : "Révoquer l'accès"}
-                  </button>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Chat d'equipe : bouton visible uniquement sur un membre
+                      ACTIF (compte active, donc joignable) et jamais sur
+                      soi-meme. On attend que `user` soit charge pour ne pas
+                      afficher transitoirement le bouton sur sa propre ligne.
+                      Style "fill tonal" = action sure et invitante, sans
+                      rivaliser avec le rouge destructeur de "Revoquer". */}
+                  {m.statut === 'actif' && m.user_id && user && m.user_id !== user.id && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/dashboard/messagerie?u=${m.user_id}`)}
+                      className="inline-flex items-center justify-center gap-1.5 min-w-[38px] px-3 py-1.5 rounded-lg bg-[#ff7a1a]/10 text-[#ff7a1a] text-xs font-hanken font-bold hover:bg-[#ff7a1a]/[0.16] transition-colors"
+                      aria-label={`Discuter avec ${membreLabel(m)}`}
+                      title="Discuter"
+                    >
+                      <MessageCircle size={15} aria-hidden="true" />
+                      <span className="hidden sm:inline">Discuter</span>
+                    </button>
+                  )}
+                  {peutRevoquer && (
+                    <button
+                      type="button"
+                      onClick={() => handleRevoke(m)}
+                      disabled={revoking === m.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-gray-400 text-xs font-hanken font-bold hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      {revoking === m.id
+                        ? enAttente
+                          ? 'Annulation...'
+                          : 'Révocation...'
+                        : enAttente
+                          ? "Annuler l'invitation"
+                          : "Révoquer l'accès"}
+                    </button>
+                  )}
+                </div>
               </li>
             )
           })}

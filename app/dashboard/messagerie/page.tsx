@@ -12,7 +12,7 @@
 // création de groupes de chantier, consigne épinglée éditable, invitations.
 // ============================================================================
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useUser } from '@/lib/hooks'
 import {
   useConversations,
@@ -27,7 +27,7 @@ import {
   type Contact,
 } from '@/lib/hooks-messagerie'
 import {
-  Search, Plus, ArrowLeft, Send, MessageCircle, Users, X, Loader2, Pin, UserPlus,
+  Search, Plus, ArrowLeft, Send, MessageCircle, Users, Network, X, Loader2, Pin, UserPlus,
 } from 'lucide-react'
 
 const REPONSES_RAPIDES = ['👍 Bien reçu', '🚚 En route', '⏱ Retard 30 min', "📍 J'arrive"]
@@ -82,6 +82,30 @@ export default function MessageriePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [recherche, setRecherche] = useState('')
   const [showContacts, setShowContacts] = useState(false)
+  const { contacts, loading: contactsLoading } = useContacts()
+
+  // Deep-link : ouvrir directement une conversation au chargement.
+  //   ?c=<convId> -> ouvre la conversation existante.
+  //   ?u=<userId> -> ouvre (ou cree) le fil direct avec cet utilisateur
+  //                  (ex : bouton « Message » depuis la page Equipe).
+  // On nettoie l'URL ensuite pour qu'un rafraichissement ne rejoue pas l'action.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const cid = params.get('c')
+    const uid = params.get('u')
+    if (!cid && !uid) return
+    window.history.replaceState(null, '', '/dashboard/messagerie')
+    if (cid) { setSelectedId(cid); return }
+    if (uid) {
+      ouvrirChatDirect(uid)
+        .then((convId) => { setSelectedId(convId); refetch() })
+        .catch((e) => {
+          console.error('Ouverture chat direct echouee:', e)
+          alert("Impossible d'ouvrir cette conversation.")
+        })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtrees = useMemo(() => {
     const q = recherche.trim().toLowerCase()
@@ -93,6 +117,27 @@ export default function MessageriePage() {
   }, [conversations, recherche])
 
   const selected = conversations.find((c) => c.id === selectedId) ?? null
+
+  // Index des user_id d'equipe (meme entreprise) : le RPC mes_contacts tague
+  // ces contacts type_relation='equipe'. Sert a ranger les conversations en
+  // 2 sections « Mon equipe » / « Mes confreres ».
+  const equipeIds = useMemo(() => {
+    const s = new Set<string>()
+    contacts.forEach((c) => { if (c.type_relation === 'equipe') s.add(c.user_id) })
+    return s
+  }, [contacts])
+
+  const sections = useMemo(() => {
+    const equipe: ConversationListItem[] = []
+    const confreres: ConversationListItem[] = []
+    const groupes: ConversationListItem[] = []
+    filtrees.forEach((c) => {
+      if (c.type === 'groupe') groupes.push(c)
+      else if (c.autre_user_id && equipeIds.has(c.autre_user_id)) equipe.push(c)
+      else confreres.push(c)
+    })
+    return { equipe, confreres, groupes }
+  }, [filtrees, equipeIds])
 
   async function demarrerChat(contact: Contact) {
     try {
@@ -127,7 +172,7 @@ export default function MessageriePage() {
             <input
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              placeholder="Rechercher un confrère…"
+              placeholder="Rechercher une conversation…"
               className="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky/40"
             />
           </div>
@@ -142,45 +187,38 @@ export default function MessageriePage() {
             </div>
           ) : filtrees.length === 0 ? (
             <EmptyList recherche={!!recherche} onStart={() => setShowContacts(true)} />
-          ) : (
+          ) : contactsLoading ? (
+            // Liste a plat tant que l'appartenance equipe/confreres n'est pas
+            // encore connue : evite un reclassement clignotant au chargement.
             <ul>
-              {filtrees.map((c) => {
-                const actif = c.id === selectedId
-                const nom = nomConversation(c)
-                const deMoi = c.apercu_expediteur && c.apercu_expediteur === user?.id
-                return (
-                  <li key={c.id}>
-                    <button
-                      onClick={() => setSelectedId(c.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors ${actif ? 'bg-sky/10' : ''}`}
-                    >
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky to-navy text-white grid place-items-center font-bold text-sm flex-shrink-0 shadow-sm">
-                        {c.type === 'groupe' ? <Users className="w-5 h-5" /> : initiales(nom)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-navy text-sm truncate">{nom}</span>
-                          {c.autre_metier && (
-                            <span className="text-[11px] text-gray-400 truncate hidden sm:inline">{c.autre_metier}</span>
-                          )}
-                        </div>
-                        <p className={`text-xs truncate mt-0.5 ${c.non_lus > 0 ? 'text-navy font-medium' : 'text-gray-400'}`}>
-                          {deMoi && <span className="text-gray-400">Vous : </span>}{apercuTexte(c)}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className="text-[11px] text-gray-400">{heureCourte(c.dernier_message_at)}</span>
-                        {c.non_lus > 0 && (
-                          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-orange text-white text-[11px] font-bold grid place-items-center">
-                            {c.non_lus}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  </li>
-                )
-              })}
+              {filtrees.map((c) => (
+                <ConvRow key={c.id} c={c} actif={c.id === selectedId} meId={user?.id ?? null} onSelect={() => setSelectedId(c.id)} />
+              ))}
             </ul>
+          ) : (
+            <>
+              {sections.equipe.length > 0 && (
+                <ListeSection titre="Mon équipe" variant="equipe" count={sections.equipe.length}>
+                  {sections.equipe.map((c) => (
+                    <ConvRow key={c.id} c={c} variant="equipe" actif={c.id === selectedId} meId={user?.id ?? null} onSelect={() => setSelectedId(c.id)} />
+                  ))}
+                </ListeSection>
+              )}
+              {sections.confreres.length > 0 && (
+                <ListeSection titre="Mes confrères" variant="confreres" count={sections.confreres.length}>
+                  {sections.confreres.map((c) => (
+                    <ConvRow key={c.id} c={c} variant="confreres" actif={c.id === selectedId} meId={user?.id ?? null} onSelect={() => setSelectedId(c.id)} />
+                  ))}
+                </ListeSection>
+              )}
+              {sections.groupes.length > 0 && (
+                <ListeSection titre="Groupes" variant="groupe" count={sections.groupes.length}>
+                  {sections.groupes.map((c) => (
+                    <ConvRow key={c.id} c={c} actif={c.id === selectedId} meId={user?.id ?? null} onSelect={() => setSelectedId(c.id)} />
+                  ))}
+                </ListeSection>
+              )}
+            </>
           )}
         </div>
       </aside>
@@ -213,6 +251,101 @@ export default function MessageriePage() {
         <ContactsModal onClose={() => setShowContacts(false)} onPick={demarrerChat} />
       )}
     </div>
+  )
+}
+
+// ─── Section (en-tête « Mon équipe » / « Mes confrères ») ────────────────────
+
+function ListeSection({ titre, variant, count, children }: {
+  titre: string
+  variant?: 'equipe' | 'confreres' | 'groupe'
+  count?: number
+  children: ReactNode
+}) {
+  // Équipe = monde interne (sky, icône Users) ; confrères = réseau externe
+  // (orange, icône Network) ; groupes = neutre (gris). L'en-tête reste collé
+  // en haut au scroll pour qu'on « sente » le passage d'un monde à l'autre.
+  const Icon = variant === 'confreres' ? Network : Users
+  const tint = variant === 'equipe' ? 'text-sky' : variant === 'confreres' ? 'text-orange' : 'text-gray-400'
+  return (
+    <div>
+      <div className="sticky top-0 z-10 flex items-center gap-2 px-4 pt-3 pb-1.5 bg-white/95 backdrop-blur-sm border-b border-gray-50">
+        {variant && <Icon className={`w-3.5 h-3.5 ${tint}`} aria-hidden="true" />}
+        <span className="text-[11px] font-bold uppercase tracking-wider text-navy">{titre}</span>
+        {count != null && <span className="text-[11px] font-semibold text-gray-300 tabular-nums">{count}</span>}
+      </div>
+      <ul>{children}</ul>
+    </div>
+  )
+}
+
+// ─── Ligne de conversation (liste de gauche) ─────────────────────────────────
+
+function ConvRow({ c, actif, meId, onSelect, variant }: {
+  c: ConversationListItem
+  actif: boolean
+  meId: string | null
+  onSelect: () => void
+  variant?: 'equipe' | 'confreres'
+}) {
+  const nom = nomConversation(c)
+  const deMoi = c.apercu_expediteur && c.apercu_expediteur === meId
+  // Anneau d'avatar coloré = rappel du « monde » même quand l'en-tête de
+  // section a défilé hors écran (sky = équipe, orange = confrère).
+  const ring = variant === 'equipe' ? 'ring-2 ring-sky/30' : variant === 'confreres' ? 'ring-2 ring-orange/25' : ''
+  return (
+    <li>
+      <button
+        onClick={onSelect}
+        className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors ${actif ? 'bg-sky/10' : ''}`}
+      >
+        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br from-sky to-navy text-white grid place-items-center font-bold text-sm flex-shrink-0 shadow-sm ${ring}`}>
+          {c.type === 'groupe' ? <Users className="w-5 h-5" /> : initiales(nom)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-navy text-sm truncate">{nom}</span>
+            {c.autre_metier && (
+              <span className="text-[11px] text-gray-400 truncate hidden sm:inline">{c.autre_metier}</span>
+            )}
+          </div>
+          <p className={`text-xs truncate mt-0.5 ${c.non_lus > 0 ? 'text-navy font-medium' : 'text-gray-400'}`}>
+            {deMoi && <span className="text-gray-400">Vous : </span>}{apercuTexte(c)}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <span className="text-[11px] text-gray-400">{heureCourte(c.dernier_message_at)}</span>
+          {c.non_lus > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-orange text-white text-[11px] font-bold grid place-items-center">
+              {c.non_lus}
+            </span>
+          )}
+        </div>
+      </button>
+    </li>
+  )
+}
+
+// ─── Ligne de contact (modale « nouvelle discussion ») ───────────────────────
+
+function PickerRow({ c, onPick }: { c: Contact; onPick: (c: Contact) => void }) {
+  return (
+    <li>
+      <button
+        onClick={() => onPick(c)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors"
+      >
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky to-navy text-white grid place-items-center font-bold text-sm flex-shrink-0">
+          {initiales(c.nom)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-navy text-sm truncate">{c.nom || c.email || 'Artisan Nexartis'}</div>
+          <div className="text-xs text-gray-400 truncate">
+            {c.metier || (c.type_relation === 'equipe' ? 'Mon équipe' : 'Confrère')}
+          </div>
+        </div>
+      </button>
+    </li>
   )
 }
 
@@ -470,6 +603,13 @@ function ContactsModal({
     )
   }, [contacts, q])
 
+  const groupes = useMemo(() => {
+    const equipe: Contact[] = []
+    const confreres: Contact[] = []
+    filtres.forEach((c) => { (c.type_relation === 'equipe' ? equipe : confreres).push(c) })
+    return { equipe, confreres }
+  }, [filtres])
+
   return (
     <div className="fixed inset-0 z-50 bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
       <div
@@ -515,26 +655,18 @@ function ContactsModal({
               )}
             </div>
           ) : (
-            <ul>
-              {filtres.map((c) => (
-                <li key={c.user_id}>
-                  <button
-                    onClick={() => onPick(c)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky to-navy text-white grid place-items-center font-bold text-sm flex-shrink-0">
-                      {initiales(c.nom)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-navy text-sm truncate">{c.nom || c.email || 'Artisan Nexartis'}</div>
-                      <div className="text-xs text-gray-400 truncate">
-                        {c.metier || (c.type_relation === 'equipe' ? 'Mon équipe' : 'Confrère')}
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              {groupes.equipe.length > 0 && (
+                <ListeSection titre="Mon équipe" variant="equipe" count={groupes.equipe.length}>
+                  {groupes.equipe.map((c) => <PickerRow key={c.user_id} c={c} onPick={onPick} />)}
+                </ListeSection>
+              )}
+              {groupes.confreres.length > 0 && (
+                <ListeSection titre="Mes confrères" variant="confreres" count={groupes.confreres.length}>
+                  {groupes.confreres.map((c) => <PickerRow key={c.user_id} c={c} onPick={onPick} />)}
+                </ListeSection>
+              )}
+            </>
           )}
         </div>
       </div>
