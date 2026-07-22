@@ -20,11 +20,14 @@ import {
   useMessages,
   useMembresConversation,
   useDocumentsPartageables,
+  useChantiersPartageables,
   envoyerMessage,
   envoyerPieceJointe,
   urlSigneeMessagerie,
   partagerDocument,
+  partagerChantier,
   parseSnapshotDoc,
+  parseSnapshotChantier,
   marquerLue,
   ouvrirChatDirect,
   nomConversation,
@@ -33,12 +36,13 @@ import {
   type MessageRow,
   type PieceJointe,
   type SnapshotDoc,
+  type SnapshotChantier,
   type DocPartageable,
 } from '@/lib/hooks-messagerie'
 import { MESSAGERIE_FICHIER_ACCEPT, JustificatifError } from '@/lib/messagerie-fichiers'
 import {
   Search, Plus, ArrowLeft, Send, MessageCircle, Users, Network, X, Loader2, Pin, UserPlus,
-  Paperclip, FileText, Maximize2, Receipt,
+  Paperclip, FileText, Maximize2, Receipt, HardHat, MapPin, Phone,
 } from 'lucide-react'
 
 const REPONSES_RAPIDES = ['👍 Bien reçu', '🚚 En route', '⏱ Retard 30 min', "📍 J'arrive"]
@@ -81,6 +85,7 @@ function apercuTexte(c: ConversationListItem): string {
     case 'vocal': return '🎤 Message vocal'
     case 'devis': return '🧾 Devis'
     case 'facture': return '🧾 Facture'
+    case 'chantier': return '🏗️ Fiche chantier'
     default: return c.apercu || ''
   }
 }
@@ -413,33 +418,108 @@ function DocumentCarteVivante({ snap, type, pj, mien }: {
   )
 }
 
-// ─── Modale : choisir un devis / facture à partager ──────────────────────────
+// ─── Carte vivante d'une fiche chantier partagée ─────────────────────────────
+
+function formatDateCourte(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })
+}
+
+function ChantierCarteVivante({ snap, mien }: { snap: SnapshotChantier | null; mien: boolean }) {
+  const href = snap?.chantier_id ? `/dashboard/chantiers/${snap.chantier_id}` : null
+  const lieu = snap
+    ? [snap.adresse, [snap.code_postal, snap.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+    : ''
+  const dd = formatDateCourte(snap?.date_debut)
+  const df = formatDateCourte(snap?.date_fin_prevue)
+  const periode = (dd || df) ? `${dd || '—'} → ${df || '—'}` : null
+
+  return (
+    <div className={`w-[268px] rounded-2xl overflow-hidden shadow-sm bg-white border border-gray-100 ${mien ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+      <div className="px-3.5 py-2 flex items-center gap-2 bg-navy/[0.06]">
+        <span className="w-6 h-6 rounded-md grid place-items-center flex-shrink-0 bg-navy/10 text-navy">
+          <HardHat className="w-3.5 h-3.5" />
+        </span>
+        <span className="text-[12px] font-bold uppercase tracking-wide text-navy">Chantier</span>
+        {snap?.statut && <span className="text-[11px] font-semibold text-gray-500 ml-auto capitalize truncate max-w-[110px]">{snap.statut.replace(/_/g, ' ')}</span>}
+      </div>
+      <div className="px-3.5 py-3">
+        {snap ? (
+          <>
+            <p className="text-[14px] font-bold text-navy leading-snug">{snap.titre || 'Chantier'}</p>
+            {snap.description && <p className="text-[12px] text-gray-500 mt-0.5 truncate">{snap.description}</p>}
+            <div className="mt-2.5 space-y-1.5 text-[12px]">
+              {lieu && (
+                <div className="flex items-start gap-1.5 text-gray-600">
+                  <MapPin className="w-3.5 h-3.5 text-orange flex-shrink-0 mt-0.5" />
+                  <span className="min-w-0">{lieu}</span>
+                </div>
+              )}
+              {periode && (
+                <div className="flex items-center gap-1.5 text-gray-600">
+                  <span aria-hidden="true">📅</span>
+                  <span>{periode}</span>
+                </div>
+              )}
+              {snap.client && (
+                <div className="flex items-center gap-1.5 text-gray-600">
+                  <Phone className="w-3.5 h-3.5 text-sky flex-shrink-0" />
+                  <span className="truncate">{snap.client}{snap.client_tel ? ` · ${snap.client_tel}` : ''}</span>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="text-[13px] text-gray-500">Fiche chantier partagée</p>
+        )}
+        {mien && href && (
+          <a href={href} className="mt-3 flex items-center justify-center h-9 rounded-lg bg-navy text-white text-[13px] font-semibold hover:bg-navy-mid transition-colors">
+            Voir le chantier
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Modale : choisir un devis / facture / chantier à partager ───────────────
 
 function PartageDocModal({ onClose, onPick }: {
   onClose: () => void
-  onPick: (type: 'devis' | 'facture', id: string) => void
+  onPick: (kind: 'devis' | 'facture' | 'chantier', id: string) => void
 }) {
-  const { devis, factures, loading } = useDocumentsPartageables()
-  const [onglet, setOnglet] = useState<'devis' | 'factures'>('devis')
-  const liste: DocPartageable[] = onglet === 'devis' ? devis : factures
+  const { devis, factures, loading: loadingDocs } = useDocumentsPartageables()
+  const { chantiers, loading: loadingChantiers } = useChantiersPartageables()
+  const [onglet, setOnglet] = useState<'devis' | 'factures' | 'chantiers'>('devis')
+
+  const ONGLETS = [
+    { k: 'devis' as const, label: 'Devis' },
+    { k: 'factures' as const, label: 'Factures' },
+    { k: 'chantiers' as const, label: 'Chantiers' },
+  ]
+  const loading = onglet === 'chantiers' ? loadingChantiers : loadingDocs
+  const docs: DocPartageable[] = onglet === 'devis' ? devis : onglet === 'factures' ? factures : []
+  const vide = onglet === 'chantiers' ? chantiers.length === 0 : docs.length === 0
 
   return (
     <div className="fixed inset-0 z-50 bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
       <div className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-2xl shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="font-bold text-navy font-manrope">Partager un document</h2>
+          <h2 className="font-bold text-navy font-manrope">Partager</h2>
           <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors" aria-label="Fermer">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="flex gap-1 p-2 border-b border-gray-100">
-          {(['devis', 'factures'] as const).map((t) => (
+          {ONGLETS.map((t) => (
             <button
-              key={t}
-              onClick={() => setOnglet(t)}
-              className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-colors ${onglet === t ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+              key={t.k}
+              onClick={() => setOnglet(t.k)}
+              className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-colors ${onglet === t.k ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'}`}
             >
-              {t === 'devis' ? 'Devis' : 'Factures'}
+              {t.label}
             </button>
           ))}
         </div>
@@ -448,13 +528,34 @@ function PartageDocModal({ onClose, onPick }: {
             <div className="p-4 space-y-2 animate-pulse">
               {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl" />)}
             </div>
-          ) : liste.length === 0 ? (
+          ) : vide ? (
             <div className="p-8 text-center text-gray-400 text-sm">
-              Aucun {onglet === 'devis' ? 'devis' : 'facture'} à partager pour le moment.
+              {onglet === 'chantiers'
+                ? 'Aucun chantier à partager pour le moment.'
+                : `Aucun ${onglet === 'devis' ? 'devis' : 'facture'} à partager pour le moment.`}
             </div>
+          ) : onglet === 'chantiers' ? (
+            <ul>
+              {chantiers.map((ch) => (
+                <li key={ch.id}>
+                  <button
+                    onClick={() => onPick('chantier', ch.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-navy/10 text-navy">
+                      <HardHat className="w-4 h-4" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-semibold text-navy text-sm truncate">{ch.titre || 'Chantier'}</span>
+                      <span className="block text-xs text-gray-400 truncate">{[ch.adresse_chantier, ch.ville_chantier].filter(Boolean).join(', ') || '—'}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           ) : (
             <ul>
-              {liste.map((d) => (
+              {docs.map((d) => (
                 <li key={d.id}>
                   <button
                     onClick={() => onPick(onglet === 'devis' ? 'devis' : 'facture', d.id)}
@@ -619,9 +720,10 @@ function ConversationView({
     }
   }
 
-  async function partager(type: 'devis' | 'facture', refId: string) {
+  async function partager(kind: 'devis' | 'facture' | 'chantier', id: string) {
     try {
-      await partagerDocument(conversationId, type, refId)
+      if (kind === 'chantier') await partagerChantier(conversationId, id)
+      else await partagerDocument(conversationId, kind, id)
       setShowPartage(false)
       // Le message (snapshot serveur) apparaît via un rechargement du fil ;
       // le temps réel le livre aussi au destinataire.
@@ -754,8 +856,8 @@ function ConversationView({
           type="button"
           onClick={() => setShowPartage(true)}
           className="w-11 h-11 rounded-full bg-sky/10 text-navy grid place-items-center hover:bg-sky/20 active:scale-95 transition flex-shrink-0"
-          aria-label="Partager un devis ou une facture"
-          title="Partager un devis ou une facture"
+          aria-label="Partager un devis, une facture ou un chantier"
+          title="Partager un devis, une facture ou un chantier"
         >
           <Receipt className="w-5 h-5" />
         </button>
@@ -809,6 +911,10 @@ function MessageContenu({ m, mien }: { m: MessageRow; mien: boolean }) {
 
   if (m.type_message === 'devis' || m.type_message === 'facture') {
     return <DocumentCarteVivante snap={parseSnapshotDoc(m.contenu)} type={m.type_message} pj={pj} mien={mien} />
+  }
+
+  if (m.type_message === 'chantier') {
+    return <ChantierCarteVivante snap={parseSnapshotChantier(m.contenu)} mien={mien} />
   }
 
   if (m.type_message === 'photo' && pj) {

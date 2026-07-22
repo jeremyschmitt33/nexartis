@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { preparerFichierMessage, cheminFichierMessage } from '@/lib/messagerie-fichiers'
 
 export type TypeMessage =
-  | 'texte' | 'vocal' | 'photo' | 'document' | 'devis' | 'facture' | 'systeme'
+  | 'texte' | 'vocal' | 'photo' | 'document' | 'devis' | 'facture' | 'chantier' | 'systeme'
 
 /** Une ligne de la liste d'accueil (renvoyée par la fonction mes_conversations). */
 export interface ConversationListItem {
@@ -107,6 +107,43 @@ export function parseSnapshotDoc(contenu: string | null): SnapshotDoc | null {
     const o = JSON.parse(contenu)
     if (o && (o.type === 'devis' || o.type === 'facture')) return o as SnapshotDoc
   } catch { /* contenu non-JSON : pas un snapshot */ }
+  return null
+}
+
+/** Un chantier proposé au partage (fiche « carte vivante »). */
+export interface ChantierPartageable {
+  id: string
+  titre: string | null
+  adresse_chantier: string | null
+  ville_chantier: string | null
+  statut: string | null
+  date_debut: string | null
+}
+
+/** Snapshot figé d'une fiche chantier partagée (dans messages.contenu, JSON).
+ *  Décision produit : infos de travail + identité client, JAMAIS de financier. */
+export interface SnapshotChantier {
+  type: 'chantier'
+  chantier_id: string | null
+  titre: string | null
+  description: string | null
+  adresse: string | null
+  code_postal: string | null
+  ville: string | null
+  date_debut: string | null
+  date_fin_prevue: string | null
+  statut: string | null
+  client: string | null
+  client_tel: string | null
+}
+
+/** Parse le snapshot JSON d'un message de type chantier. Null si illisible. */
+export function parseSnapshotChantier(contenu: string | null): SnapshotChantier | null {
+  if (!contenu) return null
+  try {
+    const o = JSON.parse(contenu)
+    if (o && o.type === 'chantier') return o as SnapshotChantier
+  } catch { /* contenu non-JSON */ }
   return null
 }
 
@@ -225,6 +262,39 @@ export function useDocumentsPartageables(): {
   }, [])
 
   return { devis, factures, loading }
+}
+
+// ----------------------------------------------------------------------------
+// useChantiersPartageables — mes chantiers récents (sélecteur « fiche chantier »).
+// ----------------------------------------------------------------------------
+export function useChantiersPartageables(): {
+  chantiers: ChantierPartageable[]
+  loading: boolean
+} {
+  const [chantiers, setChantiers] = useState<ChantierPartageable[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancel = false
+    async function run() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancel) setLoading(false); return }
+      const { data } = await supabase
+        .from('chantiers')
+        .select('id, titre, adresse_chantier, ville_chantier, statut, date_debut')
+        .eq('user_id', user.id)
+        .order('date_debut', { ascending: false, nullsFirst: false })
+        .limit(40)
+      if (cancel) return
+      setChantiers((data ?? []) as ChantierPartageable[])
+      setLoading(false)
+    }
+    run()
+    return () => { cancel = true }
+  }, [])
+
+  return { chantiers, loading }
 }
 
 // ----------------------------------------------------------------------------
@@ -486,6 +556,24 @@ export async function partagerDocument(
     p_conversation_id: conversationId,
     p_type: type,
     p_ref_id: refId,
+    p_client_message_id: null,
+  })
+  if (error) throw new Error(error.message || "Le partage a échoué.")
+}
+
+/**
+ * Partage une FICHE CHANTIER (« carte vivante »). Le snapshot (infos travail +
+ * identité client, SANS financier) est figé côté serveur par la RPC à partir du
+ * chantier que je possède. Rien n'est copié dans l'onglet chantier du confrère.
+ */
+export async function partagerChantier(
+  conversationId: string,
+  chantierId: string,
+): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('partager_chantier', {
+    p_conversation_id: conversationId,
+    p_chantier_id: chantierId,
     p_client_message_id: null,
   })
   if (error) throw new Error(error.message || "Le partage a échoué.")
