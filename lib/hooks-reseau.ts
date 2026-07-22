@@ -118,7 +118,11 @@ export async function envoyerInvitation(email: string, mot?: string): Promise<Re
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), token: res.lien_token }),
       })
-      emailEnvoye = r.ok
+      // Le serveur peut répondre 200 avec email_envoye:false (destinataire
+      // désinscrit RGPD) : on considère alors l'email NON envoyé, pour que l'UI
+      // propose de partager le lien manuellement plutôt que de prétendre l'envoi.
+      const j = (await r.json().catch(() => ({}))) as { email_envoye?: boolean }
+      emailEnvoye = r.ok && j?.email_envoye !== false
     } catch {
       // L'email a pu échouer, mais la relation existe : on ne bloque pas,
       // l'utilisateur peut copier/partager le lien manuellement.

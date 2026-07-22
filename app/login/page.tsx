@@ -6,18 +6,23 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState, useEffect } from 'react'
+import { safeNextPath, NEXT_COOKIE } from '@/lib/safe-redirect'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // Ou renvoyer l'utilisateur apres connexion (ex : retour vers son invitation).
+  // Valide cote client pour empecher tout open-redirect (voir lib/safe-redirect).
+  const nextPath = safeNextPath(searchParams.get('next'))
+
   // Auto-redirect if already logged in (after OAuth callback)
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.push('/dashboard')
+      if (user) router.push(nextPath)
     })
-  }, [router])
+  }, [router, nextPath])
 
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -46,7 +51,7 @@ function LoginForm() {
       return
     }
 
-    router.push('/dashboard')
+    router.push(nextPath)
   }
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -67,11 +72,20 @@ function LoginForm() {
       return
     }
 
+    // Cookie de secours (même navigateur) : posé UNIQUEMENT ici, au démarrage
+    // réel d'un aller-retour email de confirmation, et rafraîchi/effacé à chaque
+    // tentative pour ne jamais hériter d'un `next` d'une inscription précédente.
+    if (nextPath !== '/dashboard') {
+      document.cookie = `${NEXT_COOKIE}=${encodeURIComponent(nextPath)}; path=/; max-age=3600; SameSite=Lax`
+    } else {
+      document.cookie = `${NEXT_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+    }
+
     // Appeler notre API serveur qui crée le compte + envoie le mail de confirmation
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, next: nextPath }),
     })
 
     const data = await res.json()
@@ -91,7 +105,7 @@ function LoginForm() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     })
   }

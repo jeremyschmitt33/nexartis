@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 // Delai maximum d'attente d'une reponse Supabase dans le middleware (en ms).
 // Si Supabase met plus de temps (panne, latence), on laisse passer la requete
@@ -175,11 +176,15 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 6) Utilisateur connecte qui arrive sur la home / login / register
-  // -> on l'envoie sur le dashboard.
+  // -> on l'envoie sur le dashboard, SAUF s'il porte un ?next= interne valide
+  //    (ex : /login?next=/invitation/xxx). Dans ce cas on respecte la
+  //    destination pour ne pas casser le tunnel d'invitation d'un confrere
+  //    deja connecte. safeNextPath rejette tout ce qui n'est pas un chemin
+  //    relatif interne (anti open-redirect) et retombe sur /dashboard.
   if (user && isAuthOrHomeRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    const dest = safeNextPath(request.nextUrl.searchParams.get('next'))
+    // dest est garanti relatif interne -> new URL reste sur notre origine.
+    return NextResponse.redirect(new URL(dest, request.nextUrl.origin))
   }
 
   return supabaseResponse

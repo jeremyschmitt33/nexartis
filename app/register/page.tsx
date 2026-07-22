@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { safeNextPath, NEXT_COOKIE } from '@/lib/safe-redirect'
 
 function getPasswordStrength(password: string) {
   let score = 0
@@ -40,9 +41,13 @@ export default function RegisterPage() {
   // On le memorise en cookie (90 jours) pour resister a la navigation / OAuth,
   // et on le relit depuis le cookie si l'URL ne le contient pas.
   const [refCode, setRefCode] = useState('')
+  // NEXT : ou renvoyer l'invite apres la confirmation email (ex : retour vers
+  // son invitation de confrere). '/dashboard' par defaut = inscription normale.
+  const [nextPath, setNextPath] = useState('/dashboard')
   useEffect(() => {
     try {
-      const fromUrl = new URLSearchParams(window.location.search).get('ref')
+      const params = new URLSearchParams(window.location.search)
+      const fromUrl = params.get('ref')
       if (fromUrl) {
         const clean = fromUrl.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16)
         if (clean.length >= 6) {
@@ -52,6 +57,15 @@ export default function RegisterPage() {
       } else {
         const m = document.cookie.split('; ').find((c) => c.startsWith('nexartis_ref='))
         if (m) setRefCode(decodeURIComponent(m.split('=')[1] || ''))
+      }
+
+      // On memorise `next` (transmis a l'API, qui le scelle dans le lien de
+      // confirmation). Le cookie de secours, lui, n'est pose qu'au moment de
+      // l'inscription reelle (voir handleRegister) pour ne pas persister un
+      // `next` abandonne entre deux tentatives d'inscription.
+      const np = safeNextPath(params.get('next'))
+      if (np !== '/dashboard') {
+        setNextPath(np)
       }
     } catch {
       // pas de blocage si l'acces cookie/URL echoue
@@ -64,7 +78,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/resend-confirmation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, next: nextPath }),
     })
     setResending(false)
     if (res.ok) setResendSuccess(true)
@@ -75,11 +89,19 @@ export default function RegisterPage() {
     setLoading(true)
     setError(null)
 
+    // Cookie de secours (même navigateur) : posé au démarrage réel de
+    // l'inscription, rafraîchi/effacé à chaque essai pour refléter CE `next`.
+    if (nextPath !== '/dashboard') {
+      document.cookie = `${NEXT_COOKIE}=${encodeURIComponent(nextPath)}; path=/; max-age=3600; SameSite=Lax`
+    } else {
+      document.cookie = `${NEXT_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+    }
+
     // Appeler notre API serveur qui crée le compte + envoie le mail de confirmation
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, prenom, nom, entreprise, ref: refCode || undefined }),
+      body: JSON.stringify({ email, password, prenom, nom, entreprise, ref: refCode || undefined, next: nextPath }),
     })
 
     const data = await res.json()
@@ -100,7 +122,7 @@ export default function RegisterPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     })
   }

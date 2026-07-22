@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { safeNextPath, NEXT_COOKIE } from '@/lib/safe-redirect'
 
 /**
  * Page client pour gérer la confirmation email.
@@ -16,6 +17,25 @@ export default function AuthConfirmPage() {
   useEffect(() => {
     async function handleConfirm() {
       const supabase = createClient()
+
+      // 0. Destination finale après confirmation : ?next= dans l'URL (scellé
+      //    dans le lien email, survit donc même sur un autre appareil), sinon
+      //    cookie de secours (même navigateur), sinon /dashboard. Toujours
+      //    validé (anti open-redirect). On lit AVANT de nettoyer l'URL.
+      let nextPath = '/dashboard'
+      try {
+        const fromQuery = new URLSearchParams(window.location.search).get('next')
+        if (fromQuery) {
+          nextPath = safeNextPath(fromQuery)
+        } else {
+          const m = document.cookie.split('; ').find((c) => c.startsWith(`${NEXT_COOKIE}=`))
+          if (m) nextPath = safeNextPath(decodeURIComponent(m.split('=')[1] || ''))
+        }
+        // On consomme le cookie pour qu'il ne « colle » pas à une navigation ultérieure.
+        document.cookie = `${NEXT_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+      } catch {
+        nextPath = '/dashboard'
+      }
 
       // 1. Extraire manuellement les tokens du hash fragment (#access_token=...&refresh_token=...)
       // Supabase ne le fait pas toujours automatiquement, surtout avec @supabase/ssr.
@@ -44,7 +64,7 @@ export default function AuthConfirmPage() {
           setStatus('success')
           // Nettoyer le hash de l'URL pour éviter qu'il traîne
           window.history.replaceState(null, '', window.location.pathname)
-          setTimeout(() => router.push('/dashboard'), 600)
+          setTimeout(() => router.push(nextPath), 600)
           return
         }
         console.error('setSession error:', error)
@@ -54,7 +74,7 @@ export default function AuthConfirmPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setStatus('success')
-        setTimeout(() => router.push('/dashboard'), 500)
+        setTimeout(() => router.push(nextPath), 500)
         return
       }
 

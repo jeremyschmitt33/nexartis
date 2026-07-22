@@ -46,7 +46,7 @@ export function verifyUnsubscribe(emailB64: string, sig: string): string | null 
 }
 
 /** Vrai si l'email s'est desinscrit des emails marketing. Fail-open (false) si lecture impossible. */
-async function isOptedOut(email: string): Promise<boolean> {
+export async function isOptedOut(email: string): Promise<boolean> {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

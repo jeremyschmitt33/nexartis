@@ -1215,6 +1215,33 @@ export default function DashboardLayout({
     return () => { annule = true }
   }, [pathname])
 
+  // Messagerie — badge « N messages non lus » sur l'entrée « Messagerie ».
+  // Même logique légère que le réseau : un simple total au chargement et à
+  // chaque navigation (pas de realtime). On réutilise la RPC déjà auditée
+  // `mes_conversations` en sommant le champ `non_lus` de chaque conversation.
+  // Si la RPC n'existe pas ou que l'accès est refusé, le badge reste à 0.
+  const [messagesNonLus, setMessagesNonLus] = useState(0)
+  useEffect(() => {
+    let annule = false
+    async function compter() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase.rpc('mes_conversations')
+        if (!annule && !error && Array.isArray(data)) {
+          const total = (data as Array<Record<string, unknown>>).reduce(
+            (acc, c) => acc + (Number(c.non_lus) || 0),
+            0,
+          )
+          setMessagesNonLus(total)
+        }
+      } catch {
+        /* RPC absente ou accès refusé : pas de badge */
+      }
+    }
+    void compter()
+    return () => { annule = true }
+  }, [pathname])
+
   // QW2 -- Badges sidebar
   const sidebarBadges: Record<string, number> = useMemo(() => {
     const now = Date.now()
@@ -1245,8 +1272,10 @@ export default function DashboardLayout({
       '/dashboard/banque': banqueAPointer,
       // Réseau — « N demandes » (invitations de confrères reçues en attente)
       '/dashboard/reseau': demandesReseau,
+      // Messagerie — « N messages non lus » (toutes conversations confondues)
+      '/dashboard/messagerie': messagesNonLus,
     }
-  }, [devisData, facturesData, banqueAPointer, demandesReseau])
+  }, [devisData, facturesData, banqueAPointer, demandesReseau, messagesNonLus])
 
   // QW4 -- showBack
   const showBack = useMemo(() => {

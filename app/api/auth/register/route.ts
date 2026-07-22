@@ -5,6 +5,7 @@ import {
   getClientIp, checkRateLimit, isValidEmail,
   secureJson, secureError, rateLimitError,
 } from '@/lib/api-security'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 /**
  * POST /api/auth/register
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
       return rateLimitError()
     }
 
-    const { email, password, prenom, nom, entreprise, ref } = await request.json()
+    const { email, password, prenom, nom, entreprise, ref, next } = await request.json()
 
     if (!email || !password) {
       return secureError('Email et mot de passe requis')
@@ -109,11 +110,22 @@ export async function POST(request: NextRequest) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexartis.fr'
     let confirmUrl = ''
 
+    // Où renvoyer l'utilisateur APRÈS confirmation de son email. On valide le
+    // chemin (anti open-redirect) puis on le « scelle » dans le lien de
+    // confirmation : ainsi le retour vers une invitation survit même si l'email
+    // est ouvert sur un autre appareil (le cookie de secours, lui, est
+    // navigateur-local). '/dashboard' = pas de paramètre superflu dans le lien.
+    const safeNext = safeNextPath(next)
+    const confirmRedirect =
+      safeNext !== '/dashboard'
+        ? `${siteUrl}/auth/confirm?next=${encodeURIComponent(safeNext)}`
+        : `${siteUrl}/auth/confirm`
+
     // Générer un lien de confirmation via magiclink
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: { redirectTo: `${siteUrl}/auth/confirm` },
+      options: { redirectTo: confirmRedirect },
     })
     if (!linkError && linkData?.properties?.action_link) {
       confirmUrl = linkData.properties.action_link

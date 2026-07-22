@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, isOptedOut, buildUnsubscribeUrl } from '@/lib/email'
 import {
   getClientIp, checkRateLimit, isValidEmail,
   secureJson, secureError, rateLimitError, unauthorizedError,
@@ -56,6 +56,13 @@ export async function POST(req: NextRequest) {
     const dest = (rel.destinataire_email as string | null)?.trim()
     if (!dest) return secureError('Invitation sans destinataire', 400)
 
+    // RGPD : si le destinataire s'est désinscrit des emails Nexartis, on
+    // n'envoie RIEN. La relation existe déjà (créée côté client) : l'inviteur
+    // pourra lui partager le lien manuellement. On le signale au client.
+    if (await isOptedOut(dest)) {
+      return secureJson({ success: true, email_envoye: false, reason: 'optout' })
+    }
+
     // Nom de l'inviteur (son entreprise).
     const { data: ent } = await supabase
       .from('entreprises').select('nom').eq('user_id', user.id).maybeSingle()
@@ -63,6 +70,9 @@ export async function POST(req: NextRequest) {
 
     const origin = req.nextUrl.origin
     const lien = `${origin}/invitation/${token}`
+    // Lien de désinscription signé (RGPD) : affiché dans le pied de page ET
+    // envoyé dans l'en-tête List-Unsubscribe (désinscription 1-clic côté mail).
+    const unsubUrl = buildUnsubscribeUrl(dest)
 
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:8px;">
@@ -87,17 +97,25 @@ export async function POST(req: NextRequest) {
         <p style="font-size:12px;color:#94a3b8;line-height:1.6;margin:22px 0 0;">
           Vous recevez cet email parce qu'un artisan vous a invité sur Nexartis.
           Si vous n'êtes pas concerné(e), ignorez simplement ce message.
+          <br/>
+          <a href="${esc(unsubUrl)}" style="color:#94a3b8;text-decoration:underline;">Ne plus recevoir d'emails de Nexartis</a>.
         </p>
       </div>`
+
+    // Anti-spam : plafond par UTILISATEUR (20 invitations réellement envoyées
+    // par jour), en plus du rate-limit par IP en tête de route. Placé ICI —
+    // après opt-out et validation — pour ne décompter que les envois réels.
+    if (!checkRateLimit(`reseau-invit-user:${user.id}`, 20, 86_400_000)) return rateLimitError()
 
     await sendEmail({
       to: { email: dest },
       senderName: `${inviterName} via Nexartis`,
       subject: `${inviterName} vous invite à échanger sur Nexartis`,
       html,
+      listUnsubscribeUrl: unsubUrl,
     })
 
-    return secureJson({ success: true })
+    return secureJson({ success: true, email_envoye: true })
   } catch (error) {
     console.error('reseau invitation email error:', error)
     return secureError('Erreur serveur', 500)

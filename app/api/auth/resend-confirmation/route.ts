@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
 import { getClientIp, checkRateLimit, isValidEmail } from '@/lib/api-security'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 /**
  * POST /api/auth/resend-confirmation
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    const { email } = await request.json()
+    const { email, next } = await request.json()
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ success: true }) // Réponse générique (pas de fuite)
@@ -52,10 +53,18 @@ export async function POST(request: NextRequest) {
     // Générer un nouveau lien de confirmation
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexartis.fr'
 
+    // On rescelle `next` dans le lien (comme /api/auth/register) pour que le
+    // renvoi ramène AUSSI l'invité vers sa destination, même sur un autre appareil.
+    const safeNext = safeNextPath(next)
+    const confirmRedirect =
+      safeNext !== '/dashboard'
+        ? `${siteUrl}/auth/confirm?next=${encodeURIComponent(safeNext)}`
+        : `${siteUrl}/auth/confirm`
+
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: { redirectTo: `${siteUrl}/auth/confirm` },
+      options: { redirectTo: confirmRedirect },
     })
 
     if (linkError || !linkData?.properties?.action_link) {
