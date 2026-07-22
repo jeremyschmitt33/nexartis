@@ -166,6 +166,7 @@ const NAV_FLAT: NavItem[] = [
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Tableau de bord',
   '/dashboard/chantiers': 'Chantiers',
+  '/dashboard/messagerie': 'Messagerie',
   '/dashboard/devis': 'Devis',
   '/dashboard/devis/nouveau': 'Nouveau devis',
   '/dashboard/factures': 'Factures',
