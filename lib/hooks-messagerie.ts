@@ -17,6 +17,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { preparerFichierMessage, cheminFichierMessage } from '@/lib/messagerie-fichiers'
 
 export type TypeMessage =
   | 'texte' | 'vocal' | 'photo' | 'document' | 'devis' | 'facture' | 'systeme'
@@ -41,6 +42,20 @@ export interface ConversationListItem {
   non_lus: number
 }
 
+/** Pièce jointe d'un message (photo / document / devis / facture / vocal). */
+export interface PieceJointe {
+  id: string
+  message_id: string
+  type_pj: 'photo' | 'document' | 'vocal' | 'devis' | 'facture'
+  fichier_path: string | null
+  nom: string | null
+  mime_type: string | null
+  taille_octets: number | null
+  devis_id: string | null
+  facture_id: string | null
+  transcription: string | null
+}
+
 export interface MessageRow {
   id: string
   conversation_id: string
@@ -52,6 +67,8 @@ export interface MessageRow {
   created_at: string
   edited_at: string | null
   deleted_at: string | null
+  /** Pièces jointes chargées avec le message (embed PostgREST). */
+  pieces?: PieceJointe[]
 }
 
 export interface Contact {
@@ -60,6 +77,37 @@ export interface Contact {
   metier: string | null
   email: string | null
   type_relation: string
+}
+
+/** Un devis/facture proposé au partage dans le sélecteur « carte vivante ». */
+export interface DocPartageable {
+  id: string
+  numero: string | null
+  client_nom: string | null
+  objet: string | null
+  montant_ttc: number | null
+  statut: string | null
+  date_emission: string | null
+}
+
+/** Snapshot figé d'un document partagé (stocké dans messages.contenu, JSON). */
+export interface SnapshotDoc {
+  type: 'devis' | 'facture'
+  numero: string | null
+  client: string | null
+  objet: string | null
+  montant_ttc: number | null
+  statut: string | null
+}
+
+/** Parse le snapshot JSON d'un message de type devis/facture. Null si illisible. */
+export function parseSnapshotDoc(contenu: string | null): SnapshotDoc | null {
+  if (!contenu) return null
+  try {
+    const o = JSON.parse(contenu)
+    if (o && (o.type === 'devis' || o.type === 'facture')) return o as SnapshotDoc
+  } catch { /* contenu non-JSON : pas un snapshot */ }
+  return null
 }
 
 export interface MembreConversation {
@@ -140,6 +188,46 @@ export function useContacts(): {
 }
 
 // ----------------------------------------------------------------------------
+// useDocumentsPartageables — mes devis + factures récents (sélecteur « carte
+// vivante »). La RLS ne me renvoie que les miens. Chargé au montage, donc à
+// l'ouverture du sélecteur.
+// ----------------------------------------------------------------------------
+export function useDocumentsPartageables(): {
+  devis: DocPartageable[]
+  factures: DocPartageable[]
+  loading: boolean
+} {
+  const [devis, setDevis] = useState<DocPartageable[]>([])
+  const [factures, setFactures] = useState<DocPartageable[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancel = false
+    async function run() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancel) setLoading(false); return }
+      // On ne propose QUE mes propres documents (user_id = moi) : c'est ce que
+      // la RPC de partage accepte (elle vérifie la propriété par user_id). Évite
+      // qu'un membre voie un devis d'un collègue puis échoue au partage.
+      const cols = 'id, numero, client_nom, objet, montant_ttc, statut, date_emission'
+      const [d, f] = await Promise.all([
+        supabase.from('devis').select(cols).eq('user_id', user.id).is('deleted_at', null).order('date_emission', { ascending: false }).limit(40),
+        supabase.from('factures').select(cols).eq('user_id', user.id).is('deleted_at', null).order('date_emission', { ascending: false }).limit(40),
+      ])
+      if (cancel) return
+      setDevis((d.data ?? []) as DocPartageable[])
+      setFactures((f.data ?? []) as DocPartageable[])
+      setLoading(false)
+    }
+    run()
+    return () => { cancel = true }
+  }, [])
+
+  return { devis, factures, loading }
+}
+
+// ----------------------------------------------------------------------------
 // useMessages — le fil d'une conversation + réception temps réel.
 // ----------------------------------------------------------------------------
 export function useMessages(conversationId: string | null): {
@@ -161,7 +249,7 @@ export function useMessages(conversationId: string | null): {
     const supabase = createClient()
     const { data, error: err } = await supabase
       .from('messages')
-      .select('*')
+      .select('*, pieces:message_pieces_jointes(*)')
       .eq('conversation_id', conversationId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
@@ -193,7 +281,26 @@ export function useMessages(conversationId: string | null): {
           if (!m || idsRef.current.has(m.id)) return
           if (m.deleted_at) return
           idsRef.current.add(m.id)
-          setMessages((prev) => [...prev, m])
+          // Le payload temps réel ne contient QUE la ligne `messages` (pas ses
+          // pièces jointes). Pour un message porteur d'une PJ (photo/document/
+          // devis/facture), on va chercher la PJ avant d'afficher, pour ne pas
+          // montrer une bulle vide en attendant un rafraîchissement.
+          const avecPj = m.type_message !== 'texte' && m.type_message !== 'systeme'
+          if (avecPj) {
+            supabase
+              .from('message_pieces_jointes')
+              .select('*')
+              .eq('message_id', m.id)
+              .then(({ data }) => {
+                setMessages((prev) =>
+                  prev.some((x) => x.id === m.id)
+                    ? prev
+                    : [...prev, { ...m, pieces: (data ?? []) as PieceJointe[] }],
+                )
+              })
+          } else {
+            setMessages((prev) => [...prev, m])
+          }
         },
       )
       .subscribe()
@@ -269,6 +376,119 @@ export async function envoyerMessage(
     .single()
   if (error) throw new Error(error.message)
   return data as MessageRow
+}
+
+/**
+ * Envoie une pièce jointe (photo/document). Upload dans le bucket privé
+ * 'messagerie' (RLS = membre de la conversation), puis crée le message et sa
+ * ligne message_pieces_jointes. Renvoie le message AVEC sa PJ (affichage
+ * optimiste). Nettoyage best-effort du fichier orphelin en cas d'échec.
+ */
+export async function envoyerPieceJointe(
+  conversationId: string,
+  file: File,
+  clientMessageId?: string,
+): Promise<MessageRow> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Non connecté')
+
+  // Peut lever JustificatifError (message français prêt à afficher).
+  const pret = await preparerFichierMessage(file)
+  const chemin = cheminFichierMessage(conversationId, pret.nom)
+
+  const { error: upErr } = await supabase.storage
+    .from('messagerie')
+    .upload(chemin, pret.blob, { contentType: pret.contentType, upsert: false })
+  if (upErr) {
+    console.error('Upload pièce jointe impossible', upErr)
+    throw new Error("Impossible d'envoyer ce fichier. Vérifiez votre connexion et réessayez.")
+  }
+
+  // Message + pièce jointe en UNE transaction (RPC atomique) : le temps réel
+  // ne diffuse qu'au commit, donc la PJ existe toujours quand le destinataire
+  // la relit (corrige la course « bulle pièce jointe figée »).
+  const { data: msgId, error: rpcErr } = await supabase.rpc('envoyer_message_piece_jointe', {
+    p_conversation_id: conversationId,
+    p_type_pj: pret.typePj,
+    p_fichier_path: chemin,
+    p_nom: pret.nom,
+    p_mime: pret.contentType,
+    p_taille: pret.blob.size,
+    p_client_message_id: clientMessageId ?? null,
+  })
+  if (rpcErr || !msgId) {
+    // La transaction a été annulée (aucun message diffusé) : on nettoie le fichier.
+    try { await supabase.storage.from('messagerie').remove([chemin]) } catch { /* best-effort */ }
+    throw new Error(rpcErr?.message || "L'envoi a échoué.")
+  }
+
+  // Relecture du message complet (avec sa PJ) pour l'affichage optimiste immédiat.
+  const { data: row } = await supabase
+    .from('messages')
+    .select('*, pieces:message_pieces_jointes(*)')
+    .eq('id', msgId as string)
+    .single()
+  if (row) return row as MessageRow
+
+  // Repli si la relecture échoue : ligne minimale cohérente (le temps réel /
+  // un refetch corrigeront si besoin).
+  return {
+    id: msgId as string,
+    conversation_id: conversationId,
+    expediteur_id: user.id,
+    contenu: null,
+    type_message: pret.typePj,
+    reply_to_id: null,
+    client_message_id: clientMessageId ?? null,
+    created_at: new Date().toISOString(),
+    edited_at: null,
+    deleted_at: null,
+    pieces: [{
+      id: `local-${msgId}`,
+      message_id: msgId as string,
+      type_pj: pret.typePj,
+      fichier_path: chemin,
+      nom: pret.nom,
+      mime_type: pret.contentType,
+      taille_octets: pret.blob.size,
+      devis_id: null,
+      facture_id: null,
+      transcription: null,
+    }],
+  }
+}
+
+/** URL signée temporaire (1 h) pour afficher/télécharger une pièce jointe. */
+export async function urlSigneeMessagerie(path: string): Promise<string | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.storage.from('messagerie').createSignedUrl(path, 3600)
+  if (error || !data?.signedUrl) {
+    console.error('URL signée messagerie impossible', error)
+    return null
+  }
+  return data.signedUrl
+}
+
+/**
+ * Partage un devis/facture dans la conversation (« carte vivante »). Le snapshot
+ * (numéro, client, montant, statut) est figé CÔTÉ SERVEUR par la RPC à partir du
+ * document que je possède — le destinataire n'y a pas accès via RLS. Le message
+ * s'affiche ensuite via le temps réel + le refetch déclenché par l'appelant.
+ */
+export async function partagerDocument(
+  conversationId: string,
+  type: 'devis' | 'facture',
+  refId: string,
+): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('partager_document', {
+    p_conversation_id: conversationId,
+    p_type: type,
+    p_ref_id: refId,
+    p_client_message_id: null,
+  })
+  if (error) throw new Error(error.message || "Le partage a échoué.")
 }
 
 /** Marque la conversation comme lue jusqu'à maintenant. */

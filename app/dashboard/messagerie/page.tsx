@@ -19,15 +19,26 @@ import {
   useContacts,
   useMessages,
   useMembresConversation,
+  useDocumentsPartageables,
   envoyerMessage,
+  envoyerPieceJointe,
+  urlSigneeMessagerie,
+  partagerDocument,
+  parseSnapshotDoc,
   marquerLue,
   ouvrirChatDirect,
   nomConversation,
   type ConversationListItem,
   type Contact,
+  type MessageRow,
+  type PieceJointe,
+  type SnapshotDoc,
+  type DocPartageable,
 } from '@/lib/hooks-messagerie'
+import { MESSAGERIE_FICHIER_ACCEPT, JustificatifError } from '@/lib/messagerie-fichiers'
 import {
   Search, Plus, ArrowLeft, Send, MessageCircle, Users, Network, X, Loader2, Pin, UserPlus,
+  Paperclip, FileText, Maximize2, Receipt,
 } from 'lucide-react'
 
 const REPONSES_RAPIDES = ['👍 Bien reçu', '🚚 En route', '⏱ Retard 30 min', "📍 J'arrive"]
@@ -326,6 +337,151 @@ function ConvRow({ c, actif, meId, onSelect, variant }: {
   )
 }
 
+// ─── Carte vivante d'un devis / facture partagé ──────────────────────────────
+
+// Libellés/couleurs des statuts. Doit couvrir les valeurs RÉELLES de la base
+// (devis : brouillon, finalise, envoye, signe/accepte, refuse, expire, facture ;
+// factures : brouillon, envoyee, payee, partiellement_payee, en_retard, annulee).
+const STATUT_DOC: Record<string, { label: string; cls: string }> = {
+  brouillon: { label: 'Brouillon', cls: 'bg-gray-100 text-gray-600' },
+  finalise: { label: 'Finalisé', cls: 'bg-sky/15 text-sky' },
+  envoye: { label: 'Envoyé', cls: 'bg-sky/15 text-sky' },
+  envoyee: { label: 'Envoyée', cls: 'bg-sky/15 text-sky' },
+  signe: { label: 'Signé', cls: 'bg-emerald-100 text-emerald-700' },
+  accepte: { label: 'Accepté', cls: 'bg-emerald-100 text-emerald-700' },
+  facture: { label: 'Facturé', cls: 'bg-emerald-100 text-emerald-700' },
+  paye: { label: 'Payée', cls: 'bg-emerald-100 text-emerald-700' },
+  payee: { label: 'Payée', cls: 'bg-emerald-100 text-emerald-700' },
+  partiel: { label: 'Partiel', cls: 'bg-amber-100 text-amber-700' },
+  partiellement_payee: { label: 'Partiel', cls: 'bg-amber-100 text-amber-700' },
+  en_retard: { label: 'En retard', cls: 'bg-red-100 text-red-700' },
+  refuse: { label: 'Refusé', cls: 'bg-red-100 text-red-700' },
+  annulee: { label: 'Annulée', cls: 'bg-gray-100 text-gray-500' },
+  expire: { label: 'Expiré', cls: 'bg-amber-100 text-amber-700' },
+}
+
+function euros(n: number | null | undefined): string {
+  if (n == null) return '—'
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+}
+
+function DocumentCarteVivante({ snap, type, pj, mien }: {
+  snap: SnapshotDoc | null
+  type: 'devis' | 'facture'
+  pj: PieceJointe | null
+  mien: boolean
+}) {
+  const estDevis = type === 'devis'
+  const titreType = estDevis ? 'Devis' : 'Facture'
+  const statut = snap?.statut
+    ? (STATUT_DOC[snap.statut] || { label: snap.statut, cls: 'bg-gray-100 text-gray-600' })
+    : null
+  const refId = pj?.devis_id || pj?.facture_id || null
+  const href = refId ? `/dashboard/${estDevis ? 'devis' : 'factures'}/${refId}` : null
+
+  return (
+    <div className={`w-[262px] rounded-2xl overflow-hidden shadow-sm bg-white border border-gray-100 ${mien ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+      <div className={`px-3.5 py-2 flex items-center gap-2 ${estDevis ? 'bg-sky/10' : 'bg-orange/10'}`}>
+        <span className={`w-6 h-6 rounded-md grid place-items-center flex-shrink-0 ${estDevis ? 'bg-sky/20 text-sky' : 'bg-orange/20 text-orange'}`}>
+          <Receipt className="w-3.5 h-3.5" />
+        </span>
+        <span className="text-[12px] font-bold uppercase tracking-wide text-navy">{titreType}</span>
+        {snap?.numero && <span className="text-[11px] text-gray-400 font-mono ml-auto truncate max-w-[110px]">{snap.numero}</span>}
+      </div>
+      <div className="px-3.5 py-3">
+        {snap ? (
+          <>
+            {snap.client && <p className="text-[13px] font-semibold text-navy truncate">{snap.client}</p>}
+            {snap.objet && <p className="text-[12px] text-gray-500 truncate mt-0.5">{snap.objet}</p>}
+            <div className="flex items-end justify-between mt-2.5 gap-2">
+              <span className="text-[17px] font-bold text-navy tabular-nums leading-none">
+                {euros(snap.montant_ttc)}<span className="text-[10px] text-gray-400 font-normal ml-1">TTC</span>
+              </span>
+              {statut && <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${statut.cls}`}>{statut.label}</span>}
+            </div>
+          </>
+        ) : (
+          <p className="text-[13px] text-gray-500">{titreType} partagé</p>
+        )}
+        {mien && href && (
+          <a href={href} className="mt-3 flex items-center justify-center h-9 rounded-lg bg-navy text-white text-[13px] font-semibold hover:bg-navy-mid transition-colors">
+            Voir {estDevis ? 'le devis' : 'la facture'}
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Modale : choisir un devis / facture à partager ──────────────────────────
+
+function PartageDocModal({ onClose, onPick }: {
+  onClose: () => void
+  onPick: (type: 'devis' | 'facture', id: string) => void
+}) {
+  const { devis, factures, loading } = useDocumentsPartageables()
+  const [onglet, setOnglet] = useState<'devis' | 'factures'>('devis')
+  const liste: DocPartageable[] = onglet === 'devis' ? devis : factures
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
+      <div className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-2xl shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h2 className="font-bold text-navy font-manrope">Partager un document</h2>
+          <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors" aria-label="Fermer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex gap-1 p-2 border-b border-gray-100">
+          {(['devis', 'factures'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setOnglet(t)}
+              className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-colors ${onglet === t ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              {t === 'devis' ? 'Devis' : 'Factures'}
+            </button>
+          ))}
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="p-4 space-y-2 animate-pulse">
+              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl" />)}
+            </div>
+          ) : liste.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">
+              Aucun {onglet === 'devis' ? 'devis' : 'facture'} à partager pour le moment.
+            </div>
+          ) : (
+            <ul>
+              {liste.map((d) => (
+                <li key={d.id}>
+                  <button
+                    onClick={() => onPick(onglet === 'devis' ? 'devis' : 'facture', d.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className={`w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 ${onglet === 'devis' ? 'bg-sky/10 text-sky' : 'bg-orange/10 text-orange'}`}>
+                      <Receipt className="w-4 h-4" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold text-navy text-sm truncate">{d.client_nom || 'Client'}</span>
+                        {d.numero && <span className="text-[11px] text-gray-400 font-mono truncate flex-shrink-0">{d.numero}</span>}
+                      </span>
+                      <span className="block text-xs text-gray-400 truncate">{d.objet || '—'}</span>
+                    </span>
+                    <span className="text-sm font-bold text-navy tabular-nums flex-shrink-0">{euros(d.montant_ttc)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Ligne de contact (modale « nouvelle discussion ») ───────────────────────
 
 function PickerRow({ c, onPick }: { c: Contact; onPick: (c: Contact) => void }) {
@@ -390,11 +546,14 @@ function ConversationView({
   onBack: () => void
   onActivity: () => void
 }) {
-  const { messages, loading, ajouterLocal } = useMessages(conversationId)
+  const { messages, loading, ajouterLocal, refetch } = useMessages(conversationId)
   const { membres } = useMembresConversation(conversationId)
   const [texte, setTexte] = useState('')
   const [envoi, setEnvoi] = useState(false)
+  const [envoiFichier, setEnvoiFichier] = useState(false)
+  const [showPartage, setShowPartage] = useState(false)
   const filRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const autres = membres.filter((m) => m.user_id !== meId)
   const estGroupe = conversation?.type === 'groupe'
@@ -443,6 +602,34 @@ function ConversationView({
     if (!txt) return
     setTexte('')
     await envoyerContenu(txt)
+  }
+
+  async function envoyerFichier(file: File | null | undefined) {
+    if (!file || envoiFichier) return
+    setEnvoiFichier(true)
+    try {
+      const row = await envoyerPieceJointe(conversationId, file)
+      ajouterLocal(row)
+      onActivity()
+    } catch (e) {
+      // JustificatifError porte un message français prêt à afficher ; sinon fallback.
+      alert(e instanceof JustificatifError ? e.message : "Impossible d'envoyer ce fichier.")
+    } finally {
+      setEnvoiFichier(false)
+    }
+  }
+
+  async function partager(type: 'devis' | 'facture', refId: string) {
+    try {
+      await partagerDocument(conversationId, type, refId)
+      setShowPartage(false)
+      // Le message (snapshot serveur) apparaît via un rechargement du fil ;
+      // le temps réel le livre aussi au destinataire.
+      refetch()
+      onActivity()
+    } catch (e) {
+      alert((e as Error).message)
+    }
   }
 
   let dernierJour = ''
@@ -516,15 +703,7 @@ function ConversationView({
                         {m.expediteur_id ? (nomsParUser[m.expediteur_id] || 'Artisan') : 'Utilisateur supprimé'}
                       </span>
                     )}
-                    <div
-                      className={`px-3.5 py-2 rounded-2xl text-[14px] leading-snug break-words shadow-sm ${
-                        mien
-                          ? 'bg-navy text-white rounded-br-md'
-                          : 'bg-white text-navy border border-gray-100 rounded-bl-md'
-                      }`}
-                    >
-                      {m.contenu}
-                    </div>
+                    <MessageContenu m={m} mien={mien} />
                     <span className="text-[10px] text-gray-400 mt-0.5 px-1">{heureCourte(m.created_at)}</span>
                   </div>
                 </div>
@@ -552,6 +731,34 @@ function ConversationView({
 
       {/* Composer */}
       <div className="flex items-center gap-2 p-3 bg-white border-t border-gray-100 flex-shrink-0">
+        {/* Pièce jointe : photo (compressée / HEIC converti) ou PDF. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={MESSAGERIE_FICHIER_ACCEPT}
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; envoyerFichier(f) }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={envoiFichier}
+          className="w-11 h-11 rounded-full bg-sky/10 text-navy grid place-items-center hover:bg-sky/20 active:scale-95 transition flex-shrink-0 disabled:opacity-40"
+          aria-label="Joindre une photo ou un PDF"
+          title="Joindre une photo ou un PDF"
+        >
+          {envoiFichier ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
+        </button>
+        {/* Partager un devis / facture en « carte vivante ». */}
+        <button
+          type="button"
+          onClick={() => setShowPartage(true)}
+          className="w-11 h-11 rounded-full bg-sky/10 text-navy grid place-items-center hover:bg-sky/20 active:scale-95 transition flex-shrink-0"
+          aria-label="Partager un devis ou une facture"
+          title="Partager un devis ou une facture"
+        >
+          <Receipt className="w-5 h-5" />
+        </button>
         <input
           value={texte}
           onChange={(e) => setTexte(e.target.value)}
@@ -568,6 +775,8 @@ function ConversationView({
           {envoi ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
         </button>
       </div>
+
+      {showPartage && <PartageDocModal onClose={() => setShowPartage(false)} onPick={partager} />}
     </div>
   )
 }
@@ -579,6 +788,149 @@ function DaySeparator({ label }: { label: string }) {
         {label}
       </span>
     </div>
+  )
+}
+
+// ─── Contenu d'un message (texte, photo ou document) ─────────────────────────
+
+function MessageContenu({ m, mien }: { m: MessageRow; mien: boolean }) {
+  const pj = m.pieces && m.pieces.length > 0 ? m.pieces[0] : null
+
+  // Message de type pièce jointe mais PJ non encore résolue (ex : échec du
+  // chargement des PJ après un message temps réel) : placeholder, jamais de
+  // bulle vide.
+  if ((m.type_message === 'photo' || m.type_message === 'document') && !pj) {
+    return (
+      <div className="px-3.5 py-2 text-[13px] text-gray-400 bg-white border border-gray-100 rounded-2xl shadow-sm">
+        📎 Pièce jointe
+      </div>
+    )
+  }
+
+  if (m.type_message === 'devis' || m.type_message === 'facture') {
+    return <DocumentCarteVivante snap={parseSnapshotDoc(m.contenu)} type={m.type_message} pj={pj} mien={mien} />
+  }
+
+  if (m.type_message === 'photo' && pj) {
+    return (
+      <div className={`overflow-hidden rounded-2xl shadow-sm max-w-[240px] ${mien ? 'rounded-br-md' : 'rounded-bl-md border border-gray-100'}`}>
+        <PhotoJointe piece={pj} />
+      </div>
+    )
+  }
+  if (m.type_message === 'document' && pj) {
+    return <DocumentJointe piece={pj} mien={mien} />
+  }
+  // Message texte (ou type sans pièce jointe résolue) : bulle classique.
+  return (
+    <div
+      className={`px-3.5 py-2 rounded-2xl text-[14px] leading-snug break-words shadow-sm ${
+        mien
+          ? 'bg-navy text-white rounded-br-md'
+          : 'bg-white text-navy border border-gray-100 rounded-bl-md'
+      }`}
+    >
+      {m.contenu}
+    </div>
+  )
+}
+
+/** Taille lisible : « 42 Ko » ou « 3,4 Mo ». */
+function tailleLisible(octets: number | null): string | null {
+  if (!octets || octets <= 0) return null
+  const ko = octets / 1024
+  if (ko < 1024) return `${Math.max(1, Math.round(ko))} Ko`
+  return `${(ko / 1024).toFixed(1).replace('.', ',')} Mo`
+}
+
+// URL signée (bucket privé) chargée à l'affichage ; expire au bout d'1 h. Le
+// composant se remonte à chaque ouverture de conversation, et un bouton
+// « Réessayer » régénère l'URL si elle a expiré pendant une longue session.
+function PhotoJointe({ piece }: { piece: PieceJointe }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [erreur, setErreur] = useState(false)
+  const [charge, setCharge] = useState(false)
+  const [essai, setEssai] = useState(0)
+
+  useEffect(() => {
+    let cancel = false
+    if (!piece.fichier_path) { setErreur(true); return }
+    setErreur(false); setUrl(null); setCharge(false)
+    urlSigneeMessagerie(piece.fichier_path).then((u) => {
+      if (cancel) return
+      if (u) setUrl(u); else setErreur(true)
+    })
+    return () => { cancel = true }
+  }, [piece.fichier_path, essai])
+
+  if (erreur) {
+    return (
+      <div className="px-3.5 py-3 text-[13px] text-gray-500 bg-white grid gap-1.5 place-items-start">
+        <span>📷 Photo indisponible</span>
+        <button onClick={() => setEssai((n) => n + 1)} className="text-[12.5px] text-orange font-semibold hover:underline underline-offset-2">
+          Réessayer
+        </button>
+      </div>
+    )
+  }
+  return (
+    <a href={url ?? undefined} target={url ? '_blank' : undefined} rel="noreferrer" className="relative block group cursor-zoom-in">
+      {!charge && (
+        <div className="w-[240px] h-[240px] bg-gray-100 grid place-items-center">
+          <Loader2 className="w-5 h-5 text-gray-300 animate-spin" />
+        </div>
+      )}
+      {url && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt={piece.nom || 'Photo'}
+            onLoad={() => setCharge(true)}
+            onError={() => setErreur(true)}
+            className={`block w-full h-auto max-h-[320px] object-contain bg-navy/5 transition-opacity duration-300 ${charge ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+          />
+          {charge && (
+            <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-navy/55 backdrop-blur-sm grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+              <Maximize2 className="w-3.5 h-3.5 text-white" />
+            </span>
+          )}
+        </>
+      )}
+    </a>
+  )
+}
+
+function DocumentJointe({ piece, mien }: { piece: PieceJointe; mien: boolean }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let cancel = false
+    if (piece.fichier_path) {
+      urlSigneeMessagerie(piece.fichier_path).then((u) => { if (!cancel) setUrl(u) })
+    }
+    return () => { cancel = true }
+  }, [piece.fichier_path])
+
+  const taille = tailleLisible(piece.taille_octets)
+  return (
+    <a
+      href={url ?? undefined}
+      target="_blank"
+      rel="noreferrer"
+      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl shadow-sm max-w-[260px] ${
+        mien ? 'bg-navy text-white rounded-br-md' : 'bg-white text-navy border border-gray-100 rounded-bl-md'
+      } ${url ? '' : 'opacity-70 pointer-events-none'}`}
+    >
+      <span className={`w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 ${mien ? 'bg-white/15' : 'bg-orange/10 text-orange'}`}>
+        {url ? <FileText size={18} /> : <Loader2 size={16} className="animate-spin" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[13px] font-semibold truncate">{piece.nom || 'Document.pdf'}</span>
+        <span className={`block text-[11px] ${mien ? 'text-white/60' : 'text-gray-400'}`}>
+          PDF{taille ? ` · ${taille}` : ''}
+        </span>
+      </span>
+    </a>
   )
 }
 
