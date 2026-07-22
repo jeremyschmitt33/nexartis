@@ -63,6 +63,7 @@ import {
   WifiOff,
   Calculator,
   Layers,
+  MessageCircle,
 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
@@ -99,6 +100,7 @@ const NAV_DIRECT: NavItem[] = [
   { label: 'Factures', href: '/dashboard/factures', icon: Banknote },
   { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
   { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
+  { label: 'Messagerie', href: '/dashboard/messagerie', icon: MessageCircle },
   // Plans 2D/3D : onglet à venir (module en construction) — teaser non cliquable.
   { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, soon: true },
 ]
