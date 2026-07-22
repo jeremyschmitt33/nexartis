@@ -24,6 +24,7 @@ import {
   surfaceMursM2,
   surfacePlafondM2,
   surfaceSolM2,
+  volumeDalleM3,
   volumeExtM3,
   volumeTrancheeM3,
 } from './metrics'
@@ -186,10 +187,16 @@ function lotMaconnerie(piece: Piece): LigneProposee[] {
   const projet = piece.layer === 'projet'
   const sol = surfaceSolM2(piece)
   if (sol <= 0) return []
-  return [
+  const out: LigneProposee[] = [
     ligne(LOT_MACONNERIE, 'dalle_beton', piece.id, `Dalle béton — ${piece.name}`, sol, 'm²', projet, 'surface au sol'),
     ligne(LOT_MACONNERIE, 'chape', piece.id, `Chape — ${piece.name}`, sol, 'm²', projet, 'surface au sol'),
   ]
+  const volDalle = volumeDalleM3(piece)
+  if (volDalle > 0) {
+    const ep = ((piece.epaisseurDalleMm ?? 0) / 1000).toFixed(2).replace('.', ',')
+    out.push(ligne(LOT_MACONNERIE, 'dalle_volume', piece.id, `Dalle béton — volume — ${piece.name}`, volDalle, 'm³', projet, `${sol.toFixed(2).replace('.', ',')} m² × ${ep} m d'épaisseur`))
+  }
+  return out
 }
 
 /* ── Lot Menuiserie : portes / fenêtres déjà dessinées, une ligne par ouvrant ─ */

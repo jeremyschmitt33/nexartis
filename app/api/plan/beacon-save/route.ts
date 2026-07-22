@@ -85,6 +85,7 @@ function estPieceValide(p: unknown): p is Piece {
   if (!Number.isFinite(x.height)) return false
   if (x.deductionSolM2 !== undefined && !Number.isFinite(x.deductionSolM2)) return false
   if (x.profondeurMm !== undefined && !Number.isFinite(x.profondeurMm)) return false
+  if (x.epaisseurDalleMm !== undefined && !Number.isFinite(x.epaisseurDalleMm)) return false
   if (!Array.isArray(x.vertices) || !x.vertices.every(estPointValide)) return false
   if (!Array.isArray(x.openings) || !x.openings.every(estOuvertureValide)) return false
   return true

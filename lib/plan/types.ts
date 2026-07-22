@@ -86,6 +86,9 @@ export interface Piece {
   height: number;
   /** Déduction de surface au sol en m² (trémie d'escalier, poteau...). */
   deductionSolM2?: number;
+  /** Épaisseur de dalle/chape en mm (INTÉRIEUR). Saisie explicite -> volume
+   *  de béton (m³). Absente = aucun volume proposé (jamais devinée). */
+  epaisseurDalleMm?: number;
   openings: Ouverture[];
   /**
    * État d'avancement du chantier pour cette pièce (mode Avancement, Push 7).

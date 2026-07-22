@@ -279,6 +279,15 @@ export function profondeurExt(piece: Piece): number | null {
 }
 
 /** Volume d'une surface extérieure en m³ (aire BRUTE × profondeur, UN seul arrondi). */
+export function volumeDalleM3(piece: Piece): number {
+  if (piece.cat !== 'int') return 0
+  const ep = piece.epaisseurDalleMm
+  if (typeof ep !== 'number' || !Number.isFinite(ep) || ep <= 0) return 0
+  const m3 = surfaceSolM2(piece) * (ep / 1000)
+  return Math.round(m3 * 100) / 100
+}
+
+/** Volume extérieur (surface × profondeur) en m³ — cf. règle volume unique. */
 export function volumeExtM3(piece: Piece): number {
   const prof = profondeurExt(piece);
   if (prof === null) return 0;

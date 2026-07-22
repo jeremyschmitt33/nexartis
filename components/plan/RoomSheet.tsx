@@ -12,7 +12,7 @@ import type { CategorieZone, EtatAvancement, NatureZone, Piece, TypeExterieur } 
 import { fmtNombreFr } from '@/lib/plan/geometry'
 import { bornesPiece } from '@/lib/plan/edition'
 import type { ResultatCote } from './usePlanState'
-import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2, volumeExtM3 } from '@/lib/plan/metrics'
+import { chevauchementOuverture, ouvertureValide, perimetreMl, surfaceSolM2, volumeDalleM3, volumeExtM3 } from '@/lib/plan/metrics'
 import { AVANCEMENT_META, AVANCEMENT_ORDRE, OUVERTURE_DEFAUTS, avancementDe, lireMetresEnMm, mmVersSaisieM, nomEvoqueExterieur } from '@/lib/plan/defaults'
 import { toast } from '@/lib/toast'
 
@@ -49,6 +49,7 @@ export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, on
   const [nom, setNom] = useState(piece.name)
   const [hsp, setHsp] = useState(mmVersSaisieM(piece.height))
   const [prof, setProf] = useState(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
+  const [epaiss, setEpaiss] = useState(piece.epaisseurDalleMm ? mmVersSaisieM(piece.epaisseurDalleMm) : '')
   const [lng, setLng] = useState('')
   const [lrg, setLrg] = useState('')
   const [errDim, setErrDim] = useState<string | null>(null)
@@ -62,10 +63,11 @@ export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, on
     setNom(piece.name)
     setHsp(mmVersSaisieM(piece.height))
     setProf(piece.profondeurMm ? mmVersSaisieM(piece.profondeurMm) : '')
+    setEpaiss(piece.epaisseurDalleMm ? mmVersSaisieM(piece.epaisseurDalleMm) : '')
     setLng(mmVersSaisieM(wMm))
     setLrg(mmVersSaisieM(hMm))
     setErrDim(null)
-  }, [piece.id, piece.name, piece.height, piece.profondeurMm, wMm, hMm])
+  }, [piece.id, piece.name, piece.height, piece.profondeurMm, piece.epaisseurDalleMm, wMm, hMm])
 
   const commitNom = () => {
     const propre = nom.trim()
@@ -96,6 +98,21 @@ export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, on
       return
     }
     if (mm !== piece.profondeurMm) onMaj({ profondeurMm: mm })
+  }
+
+  const commitEpaiss = () => {
+    const t = epaiss.trim()
+    if (t === '') {
+      if (piece.epaisseurDalleMm !== undefined) onMaj({ epaisseurDalleMm: undefined })
+      return
+    }
+    const mm = lireMetresEnMm(t)
+    if (mm === null || mm < 10 || mm > 2000) {
+      toast.warning('Épaisseur invalide', { description: 'Saisissez entre 0,01 et 2 m (ex. 0,12).' })
+      setEpaiss(piece.epaisseurDalleMm ? mmVersSaisieM(piece.epaisseurDalleMm) : '')
+      return
+    }
+    if (mm !== piece.epaisseurDalleMm) onMaj({ epaisseurDalleMm: mm })
   }
 
   // Redimensionnement par le panneau : MÊME chemin que le clic-sur-cote
@@ -134,6 +151,7 @@ export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, on
   const surface = surfaceSolM2(piece)
   const perimetre = perimetreMl(piece)
   const volume = volumeExtM3(piece)
+  const volumeDalle = volumeDalleM3(piece)
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white">
@@ -301,6 +319,7 @@ export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, on
         )}
 
         {piece.cat !== 'ext' ? (
+          <>
           <div>
             <Etiquette>Hauteur sous plafond</Etiquette>
             <div className="flex items-center gap-2">
@@ -321,6 +340,33 @@ export default function RoomSheet({ piece, onMaj, onNature, onRedimensionner, on
               <span className="font-hanken text-[13px] text-gray-500">m</span>
             </div>
           </div>
+          <div>
+            <Etiquette>Épaisseur de dalle (optionnelle)</Etiquette>
+            <div className="flex items-center gap-2">
+              <input
+                value={epaiss}
+                onChange={(e) => setEpaiss(e.target.value)}
+                onBlur={commitEpaiss}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                inputMode="decimal"
+                aria-label="Épaisseur de dalle en mètres"
+                placeholder="ex. 0,12"
+                className="w-24 rounded-xl border-[1.5px] border-gray-200 bg-[#fafbfc] px-3 py-2 text-center font-spline-mono text-[14px] font-medium text-navy transition-colors focus:border-orange focus:bg-white focus:outline-none"
+              />
+              <span className="font-hanken text-[13px] text-gray-500">m</span>
+            </div>
+            <p className="mt-1.5 font-hanken text-[11.5px] leading-snug text-gray-500">
+              {volumeDalle > 0
+                ? `Volume béton : ${fmtNombreFr(volumeDalle)} m³ (surface × épaisseur) — lot Maçonnerie.`
+                : "L'épaisseur transforme la surface au sol en volume de béton (dalle / chape)."}
+            </p>
+          </div>
+          </>
         ) : (
           <div>
             <Etiquette>Profondeur / épaisseur (optionnelle)</Etiquette>
