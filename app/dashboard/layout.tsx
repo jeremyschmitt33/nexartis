@@ -1192,6 +1192,29 @@ export default function DashboardLayout({
     return () => { annule = true }
   }, [pathname, role, roleLoading])
 
+  // Réseau — badge « N demandes » sur l'entrée « Mon réseau ».
+  // Même logique légère que la banque : un simple count au chargement et à
+  // chaque navigation (pas de realtime). On réutilise la RPC déjà auditée
+  // `mes_demandes_recues` (invitations reçues en attente de réponse). Si la
+  // fonction n'existe pas encore ou que l'accès est refusé, le badge reste à 0.
+  const [demandesReseau, setDemandesReseau] = useState(0)
+  useEffect(() => {
+    let annule = false
+    async function compter() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase.rpc('mes_demandes_recues')
+        if (!annule && !error && Array.isArray(data)) {
+          setDemandesReseau(data.length)
+        }
+      } catch {
+        /* RPC absente ou accès refusé : pas de badge */
+      }
+    }
+    void compter()
+    return () => { annule = true }
+  }, [pathname])
+
   // QW2 -- Badges sidebar
   const sidebarBadges: Record<string, number> = useMemo(() => {
     const now = Date.now()
@@ -1220,8 +1243,10 @@ export default function DashboardLayout({
       '/dashboard/factures': facturesEnRetard,
       // Lot 2b banque — « N à pointer » (opérations bancaires à trier)
       '/dashboard/banque': banqueAPointer,
+      // Réseau — « N demandes » (invitations de confrères reçues en attente)
+      '/dashboard/reseau': demandesReseau,
     }
-  }, [devisData, facturesData, banqueAPointer])
+  }, [devisData, facturesData, banqueAPointer, demandesReseau])
 
   // QW4 -- showBack
   const showBack = useMemo(() => {
