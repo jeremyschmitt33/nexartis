@@ -10,6 +10,7 @@
 // ============================================================================
 
 import { createClient } from '@/lib/supabase/client'
+import { preparerFichierMessage } from '@/lib/messagerie-fichiers'
 import { useCallback, useEffect, useState } from 'react'
 
 /** Un chantier qu'on m'a confié (vue sous-traitant B). */
@@ -71,6 +72,76 @@ export async function revoquerPartageChantier(partageId: string): Promise<void> 
   const supabase = createClient()
   const { error } = await supabase.rpc('revoquer_partage_chantier', { p_partage_id: partageId })
   if (error) throw new Error(error.message)
+}
+
+/**
+ * Le SOUS-TRAITANT (B) verse une photo dans le chantier d'un confrère (A).
+ *
+ * Rien n'est copié dans le compte de B : la photo est enregistrée directement
+ * dans l'espace du propriétaire A (elle apparaîtra dans SA galerie chantier),
+ * avec une trace `uploaded_by = B`. Tout est validé côté serveur (B doit être
+ * collaborateur ACTIF avec le droit photos) ; le navigateur ne fait que
+ * préparer l'image et pousser le binaire vers R2.
+ *
+ * Étapes : préparation (HEIC→JPEG, compression) → URL signée dans l'espace de A
+ * → PUT direct vers R2 → confirmation serveur qui crée la ligne `photos`.
+ */
+export async function televerserPhotoConfie(
+  chantierId: string,
+  file: File,
+  opts?: { album?: 'avant' | 'pendant' | 'apres'; legende?: string },
+): Promise<void> {
+  const pret = await preparerFichierMessage(file)
+  if (pret.typePj !== 'photo') {
+    throw new Error('Seules les photos sont acceptées ici (JPEG, PNG ou HEIC).')
+  }
+
+  // 1) URL signée : le serveur vérifie que B est collaborateur actif et renvoie
+  //    une clé dans l'espace R2 du propriétaire A.
+  const signRes = await fetch('/api/chantier-collab/sign-upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chantier_id: chantierId, size: pret.blob.size }),
+  })
+  const signData = await signRes.json().catch(() => ({} as Record<string, unknown>))
+  if (!signRes.ok || !signData?.putUrl || !signData?.key) {
+    throw new Error(
+      (signData?.message as string) ||
+        (signData?.error as string) ||
+        "Impossible de préparer l'envoi de la photo.",
+    )
+  }
+  const key = signData.key as string
+  const putUrl = signData.putUrl as string
+
+  // 2) Envoi direct du binaire vers R2 (le Content-Type n'est pas signé).
+  const putRes = await fetch(putUrl, {
+    method: 'PUT',
+    body: pret.blob,
+    headers: { 'Content-Type': pret.contentType || 'image/jpeg' },
+  })
+  if (!putRes.ok) throw new Error("L'envoi de la photo a échoué. Réessayez.")
+
+  // 3) Confirmation : le serveur relit la taille réelle sur R2 et crée la ligne
+  //    `photos` au nom de A (avec uploaded_by = B).
+  const confRes = await fetch('/api/chantier-collab/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chantier_id: chantierId,
+      r2_key: key,
+      album: opts?.album,
+      legende: opts?.legende,
+    }),
+  })
+  const confData = await confRes.json().catch(() => ({} as Record<string, unknown>))
+  if (!confRes.ok) {
+    throw new Error(
+      (confData?.message as string) ||
+        (confData?.error as string) ||
+        "La photo n'a pas pu être enregistrée.",
+    )
+  }
 }
 
 /** Liste des chantiers qu'on m'a confiés (vue sous-traitant). */

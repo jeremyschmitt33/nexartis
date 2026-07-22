@@ -8,13 +8,22 @@
 // de financier). Contribution photos/avancement = briques 3.2 / 3.3.
 // ============================================================================
 
-import { useState } from 'react'
-import { HardHat, MapPin, Loader2, Check, X, UserCheck } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { HardHat, MapPin, Loader2, Check, X, UserCheck, Camera, ImagePlus } from 'lucide-react'
 import {
   useMesChantiersConfies,
   repondrePartageChantier,
+  televerserPhotoConfie,
   type ChantierConfie,
 } from '@/lib/hooks-collab'
+
+/** Photos uniquement (les PDF ne sont pas des photos de chantier). */
+const PHOTO_ACCEPT = 'image/*,.heic,.heif'
+const ALBUMS: { cle: 'avant' | 'pendant' | 'apres'; label: string }[] = [
+  { cle: 'avant', label: 'Avant' },
+  { cle: 'pendant', label: 'Pendant' },
+  { cle: 'apres', label: 'Après' },
+]
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null
@@ -107,8 +116,15 @@ export default function ChantiersConfiesPage() {
                 {actifs.map((c) => (
                   <ChantierConfieCarte key={c.partage_id} c={c}>
                     <div className="mt-3 flex items-center gap-1.5 text-[12px] text-emerald-600 font-semibold">
-                      <UserCheck className="w-3.5 h-3.5" /> Accepté — contribution photos et avancement bientôt disponible
+                      <UserCheck className="w-3.5 h-3.5" /> Chantier accepté
                     </div>
+                    {c.peut_photos ? (
+                      <UploadPhotosConfie chantierId={c.chantier_id} proprietaire={c.proprietaire_nom} />
+                    ) : (
+                      <p className="mt-3 text-[12px] text-gray-400">
+                        Le donneur d'ordre ne vous a pas autorisé à ajouter des photos sur ce chantier.
+                      </p>
+                    )}
                   </ChantierConfieCarte>
                 ))}
               </div>
@@ -158,6 +174,123 @@ function ChantierConfieCarte({ c, children }: { c: ChantierConfie; children?: Re
         )}
       </div>
       {children}
+    </div>
+  )
+}
+
+/**
+ * Bloc « Ajouter des photos » affiché sur un chantier confié accepté (si le
+ * donneur d'ordre a coché le droit photos). Les photos partent directement dans
+ * la galerie du propriétaire — le sous-traitant ne les revoit pas ici (elles ne
+ * sont jamais copiées dans son compte). On donne donc un retour clair : combien
+ * ont été envoyées, et les éventuelles erreurs.
+ */
+function UploadPhotosConfie({ chantierId, proprietaire }: { chantierId: string; proprietaire: string | null }) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [album, setAlbum] = useState<'avant' | 'pendant' | 'apres'>('pendant')
+  const [envoi, setEnvoi] = useState(false)
+  const [progression, setProgression] = useState<{ fait: number; total: number } | null>(null)
+  const [resultat, setResultat] = useState<{ envoyees: number; erreurs: string[] } | null>(null)
+
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (inputRef.current) inputRef.current.value = '' // permet de re-sélectionner les mêmes fichiers
+    if (files.length === 0) return
+
+    setEnvoi(true)
+    setResultat(null)
+    setProgression({ fait: 0, total: files.length })
+
+    let envoyees = 0
+    const erreurs: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      try {
+        await televerserPhotoConfie(chantierId, files[i], { album })
+        envoyees++
+      } catch (err) {
+        erreurs.push(`${files[i].name} : ${(err as Error).message}`)
+      }
+      setProgression({ fait: i + 1, total: files.length })
+    }
+
+    setEnvoi(false)
+    setProgression(null)
+    setResultat({ envoyees, erreurs })
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Camera className="w-3.5 h-3.5 text-navy/60" />
+        <p className="text-[12px] font-semibold text-navy">Ajouter des photos du chantier</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+        <span className="text-[11px] text-gray-400 mr-0.5">Étape :</span>
+        {ALBUMS.map((a) => (
+          <button
+            key={a.cle}
+            type="button"
+            onClick={() => setAlbum(a.cle)}
+            disabled={envoi}
+            className={`h-7 px-2.5 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-50 ${
+              album === a.cle ? 'bg-navy text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={PHOTO_ACCEPT}
+        multiple
+        className="hidden"
+        onChange={onFiles}
+        disabled={envoi}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={envoi}
+        className="w-full h-10 rounded-xl bg-orange text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-orange/90 transition-colors disabled:opacity-60"
+      >
+        {envoi ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Envoi {progression ? `${progression.fait}/${progression.total}` : '…'}
+          </>
+        ) : (
+          <>
+            <ImagePlus className="w-4 h-4" /> Choisir des photos
+          </>
+        )}
+      </button>
+
+      <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+        Les photos sont ajoutées directement au chantier de{' '}
+        <span className="font-semibold text-gray-500">{proprietaire || 'votre confrère'}</span>. Vous ne les
+        reverrez pas ici.
+      </p>
+
+      {resultat && (
+        <div className="mt-2 space-y-1">
+          {resultat.envoyees > 0 && (
+            <div className="flex items-center gap-1.5 text-[12px] text-emerald-600 font-semibold">
+              <Check className="w-3.5 h-3.5" />
+              {resultat.envoyees} photo{resultat.envoyees > 1 ? 's' : ''} envoyée{resultat.envoyees > 1 ? 's' : ''}
+            </div>
+          )}
+          {resultat.erreurs.map((msg, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-[11px] text-red-500">
+              <X className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              <span>{msg}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
