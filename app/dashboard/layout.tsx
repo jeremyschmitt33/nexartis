@@ -64,6 +64,7 @@ import {
   Calculator,
   Layers,
   MessageCircle,
+  Network,
 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
@@ -101,6 +102,7 @@ const NAV_DIRECT: NavItem[] = [
   { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
   { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
   { label: 'Messagerie', href: '/dashboard/messagerie', icon: MessageCircle },
+  { label: 'Mon réseau', href: '/dashboard/reseau', icon: Network },
   // Plans 2D/3D : onglet à venir (module en construction) — teaser non cliquable.
   { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, soon: true },
 ]
@@ -167,6 +169,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Tableau de bord',
   '/dashboard/chantiers': 'Chantiers',
   '/dashboard/messagerie': 'Messagerie',
+  '/dashboard/reseau': 'Mon réseau',
   '/dashboard/devis': 'Devis',
   '/dashboard/devis/nouveau': 'Nouveau devis',
   '/dashboard/factures': 'Factures',
