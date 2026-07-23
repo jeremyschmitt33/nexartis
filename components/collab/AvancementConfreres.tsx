@@ -54,7 +54,7 @@ export default function AvancementConfreres({ chantierId }: { chantierId: string
           <Users className="w-4 h-4 text-[#0f1a3a]" />
         </span>
         <div>
-          <h3 className="text-[15px] font-extrabold text-[#0f1a3a] leading-none">Confrères en collaboration</h3>
+          <h3 className="text-[15px] font-extrabold text-[#0f1a3a] leading-none font-hanken">Confrères en collaboration</h3>
           <p className="text-[11px] text-[#7b8ba3] mt-1">Lots confiés à des confrères de votre réseau et leur avancement.</p>
         </div>
       </div>

@@ -40,7 +40,9 @@ import {
   type DocPartageable,
 } from '@/lib/hooks-messagerie'
 import { MESSAGERIE_FICHIER_ACCEPT, JustificatifError } from '@/lib/messagerie-fichiers'
-import { confierLot } from '@/lib/hooks-collab'
+import { confierLot, useMesChantiersConfies } from '@/lib/hooks-collab'
+import MesArtisansPanel from '@/components/reseau/MesArtisansPanel'
+import ChantiersConfiesWorkspace from '@/components/collab/ChantiersConfiesWorkspace'
 import {
   Search, Plus, ArrowLeft, Send, MessageCircle, Users, Network, X, Loader2, Pin, UserPlus,
   Paperclip, FileText, Maximize2, Receipt, HardHat, MapPin, Phone,
@@ -100,6 +102,23 @@ export default function MessageriePage() {
   const [recherche, setRecherche] = useState('')
   const [showContacts, setShowContacts] = useState(false)
   const { contacts, loading: contactsLoading } = useContacts()
+
+  // Onglet du haut (Messagerie / Chantiers confiés) + vue du panneau gauche.
+  const [ongletHaut, setOngletHaut] = useState<'messagerie' | 'chantiers'>('messagerie')
+  const [vueGauche, setVueGauche] = useState<'discussions' | 'artisans'>('discussions')
+
+  // Pastille « invitations de collaboration en attente » sur l'onglet Chantiers.
+  const { chantiers: chantiersConfies } = useMesChantiersConfies()
+  const invitesConfies = chantiersConfies.filter((c) => c.statut === 'invite').length
+
+  // Ouvre (ou crée) le fil avec un artisan depuis la vue « Mes artisans »,
+  // puis bascule sur « Discussions » pour afficher la conversation.
+  async function ouvrirDepuisArtisan(userId: string) {
+    const convId = await ouvrirChatDirect(userId)
+    setSelectedId(convId)
+    setVueGauche('discussions')
+    refetch()
+  }
 
   // Deep-link : ouvrir directement une conversation au chargement.
   //   ?c=<convId> -> ouvre la conversation existante.
@@ -168,35 +187,62 @@ export default function MessageriePage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+    <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+
+      {/* ── Barre d'onglets : Messagerie / Chantiers confiés ──────────── */}
+      <div className="flex items-center gap-1 px-3 pt-2 flex-shrink-0 border-b border-gray-100">
+        <OngletHaut actif={ongletHaut === 'messagerie'} onClick={() => setOngletHaut('messagerie')} icon={<MessageCircle className="w-4 h-4" />} label="Messagerie" />
+        <OngletHaut actif={ongletHaut === 'chantiers'} onClick={() => setOngletHaut('chantiers')} icon={<HardHat className="w-4 h-4" />} label="Chantiers confiés" badge={invitesConfies} />
+      </div>
+
+      {ongletHaut === 'chantiers' ? (
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
+          <ChantiersConfiesWorkspace />
+        </div>
+      ) : (
+      <div className="flex flex-1 min-h-0">
 
       {/* ── Colonne liste ─────────────────────────────────────────── */}
       <aside
         className={`${selectedId ? 'hidden md:flex' : 'flex'} w-full md:w-80 lg:w-96 flex-col border-r border-gray-100 bg-white`}
       >
         <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-bold text-navy font-manrope tracking-tight">Messagerie</h1>
+          {/* Bascule Discussions / Mes artisans */}
+          <div className="flex items-center gap-2 mb-3">
             <button
-              onClick={() => setShowContacts(true)}
-              className="h-9 pl-2.5 pr-3.5 rounded-xl bg-orange text-white flex items-center gap-1.5 text-sm font-semibold hover:bg-orange-hover transition-colors shadow-sm shadow-orange/30"
+              onClick={() => setVueGauche('discussions')}
+              className={`flex-1 h-9 rounded-xl text-[13px] font-bold transition-colors ${
+                vueGauche === 'discussions' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
             >
-              <Plus className="w-4 h-4" /> Nouveau
+              Discussions
+            </button>
+            <button
+              onClick={() => setVueGauche('artisans')}
+              className={`flex-1 h-9 rounded-xl text-[13px] font-bold transition-colors ${
+                vueGauche === 'artisans' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              Mes artisans
             </button>
           </div>
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              value={recherche}
-              onChange={(e) => setRecherche(e.target.value)}
-              placeholder="Rechercher une conversation…"
-              className="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky/40"
-            />
-          </div>
+          {vueGauche === 'discussions' && (
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                placeholder="Rechercher une conversation…"
+                className="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky/40"
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
+          {vueGauche === 'artisans' ? (
+            <MesArtisansPanel onOuvrirChat={ouvrirDepuisArtisan} />
+          ) : loading ? (
             <div className="p-4 space-y-3 animate-pulse">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="h-16 bg-gray-100 rounded-xl" />
@@ -262,12 +308,42 @@ export default function MessageriePage() {
           </div>
         )}
       </section>
+      </div>
+      )}
 
       {/* ── Modale contacts ───────────────────────────────────────── */}
       {showContacts && (
         <ContactsModal onClose={() => setShowContacts(false)} onPick={demarrerChat} />
       )}
     </div>
+  )
+}
+
+// ─── Onglet du haut (Messagerie / Chantiers confiés) ─────────────────────────
+
+function OngletHaut({ actif, onClick, icon, label, badge }: {
+  actif: boolean
+  onClick: () => void
+  icon: ReactNode
+  label: string
+  badge?: number
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative flex items-center gap-1.5 px-3 py-2 text-[13.5px] font-hanken font-bold rounded-t-lg transition-colors ${
+        actif ? 'text-navy' : 'text-gray-400 hover:text-gray-600'
+      }`}
+    >
+      {icon}
+      {label}
+      {badge != null && badge > 0 && (
+        <span className="ml-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center text-[10px] font-bold rounded-full bg-orange text-white">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
+      {actif && <span className="absolute left-2 right-2 -bottom-px h-0.5 bg-orange rounded-full" />}
+    </button>
   )
 }
 
@@ -508,7 +584,7 @@ function PartageDocModal({ onClose, onPick }: {
     <div className="fixed inset-0 z-50 bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
       <div className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-2xl shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="font-bold text-navy font-manrope">Partager</h2>
+          <h2 className="font-bold text-navy font-hanken">Partager</h2>
           <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors" aria-label="Fermer">
             <X className="w-5 h-5" />
           </button>
@@ -606,7 +682,7 @@ function ConfierLotModal({ onClose, onConfier }: {
     <div className="fixed inset-0 z-50 bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
       <div className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-2xl shadow-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="font-bold text-navy font-manrope">Confier un lot</h2>
+          <h2 className="font-bold text-navy font-hanken">Confier un lot</h2>
           <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors" aria-label="Fermer">
             <X className="w-5 h-5" />
           </button>
@@ -842,7 +918,7 @@ function ConversationView({
           {estGroupe ? <Users className="w-4 h-4" /> : initiales(titre)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-[15px] truncate font-manrope">{titre}</div>
+          <div className="font-bold text-[15px] truncate font-hanken">{titre}</div>
           {sousTitre && <div className="text-[11px] text-white/60 truncate">{sousTitre}</div>}
         </div>
         {/* Confier un lot de chantier (collaboration) — 1-à-1 seulement. */}
@@ -1182,7 +1258,7 @@ function ContactsModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="font-bold text-navy font-manrope">Nouvelle discussion</h2>
+          <h2 className="font-bold text-navy font-hanken">Nouvelle discussion</h2>
           <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors" aria-label="Fermer">
             <X className="w-5 h-5" />
           </button>

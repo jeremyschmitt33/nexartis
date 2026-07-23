@@ -103,8 +103,6 @@ const NAV_DIRECT: NavItem[] = [
   { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
   { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
   { label: 'Messagerie', href: '/dashboard/messagerie', icon: MessageCircle },
-  { label: 'Mon réseau', href: '/dashboard/reseau', icon: Network },
-  { label: 'Chantiers confiés', href: '/dashboard/chantiers-confies', icon: HardHat },
   // Plans 2D/3D : onglet à venir (module en construction) — teaser non cliquable.
   { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, soon: true },
 ]
