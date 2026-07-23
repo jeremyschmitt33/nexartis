@@ -80,6 +80,8 @@ interface NavItem {
   icon: React.ElementType
   /** true = « à venir » (barré, non cliquable, pastille « Bientôt »). */
   soon?: boolean
+  /** true = fonctionnalité en Bêta : cliquable, pastille « Bêta », visible par tous. */
+  beta?: boolean
 }
 interface NavCategory {
   name: string
@@ -103,8 +105,8 @@ const NAV_DIRECT: NavItem[] = [
   { label: 'Planning', href: '/dashboard/planning', icon: CalendarDays },
   { label: 'Chantiers', href: '/dashboard/chantiers', icon: LayoutGrid },
   { label: 'Messagerie', href: '/dashboard/messagerie', icon: MessageCircle },
-  // Plans 2D/3D : onglet à venir (module en construction) — teaser non cliquable.
-  { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, soon: true },
+  // Plans 2D/3D : fonctionnalité en Bêta, ouverte à tous les artisans.
+  { label: 'Plans 2D/3D', href: '/dashboard/plans', icon: Layers, beta: true },
 ]
 
 /** Le reste rangé par nature — catégories repliables. */
@@ -325,7 +327,7 @@ function Sidebar({
   // toujours affichés en teaser). role=null / dirigeant → tout visible.
   const canSee = (item: NavItem) =>
     role === null || canAccessDashboardPath(role, item.href)
-  const visibleInFlat = (item: NavItem) => item.soon || canSee(item)
+  const visibleInFlat = (item: NavItem) => item.soon || item.beta || canSee(item)
 
   // ---- Rendu d'un item de navigation (Link, ou div « à venir ») ----
   const renderItem = (item: NavItem) => {
@@ -410,6 +412,15 @@ function Sidebar({
           <span className={`truncate flex-1 ${active ? 'font-semibold' : ''}`}>
             {item.label}
           </span>
+        )}
+        {/* Pastille « Bêta » : fonctionnalité ouverte mais en test. */}
+        {item.beta && !collapsed && (
+          <span className="ml-auto flex-none text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#5ab4e0]/20 text-[#bfe4f6] border border-[#5ab4e0]/30">
+            Bêta
+          </span>
+        )}
+        {item.beta && collapsed && (
+          <span aria-hidden="true" className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#5ab4e0]" />
         )}
         {/* QW2 -- Pastille orange notification actions en attente */}
         {badgeCount > 0 && !collapsed && !showPremiumBadge && (
