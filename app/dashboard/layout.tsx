@@ -1240,7 +1240,17 @@ export default function DashboardLayout({
       }
     }
     void compter()
-    return () => { annule = true }
+    // Rafraîchissement « vivant » : on recompte régulièrement et au retour sur
+    // l'onglet, pour que le chiffre apparaisse peu après l'arrivée d'un message
+    // (et pas seulement quand on change de page).
+    const intervalle = setInterval(() => { void compter() }, 20000)
+    const auFocus = () => { void compter() }
+    window.addEventListener('focus', auFocus)
+    return () => {
+      annule = true
+      clearInterval(intervalle)
+      window.removeEventListener('focus', auFocus)
+    }
   }, [pathname])
 
   // Chantiers confiés — badge « N invitations » de collaboration en attente.

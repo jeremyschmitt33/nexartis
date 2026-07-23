@@ -14,8 +14,13 @@ import {
   Calendar,
   CheckCircle,
   Archive,
+  Send,
+  MessageCircle,
+  Loader2,
+  X,
 } from 'lucide-react'
 import { useChantiers, useClients, useFactures, useDevis, deleteRow, updateRow, LoadingSkeleton, ErrorBanner } from '@/lib/hooks'
+import { useContacts, ouvrirChatDirect, envoyerMessage, partagerChantier, type Contact } from '@/lib/hooks-messagerie'
 import { PremiumButton } from '@/components/ui/v4'
 import { toast } from '@/lib/toast'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
@@ -69,6 +74,8 @@ export default function ChantiersListPage() {
   const [openActions, setOpenActions] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  // Chantier à envoyer à un confrère via la messagerie (id) — ouvre la modale.
+  const [partageChantierId, setPartageChantierId] = useState<string | null>(null)
   // Pagination "Voir plus" (recherche/filtre portent toujours sur toute la liste).
   const [visibleCount, setVisibleCount] = useState(30)
 
@@ -459,6 +466,7 @@ export default function ChantiersListPage() {
           >
             <button onClick={() => { closeMenu(); router.push(`/dashboard/chantiers/${activeChantier.id}`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Eye size={14} /> Voir</button>
             <button onClick={() => { closeMenu(); router.push(`/dashboard/chantiers/${activeChantier.id}`) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Pencil size={14} /> Modifier</button>
+            <button onClick={() => { const id = activeChantier.id as string; closeMenu(); setPartageChantierId(id) }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><Send size={14} /> Envoyer à un confrère</button>
             {statut === 'en_cours' && (
               <button onClick={async () => { closeMenu(); await updateRow('chantiers', activeChantier.id as string, { statut: 'livre' }); refetch() }} className="w-full flex items-center gap-2.5 px-3.5 py-2 font-hanken font-medium text-sm text-[#0f1a3a] hover:bg-[#fafbfc] transition-colors"><CheckCircle size={14} /> Marquer terminé</button>
             )}
@@ -475,6 +483,130 @@ export default function ChantiersListPage() {
           </div>
         )
       })()}
+
+      {partageChantierId && (
+        <EnvoyerChantierModal
+          chantierId={partageChantierId}
+          onClose={() => setPartageChantierId(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// -------------------------------------------------------------------
+// Modale « Envoyer le chantier à un confrère »
+// -------------------------------------------------------------------
+// On choisit un confrère du réseau, on ajoute un mot (facultatif), puis on
+// ouvre la conversation avec la fiche chantier partagée (lecture seule, aucun
+// financier). Réutilise les fonctions éprouvées de la messagerie.
+function EnvoyerChantierModal({ chantierId, onClose }: { chantierId: string; onClose: () => void }) {
+  const router = useRouter()
+  const { contacts, loading } = useContacts()
+  const [mot, setMot] = useState('')
+  const [recherche, setRecherche] = useState('')
+  const [envoi, setEnvoi] = useState<string | null>(null)
+
+  const filtres = useMemo(() => {
+    const q = recherche.trim().toLowerCase()
+    if (!q) return contacts
+    return contacts.filter((c) =>
+      (c.nom || '').toLowerCase().includes(q) || (c.metier || '').toLowerCase().includes(q),
+    )
+  }, [contacts, recherche])
+
+  async function envoyer(contact: Contact) {
+    if (envoi) return
+    setEnvoi(contact.user_id)
+    try {
+      const convId = await ouvrirChatDirect(contact.user_id)
+      const texte = mot.trim()
+      if (texte) await envoyerMessage(convId, texte)
+      await partagerChantier(convId, chantierId)
+      router.push(`/dashboard/messagerie?c=${convId}`)
+    } catch (e) {
+      toast.error((e as Error).message || "L'envoi a échoué.")
+      setEnvoi(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[10000] bg-navy/40 flex items-end md:items-center justify-center p-0 md:p-4 font-hanken" onClick={onClose}>
+      <div className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-2xl shadow-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 flex-shrink-0">
+          <h2 className="font-extrabold text-[#0f1a3a] font-hanken">Envoyer le chantier à un confrère</h2>
+          <button onClick={onClose} className="w-8 h-8 grid place-items-center text-gray-400 hover:text-navy transition-colors"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-4 flex-shrink-0 border-b border-gray-100">
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Un mot (facultatif)</label>
+          <textarea
+            value={mot}
+            onChange={(e) => setMot(e.target.value)}
+            rows={2}
+            placeholder="Salut ! Je te partage ce chantier, dis-moi si ça t'intéresse…"
+            className="w-full px-3 py-2.5 rounded-xl bg-gray-50 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky/40 resize-none"
+          />
+          <p className="text-[11px] text-gray-400 mt-2">
+            La fiche partagée contient les infos du chantier et du client, jamais tes devis ou factures.
+          </p>
+        </div>
+
+        <div className="p-4 pb-2 flex-shrink-0">
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher un confrère…"
+              className="w-full h-10 pl-9 pr-3 rounded-xl bg-gray-50 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky/40"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {loading ? (
+            <div className="space-y-2 animate-pulse">
+              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl" />)}
+            </div>
+          ) : filtres.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-2xl bg-sky/10 grid place-items-center mx-auto mb-3">
+                <MessageCircle className="w-7 h-7 text-sky" />
+              </div>
+              <p className="text-sm font-semibold text-navy">
+                {recherche ? 'Aucun confrère trouvé.' : 'Aucun confrère dans votre réseau'}
+              </p>
+              {!recherche && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Ajoutez d'abord un confrère dans la messagerie (onglet « Mes artisans »).
+                </p>
+              )}
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {filtres.map((c) => (
+                <li key={c.user_id}>
+                  <button
+                    onClick={() => envoyer(c)}
+                    disabled={!!envoi}
+                    className="w-full flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-left hover:border-sky/40 hover:bg-sky/[0.03] transition-colors disabled:opacity-50"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky to-navy text-white grid place-items-center font-bold text-sm flex-shrink-0">
+                      {getInitials(c.nom || c.email || '?')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-navy text-sm truncate">{c.nom || c.email || 'Artisan Nexartis'}</div>
+                      <div className="text-xs text-gray-400 truncate">{c.metier || (c.type_relation === 'equipe' ? 'Mon équipe' : 'Confrère')}</div>
+                    </div>
+                    {envoi === c.user_id ? <Loader2 className="w-4 h-4 animate-spin text-sky" /> : <Send className="w-4 h-4 text-gray-300" />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
