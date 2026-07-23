@@ -9,12 +9,16 @@
 // ============================================================================
 
 import { useRef, useState } from 'react'
-import { HardHat, MapPin, Loader2, Check, X, UserCheck, Camera, ImagePlus } from 'lucide-react'
+import { HardHat, MapPin, Loader2, Check, X, UserCheck, Camera, ImagePlus, Activity, Send, Clock } from 'lucide-react'
 import {
   useMesChantiersConfies,
   repondrePartageChantier,
   televerserPhotoConfie,
+  ajouterAvancement,
+  usePointsAvancement,
+  AVANCEMENT_LABELS,
   type ChantierConfie,
+  type AvancementStatut,
 } from '@/lib/hooks-collab'
 
 /** Photos uniquement (les PDF ne sont pas des photos de chantier). */
@@ -24,6 +28,20 @@ const ALBUMS: { cle: 'avant' | 'pendant' | 'apres'; label: string }[] = [
   { cle: 'pendant', label: 'Pendant' },
   { cle: 'apres', label: 'Après' },
 ]
+
+/** Ordre d'affichage + couleurs des stades d'avancement. */
+const STADES: { cle: AvancementStatut; label: string; badge: string }[] = [
+  { cle: 'a_faire', label: 'À faire', badge: 'bg-gray-100 text-gray-600' },
+  { cle: 'en_cours', label: 'En cours', badge: 'bg-sky/10 text-sky' },
+  { cle: 'en_pause', label: 'En attente', badge: 'bg-orange/10 text-orange' },
+  { cle: 'termine', label: 'Terminé', badge: 'bg-emerald-50 text-emerald-600' },
+]
+
+function formatDateHeure(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null
@@ -124,6 +142,9 @@ export default function ChantiersConfiesPage() {
                       <p className="mt-3 text-[12px] text-gray-400">
                         Le donneur d'ordre ne vous a pas autorisé à ajouter des photos sur ce chantier.
                       </p>
+                    )}
+                    {c.peut_avancement && (
+                      <AvancementConfie partageId={c.partage_id} proprietaire={c.proprietaire_nom} />
                     )}
                   </ChantierConfieCarte>
                 ))}
@@ -289,6 +310,110 @@ function UploadPhotosConfie({ chantierId, proprietaire }: { chantierId: string; 
               <span>{msg}</span>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Bloc « Avancement du lot » (côté sous-traitant). Il choisit un stade (À faire,
+ * En cours, En attente, Terminé), ajoute une note courte facultative, et publie
+ * un point. Le donneur d'ordre le voit sur sa fiche chantier. L'historique des
+ * points est affiché en dessous (du plus récent au plus ancien).
+ */
+function AvancementConfie({ partageId, proprietaire }: { partageId: string; proprietaire: string | null }) {
+  const { points, loading, refetch } = usePointsAvancement(partageId)
+  const [stade, setStade] = useState<AvancementStatut>('en_cours')
+  const [note, setNote] = useState('')
+  const [envoi, setEnvoi] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  async function publier() {
+    setEnvoi(true)
+    setErreur(null)
+    try {
+      await ajouterAvancement(partageId, stade, note)
+      setNote('')
+      refetch()
+    } catch (e) {
+      setErreur((e as Error).message)
+    } finally {
+      setEnvoi(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Activity className="w-3.5 h-3.5 text-navy/60" />
+        <p className="text-[12px] font-semibold text-navy">Avancement du lot</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+        <span className="text-[11px] text-gray-400 mr-0.5">Où en êtes-vous ?</span>
+        {STADES.map((s) => (
+          <button
+            key={s.cle}
+            type="button"
+            onClick={() => setStade(s.cle)}
+            disabled={envoi}
+            className={`h-7 px-2.5 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-50 ${
+              stade === s.cle ? 'bg-navy text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        disabled={envoi}
+        rows={2}
+        maxLength={1000}
+        placeholder="Une note pour le donneur d'ordre (facultatif) : ce qui est fait, ce qui reste…"
+        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[13px] text-navy placeholder:text-gray-400 focus:outline-none focus:border-navy/40 resize-none disabled:opacity-50"
+      />
+
+      <button
+        type="button"
+        onClick={publier}
+        disabled={envoi}
+        className="mt-2 w-full h-10 rounded-xl bg-navy text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-navy-mid transition-colors disabled:opacity-60"
+      >
+        {envoi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        Publier le point d'avancement
+      </button>
+
+      {proprietaire && (
+        <p className="text-[11px] text-gray-400 mt-2">
+          Visible par <span className="font-semibold text-gray-500">{proprietaire}</span> sur sa fiche chantier.
+        </p>
+      )}
+
+      {erreur && <p className="text-[11px] text-red-500 mt-2">{erreur}</p>}
+
+      {/* Historique des points */}
+      {!loading && points.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+          {points.map((p) => {
+            const st = STADES.find((s) => s.cle === p.statut)
+            return (
+              <div key={p.id} className="flex items-start gap-2">
+                <span className={`mt-0.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold flex-shrink-0 ${st?.badge || 'bg-gray-100 text-gray-600'}`}>
+                  {st?.label || AVANCEMENT_LABELS[p.statut] || p.statut}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {p.note && <p className="text-[12.5px] text-navy leading-snug">{p.note}</p>}
+                  <p className="text-[10.5px] text-gray-400 flex items-center gap-1 mt-0.5">
+                    <Clock className="w-3 h-3" /> {formatDateHeure(p.created_at)}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

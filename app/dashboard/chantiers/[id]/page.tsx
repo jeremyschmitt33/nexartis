@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, Check, X, Users, Zap, Trash2, Camera, Ruler,
 } from 'lucide-react'
 import PhotoSection from '@/components/photos/PhotoSection'
+import AvancementConfreres from '@/components/collab/AvancementConfreres'
 import PlanTab from '@/components/plan/PlanTab'
 import {
   useSupabaseRecord, useClients, useIntervenants, useDevis, useFactures,
@@ -1145,6 +1146,9 @@ export default function ChantierDetailPage() {
           </div>
         </div>
         )}
+
+        {/* ── CONFRERES EN COLLABORATION (avancement) ── */}
+        {activeTab === 'resume' && <AvancementConfreres chantierId={id} />}
 
         {/* ── DEVIS LIES + FACTURATION ── */}
         {(activeTab === 'resume' || activeTab === 'devis' || activeTab === 'factures') && chantierDevis.length > 0 && (
