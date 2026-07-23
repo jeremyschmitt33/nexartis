@@ -72,7 +72,7 @@ export default function ChantiersConfiesWorkspace() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="font-hanken max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-[#0f1a3a] font-hanken tracking-[-0.02em]">Chantiers qu'on m'a confiés</h1>
         <p className="text-sm text-gray-500 mt-1">

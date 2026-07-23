@@ -187,7 +187,7 @@ export default function MessageriePage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+    <div className="font-hanken h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
 
       {/* ── Barre d'onglets : Messagerie / Chantiers confiés ──────────── */}
       <div className="flex items-center gap-1 px-3 pt-2 flex-shrink-0 border-b border-gray-100">

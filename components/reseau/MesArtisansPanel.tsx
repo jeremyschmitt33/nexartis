@@ -106,7 +106,7 @@ export default function MesArtisansPanel({ onOuvrirChat }: { onOuvrirChat: (user
   )
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="font-hanken flex flex-col h-full">
       <div className="px-4 pt-3">
         <button
           onClick={() => setShowAjout(true)}

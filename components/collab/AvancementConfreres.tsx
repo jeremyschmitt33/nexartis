@@ -48,7 +48,7 @@ export default function AvancementConfreres({ chantierId }: { chantierId: string
   if (loading || collaborateurs.length === 0) return null
 
   return (
-    <div className="bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
+    <div className="font-hanken bg-white border border-[#0f1a3a]/[0.06] rounded-2xl shadow-[0_2px_6px_rgba(15,26,58,0.04)] overflow-hidden mb-5">
       <div className="px-5 py-4 border-b border-[#e6ecf2] flex items-center gap-2">
         <span className="w-7 h-7 rounded-lg bg-[#0f1a3a]/[0.06] grid place-items-center">
           <Users className="w-4 h-4 text-[#0f1a3a]" />
