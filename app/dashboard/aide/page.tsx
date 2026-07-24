@@ -1539,6 +1539,126 @@ export default function AidePage() {
     },
 
     // ============================================================
+    // PLAN 2D/3D — dessine ton chantier, le métré part au devis
+    // (fiche complète V2 optimisée — module Complet, Bêta)
+    // ============================================================
+    {
+      id: 'plan-2d-3d',
+      icon: Layers,
+      title: 'Plan 2D/3D — Dessine ton chantier, le métré part au devis',
+      subtitle: 'Dessine à la cote, vérifie en 3D, récupère tes quantités par métier dans le devis — sans ressaisie',
+      content: (
+        <>
+          <p className="mb-4">
+            <BadgeComplet />
+            <span className="ml-2 inline-block align-middle bg-sky-100 text-sky-800 text-[9.5px] font-extrabold uppercase tracking-wider px-2 py-[3px] rounded-full border border-sky-200">
+              Bêta
+            </span>
+          </p>
+          <p className="mb-4">
+            Avec le Plan 2D/3D, tu dessines ton chantier à la cote exacte : pièces, murs, ouvertures.
+            Tu le vérifies en vraie 3D, d&apos;un coup d&apos;œil. Puis tu envoies les <strong>métrés par
+            métier directement dans ton devis</strong>, sans rien retaper. C&apos;est un outil de métré et de
+            plan qui alimente ton devis — <strong>pas un logiciel d&apos;architecture</strong>.
+          </p>
+          <Callout type="tip">
+            Disponible dans l&apos;offre <strong>Complet</strong>, et testable pendant l&apos;essai gratuit.
+          </Callout>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">Où le trouver</h4>
+          <ArrowList
+            items={[
+              <>Dans le menu, l&apos;onglet <strong>Plans 2D/3D</strong> (pastille « Bêta ») : la liste de tous tes plans, tous chantiers confondus.</>,
+              <>Depuis une <strong>fiche chantier</strong>, onglet <strong>Plan</strong> : un plan reste toujours rattaché à un chantier.</>,
+            ]}
+          />
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">Comment ça marche, en 4 étapes</h4>
+          <StepsList
+            items={[
+              <><strong>Crée ton plan.</strong> Bouton « Nouveau plan », choisis le chantier, puis ton métier.</>,
+              <><strong>Dessine à plat.</strong> Pose tes pièces, murs et ouvertures. Chaque cote est éditable : clique-la, ou tape <span className="font-spline-mono">Longueur × Largeur</span> dans le panneau de droite.</>,
+              <><strong>Bascule en 3D.</strong> Le bouton <span className="font-spline-mono">À plat / Vue 3D</span> relève ton plan : murs épais, ouvertures découpées, ombres portées. Tourne à la souris pour tout vérifier.</>,
+              <><strong>Envoie le métré au devis.</strong> Les quantités calculées partent dans le devis du chantier, prêtes à chiffrer.</>,
+            ]}
+          />
+          <Callout type="tip">
+            La règle d&apos;or : <strong>à plat pour dessiner précis, en 3D pour vérifier</strong>. La saisie fine
+            des cotes se fait toujours à plat.
+          </Callout>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">Un exemple concret</h4>
+          <Callout type="tip">
+            Tu dessines une pièce de <span className="font-spline-mono">4,20 × 3,10 m</span> : Nexartis envoie{' '}
+            <span className="font-spline-mono">13,02 m²</span> de dalle dans ton devis maçonnerie — ta cote
+            n&apos;est pas arrondie. Tu saisis une épaisseur de <span className="font-spline-mono">0,15 m</span> :
+            tu obtiens en plus <span className="font-spline-mono">1,953 m³</span> de béton. Tu poses une porte :{' '}
+            <span className="font-spline-mono">1 u</span> apparaît en menuiserie. Tu traces{' '}
+            <span className="font-spline-mono">8 ml</span> de façade sur <span className="font-spline-mono">2,50 m</span>{' '}
+            de haut : <span className="font-spline-mono">20 m²</span> et <span className="font-spline-mono">8 ml</span>{' '}
+            partent au devis. Aucune ressaisie.
+          </Callout>
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">Ce que tu dessines, ce qui part au devis</h4>
+          <CheckList
+            items={[
+              <><strong>Maçonnerie</strong> — pièces et dalle → dalle béton et chape en <span className="font-spline-mono">m²</span> ; si tu saisis une épaisseur, le volume en <span className="font-spline-mono">m³</span> en plus.</>,
+              <><strong>Menuiserie</strong> — chaque ouvrant dessiné (porte, fenêtre) → une ligne en <span className="font-spline-mono">u</span>.</>,
+              <><strong>Chauffage</strong> — radiateur → <span className="font-spline-mono">u</span> ; plancher chauffant → <span className="font-spline-mono">m²</span>.</>,
+              <><strong>Terrassement</strong> — allée → surface <span className="font-spline-mono">m²</span> + décaissement <span className="font-spline-mono">m³</span> (profondeur saisie) ; tranchée de semelle → <span className="font-spline-mono">ml</span> et <span className="font-spline-mono">m³</span>.</>,
+              <><strong>Mur extérieur / façade</strong> — que tu traces toi-même (hauteur saisie) → surface <span className="font-spline-mono">m²</span> (linéaire × hauteur) + linéaire de base <span className="font-spline-mono">ml</span>.</>,
+            ]}
+          />
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">Nos garanties sur tes métrés</h4>
+          <CheckList
+            items={[
+              <><strong>Ta cote saisie n&apos;est jamais arrondie.</strong> Ce que tu tapes est ce qui est calculé.</>,
+              <><strong>Une surface extérieure ne donne jamais un chiffre d&apos;intérieur</strong>, et inversement.</>,
+              <><strong>Aucun double compte</strong> des murs mitoyens.</>,
+              <><strong>Rien n&apos;est deviné.</strong> Tout se saisit ou se choisit : aucune hauteur ni épaisseur inventée.</>,
+            ]}
+          />
+
+          <h4 className="font-hanken font-bold text-[15px] text-navy mt-5 mb-2">Ce que le Plan 2D/3D ne fait pas (encore)</h4>
+          <NotYetBlock
+            items={[
+              { bold: 'Ce n’est pas un logiciel d’architecture.', text: <>Pas de rendu photoréaliste, de décoration d&apos;intérieur ni de visite virtuelle. L&apos;objectif est le métré juste, pas l&apos;image.</> },
+              { bold: 'Le contour du bâtiment n’est pas calculé tout seul.', text: <>Pour une façade ou un mur extérieur, tu traces toi-même le mur : c&apos;est plus fiable qu&apos;un périmètre déduit automatiquement.</> },
+            ]}
+          />
+          <Callout type="warn">
+            Le module est en <strong>Bêta</strong> : il évolue vite. Si un métré te semble à revoir, dis-le-nous
+            depuis le bouton de contact — c&apos;est comme ça qu&apos;on l&apos;améliore.
+          </Callout>
+
+          <FaqBlock>
+            <FaqItem q="Ça remplace un logiciel d’architecte ?">
+              Non. C&apos;est un outil de métré et de plan qui alimente ton devis. Il ne fait pas de conception
+              architecturale ni de rendu 3D professionnel.
+            </FaqItem>
+            <FaqItem q="Mes cotes sont-elles arrondies ?">
+              Jamais. La cote que tu saisis est celle qui est utilisée, au millimètre près.
+            </FaqItem>
+            <FaqItem q="Le contour de mon bâtiment est-il calculé automatiquement ?">
+              Non. Tu traces toi-même ton mur extérieur ou ta façade : c&apos;est plus fiable qu&apos;un périmètre
+              déduit tout seul.
+            </FaqItem>
+          </FaqBlock>
+
+          <SeeAlso
+            items={[
+              { id: 'chantiers', label: 'Chantiers' },
+              { id: 'devis', label: 'Devis' },
+              { id: 'calculatrices', label: 'Calculatrices métier' },
+            ]}
+            onGo={goToSection}
+          />
+        </>
+      ),
+    },
+
+    // ============================================================
     // GROUPE — TES DONNÉES (BASE DE DONNÉES)
     // ============================================================
     {
