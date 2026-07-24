@@ -129,6 +129,8 @@ const forces: Force[] = [
 
 const comparison = [
   { label: "Vocabulaire métier BTP", classic: false, nexartis: true },
+  { label: "Plan 2D/3D du chantier → métré au devis (offre Complet, Beta)", classic: false, nexartis: true },
+  { label: "Réseau de confrères intégré", classic: false, nexartis: true },
   { label: "Alertes conflit planning en temps réel", classic: false, nexartis: true },
   { label: "Mentions légales françaises automatiques", classic: false, nexartis: true },
   { label: "Données hébergées en Europe", classic: false, nexartis: true },

@@ -29,12 +29,14 @@ declare global {
   }
 }
 
-const NAV_LINKS = [
+const NAV_LINKS: { href: string; label: string; beta?: boolean }[] = [
   { href: '#fonctionnalites', label: 'Fonctionnalités' },
+  { href: '#plan-3d', label: 'Plan 3D', beta: true },
   { href: '#planning', label: 'Planning' },
+  { href: '#reseau', label: 'Confrères' },
   { href: '#tarifs', label: 'Tarifs' },
   { href: '#faq', label: 'FAQ' },
-] as const;
+];
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -129,9 +131,17 @@ export default function LandingNav() {
             <a
               key={link.href}
               href={link.href}
-              className="text-ink-2 hover:text-ink hover:bg-white/[0.04] font-semibold text-[14.5px] px-[14px] py-[9px] rounded-[10px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
+              className="inline-flex items-center gap-1.5 text-ink-2 hover:text-ink hover:bg-white/[0.04] font-semibold text-[14.5px] px-[14px] py-[9px] rounded-[10px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
             >
               {link.label}
+              {link.beta && (
+                <span
+                  className="text-[9px] font-bold uppercase tracking-[0.05em] px-1.5 py-0.5 rounded text-accent-ink"
+                  style={{ background: 'color-mix(in srgb, #ff7a1a 16%, transparent)' }}
+                >
+                  Beta
+                </span>
+              )}
             </a>
           ))}
         </div>
@@ -280,9 +290,17 @@ export default function LandingNav() {
                 key={link.href}
                 href={link.href}
                 onClick={closeMenu}
-                className="block text-ink hover:text-white font-bold text-[22px] tracking-[-0.01em] px-3 py-3.5 rounded-[12px] hover:bg-white/[0.04] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
+                className="flex items-center gap-2.5 text-ink hover:text-white font-bold text-[22px] tracking-[-0.01em] px-3 py-3.5 rounded-[12px] hover:bg-white/[0.04] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric/60"
               >
                 {link.label}
+                {link.beta && (
+                  <span
+                    className="text-[11px] font-bold uppercase tracking-[0.05em] px-2 py-0.5 rounded-md text-accent-ink"
+                    style={{ background: 'color-mix(in srgb, #ff7a1a 16%, transparent)' }}
+                  >
+                    Beta
+                  </span>
+                )}
               </a>
             ))}
 

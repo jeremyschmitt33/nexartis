@@ -77,6 +77,7 @@ const ESSENTIAL_GROUPS: FeatureGroup[] = [
       { label: "Catalogue de +700 prestations + biblio perso (50 max)" },
       { label: "Rappels assurance décennale" },
       { label: "Photos de chantier par client" },
+      { label: "Messagerie, réseau de confrères et chantiers confiés" },
       { label: "Client particulier ou société (SIREN/SIRET)" },
       { label: "Données hébergées en Europe" },
       { label: "Support email Lun-Ven 9h-18h" },
@@ -94,6 +95,8 @@ const ESSENTIAL_FLAT: FeatureRow[] = ESSENTIAL_GROUPS.flatMap((g) => g.items);
  * Le rapport d'intervention est marqué BIENTÔT (non encore livré).
  */
 const COMPLETE_EXTRA_FEATURES: FeatureRow[] = [
+  { label: "Plan 2D/3D interactif du chantier", badge: "BETA" },
+  { label: "Métré du plan reporté dans le devis", badge: "BETA" },
   { label: "Planning chantier visuel" },
   { label: "Alertes conflits d'affectation en temps réel" },
   { label: "Gestion d'équipe et planning intervenants" },
@@ -189,7 +192,7 @@ export default function PricingSection() {
               {/* Prix */}
               <div className="mb-1.5">
                 <span className="text-[56px] sm:text-[64px] font-[800] text-ink tracking-[-0.04em] leading-none tabular-nums">
-                  15€
+                  15 €
                 </span>
                 <span className="text-[18px] font-semibold text-ink-2 ml-1">
                   /mois HT
@@ -281,7 +284,7 @@ export default function PricingSection() {
                 {/* Prix */}
                 <div className="mb-1.5">
                   <span className="text-[56px] sm:text-[64px] font-[800] text-accent-2 tracking-[-0.04em] leading-none tabular-nums">
-                    25€
+                    25 €
                   </span>
                   <span className="text-[18px] font-semibold text-ink-2 ml-1">
                     /mois HT

@@ -37,6 +37,14 @@ const faqs = [
     a: "Oui. Avec l'offre Complet, la gestion d'équipe et des intervenants (chefs de chantier, apprentis) est disponible dans un planning unifié, avec alertes en cas de conflit d'affectation.",
   },
   {
+    q: "Le Plan 2D/3D remplace-t-il un logiciel d'architecte ?",
+    a: "Non. C'est un outil de métré et de plan : vous dessinez votre chantier à la cote exacte, et Nexartis reporte les quantités par métier (maçonnerie, menuiserie, chauffage, terrassement, façade) dans votre devis, sans ressaisie à la main. Ce n'est pas un logiciel d'architecture ni un outil de rendu 3D professionnel. La fonctionnalité est en Beta, disponible dans l'offre Complet et testable pendant l'essai gratuit de 14 jours.",
+  },
+  {
+    q: "Si je confie un lot de chantier à un confrère, voit-il mes finances ?",
+    a: "Non, jamais. Un confrère avec qui vous collaborez voit uniquement le lot que vous lui confiez, et il y publie son avancement et ses photos. Vos devis, vos factures, vos marges et vos paiements aux sous-traitants restent strictement privés.",
+  },
+  {
     q: "Où sont hébergées mes données et comment sont-elles protégées ?",
     a: "Vos données sont hébergées dans l'Union européenne (Allemagne), sur des serveurs conformes RGPD. Elles ne sont jamais vendues. Vous pouvez exporter chaque devis et facture au format PDF à tout moment.",
   },
@@ -104,7 +112,7 @@ export default function FaqSection() {
             FAQ
           </span>
           <h2 className="landing-text-grad text-[28px] sm:text-[40px] font-[800] tracking-[-0.03em] mt-5 mb-3.5">
-            Tout ce que vous vous demandez, sans detour
+            Tout ce que vous vous demandez, sans détour
           </h2>
         </div>
 
