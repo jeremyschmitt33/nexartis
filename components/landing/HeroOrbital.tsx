@@ -29,6 +29,28 @@ const CHIPS: Chip[] = [
   { label: 'Relance impayés', sublabel: 'Rappel envoyé en 1 clic',       dotColor: 'var(--violet)',   corner: 'br', offsetX: 0, offsetY: 10, delay: 0.80 },
 ]
 
+// Fonctionnalités mises en avant sous le Hero (liste fixe, aucun défilement).
+// ★ = différenciateurs rares sur le marché. Le tag "Complet" respecte le gating :
+// Plan 3D et devis vocal sont réservés à l'offre Complet (25 €/mois).
+const HERO_STAR: { label: string; tag?: string }[] = [
+  { label: 'Plan 3D → devis', tag: 'Complet' },
+  { label: 'Alerte de conflit de planning' },
+  { label: 'Messagerie interne & échange de chantiers' },
+  { label: 'Devis vocal par IA', tag: 'Complet' },
+  { label: 'SMS de relance gratuit' },
+]
+
+const HERO_PLUS: { label: string; color: string }[] = [
+  { label: 'Signature en ligne', color: 'var(--mint)' },
+  { label: 'QR de virement SEPA', color: 'var(--electric)' },
+  { label: 'Réseau de confrères', color: 'var(--electric-2)' },
+  { label: 'E-facture 2026', color: 'var(--accent)' },
+  { label: '10 calculatrices métier', color: 'var(--violet)' },
+  { label: '+700 prestations', color: 'var(--mint)' },
+  { label: 'Photos par client', color: 'var(--electric)' },
+  { label: 'Trésorerie en temps réel', color: 'var(--accent-2)' },
+]
+
 function chipPositionClasses(corner: Chip['corner']): string {
   switch (corner) {
     // Positions ajustees 2026-06-09 (fix mobile) :
@@ -115,8 +137,8 @@ export default function HeroOrbital() {
           </h1>
 
           <p className="reveal reveal-delay-2 mt-5 lg:mt-6 mx-auto lg:mx-0 max-w-[560px] text-[16px] sm:text-[17px] lg:text-[18px] text-ink-2 leading-[1.55]">
-            Devis, factures, planning et suivi financier - réunis dans une seule application,
-            pensée pour tous les artisans.
+            Devis, factures, planning, suivi financier et collaboration entre confrères - réunis
+            dans une seule application, pensée pour tous les artisans.
           </p>
 
           <div className="reveal reveal-delay-3 mt-7 lg:mt-8 flex flex-wrap gap-3 justify-center lg:justify-start items-center">
@@ -331,6 +353,56 @@ export default function HeroOrbital() {
           })}
         </div>
       </div>
+      {/* ─────────── Liste fixe de fonctionnalités (différenciateurs) ─────────── */}
+      <div className="reveal mx-auto max-w-container mt-12 lg:mt-14 pt-6 border-t border-white/[0.07]">
+        <span className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-accent-ink mb-3.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          Ce qui vous démarque
+        </span>
+        <div className="flex flex-wrap gap-2.5">
+          {HERO_STAR.map((f) => (
+            <span
+              key={f.label}
+              className="inline-flex items-center gap-2 rounded-[12px] px-[15px] py-[11px] text-[14px] font-bold text-ink border"
+              style={{
+                background: 'color-mix(in srgb, var(--accent) 9%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent) 32%, transparent)',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--accent)" aria-hidden="true" className="flex-none">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              {f.label}
+              {f.tag && (
+                <span
+                  className="text-[9px] font-extrabold uppercase tracking-[0.04em] px-1.5 py-0.5 rounded-[5px] text-accent-ink border"
+                  style={{
+                    background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
+                    borderColor: 'color-mix(in srgb, var(--accent) 32%, transparent)',
+                  }}
+                >
+                  {f.tag}
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <span className="text-[12px] font-bold text-ink-3 mr-0.5">Et aussi :</span>
+          {HERO_PLUS.map((f) => (
+            <span
+              key={f.label}
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold text-ink-2 bg-white/[0.02] border border-white/[0.10]"
+            >
+              <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: f.color }} />
+              {f.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
     </section>
   )
 }
