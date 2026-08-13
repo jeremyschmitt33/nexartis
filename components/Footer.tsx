@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CookieSettingsButton from "./CookieSettingsButton";
+import Backlink from './Backlink';
 
 const metierLinks = [
   { label: "Plombier", href: "/logiciel-devis-plombier" },
@@ -161,7 +162,7 @@ export default function Footer() {
         {/* Bottom bar : copyright a gauche, contact a droite */}
         <div className="mt-12 pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-[12px] text-ink-3 leading-relaxed">
-            &copy; 2026 Nexartis &middot; Bordeaux, France &middot; Facturation électronique intégrée &middot; Données hébergées en Europe &middot; Site cr&eacute;&eacute; par <a href="https://jeremyschmitt.fr" target="_blank" rel="noopener" className="underline underline-offset-2">jeremyschmitt.fr</a>
+            &copy; 2026 Nexartis &middot; Bordeaux, France &middot; Facturation électronique intégrée &middot; Données hébergées en Europe<Backlink />
           </p>
           <p className="text-[12px] text-ink-3 leading-relaxed">
             contact.nexartis@gmail.com &middot; Lun-Ven 9h-18h
