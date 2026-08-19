@@ -116,6 +116,12 @@ export async function POST(req: NextRequest) {
       tax_id_collection: { enabled: true },
       // Appliquer la TVA automatiquement
       automatic_tax: { enabled: true },
+      // OBLIGATOIRE avec automatic_tax + customer existant : sans ca, Stripe
+      // renvoie 400 customer_tax_location_invalid car le Customer n'a pas
+      // d'adresse. On collecte l'adresse dans Checkout et on la sauvegarde
+      // sur le Customer. Cf. https://docs.stripe.com/tax/checkout/page
+      billing_address_collection: 'required',
+      customer_update: { address: 'auto', name: 'auto' },
       // Metadata pour le webhook
       metadata: {
         nexartis_user_id: user.id,
