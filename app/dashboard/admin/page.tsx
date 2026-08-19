@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Shield, RefreshCw, Crown, Clock, Ban, CheckCircle, Users, Search,
   Trash2, X, ChevronRight, Mail, Building2, Wrench, Calendar, LogIn,
-  AlertTriangle, UserCheck, Gift,
+  AlertTriangle, UserCheck, Gift, XCircle,
 } from 'lucide-react'
 import { useUser } from '@/lib/hooks'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
@@ -33,6 +33,8 @@ interface UserRecord {
   abonnement_type: 'trial' | 'lifetime' | 'actif' | 'suspendu'
   trial_started_at: string
   abonnement_expire_at: string | null
+  /** Non NULL = le client a resilie depuis le portail Stripe, acces jusqu'a cette date. */
+  resiliation_prevue_le: string | null
   notes_admin: string | null
   created_at: string
   last_sign_in_at: string | null
@@ -86,6 +88,11 @@ const ABONNEMENT_CONFIG = {
     color: 'bg-amber-100 text-amber-800',
     icon: Clock,
   },
+  trial_expire: {
+    label: 'Essai expiré',
+    color: 'bg-orange-100 text-orange-800',
+    icon: AlertTriangle,
+  },
   lifetime: {
     label: 'À vie',
     color: 'bg-purple-100 text-purple-800',
@@ -96,6 +103,11 @@ const ABONNEMENT_CONFIG = {
     color: 'bg-green-100 text-green-700',
     icon: CheckCircle,
   },
+  resilie: {
+    label: 'Annulé',
+    color: 'bg-slate-200 text-slate-700',
+    icon: XCircle,
+  },
   suspendu: {
     label: 'Suspendu',
     color: 'bg-red-100 text-red-700',
@@ -103,21 +115,61 @@ const ABONNEMENT_CONFIG = {
   },
 }
 
+/** Statut affiché = statut métier réel, plus fin que la colonne abonnement_type. */
+type StatutAffiche = keyof typeof ABONNEMENT_CONFIG
+
+/**
+ * Valeurs réellement stockables dans entreprises.abonnement_type.
+ * ATTENTION : 'trial_expire' et 'resilie' sont des statuts DEDUITS (affichage
+ * uniquement). Les proposer dans le sélecteur ferait echouer l'API avec
+ * « Type d'abonnement invalide ».
+ */
+const TYPES_MODIFIABLES: UserRecord['abonnement_type'][] = ['trial', 'lifetime', 'actif', 'suspendu']
+
+/**
+ * Déduit le statut réel d'un compte.
+ *
+ * Pourquoi ce n'est pas juste `abonnement_type` : quand un client résilie
+ * depuis le portail Stripe « à la fin de la période », Stripe laisse
+ * l'abonnement en `active` jusqu'au dernier jour. La colonne
+ * `abonnement_type` reste donc 'actif' — d'où la colonne
+ * `resiliation_prevue_le` remplie par le webhook, qui permet d'afficher
+ * « Annulé » sans couper l'accès du client avant l'heure.
+ */
+function getStatut(u: UserRecord): StatutAffiche {
+  if (u.abonnement_type === 'lifetime') return 'lifetime'
+  if (u.abonnement_type === 'suspendu') return 'suspendu'
+  if (u.abonnement_type === 'actif') {
+    return u.resiliation_prevue_le ? 'resilie' : 'actif'
+  }
+  // trial
+  return trialDaysLeft(u.trial_started_at) > 0 ? 'trial' : 'trial_expire'
+}
+
 // -------------------------------------------------------------------
 // Badge statut
 // -------------------------------------------------------------------
 
-function AbonnementBadge({ type, trialStarted }: { type: string; trialStarted: string }) {
-  const config = ABONNEMENT_CONFIG[type as keyof typeof ABONNEMENT_CONFIG] ?? ABONNEMENT_CONFIG.trial
+function AbonnementBadge({ user }: { user: UserRecord }) {
+  const statut = getStatut(user)
+  const config = ABONNEMENT_CONFIG[statut]
   const Icon = config.icon
-  const daysLeft = type === 'trial' ? trialDaysLeft(trialStarted) : null
+  const daysLeft = statut === 'trial' ? trialDaysLeft(user.trial_started_at) : null
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}
+      title={statut === 'resilie' && user.resiliation_prevue_le
+        ? `Résilié par le client — accès maintenu jusqu'au ${formatDate(user.resiliation_prevue_le)}`
+        : undefined}
+    >
       <Icon size={11} />
       {config.label}
       {daysLeft !== null && (
         <span className="ml-0.5 opacity-80">({daysLeft}j)</span>
+      )}
+      {statut === 'resilie' && user.resiliation_prevue_le && (
+        <span className="ml-0.5 opacity-80">→ {formatDate(user.resiliation_prevue_le)}</span>
       )}
     </span>
   )
@@ -312,11 +364,23 @@ function UserDetailModal({
               <div>
                 <span className="text-gray-400">Abonnement</span>
                 <div className="mt-0.5">
-                  <AbonnementBadge type={user.abonnement_type} trialStarted={user.trial_started_at} />
+                  <AbonnementBadge user={user} />
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Resiliation programmee par le client (portail Stripe) */}
+          {user.resiliation_prevue_le && (
+            <div className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex items-start gap-2">
+              <XCircle size={15} className="text-slate-600 mt-0.5 flex-shrink-0" />
+              <div className="text-xs font-manrope text-slate-700">
+                <strong>Abonnement résilié par le client.</strong> L&apos;accès reste ouvert
+                jusqu&apos;au <strong>{formatDate(user.resiliation_prevue_le)}</strong>, puis le
+                compte passera automatiquement en « Suspendu ».
+              </div>
+            </div>
+          )}
 
           {/* Sélecteur abonnement */}
           <div>
@@ -324,12 +388,13 @@ function UserDetailModal({
               Changer l&apos;abonnement
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {Object.entries(ABONNEMENT_CONFIG).map(([key, cfg]) => {
+              {TYPES_MODIFIABLES.map(key => {
+                const cfg = ABONNEMENT_CONFIG[key]
                 const Icon = cfg.icon
                 return (
                   <button
                     key={key}
-                    onClick={() => setType(key as UserRecord['abonnement_type'])}
+                    onClick={() => setType(key)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-manrope transition-all ${
                       type === key
                         ? 'border-[#2563eb] bg-blue-50 text-[#2563eb] font-semibold'
@@ -465,6 +530,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  // Filtre par statut, pilote par les compteurs cliquables en haut de page.
+  const [filtreStatut, setFiltreStatut] = useState<StatutAffiche | 'tous' | 'non_confirme'>('tous')
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -552,6 +619,14 @@ export default function AdminPage() {
 
   // Filtrage par recherche
   const filtered = users.filter(u => {
+    // 1. Filtre statut (compteurs cliquables)
+    if (filtreStatut === 'non_confirme') {
+      if (u.email_confirmed_at) return false
+    } else if (filtreStatut !== 'tous') {
+      if (getStatut(u) !== filtreStatut) return false
+    }
+
+    // 2. Recherche texte
     const q = search.toLowerCase()
     return (
       getUserDisplayName(u).toLowerCase().includes(q) ||
@@ -563,13 +638,16 @@ export default function AdminPage() {
     )
   })
 
-  // Stats
+  // Stats — comptees sur le statut REEL (getStatut), pas sur abonnement_type
+  const compte = (st: StatutAffiche) => users.filter(u => getStatut(u) === st).length
   const stats = {
     total: users.length,
-    trial: users.filter(u => u.abonnement_type === 'trial').length,
-    lifetime: users.filter(u => u.abonnement_type === 'lifetime').length,
-    actif: users.filter(u => u.abonnement_type === 'actif').length,
-    suspendu: users.filter(u => u.abonnement_type === 'suspendu').length,
+    trial: compte('trial'),
+    trialExpire: compte('trial_expire'),
+    lifetime: compte('lifetime'),
+    actif: compte('actif'),
+    resilie: compte('resilie'),
+    suspendu: compte('suspendu'),
     nonConfirme: users.filter(u => !u.email_confirmed_at).length,
   }
 
@@ -625,28 +703,58 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        {[
-          { label: 'Total', value: stats.total, color: 'text-[#1a1a2e]', bg: 'bg-white', icon: Users },
-          { label: 'En essai', value: stats.trial, color: 'text-amber-700', bg: 'bg-amber-50', icon: Clock },
-          { label: 'À vie', value: stats.lifetime, color: 'text-purple-700', bg: 'bg-purple-50', icon: Crown },
-          { label: 'Actif', value: stats.actif, color: 'text-green-700', bg: 'bg-green-50', icon: CheckCircle },
-          { label: 'Suspendu', value: stats.suspendu, color: 'text-red-600', bg: 'bg-red-50', icon: Ban },
-          { label: 'Non confirmé', value: stats.nonConfirme, color: 'text-amber-600', bg: 'bg-amber-50', icon: AlertTriangle },
-        ].map(stat => {
+      {/* Statistiques — chaque carte filtre la liste au clic */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+        {([
+          { key: 'tous', label: 'Total', value: stats.total, color: 'text-[#1a1a2e]', bg: 'bg-white', ring: 'ring-[#1a1a2e]', icon: Users },
+          { key: 'trial', label: 'En essai', value: stats.trial, color: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-500', icon: Clock },
+          { key: 'trial_expire', label: 'Essai expiré', value: stats.trialExpire, color: 'text-orange-700', bg: 'bg-orange-50', ring: 'ring-orange-500', icon: AlertTriangle },
+          { key: 'actif', label: 'Actif', value: stats.actif, color: 'text-green-700', bg: 'bg-green-50', ring: 'ring-green-500', icon: CheckCircle },
+          { key: 'resilie', label: 'Annulé', value: stats.resilie, color: 'text-slate-700', bg: 'bg-slate-100', ring: 'ring-slate-500', icon: XCircle },
+          { key: 'lifetime', label: 'À vie', value: stats.lifetime, color: 'text-purple-700', bg: 'bg-purple-50', ring: 'ring-purple-500', icon: Crown },
+          { key: 'suspendu', label: 'Suspendu', value: stats.suspendu, color: 'text-red-600', bg: 'bg-red-50', ring: 'ring-red-500', icon: Ban },
+          { key: 'non_confirme', label: 'Non confirmé', value: stats.nonConfirme, color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-500', icon: AlertTriangle },
+        ] as const).map(stat => {
           const Icon = stat.icon
+          const actif = filtreStatut === stat.key
           return (
-            <div key={stat.label} className={`${stat.bg} rounded-xl border border-gray-100 p-4 flex items-center gap-3`}>
+            <button
+              key={stat.label}
+              type="button"
+              aria-pressed={actif}
+              title={`Afficher uniquement : ${stat.label}`}
+              onClick={() => setFiltreStatut(stat.key)}
+              className={`${stat.bg} rounded-xl border border-gray-100 p-4 flex items-center gap-3 text-left
+                          transition hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1
+                          ${actif ? `ring-2 ring-offset-1 ${stat.ring}` : ''}`}
+            >
               <Icon size={18} className={stat.color} />
               <div>
                 <div className={`font-syne font-bold text-lg ${stat.color}`}>{stat.value}</div>
                 <div className="text-[10px] text-gray-400 font-manrope">{stat.label}</div>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
+
+      {/* Rappel du filtre actif */}
+      {filtreStatut !== 'tous' && (
+        <div className="flex items-center gap-2 mb-3 text-xs font-manrope text-gray-500">
+          <span>
+            Filtre actif : <strong className="text-[#1a1a2e]">
+              {filtreStatut === 'non_confirme' ? 'Non confirmé' : ABONNEMENT_CONFIG[filtreStatut].label}
+            </strong> — {filtered.length} compte{filtered.length > 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setFiltreStatut('tous')}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 hover:bg-gray-200 transition text-gray-600"
+          >
+            <X size={11} /> Tout afficher
+          </button>
+        </div>
+      )}
 
       {/* Recherche */}
       <div className="relative mb-4">
@@ -690,7 +798,7 @@ export default function AdminPage() {
                     </div>
                     <div className="text-xs text-gray-400 font-manrope truncate">{u.auth_email}</div>
                     <div className="flex items-center gap-2 mt-1">
-                      <AbonnementBadge type={u.abonnement_type} trialStarted={u.trial_started_at} />
+                      <AbonnementBadge user={u} />
                       {u.metier && <span className="text-[10px] text-gray-400 font-manrope">{u.metier}</span>}
                     </div>
                   </div>
@@ -740,7 +848,7 @@ export default function AdminPage() {
                         <div className="text-sm font-manrope text-gray-500">{u.metier || '—'}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <AbonnementBadge type={u.abonnement_type} trialStarted={u.trial_started_at} />
+                        <AbonnementBadge user={u} />
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="text-sm font-manrope text-gray-400">{formatDate(u.created_at)}</div>

@@ -114,6 +114,8 @@ export async function POST(req: NextRequest) {
               stripe_subscription_id: subscriptionId || null,
               stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
               abonnement_expire_at: null,
+              // Nouvel abonnement : on efface toute resiliation programmee anterieure
+              resiliation_prevue_le: null,
             })
             .eq('id', entrepriseId)
 
@@ -213,6 +215,8 @@ export async function POST(req: NextRequest) {
               abonnement_type: 'suspendu',
               abonnement_expire_at: periodEnd.toISOString(),
               stripe_subscription_id: null,
+              // La resiliation est consommee : l'abonnement est termine
+              resiliation_prevue_le: null,
             })
             .eq('id', entreprise.id)
 
@@ -237,9 +241,28 @@ export async function POST(req: NextRequest) {
           if (status === 'canceled') abonnementType = 'suspendu'
           if (status === 'active' || status === 'trialing') abonnementType = 'actif'
 
+          // RESILIATION PROGRAMMEE (P-admin) : quand le client clique
+          // "Annuler l'abonnement" dans le portail Stripe avec l'option
+          // "a la fin de la periode", Stripe garde status = 'active' et pose
+          // cancel_at_period_end = true. Sans ce bloc, l'app afficherait
+          // "Actif" jusqu'au dernier jour et l'admin ne verrait rien.
+          const sub = subscription as unknown as {
+            cancel_at_period_end?: boolean
+            cancel_at?: number | null
+            current_period_end?: number | null
+          }
+          let resiliationPrevueLe: string | null = null
+          if (sub.cancel_at_period_end) {
+            const ts = sub.cancel_at ?? sub.current_period_end ?? null
+            resiliationPrevueLe = ts ? new Date(ts * 1000).toISOString() : null
+          }
+
           await supabase
             .from('entreprises')
-            .update({ abonnement_type: abonnementType })
+            .update({
+              abonnement_type: abonnementType,
+              resiliation_prevue_le: resiliationPrevueLe,
+            })
             .eq('id', entreprise.id)
         }
         break

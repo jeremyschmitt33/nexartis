@@ -73,6 +73,7 @@ export async function GET() {
         abonnement_type: (ent.abonnement_type as string) || 'trial',
         trial_started_at: (ent.trial_started_at as string) || u.created_at || '',
         abonnement_expire_at: (ent.abonnement_expire_at as string) || null,
+        resiliation_prevue_le: (ent.resiliation_prevue_le as string) || null,
         notes_admin: (ent.notes_admin as string) || null,
 
         // Dates

@@ -26,7 +26,10 @@ import { PLANS, UPGRADE_MESSAGES, type FeatureKey, type PlanId } from '@/lib/pla
 const TRIAL_DAYS = 14
 
 // Prix : source de vérité = lib/plans.ts (PLANS[plan].priceMonthlyHT).
-// Le prix affiché dépend du plan sélectionné (TTC = HT × 1,2, TVA 20 %).
+// Le prix affiché dépend du plan sélectionné.
+// TVA : Nexartis est en franchise en base (art. 293 B du CGI) — aucune TVA
+// n'est facturée, le prix HT est donc le prix réellement payé. Ne pas
+// réintroduire de calcul TTC tant que ce régime n'a pas changé.
 
 // Listes de features affichées par offre. Libellés lisibles pour l'artisan
 // (distincts des clés techniques de FeatureKey dans lib/plans.ts).
@@ -382,7 +385,6 @@ function AbonnementPageContent() {
 
   // Prix et features du plan actuellement sélectionné (source : lib/plans.ts)
   const priceHT = PLANS[selectedPlan].priceMonthlyHT
-  const priceTTC = Math.round(priceHT * 1.2 * 100) / 100
   const displayFeatures =
     selectedPlan === 'essential' ? ESSENTIAL_DISPLAY_FEATURES : COMPLETE_DISPLAY_FEATURES
 
@@ -670,10 +672,13 @@ function AbonnementPageContent() {
               })}
             </div>
 
-            {/* Rappel du prix TTC du plan sélectionné */}
+            {/* Rappel du prix réellement débité (pas de TVA : art. 293 B du CGI) */}
             <div className="flex flex-col items-center text-center mb-8">
               <p className="font-hanken text-gray-500 text-sm">
-                Soit <span className="font-spline-mono font-medium">{priceTTC.toFixed(2).replace('.', ',')}</span>&nbsp;€&nbsp;TTC&nbsp;/&nbsp;mois&nbsp;·&nbsp;Sans engagement&nbsp;·&nbsp;Résiliable à tout moment
+                Soit <span className="font-spline-mono font-medium">{priceHT.toFixed(2).replace('.', ',')}</span>&nbsp;€&nbsp;/&nbsp;mois&nbsp;·&nbsp;Sans engagement&nbsp;·&nbsp;Résiliable à tout moment
+              </p>
+              <p className="font-hanken text-gray-400 text-xs mt-1">
+                TVA non applicable, article 293&nbsp;B du CGI
               </p>
             </div>
 
@@ -765,7 +770,7 @@ function AbonnementPageContent() {
             </button>
 
             <p className="text-center text-[12px] text-gray-500 mt-4 font-hanken">
-              Paiement sécurisé via Stripe&nbsp;·&nbsp;CB ou prélèvement&nbsp;·&nbsp;TVA collectée automatiquement
+              Paiement sécurisé via Stripe&nbsp;·&nbsp;CB ou prélèvement&nbsp;·&nbsp;Sans TVA (art. 293 B du CGI)
             </p>
           </div>
         </div>

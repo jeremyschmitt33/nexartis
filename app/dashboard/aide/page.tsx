@@ -2954,8 +2954,8 @@ export default function AidePage() {
             Deux offres, sans engagement, résiliation à tout moment
           </h4>
           <p className="mb-3">
-            <strong>Essentiel — <span className="font-spline-mono">15 € HT</span>/mois</strong> (soit{' '}
-            <span className="font-spline-mono">18 € TTC</span>, 1 utilisateur) : devis &amp; factures
+            <strong>Essentiel — <span className="font-spline-mono">15 €</span>/mois</strong> (montant
+            réellement prélevé, sans TVA — art. 293 B du CGI ; 1 utilisateur) : devis &amp; factures
             illimités, signature électronique, mentions BTP + TVA (
             <span className="font-spline-mono">5,5</span>/<span className="font-spline-mono">10</span>/
             <span className="font-spline-mono">20 %</span>) automatiques, acomptes &amp; attestations TVA
@@ -2966,8 +2966,8 @@ export default function AidePage() {
             illimités.
           </p>
           <p className="mb-3">
-            <strong>Complet — <span className="font-spline-mono">25 € HT</span>/mois</strong> (soit{' '}
-            <span className="font-spline-mono">30 € TTC</span>) : tout l&apos;Essentiel, plus Planning
+            <strong>Complet — <span className="font-spline-mono">25 €</span>/mois</strong> (montant
+            réellement prélevé, sans TVA — art. 293 B du CGI) : tout l&apos;Essentiel, plus Planning
             chantier + alertes de conflit, Gestion d&apos;équipe &amp; comptes, Devis vocal par IA, Factures de
             situation, Export comptable (Sage/EBP/FEC), Rapport d&apos;intervention, Bibliothèque de
             prestations illimitée.
@@ -2995,9 +2995,10 @@ export default function AidePage() {
             <FaqItem q="Où trouver la facture de mon abonnement (pour ma compta) ?">
               Dans le portail Stripe « Gérer mon abonnement ».
             </FaqItem>
-            <FaqItem q="15 €/25 € HT, ça fait combien TTC ?">
-              +20 % de TVA, soit <span className="font-spline-mono">18 €</span> /{' '}
-              <span className="font-spline-mono">30 €</span> TTC.
+            <FaqItem q="15 €/25 €, y a-t-il de la TVA en plus ?">
+              Non. Nexartis bénéficie de la franchise en base de TVA (article 293 B du CGI) : aucune TVA
+              n&apos;est facturée, tu paies exactement <span className="font-spline-mono">15 €</span> ou{' '}
+              <span className="font-spline-mono">25 €</span> par mois.
             </FaqItem>
             <FaqItem q="Si je repasse de Complet à Essentiel, je perds quoi ?">
               L&apos;accès au planning, à l&apos;équipe, aux factures de situation, au vocal et aux rapports
