@@ -1,0 +1,33 @@
+# .gitattributes — normalisation des fins de ligne
+#
+# 27/08/2026 : sans ce fichier, 33 fichiers apparaissaient en permanence comme
+# « modifiés » dans git status alors que leur contenu était strictement
+# identique — seules les fins de ligne différaient (CRLF Windows vs LF Linux).
+# Ce bruit rendait git status illisible, au point qu'une refonte complète du
+# wording du site est restée deux mois sans être poussée sans que personne
+# ne s'en aperçoive.
+#
+# `text=auto eol=lf` : Git stocke tout en LF dans le dépôt et laisse Windows
+# travailler normalement en local. Plus aucun faux diff.
+
+* text=auto eol=lf
+
+# Fichiers binaires : jamais de conversion (elle les corromprait)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.xlsx binary
+*.zip binary
+
+# Scripts Windows : ils DOIVENT garder des fins de ligne Windows,
+# sinon cmd.exe peut mal interpréter certaines lignes.
+*.bat text eol=crlf
+*.cmd text eol=crlf
