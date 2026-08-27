@@ -5,6 +5,7 @@ import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { buildDocumentEmailHtml } from '@/lib/email'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { chargerImagesPlansDevis } from '@/lib/plan/plan-images'
+import { bccArtisan, type EntrepriseCopie } from '@/lib/email-copie'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, isValidEmail,
@@ -207,6 +208,9 @@ ${dateValidite ? `<p style="font-size:13px;color:#e87a2a;margin:0 0 16px;">Ce de
 </div>
 </body></html>`
 
+    // 27/08/2026 — copie cachee a l'artisan si l'option est active.
+    const bcc = bccArtisan(ent as EntrepriseCopie, emailDestinataire)
+
     // Send via Brevo with PDF attachment
     const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
@@ -218,6 +222,9 @@ ${dateValidite ? `<p style="font-size:13px;color:#e87a2a;margin:0 0 16px;">Ce de
       body: JSON.stringify({
         sender: { name: ent.nom || 'Nexartis', email: 'no-reply@nexartis.fr' },
         to: [{ email: emailDestinataire, name: clientNom }],
+        // Copie cachee a l'artisan (Parametres > Notifications). Le client ne
+        // voit pas ce destinataire. Cf. lib/email-copie.ts.
+        ...(bcc ? { bcc } : {}),
         subject: `Devis n° ${devis.numero} — ${ent.nom || 'Nexartis'}`,
         replyTo: { email: ent.email || 'no-reply@nexartis.fr', name: ent.nom || 'Nexartis' },
         htmlContent: html,

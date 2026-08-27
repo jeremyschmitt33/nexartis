@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateFacturePdf } from '@/lib/pdf'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { themeFromEntreprise } from '@/lib/document-theme'
+import { bccArtisan, type EntrepriseCopie } from '@/lib/email-copie'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, isValidEmail,
@@ -192,6 +193,10 @@ export async function POST(req: NextRequest) {
 
     const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;"><span style="display:none;max-height:0;overflow:hidden;">' + preheader + '</span><div style="max-width:580px;margin:0 auto;padding:20px;"><div style="background:#fff;border-radius:8px;border:1px solid #e5e7eb;"><div style="padding:28px;"><p style="font-size:15px;color:#374151;margin:0 0 16px;line-height:1.6;">' + emailBody + '</p><p style="font-size:14px;color:#6b7280;margin:16px 0 0;line-height:1.6;">Vous trouverez la facture d\u00e9taill\u00e9e en pi\u00e8ce jointe de cet email.</p></div><div style="padding:12px 28px;border-top:1px solid #e5e7eb;text-align:center;"><p style="margin:0;font-size:11px;color:#9ca3af;">Envoy\u00e9 via Nexartis \u2014 nexartis.fr</p></div></div></div></body></html>'
 
+    // 27/08/2026 — copie cachee a l'artisan si l'option est active
+    // (Parametres > Notifications). Cf. lib/email-copie.ts.
+    const bcc = bccArtisan(entreprise as EntrepriseCopie, emailDestinataire)
+
     const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -202,6 +207,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         sender: { name: entNom, email: 'no-reply@nexartis.fr' },
         to: [{ email: emailDestinataire, name: clientNom }],
+        ...(bcc ? { bcc } : {}),
         subject: 'Facture n\u00b0 ' + facture.numero + ' \u2014 ' + entNom,
         replyTo: { email: entEmail, name: entNom },
         htmlContent: html,

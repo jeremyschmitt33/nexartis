@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { safeNextPath } from '@/lib/safe-redirect'
+import { accesOuvert, type AbonnementEtat } from '@/lib/abonnement'
 
 // Delai maximum d'attente d'une reponse Supabase dans le middleware (en ms).
 // Si Supabase met plus de temps (panne, latence), on laisse passer la requete
@@ -116,62 +117,29 @@ export async function updateSession(request: NextRequest) {
   const isAdminUser = (user?.app_metadata as Record<string, unknown> | undefined)?.role === 'admin'
 
   if (user && isDashboardRoute && !isAbonnementPage && !isAdminUser) {
-    const TRIAL_DAYS = 14
+    // 27/08/2026 : on lit aussi stripe_subscription_id, indispensable pour ne
+    // JAMAIS couper un abonne Stripe dont le webhook de renouvellement aurait
+    // du retard. Toute la logique vit dans lib/abonnement.ts (source unique).
     const entrepriseResult = await withTimeout(
       Promise.resolve(supabase
         .from('entreprises')
-        .select('abonnement_type, trial_started_at, abonnement_expire_at, created_at')
+        .select('abonnement_type, trial_started_at, abonnement_expire_at, created_at, stripe_subscription_id')
         .eq('user_id', user.id)
         .single()),
       SUPABASE_TIMEOUT_MS,
       'entreprises.abonnement',
     )
 
-    const entreprise = entrepriseResult?.data as
-      | {
-          abonnement_type: string | null
-          trial_started_at: string | null
-          abonnement_expire_at: string | null
-          created_at: string | null
-        }
-      | null
-      | undefined
+    const entreprise = entrepriseResult?.data as AbonnementEtat | null | undefined
 
-    if (entreprise) {
-      const abonnementType = entreprise.abonnement_type ?? 'trial'
-
-      // Helper : rediriger l'utilisateur expire vers la page abonnement,
-      // seule page accessible jusqu'au paiement.
-      const redirectToAbonnement = () => {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard/abonnement'
-        url.searchParams.set('expired', '1')
-        return NextResponse.redirect(url)
-      }
-
-      // lifetime / actif : aucune restriction
-      if (abonnementType === 'lifetime' || abonnementType === 'actif') {
-        // OK, on laisse passer
-      } else if (abonnementType === 'suspendu') {
-        // Suspendu : on regarde si la fin de periode payee est passee.
-        // Si null : suspendu immediat. Sinon : laisser passer jusqu'a la date.
-        const expireAt = entreprise.abonnement_expire_at
-          ? new Date(entreprise.abonnement_expire_at)
-          : null
-        if (!expireAt || expireAt < new Date()) {
-          return redirectToAbonnement()
-        }
-      } else {
-        // Trial (par defaut) : 14 jours depuis trial_started_at
-        const startRef = entreprise.trial_started_at ?? entreprise.created_at
-        if (startRef) {
-          const trialStart = new Date(startRef)
-          const trialEnd = new Date(trialStart.getTime() + TRIAL_DAYS * 86_400_000)
-          if (trialEnd < new Date()) {
-            return redirectToAbonnement()
-          }
-        }
-      }
+    // accesOuvert gere les 4 cas (lifetime / actif / suspendu / trial) et
+    // applique le delai de grace. Si la donnee manque, il renvoie true
+    // (fail-open : on ne bloque jamais sur un hoquet de lecture).
+    if (entreprise && !accesOuvert(entreprise)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard/abonnement'
+      url.searchParams.set('expired', '1')
+      return NextResponse.redirect(url)
     }
   }
 

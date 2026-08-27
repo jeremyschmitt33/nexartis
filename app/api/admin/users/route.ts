@@ -75,6 +75,10 @@ export async function GET() {
         abonnement_expire_at: (ent.abonnement_expire_at as string) || null,
         resiliation_prevue_le: (ent.resiliation_prevue_le as string) || null,
         notes_admin: (ent.notes_admin as string) || null,
+        // 27/08/2026 : distingue un VRAI abonne Stripe d'un compte passe en
+        // 'actif' par geste commercial (mois offert). Sans cette info, le
+        // back-office affichait "Actif" a vie pour les mois offerts expires.
+        stripe_subscription_id: (ent.stripe_subscription_id as string) || null,
 
         // Dates
         created_at: u.created_at || (ent.created_at as string) || '',

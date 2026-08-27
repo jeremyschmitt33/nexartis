@@ -1751,6 +1751,9 @@ function NotificationsSection({
   update: (v: Record<string, unknown>) => Promise<unknown>
 }) {
   const [notifyDevisSigne, setNotifyDevisSigne] = useState(true)
+  // 27/08/2026 — copie cachee des devis/factures envoyes au client.
+  // Par defaut TRUE (colonne DB NOT NULL DEFAULT true).
+  const [copieDocumentsEnvoyes, setCopieDocumentsEnvoyes] = useState(true)
   // V1 relances auto : envoi d'un email J+7/J+15/J+30 aux clients sur factures impayees.
   // Par defaut TRUE (NULL = TRUE cote DB).
   const [relancesAutoActives, setRelancesAutoActives] = useState(true)
@@ -1766,6 +1769,8 @@ function NotificationsSection({
     if (entreprise) {
       // Par défaut activé : on ne veut pas que l'artisan rate un devis signé.
       setNotifyDevisSigne(entreprise.notify_devis_signe !== false)
+      // NULL/undefined = active (comptes anterieurs a la colonne).
+      setCopieDocumentsEnvoyes(entreprise.copie_documents_envoyes !== false)
       // Relances auto factures : NULL ou TRUE => active, FALSE => desactive.
       setRelancesAutoActives(entreprise.relances_auto_actives !== false)
       // V2.1 : pause globale, on stocke en YYYY-MM-DD pour l'input date.
@@ -1785,6 +1790,7 @@ function NotificationsSection({
     try {
       await update({
         notify_devis_signe: notifyDevisSigne,
+        copie_documents_envoyes: copieDocumentsEnvoyes,
         relances_auto_actives: relancesAutoActives,
         relances_pause_jusqu_au: relancesPauseJusquAu || null,
       })
@@ -1843,6 +1849,18 @@ function NotificationsSection({
         />
         <p className="font-hanken text-xs text-gray-500 ml-1">
           Vous recevez un email dès qu&apos;un client signe votre devis en ligne. Recommandé.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <PremiumToggle
+          label="Recevoir une copie de mes envois"
+          checked={copieDocumentsEnvoyes}
+          onChange={setCopieDocumentsEnvoyes}
+        />
+        <p className="font-hanken text-xs text-gray-500 ml-1">
+          Chaque devis ou facture envoyé à un client vous est aussi adressé, PDF joint, pour
+          garder une trace dans votre boîte mail. Votre client ne voit pas cette copie.
         </p>
       </div>
 

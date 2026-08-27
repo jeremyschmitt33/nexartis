@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useEntreprise, useUser, LoadingSkeleton } from '@/lib/hooks'
 import { PLANS, UPGRADE_MESSAGES, type FeatureKey, type PlanId } from '@/lib/plans'
+import { accesOuvert, type AbonnementEtat } from '@/lib/abonnement'
 
 // -------------------------------------------------------------------
 // Constantes
@@ -95,6 +96,22 @@ function computeStatus(entreprise: Record<string, unknown> | null): AbonnementSt
   }
 
   if (abonnementType === 'actif') {
+    // 27/08/2026 — un compte passé en 'actif' par geste commercial (mois
+    // offert) n'a PAS d'abonnement Stripe : quand la date d'expiration est
+    // passée, son accès est coupé. Il doit alors voir les offres et pouvoir
+    // payer, pas un badge « Actif » vert qui l'empêche de comprendre.
+    // On le traite comme un accès terminé (même parcours que « suspendu »).
+    if (!hasStripeSubscription && !accesOuvert(entreprise as unknown as AbonnementEtat)) {
+      return {
+        type: 'suspendu',
+        joursRestants: 0,
+        expireAt: entreprise.abonnement_expire_at
+          ? new Date(entreprise.abonnement_expire_at as string)
+          : null,
+        badge: { label: 'Accès offert terminé', color: 'orange' },
+        hasStripeSubscription: false,
+      }
+    }
     return {
       type: 'actif',
       joursRestants: null,
@@ -582,10 +599,14 @@ function AbonnementPageContent() {
             <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-hanken text-sm text-red-900 font-medium">
-                Votre abonnement est suspendu.
+                {status.badge.label === 'Accès offert terminé'
+                  ? 'Votre période offerte est terminée.'
+                  : 'Votre abonnement est suspendu.'}
               </p>
               <p className="font-hanken text-xs text-red-700 mt-1">
-                Réactivez-le pour retrouver l&apos;accès à toutes vos données.
+                {status.badge.label === 'Accès offert terminé'
+                  ? 'Choisissez une offre pour retrouver l’accès à toutes vos données, qui sont conservées.'
+                  : 'Réactivez-le pour retrouver l’accès à toutes vos données.'}
               </p>
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/lib/hooks'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
+import { accesOuvert, type AbonnementEtat } from '@/lib/abonnement'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
 
@@ -35,6 +36,8 @@ interface UserRecord {
   abonnement_expire_at: string | null
   /** Non NULL = le client a resilie depuis le portail Stripe, acces jusqu'a cette date. */
   resiliation_prevue_le: string | null
+  /** Non NULL = vrai abonne Stripe (a ne jamais couper). NULL = mois offert. */
+  stripe_subscription_id: string | null
   notes_admin: string | null
   created_at: string
   last_sign_in_at: string | null
@@ -103,6 +106,11 @@ const ABONNEMENT_CONFIG = {
     color: 'bg-green-100 text-green-700',
     icon: CheckCircle,
   },
+  offert_expire: {
+    label: 'Offert expiré',
+    color: 'bg-orange-100 text-orange-800',
+    icon: AlertTriangle,
+  },
   resilie: {
     label: 'Annulé',
     color: 'bg-slate-200 text-slate-700',
@@ -140,7 +148,12 @@ function getStatut(u: UserRecord): StatutAffiche {
   if (u.abonnement_type === 'lifetime') return 'lifetime'
   if (u.abonnement_type === 'suspendu') return 'suspendu'
   if (u.abonnement_type === 'actif') {
-    return u.resiliation_prevue_le ? 'resilie' : 'actif'
+    if (u.resiliation_prevue_le) return 'resilie'
+    // 27/08/2026 — un mois offert passe le compte en 'actif' AVEC une date
+    // d'expiration. Sans ce test, le badge restait "Actif" a vie alors que
+    // l'acces devait etre coupe. On ne touche jamais a un abonne Stripe :
+    // accesOuvert() le laisse toujours passer.
+    return accesOuvert(u as unknown as AbonnementEtat) ? 'actif' : 'offert_expire'
   }
   // trial
   return trialDaysLeft(u.trial_started_at) > 0 ? 'trial' : 'trial_expire'
@@ -646,6 +659,7 @@ export default function AdminPage() {
     trialExpire: compte('trial_expire'),
     lifetime: compte('lifetime'),
     actif: compte('actif'),
+    offertExpire: compte('offert_expire'),
     resilie: compte('resilie'),
     suspendu: compte('suspendu'),
     nonConfirme: users.filter(u => !u.email_confirmed_at).length,
@@ -704,12 +718,13 @@ export default function AdminPage() {
       </div>
 
       {/* Statistiques — chaque carte filtre la liste au clic */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 mb-6">
         {([
           { key: 'tous', label: 'Total', value: stats.total, color: 'text-[#1a1a2e]', bg: 'bg-white', ring: 'ring-[#1a1a2e]', icon: Users },
           { key: 'trial', label: 'En essai', value: stats.trial, color: 'text-amber-700', bg: 'bg-amber-50', ring: 'ring-amber-500', icon: Clock },
           { key: 'trial_expire', label: 'Essai expiré', value: stats.trialExpire, color: 'text-orange-700', bg: 'bg-orange-50', ring: 'ring-orange-500', icon: AlertTriangle },
           { key: 'actif', label: 'Actif', value: stats.actif, color: 'text-green-700', bg: 'bg-green-50', ring: 'ring-green-500', icon: CheckCircle },
+          { key: 'offert_expire', label: 'Offert expiré', value: stats.offertExpire, color: 'text-orange-700', bg: 'bg-orange-50', ring: 'ring-orange-500', icon: Gift },
           { key: 'resilie', label: 'Annulé', value: stats.resilie, color: 'text-slate-700', bg: 'bg-slate-100', ring: 'ring-slate-500', icon: XCircle },
           { key: 'lifetime', label: 'À vie', value: stats.lifetime, color: 'text-purple-700', bg: 'bg-purple-50', ring: 'ring-purple-500', icon: Crown },
           { key: 'suspendu', label: 'Suspendu', value: stats.suspendu, color: 'text-red-600', bg: 'bg-red-50', ring: 'ring-red-500', icon: Ban },

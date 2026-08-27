@@ -40,7 +40,7 @@ L'utilisateur est intransigeant sur la qualité : il ne veut **plus jamais** voi
 ### Base de données
 - Toutes les tables sensibles doivent avoir RLS activée + policies SELECT/INSERT/UPDATE/DELETE.
 - ⚠️ **Pattern RLS à jour (12/07/2026, vérifié en prod)** : les tables financières (achats, paiements, factures, factures_recues, comptes_tresorerie, banque_*) utilisent `entreprise_of_user(user_id) IN (SELECT current_entreprise_ids()) AND current_role_in(entreprise_of_user(user_id)) = 'dirigeant'` — PAS le vieux `user_id = auth.uid()` seul. Toute nouvelle table financière réplique ce pattern (modèle : les policies live de `achats`).
-- Les encaissements de factures passent par les RPC `rpc_enregistrer_paiement` / `rpc_annuler_paiement` (source de vérité = table `paiements`, `factures.montant_paye` = simple cache). Ne jamais écrire `montant_paye` directement dans du NOUVEAU code (3 écritures legacy encore à migrer : factures/[id]/page.tsx ×2, lib/services/cop-facture.ts, route d'import).
+- Les encaissements de factures passent par les RPC `rpc_enregistrer_paiement` / `rpc_annuler_paiement` (source de vérité = table `paiements`, `factures.montant_paye` = simple cache). Ne jamais écrire `montant_paye` directement dans du NOUVEAU code. (MAJ 13/07/2026 : la migration est faite — factures/[id]/page.tsx et cop-facture.ts passent par `rpc_enregistrer_paiement` ; seule la route d'import écrit `montant_paye` volontairement, avec des paiements synthétiques cohérents.)
 - Soft delete via colonne `deleted_at TIMESTAMPTZ` + filtre `WHERE deleted_at IS NULL` côté code.
 - Architecture détaillée : voir `ARCHITECTURE_LIAISONS.md`.
 
@@ -56,6 +56,23 @@ L'utilisateur est intransigeant sur la qualité : il ne veut **plus jamais** voi
 - Tokens publics (signature de devis) : UUID v4 + expiration + un seul usage.
 
 ## Règles de méthode pour Claude
+
+### ⏱️ Vitesse — règle prioritaire (27/08/2026)
+
+Jeremy a signalé que chaque demande prend plusieurs dizaines de minutes. C'est un **problème bloquant**. La précision reste non négociable, mais elle doit s'obtenir **vite**.
+
+**À appliquer systématiquement :**
+
+- **Traiter uniquement la tâche demandée.** Pas de travail adjacent non sollicité. Les idées d'amélioration se disent en une ligne à la fin, elles ne se réalisent pas sans accord.
+- **Les agents vérificateur + confrontateur sont réservés aux tâches COMPLEXES** : nouvelle feature visible, refonte, audit sécurité, tout ce qui touche à l'argent ou aux données de plusieurs utilisateurs. Pour une tâche simple (correctif localisé, ajout d'un champ, rédaction), Claude vérifie lui-même par relecture du diff — lancer des agents sur du simple fait perdre du temps pour rien.
+- **Jamais de `npx tsc --noEmit` sur le mount** : plus de 8 minutes à cause du montage cross-OS, pour un résultat que Vercel donnera de toute façon au push. La vérification TypeScript se fait par relecture du diff (imports présents, noms de variables, pas de shadow), pas par compilation.
+- **Grouper les appels d'outils** indépendants dans un même message.
+- **Ne pas relire un fichier après l'avoir écrit** si l'outil a confirmé l'écriture.
+- **Réponses courtes** : le résultat, les décisions prises, ce qui reste à faire. Pas de récapitulatif des étapes déjà visibles.
+
+**Cible : une demande simple = moins de 5 minutes. Une modification de code = moins de 10 minutes.**
+
+Écrire du code sur ce projet passe par : `device_stage_files` → édition dans le conteneur → `SendUserFile` → `device_commit_files`. Les outils Write/Edit n'acceptent PAS les chemins Windows (ils créent un fichier au nom littéral dans le conteneur).
 
 ### ⚠️ Avant de créer ou modifier un fichier dans ce projet
 

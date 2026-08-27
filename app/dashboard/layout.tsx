@@ -9,6 +9,7 @@ import { useUser, useEntreprise, useDevis, useFactures } from '@/lib/hooks'
 // Push 2 — menu + garde de route par rôle (sans effet pour dirigeant / role=null)
 import { useCurrentRole } from '@/lib/hooks-equipe'
 import { canAccessDashboardPath, DEFAULT_LANDING, type UserRole } from '@/lib/roles'
+import { accesOuvert, joursRestants, type AbonnementEtat } from '@/lib/abonnement'
 import { applySidebarTheme } from '@/components/ThemeSelector'
 import {
   isRouteBlockedForPlan,
@@ -989,29 +990,14 @@ export default function DashboardLayout({
     // Déjà sur la page abonnement → pas de boucle ni de blocage
     if (pathname.startsWith('/dashboard/abonnement')) return
 
-    const redirectExpired = () => router.replace('/dashboard/abonnement?expired=1')
-
-    const abonnementType = (entreprise.abonnement_type as string) ?? 'trial'
-    // Abonnement actif ou à vie → pas de blocage
-    if (abonnementType === 'lifetime' || abonnementType === 'actif') return
-    // Suspendu : laisser passer si la période payée n'est pas encore terminée
-    if (abonnementType === 'suspendu') {
-      const expireAt = entreprise.abonnement_expire_at
-        ? new Date(entreprise.abonnement_expire_at as string)
-        : null
-      if (!expireAt || expireAt < new Date()) {
-        redirectExpired()
-      }
-      return
-    }
-    // Trial → vérifier les 14 jours
-    const trialStarted = entreprise.trial_started_at
-      ? new Date(entreprise.trial_started_at as string)
-      : new Date(entreprise.created_at as string)
-    const msEcoules = Date.now() - trialStarted.getTime()
-    const joursEcoules = msEcoules / (1000 * 60 * 60 * 24)
-    if (joursEcoules > 14) {
-      redirectExpired()
+    // 27/08/2026 — toute la logique d'expiration vit dans lib/abonnement.ts
+    // (source unique partagee avec le middleware et le back-office admin).
+    // Avant ce correctif, 'actif' passait sans jamais regarder
+    // abonnement_expire_at : un mois offert donnait un acces gratuit a vie.
+    // accesOuvert() protege les abonnes Stripe (jamais coupes) et applique
+    // un delai de grace.
+    if (!accesOuvert(entreprise as unknown as AbonnementEtat)) {
+      router.replace('/dashboard/abonnement?expired=1')
     }
   }, [isLoading, entreprise, user, pathname, router])
 
@@ -1075,27 +1061,21 @@ export default function DashboardLayout({
     if (pathname.startsWith('/dashboard/abonnement')) return null
 
     const abonnementType = (entreprise.abonnement_type as string) ?? 'trial'
-    if (abonnementType === 'lifetime' || abonnementType === 'actif') return null
+    if (abonnementType === 'lifetime') return null
 
-    let expireAt: Date | null = null
-    let label = ''
-    if (abonnementType === 'trial') {
-      const trialStarted = entreprise.trial_started_at
-        ? new Date(entreprise.trial_started_at as string)
-        : new Date(entreprise.created_at as string)
-      expireAt = new Date(trialStarted.getTime() + 14 * 86_400_000)
-      label = 'Essai'
-    } else if (abonnementType === 'suspendu') {
-      expireAt = entreprise.abonnement_expire_at
-        ? new Date(entreprise.abonnement_expire_at as string)
-        : null
-      label = 'Accès'
-    }
-    if (!expireAt) return null
-    const msRestant = expireAt.getTime() - Date.now()
-    const joursRestants = Math.ceil(msRestant / (1000 * 60 * 60 * 24))
-    if (joursRestants > 7 || joursRestants < 0) return null
-    return { joursRestants, label }
+    // 27/08/2026 — un compte passe en 'actif' par geste commercial (mois
+    // offert, sans abonnement Stripe) a lui aussi une fin d'acces : il doit
+    // etre prevenu, sinon il decouvre la coupure le jour J.
+    // Un vrai abonne Stripe, lui, renouvelle tout seul : joursRestants()
+    // renvoie null et aucun bandeau ne s'affiche.
+    const restant = joursRestants(entreprise as unknown as AbonnementEtat)
+    if (restant === null || restant > 7 || restant < 0) return null
+
+    const label =
+      abonnementType === 'trial' ? 'Essai'
+      : abonnementType === 'actif' ? 'Accès offert'
+      : 'Accès'
+    return { joursRestants: restant, label }
   })()
 
   const userInitials = getInitials(
