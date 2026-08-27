@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { montantRemboursementAvoir } from "@/lib/avoir";
 import { netAPayerFacture } from "@/lib/facture-net";
 import { InfoBanner, HelpTooltip } from "@/components/ui/v4";
+import { accesOuvert, joursRestants, type AbonnementEtat } from "@/lib/abonnement";
 import RappelsSection from "@/components/dashboard/RappelsSection";
 import DecennaleBanner from "@/components/dashboard/DecennaleBanner";
 import StartupChecklist, { type ChecklistItem } from "@/components/dashboard/StartupChecklist";
@@ -784,6 +785,65 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen" style={{background: '#f6f8fb'}}>
       <div className="max-w-[1360px] mx-auto px-4 py-5 sm:px-6 sm:py-8 lg:px-9 lg:py-9">
+
+        {/* ──────────────────────────────────────────────────────────────
+            27/08/2026 — Échéance d'abonnement.
+            Le bandeau discret de la barre du haut passait inaperçu : des
+            comptes se faisaient couper sans avoir jamais vu passer
+            l'information. On la remonte ici, en premier, sur la page que
+            l'artisan ouvre en arrivant. Rien ne s'affiche pour un abonné
+            Stripe (joursRestants renvoie null) ni au-delà de 7 jours.
+            ────────────────────────────────────────────────────────────── */}
+        {(() => {
+          if (!entreprise) return null;
+          const etat = entreprise as unknown as AbonnementEtat;
+          const restant = joursRestants(etat);
+          if (restant === null || restant > 7) return null;
+
+          const ouvert = accesOuvert(etat);
+          const offert = (entreprise.abonnement_type as string) === "actif";
+          const nomAcces = offert ? "Votre accès offert" : "Votre essai gratuit";
+
+          const titre = !ouvert
+            ? `${nomAcces} est terminé`
+            : restant <= 0
+              ? `${nomAcces} se termine aujourd'hui`
+              : restant === 1
+                ? `${nomAcces} se termine demain`
+                : `${nomAcces} se termine dans ${restant} jours`;
+
+          const texte = !ouvert
+            ? "Votre tableau de bord est en pause. Vos devis, factures et clients sont conservés : ils reviennent dès votre abonnement."
+            : "Vos données sont conservées quoi qu'il arrive. Abonnez-vous dès 15 € HT/mois, sans engagement, pour ne pas être interrompu en plein chantier.";
+
+          return (
+            <div className="mb-6" style={stagger(0)}>
+              <InfoBanner
+                variant={!ouvert || restant <= 1 ? "warn" : "info"}
+                icon={
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={!ouvert || restant <= 1 ? "#d97706" : "#2563eb"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                }
+              >
+                <p className={`font-hanken font-bold text-[15px] mb-1 ${!ouvert || restant <= 1 ? "text-amber-900" : "text-blue-900"}`}>
+                  {titre}
+                </p>
+                <p className={`font-hanken text-sm mb-3 ${!ouvert || restant <= 1 ? "text-amber-800" : "text-blue-800"}`}>
+                  {texte}
+                </p>
+                <Link
+                  href="/dashboard/abonnement"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ff7a1a] text-white
+                             font-hanken font-semibold text-sm hover:bg-[#e86d10] transition-colors"
+                >
+                  Voir les offres
+                </Link>
+              </InfoBanner>
+            </div>
+          );
+        })()}
 
         {/* Checklist de démarrage (onboarding d'activation). Remplace
             temporairement la bannière "profil incomplet" ci-dessous tant

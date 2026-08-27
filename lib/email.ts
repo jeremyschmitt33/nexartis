@@ -1123,3 +1123,109 @@ export async function sendRappelCertification(params: RappelCertificationParams)
     return false
   }
 }
+
+// ---------------------------------------------------------------------------
+// RAPPELS D'ECHEANCE D'ABONNEMENT (essai gratuit / acces offert)
+// Ajoute le 27/08/2026.
+//
+// Avant cette date, AUCUN email n'avertissait l'utilisateur : l'essai de 14
+// jours et les mois offerts se terminaient en silence, et l'artisan
+// decouvrait la coupure en pleine journee de chantier, sans comprendre.
+// C'est le meilleur levier de conversion identifie sur ce parcours : la
+// personne est encore active au moment ou on lui parle.
+// ---------------------------------------------------------------------------
+
+export type MotifEcheance = 'trial' | 'offert'
+export type EtapeRappel = 7 | 1 | -1
+
+interface RappelEcheanceParams {
+  to: { email: string; name?: string }
+  entrepriseNom?: string | null
+  logoUrl?: string | null
+  motif: MotifEcheance
+  /** 7 = J-7, 1 = dernier jour, -1 = acces deja termine. */
+  etape: EtapeRappel
+  /** Date de fin d'acces (ISO). */
+  dateFin: string
+}
+
+/**
+ * Envoie le rappel d'echeance correspondant a l'etape.
+ * Renvoie true si l'email est parti (le cron ne pose son tampon qu'alors).
+ */
+export async function sendRappelEcheance(params: RappelEcheanceParams): Promise<boolean> {
+  try {
+    const entNom = params.entrepriseNom || ''
+    const finFmt = new Date(`${params.dateFin.slice(0, 10)}T00:00:00Z`).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC',
+    })
+    const estOffert = params.motif === 'offert'
+    const nomAcces = estOffert ? 'votre acces offert' : 'votre essai gratuit'
+
+    // Ton progressif : informatif a J-7, direct le dernier jour, factuel apres.
+    const urgent = params.etape !== 7
+    const cardTone = urgent ? '#fef2f2' : '#eff6ff'
+    const cardBorder = urgent ? '#fecaca' : '#bfdbfe'
+    const cardAccent = urgent ? '#b91c1c' : '#1d4ed8'
+
+    let titre: string
+    let sujet: string
+    let intro: string
+
+    if (params.etape === 7) {
+      titre = estOffert ? 'Votre acces offert se termine dans 7 jours' : 'Votre essai se termine dans 7 jours'
+      sujet = estOffert ? 'Votre acces Nexartis se termine dans 7 jours' : 'Votre essai Nexartis se termine dans 7 jours'
+      intro = `Petit point : ${nomAcces} a Nexartis se termine le <strong>${finFmt}</strong>. Vous avez encore une semaine pour en profiter pleinement.`
+    } else if (params.etape === 1) {
+      titre = estOffert ? "Dernier jour de votre acces offert" : "Dernier jour de votre essai gratuit"
+      sujet = estOffert ? 'Dernier jour de votre acces Nexartis' : 'Dernier jour de votre essai Nexartis'
+      intro = `${estOffert ? 'Votre acces offert' : 'Votre essai gratuit'} se termine <strong>demain (${finFmt})</strong>. Passe cette date, votre tableau de bord sera mis en pause.`
+    } else {
+      titre = estOffert ? 'Votre acces offert est termine' : 'Votre essai gratuit est termine'
+      sujet = estOffert ? 'Votre acces Nexartis est termine' : 'Votre essai Nexartis est termine'
+      intro = `${estOffert ? 'Votre acces offert' : 'Votre essai gratuit'} s'est termine le <strong>${finFmt}</strong>. Votre tableau de bord est en pause, mais rien n'est perdu.`
+    }
+
+    const body = `
+    <h2 style="margin:0 0 12px;font-size:22px;color:#0f1a3a;font-weight:800;">${titre}</h2>
+    <p style="font-size:15px;color:#475569;line-height:1.7;">Bonjour${entNom ? ` ${entNom}` : ''},</p>
+    <p style="font-size:15px;color:#475569;line-height:1.7;">${intro}</p>
+
+    <div style="background:${cardTone};border:1px solid ${cardBorder};border-radius:8px;padding:16px 20px;margin:22px 0;">
+      <p style="margin:0 0 6px;font-size:12px;color:${cardAccent};font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Vos donnees sont conservees</p>
+      <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;">
+        Vos devis, factures, clients et chantiers restent en securite. Ils vous attendent
+        exactement comme vous les avez laisses, et redeviennent accessibles des votre abonnement.
+      </p>
+    </div>
+
+    <p style="font-size:15px;color:#475569;line-height:1.7;">
+      L'abonnement demarre a <strong>15 &euro; HT par mois</strong>, sans engagement : vous resiliez
+      quand vous voulez, en un clic, depuis votre espace.
+    </p>
+
+    ${btn('Choisir mon offre', 'https://nexartis.fr/dashboard/abonnement')}
+
+    <p style="font-size:14px;color:#64748b;line-height:1.7;margin-top:22px;">
+      Une question, un doute, une fonction qui vous manque&nbsp;? Repondez simplement a cet email,
+      c'est une vraie personne qui vous lira.
+    </p>
+
+    <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6;">
+        Cet email a ete envoye automatiquement par Nexartis a propos de votre compte.
+      </p>
+    </div>`
+
+    await sendEmail({
+      to: { email: params.to.email, name: params.to.name || entNom || params.to.email },
+      subject: sujet,
+      html: layout(body, { logoUrl: params.logoUrl || undefined, entrepriseNom: entNom || undefined }),
+      senderName: 'Nexartis',
+    })
+    return true
+  } catch (err) {
+    console.error('[sendRappelEcheance] error', err)
+    return false
+  }
+}
