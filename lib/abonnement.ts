@@ -28,7 +28,9 @@
  * On applique deux garde-fous :
  *   1. la presence d'un stripe_subscription_id rend le compte intouchable
  *      (c'est Stripe qui pilote, pas nous) ;
- *   2. un delai de grace de GRACE_DAYS jours apres la date d'expiration.
+ *   2. un delai de grace de GRACE_DAYS jours, applique UNIQUEMENT au statut
+ *      'suspendu' (relances de paiement Stripe en cours). Un mois offert,
+ *      lui, s'arrete a la date exacte : c'est celle annoncee au client.
  * En cas de doute (donnee manquante), on laisse passer : le design de tout
  * le projet est "fail-open" (cf. getPlan dans lib/plans.ts).
  */
@@ -90,9 +92,14 @@ export function accesOuvert(e: AbonnementEtat | null | undefined, now: Date = ne
     // 1. Vrai abonne Stripe : intouchable.
     if (estAbonneStripe(e)) return true
     // 2. Passage en actif a la main sans date (historique) : on laisse passer.
-    if (!limite) return true
-    // 3. Geste commercial date : on coupe apres la date + grace.
-    return limite > now
+    if (!expireAt) return true
+    // 3. GESTE COMMERCIAL ("+1 mois offert") : on coupe A LA DATE, sans delai
+    //    de grace. 27/08/2026 — le delai de grace existe pour proteger un
+    //    abonne Stripe d'un webhook en retard ; un mois offert, lui, a une
+    //    date decidee a la main : elle doit etre respectee au jour pres,
+    //    sinon la date annoncee au client dans l'email et sur son tableau
+    //    de bord serait fausse de trois jours.
+    return expireAt > now
   }
 
   if (type === 'suspendu') {
@@ -152,7 +159,11 @@ export function joursRestants(
   }
 
   let fin: Date | null = null
-  if (type === 'actif' || type === 'suspendu') {
+  if (type === 'actif') {
+    // Geste commercial : la date affichee est la date reelle (pas de grace).
+    fin = toDate(e.abonnement_expire_at)
+  } else if (type === 'suspendu') {
+    // Suspendu : la grace couvre les relances de paiement Stripe.
     const expire = toDate(e.abonnement_expire_at)
     fin = expire ? new Date(expire.getTime() + GRACE_DAYS * MS_PAR_JOUR) : null
   } else {

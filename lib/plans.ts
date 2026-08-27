@@ -116,6 +116,12 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     blockedRoutes: [
       '/dashboard/planning',
       '/dashboard/equipe',
+      // 27/08/2026 : les rapports d'intervention étaient annoncés comme
+      // réservés au Complet (badge ★ dans le menu, ligne PREMIUM_NAV_ITEMS,
+      // message d'upgrade rédigé) mais la route n'était bloquée NULLE PART,
+      // ni ici ni côté serveur. Un client Essentiel voyait l'étoile, cliquait,
+      // et utilisait la fonctionnalité librement.
+      '/dashboard/rapports',
       // Le devis vocal réservé Complet (paramètre ?voice=1)
       // Géré séparément via canUseFeature('devis_vocal_ia')
     ],
@@ -212,6 +218,9 @@ export function isRouteBlockedForPlan(planId: PlanId, pathname: string): boolean
 export function getFeatureFromBlockedRoute(pathname: string): FeatureKey | null {
   if (pathname.startsWith('/dashboard/planning')) return 'planning_chantier'
   if (pathname.startsWith('/dashboard/equipe')) return 'gestion_equipe'
+  // Sans cette ligne, un Essentiel arrivant sur /dashboard/rapports verrait le
+  // message d'upgrade du PLANNING (valeur par défaut côté layout).
+  if (pathname.startsWith('/dashboard/rapports')) return 'rapport_intervention'
   return null
 }
 
