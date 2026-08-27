@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useUser } from '@/lib/hooks'
 import { useConfirm } from '@/components/ui/v4/ConfirmDialog'
-import { accesOuvert, type AbonnementEtat } from '@/lib/abonnement'
+import { accesOuvert, joursRestants, type AbonnementEtat } from '@/lib/abonnement'
 
 const ADMIN_EMAIL = 'admin@nexartis.fr'
 
@@ -163,6 +163,40 @@ function getStatut(u: UserRecord): StatutAffiche {
 // Badge statut
 // -------------------------------------------------------------------
 
+/**
+ * Colonne « Échéance » — ajoutée le 27/08/2026.
+ *
+ * Avant, la date de fin d'accès n'existait QUE dans la fiche détaillée : pour
+ * savoir qui relancer, il fallait ouvrir les 18 comptes un par un. On affiche
+ * ici la date qui compte vraiment selon le cas, et le nombre de jours restants
+ * calculé par la même fonction que le middleware (lib/abonnement.ts).
+ */
+function EcheanceCell({ user }: { user: UserRecord }) {
+  const restant = joursRestants(user as unknown as AbonnementEtat)
+
+  // Abonné Stripe sans résiliation programmée : rien à surveiller.
+  if (restant === null) {
+    return <div className="text-sm font-manrope text-gray-300">—</div>
+  }
+
+  const date = user.abonnement_type === 'trial'
+    ? new Date(new Date(user.trial_started_at).getTime() + 14 * 86_400_000).toISOString()
+    : (user.resiliation_prevue_le ?? user.abonnement_expire_at)
+
+  const couleur = restant <= 0
+    ? 'text-red-600 font-semibold'
+    : restant <= 7
+      ? 'text-orange-600 font-semibold'
+      : 'text-gray-400'
+
+  return (
+    <div className={`text-sm font-manrope ${couleur}`}>
+      {date ? formatDate(date) : '—'}
+      <span className="ml-1 opacity-80">({restant <= 0 ? 'échu' : `${restant} j`})</span>
+    </div>
+  )
+}
+
 function AbonnementBadge({ user }: { user: UserRecord }) {
   const statut = getStatut(user)
   const config = ABONNEMENT_CONFIG[statut]
@@ -231,12 +265,32 @@ function UserDetailModal({
     const currentExpire = user.abonnement_expire_at ? new Date(user.abonnement_expire_at) : null
     const baseDate = currentExpire && currentExpire > now ? currentExpire : now
     const newExpire = new Date(baseDate)
-    newExpire.setDate(newExpire.getDate() + months * 30)
+    // 27/08/2026 : mois CALENDAIRES (setMonth) et non 30 jours — « +3 mois »
+    // donnait 90 jours, soit 1 à 2 jours de moins qu'un vrai trimestre.
+    newExpire.setMonth(newExpire.getMonth() + months)
 
     // Ajouter une note d'historique automatique
     const stamp = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     const noteLine = `[${stamp}] +${months} mois offert${months > 1 ? 's' : ''} (expire le ${newExpire.toLocaleDateString('fr-FR')})`
-    const newNotes = notes.trim() ? `${notes}\n${noteLine}` : noteLine
+    // 27/08/2026 : la colonne est plafonnée à 500 caractères côté API. Chaque
+    // geste commercial ajoutant une ligne d'historique, au bout de ~8 gestes
+    // l'API renvoyait 400 et le mois n'était PAS offert, avec un message
+    // d'erreur incompréhensible. On ne garde donc que les dernières lignes.
+    const brut = notes.trim() ? `${notes}\n${noteLine}` : noteLine
+    let newNotes = brut
+    if (brut.length > 500) {
+      // On conserve les lignes les PLUS RÉCENTES (fin de la chaîne).
+      const lignes = brut.split('\n')
+      const gardees: string[] = []
+      for (let i = lignes.length - 1; i >= 0; i--) {
+        gardees.unshift(lignes[i])
+        if (gardees.join('\n').length > 500) {
+          gardees.shift()
+          break
+        }
+      }
+      newNotes = gardees.length > 0 ? gardees.join('\n') : noteLine.slice(0, 500)
+    }
 
     // V3.0c.20 : on signale le geste commercial pour declencher le mail dedie
     await onSave(user.id, 'actif', newNotes, newExpire.toISOString(), months)
@@ -430,10 +484,38 @@ function UserDetailModal({
             <p className="text-xs text-gray-500 font-manrope mb-3">
               Offrir des mois gratuits. Le compte passera en <strong>Actif</strong> et la date d&apos;expiration sera mise à jour automatiquement.
             </p>
-            {user.abonnement_expire_at && (
-              <div className="text-xs font-manrope text-[#1a1a2e] bg-white rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
-                <Calendar size={12} className="text-gray-400" />
-                Actif jusqu&apos;au <strong>{formatDate(user.abonnement_expire_at)}</strong>
+            {/* 27/08/2026 — une date PASSÉE s'affichait exactement comme une
+                date future, en noir, sans la moindre alerte : impossible de
+                voir d'un coup d'œil que l'accès offert était terminé. */}
+            {user.abonnement_expire_at && (() => {
+              const fin = new Date(user.abonnement_expire_at)
+              const passee = fin.getTime() < Date.now()
+              const jours = Math.abs(Math.ceil((fin.getTime() - Date.now()) / 86_400_000))
+              return (
+                <div
+                  className={`text-xs font-manrope rounded-lg px-3 py-2 mb-3 flex items-center gap-2 ${
+                    passee
+                      ? 'bg-orange-50 text-orange-900 border border-orange-200'
+                      : 'bg-white text-[#1a1a2e]'
+                  }`}
+                >
+                  <Calendar size={12} className={passee ? 'text-orange-500' : 'text-gray-400'} />
+                  {passee ? (
+                    <>Expiré depuis le <strong>{formatDate(user.abonnement_expire_at)}</strong> ({jours} j)</>
+                  ) : (
+                    <>Actif jusqu&apos;au <strong>{formatDate(user.abonnement_expire_at)}</strong> ({jours} j)</>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Un geste commercial sur un abonné Stripe est sans effet :
+                accesOuvert() laisse toujours passer un abonnement en cours, et
+                le webhook réécrit les dates. Autant le dire ici. */}
+            {user.stripe_subscription_id && (
+              <div className="text-xs font-manrope bg-amber-50 text-amber-900 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                Abonné Stripe : la facturation est pilotée par Stripe. Un mois offert n&apos;aura
+                aucun effet — passez par un coupon dans le tableau de bord Stripe.
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
@@ -832,6 +914,9 @@ export default function AdminPage() {
                     <th className="px-4 py-3 text-left text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Entreprise</th>
                     <th className="px-4 py-3 text-left text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Métier</th>
                     <th className="px-4 py-3 text-left text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider">Abonnement</th>
+                    {/* 27/08/2026 : la date d'échéance n'était visible qu'en
+                        ouvrant la fiche, une par une. */}
+                    <th className="px-4 py-3 text-left text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Échéance</th>
                     <th className="px-4 py-3 text-left text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Inscrit</th>
                     <th className="px-4 py-3 text-left text-xs font-manrope font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">Dernière co.</th>
                     <th className="px-4 py-3"></th>
@@ -864,6 +949,9 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3">
                         <AbonnementBadge user={u} />
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <EcheanceCell user={u} />
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="text-sm font-manrope text-gray-400">{formatDate(u.created_at)}</div>

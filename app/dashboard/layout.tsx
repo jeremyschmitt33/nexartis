@@ -1048,6 +1048,14 @@ export default function DashboardLayout({
   useEffect(() => {
     if (roleLoading) return
     if (role === null || role === 'dirigeant') return
+    // 27/08/2026 — BOUCLE INFINIE corrigée. La garde d'abonnement ci-dessus
+    // envoie tout compte bloqué vers /dashboard/abonnement, page réservée au
+    // dirigeant : cette garde-ci le renvoyait aussitôt vers sa page d'accueil,
+    // que la garde d'abonnement renvoyait de nouveau vers /dashboard/abonnement.
+    // Un salarié se retrouvait avec une application totalement inutilisable dès
+    // que l'abonnement du patron expirait. On ne redirige donc jamais depuis
+    // cette page : elle affiche son propre message pour les employés.
+    if (pathname.startsWith('/dashboard/abonnement')) return
     if (canAccessDashboardPath(role, pathname)) return
     router.replace(DEFAULT_LANDING[role])
   }, [roleLoading, role, pathname, router])

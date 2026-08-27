@@ -347,3 +347,27 @@ export function stripePriceIdForPlan(plan: PlanId): string | undefined {
   if (plan === 'essential') return process.env.STRIPE_PRICE_ESSENTIAL
   return process.env.STRIPE_PRICE_COMPLETE ?? process.env.STRIPE_PRICE_ID
 }
+
+/**
+ * Fonction INVERSE de `stripePriceIdForPlan` : retrouve l'offre à partir de
+ * l'identifiant de prix Stripe.
+ *
+ * ⚠️ À N'UTILISER QUE CÔTÉ SERVEUR (mêmes variables d'environnement).
+ *
+ * Ajoutée le 27/08/2026 : le webhook `customer.subscription.updated` ne
+ * mettait PAS à jour `subscription_plan`. Un client qui changeait d'offre
+ * depuis le portail Stripe payait le nouveau prix mais gardait les droits
+ * de l'ancien — un passage Complet → Essentiel facturait 15 € tout en
+ * laissant le planning, l'équipe et le devis vocal accessibles.
+ *
+ * Retourne null si le prix ne correspond à aucune offre connue : l'appelant
+ * doit alors NE RIEN écrire plutôt que de deviner (ne jamais rétrograder un
+ * client sur une simple inconnue).
+ */
+export function planFromStripePriceId(priceId: string | null | undefined): PlanId | null {
+  if (!priceId) return null
+  if (priceId === process.env.STRIPE_PRICE_ESSENTIAL) return 'essential'
+  if (priceId === process.env.STRIPE_PRICE_COMPLETE) return 'complete'
+  if (priceId === process.env.STRIPE_PRICE_ID) return 'complete' // ancien prix unique
+  return null
+}

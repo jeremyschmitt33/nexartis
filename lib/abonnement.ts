@@ -18,11 +18,14 @@
  * ------------------------------------------------------------------------
  * REGLE DE PRUDENCE (ne JAMAIS couper un client qui paye)
  * ------------------------------------------------------------------------
- * Un vrai abonne Stripe a lui aussi une abonnement_expire_at : le webhook
- * y ecrit la fin de periode a chaque renouvellement
- * (app/api/stripe/webhook/route.ts). Si ce webhook a du retard, la date est
- * dans le passe alors que le client est parfaitement a jour.
- * On applique donc deux garde-fous :
+ * Un abonne Stripe peut lui aussi porter une abonnement_expire_at : le
+ * checkout la met a null, puis invoice.payment_failed y ecrit une fin de
+ * relance (dunning) le temps que Stripe retente le prelevement, et
+ * customer.subscription.deleted y ecrit la fin de la periode payee.
+ * Entre deux, elle reste nulle : le renouvellement mensuel ne la reecrit PAS.
+ * Il ne faut donc jamais deduire d'une date absente ou passee qu'un abonne
+ * Stripe ne paie plus.
+ * On applique deux garde-fous :
  *   1. la presence d'un stripe_subscription_id rend le compte intouchable
  *      (c'est Stripe qui pilote, pas nous) ;
  *   2. un delai de grace de GRACE_DAYS jours apres la date d'expiration.
@@ -48,6 +51,8 @@ export interface AbonnementEtat {
   abonnement_expire_at?: string | null
   created_at?: string | null
   stripe_subscription_id?: string | null
+  /** Non NULL = resiliation Stripe programmee a cette date (fin de periode). */
+  resiliation_prevue_le?: string | null
 }
 
 /** Parse une date ISO en Date, ou null si absente / invalide. */
@@ -91,8 +96,12 @@ export function accesOuvert(e: AbonnementEtat | null | undefined, now: Date = ne
   }
 
   if (type === 'suspendu') {
-    // Suspendu sans date = suspension immediate.
-    if (!limite) return false
+    // 27/08/2026 — un abonne Stripe encore lie (past_due pendant les relances
+    // automatiques) ne doit PAS etre coupe le jour du premier echec de carte :
+    // Stripe retente le prelevement pendant plusieurs jours. Si aucune date de
+    // fin de relance n'a ete posee (evenements recus dans le desordre), on
+    // laisse ouvert — c'est le webhook qui tranchera.
+    if (!limite) return estAbonneStripe(e)
     return limite > now
   }
 
@@ -117,7 +126,15 @@ export function motifFermeture(
   return 'trial_expire'
 }
 
-/** Jours restants avant fermeture (0 si deja ferme, null si illimite). */
+/**
+ * Jours restants avant la fermeture reelle de l'acces.
+ * Renvoie null quand il n'y a pas d'echeance (acces a vie, abonnement Stripe
+ * qui se renouvele tout seul), et 0 quand l'acces est deja ferme.
+ *
+ * La date de reference est la MEME que celle utilisee par accesOuvert(),
+ * delai de grace inclus : sans cela l'interface affichait « expire
+ * aujourd'hui » trois jours de suite pendant la periode de grace.
+ */
 export function joursRestants(
   e: AbonnementEtat | null | undefined,
   now: Date = new Date(),
@@ -125,11 +142,19 @@ export function joursRestants(
   if (!e) return null
   const type = e.abonnement_type ?? 'trial'
   if (type === 'lifetime') return null
-  if (type === 'actif' && estAbonneStripe(e)) return null
+
+  if (type === 'actif' && estAbonneStripe(e)) {
+    // Abonne Stripe : pas d'echeance, SAUF resiliation programmee depuis le
+    // portail (l'app ne prevenait pas du tout dans ce cas avant le 27/08).
+    const finAbo = toDate(e.resiliation_prevue_le)
+    if (!finAbo) return null
+    return Math.max(0, Math.ceil((finAbo.getTime() - now.getTime()) / MS_PAR_JOUR))
+  }
 
   let fin: Date | null = null
   if (type === 'actif' || type === 'suspendu') {
-    fin = toDate(e.abonnement_expire_at)
+    const expire = toDate(e.abonnement_expire_at)
+    fin = expire ? new Date(expire.getTime() + GRACE_DAYS * MS_PAR_JOUR) : null
   } else {
     const debut = toDate(e.trial_started_at) ?? toDate(e.created_at)
     fin = debut ? new Date(debut.getTime() + TRIAL_DAYS * MS_PAR_JOUR) : null

@@ -3,6 +3,57 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { getInvoiceSubscriptionId } from '@/lib/parrainage-recompense'
+import { planFromStripePriceId } from '@/lib/plans'
+
+// ---------------------------------------------------------------------------
+// Helpers ajoutes le 27/08/2026 (audit Stripe)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fin de la periode en cours d'une souscription, en millisecondes.
+ *
+ * ⚠️ POURQUOI CE HELPER EXISTE — bug corrige le 27/08/2026 :
+ * le projet est epingle sur l'API Stripe '2026-03-25.dahlia' (lib/stripe.ts).
+ * Dans cette version, `current_period_end` N'EXISTE PLUS sur l'objet
+ * Subscription : il a ete deplace sur chaque SubscriptionItem.
+ * L'ancien code faisait `new Date(subscription.current_period_end * 1000)`
+ * => undefined * 1000 = NaN => `new Date(NaN).toISOString()` LEVE une
+ * RangeError, avant meme l'ecriture en base. Consequence : le handler
+ * `customer.subscription.deleted` plantait a chaque resiliation, l'abonnement
+ * restait 'actif' avec son stripe_subscription_id, et le client gardait un
+ * acces complet a vie sans plus jamais payer.
+ *
+ * On lit donc les items d'abord, puis les dates de fin de la souscription
+ * elle-meme, et on ne renvoie JAMAIS NaN.
+ */
+function finDePeriodeMs(subscription: Stripe.Subscription): number {
+  const sub = subscription as unknown as {
+    items?: { data?: Array<{ current_period_end?: number | null }> }
+    current_period_end?: number | null
+    ended_at?: number | null
+    cancel_at?: number | null
+  }
+  const candidats = [
+    sub.items?.data?.[0]?.current_period_end,
+    sub.current_period_end, // anciennes versions d'API : on reste tolerant
+    sub.ended_at,
+    sub.cancel_at,
+  ]
+  for (const ts of candidats) {
+    if (typeof ts === 'number' && Number.isFinite(ts) && ts > 0) return ts * 1000
+  }
+  // Dernier recours : maintenant. Mieux vaut couper l'acces aujourd'hui que
+  // planter et laisser un abonnement resilie ouvert indefiniment.
+  return Date.now()
+}
+
+/** Offre (essential/complete) portee par la souscription, ou null si inconnue. */
+function planDeLaSouscription(subscription: Stripe.Subscription): 'essential' | 'complete' | null {
+  const sub = subscription as unknown as {
+    items?: { data?: Array<{ price?: { id?: string | null } | null }> }
+  }
+  return planFromStripePriceId(sub.items?.data?.[0]?.price?.id)
+}
 
 /**
  * POST /api/stripe/webhook
@@ -105,18 +156,42 @@ export async function POST(req: NextRequest) {
         const planChoisi = session.metadata?.nexartis_plan
         const subscriptionPlan = (planChoisi === 'essential' || planChoisi === 'complete') ? planChoisi : 'complete'
 
-        if (entrepriseId) {
+        // 27/08/2026 — on n'active QUE si le paiement est reellement encaisse.
+        // Avant, un checkout complete mais dont l'authentification 3-D Secure
+        // echouait ensuite (souscription 'incomplete') donnait un acces complet
+        // permanent sans un centime encaisse.
+        // 'no_payment_required' couvre les cas 100 % remise / essai Stripe.
+        const paiementOk = session.payment_status === 'paid'
+          || session.payment_status === 'no_payment_required'
+
+        if (entrepriseId && !paiementOk) {
+          console.warn(
+            `[Stripe] checkout.session.completed IGNORE pour ${entrepriseId} : payment_status=${session.payment_status}`,
+          )
+        }
+
+        if (entrepriseId && paiementOk) {
+          // 27/08/2026 — ne JAMAIS ecraser un identifiant Stripe existant par
+          // null : si Stripe renvoie un objet etendu au lieu d'une chaine, on
+          // perdrait le lien et tous les evenements suivants (renouvellement,
+          // resiliation) ne retrouveraient plus l'entreprise.
+          const customerId = typeof session.customer === 'string'
+            ? session.customer
+            : (session.customer as Stripe.Customer | null)?.id ?? null
+
+          const updates: Record<string, unknown> = {
+            abonnement_type: 'actif',
+            subscription_plan: subscriptionPlan,
+            abonnement_expire_at: null,
+            // Nouvel abonnement : on efface toute resiliation programmee anterieure
+            resiliation_prevue_le: null,
+          }
+          if (subscriptionId) updates.stripe_subscription_id = subscriptionId
+          if (customerId) updates.stripe_customer_id = customerId
+
           await supabase
             .from('entreprises')
-            .update({
-              abonnement_type: 'actif',
-              subscription_plan: subscriptionPlan,
-              stripe_subscription_id: subscriptionId || null,
-              stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
-              abonnement_expire_at: null,
-              // Nouvel abonnement : on efface toute resiliation programmee anterieure
-              resiliation_prevue_le: null,
-            })
+            .update(updates)
             .eq('id', entrepriseId)
 
           console.log(`[Stripe] Abonnement active pour entreprise ${entrepriseId}`)
@@ -147,16 +222,46 @@ export async function POST(req: NextRequest) {
         const subscriptionId = getInvoiceSubscriptionId(invoice)
 
         if (subscriptionId) {
-          const { data: entreprise } = await supabase
+          let { data: entreprise } = await supabase
             .from('entreprises')
             .select('id')
             .eq('stripe_subscription_id', subscriptionId)
             .single()
 
+          // 27/08/2026 — RATTRAPAGE. stripe_subscription_id n'est ecrit que par
+          // checkout.session.completed. Si cet evenement a ete perdu (500
+          // repetes, maintenance, abandon des retries Stripe au bout de ~3
+          // jours), le lookup echouait ici a CHAQUE renouvellement : le client
+          // etait preleve tous les mois tout en etant redirige vers
+          // "abonnement expire", sans aucun moyen de rattrapage automatique.
+          // On retombe donc sur le customer Stripe, et on repare le lien.
+          if (!entreprise) {
+            const customerId = typeof invoice.customer === 'string'
+              ? invoice.customer
+              : (invoice.customer as Stripe.Customer | null)?.id ?? null
+            if (customerId) {
+              const { data: parCustomer } = await supabase
+                .from('entreprises')
+                .select('id')
+                .eq('stripe_customer_id', customerId)
+                .single()
+              if (parCustomer) {
+                entreprise = parCustomer
+                await supabase
+                  .from('entreprises')
+                  .update({ stripe_subscription_id: subscriptionId })
+                  .eq('id', parCustomer.id)
+                console.warn(
+                  `[Stripe] Lien souscription repare pour entreprise ${parCustomer.id} (${subscriptionId})`,
+                )
+              }
+            }
+          }
+
           if (entreprise) {
             await supabase
               .from('entreprises')
-              .update({ abonnement_type: 'actif' })
+              .update({ abonnement_type: 'actif', resiliation_prevue_le: null })
               .eq('id', entreprise.id)
           }
         }
@@ -184,10 +289,18 @@ export async function POST(req: NextRequest) {
             .single()
 
           if (entreprise) {
+            // 27/08/2026 — on pose une FIN DE RELANCE (dunning) explicite.
+            // Stripe retente le prelevement pendant plusieurs jours (smart
+            // retries) : couper l'acces des le premier echec ferait fuir un
+            // client dont la carte a simplement expire. On laisse 14 jours,
+            // apres quoi lib/abonnement.ts coupera si rien n'a ete paye.
+            // (invoice.payment_succeeded remettra 'actif' entre-temps.)
+            const finRelance = new Date(Date.now() + 14 * 86_400_000)
             await supabase
               .from('entreprises')
               .update({
-                notes_admin: `[Auto] Paiement echoue le ${new Date().toLocaleDateString('fr-FR')}`,
+                abonnement_expire_at: finRelance.toISOString(),
+                notes_admin: `[Auto] Paiement echoue le ${new Date().toLocaleDateString('fr-FR')} — acces maintenu jusqu'au ${finRelance.toLocaleDateString('fr-FR')}`,
               })
               .eq('id', entreprise.id)
 
@@ -207,7 +320,10 @@ export async function POST(req: NextRequest) {
           .single()
 
         if (entreprise) {
-          const periodEnd = new Date((subscription as any).current_period_end * 1000)
+          // 27/08/2026 — passe par finDePeriodeMs() : l'ancien acces direct a
+          // subscription.current_period_end donnait NaN sur l'API dahlia et
+          // faisait planter tout le handler (cf. commentaire du helper).
+          const periodEnd = new Date(finDePeriodeMs(subscription))
 
           await supabase
             .from('entreprises')
@@ -235,11 +351,30 @@ export async function POST(req: NextRequest) {
           .single()
 
         if (entreprise) {
+          // 27/08/2026 — mapping EXHAUSTIF. Avant, la valeur par defaut etait
+          // 'actif' : les statuts 'incomplete', 'incomplete_expired' et
+          // 'paused' retombaient donc sur "abonnement actif" alors qu'aucun
+          // paiement n'etait encaisse.
           const status = subscription.status
-          let abonnementType = 'actif'
-          if (status === 'past_due' || status === 'unpaid') abonnementType = 'suspendu'
-          if (status === 'canceled') abonnementType = 'suspendu'
-          if (status === 'active' || status === 'trialing') abonnementType = 'actif'
+          let abonnementType: string
+          switch (status) {
+            case 'active':
+            case 'trialing':
+              abonnementType = 'actif'
+              break
+            case 'past_due':
+            case 'unpaid':
+            case 'canceled':
+            case 'incomplete':
+            case 'incomplete_expired':
+            case 'paused':
+              abonnementType = 'suspendu'
+              break
+            default:
+              // Statut inconnu (nouvelle valeur ajoutee par Stripe) : on ne
+              // touche a rien plutot que de couper un client qui paie.
+              abonnementType = ''
+          }
 
           // RESILIATION PROGRAMMEE (P-admin) : quand le client clique
           // "Annuler l'abonnement" dans le portail Stripe avec l'option
@@ -253,16 +388,31 @@ export async function POST(req: NextRequest) {
           }
           let resiliationPrevueLe: string | null = null
           if (sub.cancel_at_period_end) {
-            const ts = sub.cancel_at ?? sub.current_period_end ?? null
-            resiliationPrevueLe = ts ? new Date(ts * 1000).toISOString() : null
+            // finDePeriodeMs gere l'API dahlia (current_period_end deplace sur
+            // les items) ; cancel_at reste prioritaire quand il est pose.
+            const ts = sub.cancel_at ? sub.cancel_at * 1000 : finDePeriodeMs(subscription)
+            resiliationPrevueLe = new Date(ts).toISOString()
           }
+
+          const updates: Record<string, unknown> = { resiliation_prevue_le: resiliationPrevueLe }
+          if (abonnementType) updates.abonnement_type = abonnementType
+
+          // 27/08/2026 — l'offre suit le prix Stripe. Sans cela, un client qui
+          // passait de Complet a Essentiel depuis le portail payait 15 € tout
+          // en gardant planning, equipe, devis vocal et export comptable ;
+          // et l'inverse payait 25 € en restant bloque sur l'Essentiel.
+          // On n'ecrit rien si le prix ne correspond a aucune offre connue :
+          // ne jamais retrograder un client sur une simple inconnue.
+          const planSouscrit = planDeLaSouscription(subscription)
+          if (planSouscrit) updates.subscription_plan = planSouscrit
+
+          // Un abonnement redevenu sain efface la fin de relance posee par
+          // invoice.payment_failed.
+          if (abonnementType === 'actif') updates.abonnement_expire_at = null
 
           await supabase
             .from('entreprises')
-            .update({
-              abonnement_type: abonnementType,
-              resiliation_prevue_le: resiliationPrevueLe,
-            })
+            .update(updates)
             .eq('id', entreprise.id)
         }
         break

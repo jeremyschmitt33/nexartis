@@ -130,13 +130,58 @@ export async function PATCH(request: Request) {
     console.error('[admin/users PATCH] fetch entreprise error:', avantError.message)
   }
 
+  // 27/08/2026 — sans cette garde, un compte auth SANS ligne `entreprises`
+  // (inscription jamais terminée) passait par un update qui ne matchait
+  // AUCUNE ligne, sans erreur : le back-office affichait « Abonnement mis à
+  // jour ✓ » alors que rien n'avait été écrit.
+  if (!avant) {
+    return secureError('Profil entreprise introuvable pour ce compte', 404)
+  }
+
+  // 27/08/2026 — validation de la date reçue (elle était écrite telle quelle).
+  if (
+    abonnement_expire_at !== undefined
+    && abonnement_expire_at !== null
+    && Number.isNaN(Date.parse(abonnement_expire_at))
+  ) {
+    return secureError('Date d\'expiration invalide')
+  }
+
   const updates: Record<string, unknown> = { abonnement_type }
   if (notes_admin !== undefined) updates.notes_admin = notes_admin
   if (abonnement_expire_at !== undefined) updates.abonnement_expire_at = abonnement_expire_at
 
-  // Si on passe en lifetime, on supprime la date d'expiration
+  // ────────────────────────────────────────────────────────────────
+  // 27/08/2026 — NETTOYAGE DES CHAMPS QUI SURVIVAIENT AU CHANGEMENT
+  // Seul 'lifetime' effaçait la date. Conséquences observées :
+  //  - passer un compte en 'suspendu' alors qu'une vieille date FUTURE
+  //    traînait rendait la suspension INOPÉRANTE (lib/abonnement.ts laisse
+  //    passer un suspendu jusqu'à sa date) : le back-office affichait
+  //    « Suspendu » et l'accès restait ouvert ;
+  //  - repasser un compte en 'trial' laissait la date, qui ressurgissait
+  //    telle quelle au retour en 'actif'.
+  // ────────────────────────────────────────────────────────────────
   if (abonnement_type === 'lifetime') {
     updates.abonnement_expire_at = null
+    updates.resiliation_prevue_le = null
+  }
+
+  if (abonnement_type === 'suspendu' && abonnement_expire_at === undefined) {
+    // Suspension décidée à la main = suspension immédiate.
+    updates.abonnement_expire_at = null
+  }
+
+  if (abonnement_type === 'trial' && abonnement_expire_at === undefined) {
+    // Remettre en essai = repartir d'un essai neuf, sinon le compte affiche
+    // « Essai expiré (0 j) » dans la seconde qui suit.
+    updates.abonnement_expire_at = null
+    updates.trial_started_at = new Date().toISOString()
+  }
+
+  if (abonnement_type === 'actif' && avant.resiliation_prevue_le) {
+    // Réactivation manuelle : sans cela le compte restait marqué « Annulé »
+    // indéfiniment, seul le webhook Stripe effaçant ce champ.
+    updates.resiliation_prevue_le = null
   }
 
   const { error } = await supabaseAdmin

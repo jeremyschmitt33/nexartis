@@ -15,16 +15,27 @@ import {
   Shield,
   Award,
   Lock,
+  Gift,
 } from 'lucide-react'
 import { useEntreprise, useUser, LoadingSkeleton } from '@/lib/hooks'
 import { PLANS, UPGRADE_MESSAGES, type FeatureKey, type PlanId } from '@/lib/plans'
-import { accesOuvert, type AbonnementEtat } from '@/lib/abonnement'
+// ⚠️ joursRestants est importé sous alias : `const joursRestants` existe déjà
+// comme variable locale dans computeStatus (branches suspendu et trial). Sans
+// alias, l'appel dans la branche « actif » tomberait dans la zone morte
+// temporelle de ce const et lèverait une ReferenceError à l'exécution.
+import {
+  accesOuvert,
+  joursRestants as joursRestantsAcces,
+  TRIAL_DAYS,
+  type AbonnementEtat,
+} from '@/lib/abonnement'
 
 // -------------------------------------------------------------------
 // Constantes
 // -------------------------------------------------------------------
 
-const TRIAL_DAYS = 14
+// TRIAL_DAYS vient de lib/abonnement.ts (source unique) — il était redéclaré
+// ici, ce qui recréait exactement la divergence que ce fichier doit éviter.
 
 // Prix : source de vérité = lib/plans.ts (PLANS[plan].priceMonthlyHT).
 // Le prix affiché dépend du plan sélectionné.
@@ -71,7 +82,9 @@ function formatDateFr(d: Date): string {
 }
 
 type AbonnementStatus = {
-  type: 'trial' | 'actif' | 'suspendu' | 'lifetime'
+  // 27/08/2026 : 'offert' (mois offert en cours) et 'offert_termine' ajoutés —
+  // ils ne doivent surtout pas être confondus avec un abonnement Stripe payant.
+  type: 'trial' | 'actif' | 'suspendu' | 'lifetime' | 'offert' | 'offert_termine'
   joursRestants: number | null
   expireAt: Date | null
   badge: { label: string; color: 'green' | 'orange' | 'red' | 'purple' | 'blue' }
@@ -96,27 +109,52 @@ function computeStatus(entreprise: Record<string, unknown> | null): AbonnementSt
   }
 
   if (abonnementType === 'actif') {
+    const etat = entreprise as unknown as AbonnementEtat
+    const expireAt = entreprise.abonnement_expire_at
+      ? new Date(entreprise.abonnement_expire_at as string)
+      : null
+
     // 27/08/2026 — un compte passé en 'actif' par geste commercial (mois
     // offert) n'a PAS d'abonnement Stripe : quand la date d'expiration est
     // passée, son accès est coupé. Il doit alors voir les offres et pouvoir
     // payer, pas un badge « Actif » vert qui l'empêche de comprendre.
-    // On le traite comme un accès terminé (même parcours que « suspendu »).
-    if (!hasStripeSubscription && !accesOuvert(entreprise as unknown as AbonnementEtat)) {
+    if (!hasStripeSubscription && !accesOuvert(etat)) {
       return {
-        type: 'suspendu',
+        type: 'offert_termine',
         joursRestants: 0,
-        expireAt: entreprise.abonnement_expire_at
-          ? new Date(entreprise.abonnement_expire_at as string)
-          : null,
+        expireAt,
         badge: { label: 'Accès offert terminé', color: 'orange' },
         hasStripeSubscription: false,
       }
     }
+
+    // 27/08/2026 — accès offert ENCORE VALABLE. Avant, la page affichait
+    // « Abonnement actif — merci pour votre confiance », sans date de fin,
+    // sans les offres, et avec un bouton « Gérer mon abonnement » qui
+    // renvoyait une erreur faute de client Stripe. L'artisan se croyait
+    // abonné puis était coupé du jour au lendemain.
+    if (!hasStripeSubscription) {
+      return {
+        type: 'offert',
+        joursRestants: joursRestantsAcces(etat),
+        expireAt,
+        badge: { label: 'Accès offert', color: 'blue' },
+        hasStripeSubscription: false,
+      }
+    }
+
+    // Vrai abonné Stripe. joursRestants ne vaut non-null que si une
+    // résiliation est programmée depuis le portail Stripe.
+    const finProgrammee = entreprise.resiliation_prevue_le
+      ? new Date(entreprise.resiliation_prevue_le as string)
+      : null
     return {
       type: 'actif',
-      joursRestants: null,
-      expireAt: null,
-      badge: { label: 'Actif', color: 'green' },
+      joursRestants: joursRestantsAcces(etat),
+      expireAt: finProgrammee,
+      badge: finProgrammee
+        ? { label: 'Résiliation programmée', color: 'orange' }
+        : { label: 'Actif', color: 'green' },
       hasStripeSubscription,
     }
   }
@@ -145,8 +183,14 @@ function computeStatus(entreprise: Record<string, unknown> | null): AbonnementSt
     ? new Date(entreprise.trial_started_at as string)
     : new Date(entreprise.created_at as string)
   const expireAt = new Date(trialStarted.getTime() + TRIAL_DAYS * 86_400_000)
-  const joursRestants = Math.ceil((expireAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  const isExpired = joursRestants < 0
+  // 27/08/2026 — l'expiration est tranchée par accesOuvert(), pas par un
+  // arrondi local : un essai terminé depuis moins de 24 h donnait
+  // Math.ceil(-0.1) = -0, donc « en cours », alors que le middleware venait
+  // déjà de bloquer l'utilisateur.
+  const isExpired = !accesOuvert(entreprise as unknown as AbonnementEtat)
+  const joursRestants = isExpired
+    ? -1
+    : Math.ceil((expireAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
 
   return {
     type: 'trial',
@@ -224,7 +268,11 @@ function AbonnementPageContent() {
   // Offre choisie par l'utilisateur. Défaut 'complete' (recommandée + rétrocompatible).
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('complete')
 
-  const isExpiredFlow = searchParams.get('expired') === '1'
+  // NB : le paramètre ?expired=1 n'est volontairement plus lu. Il servait à
+  // afficher le bandeau « accès suspendu », ce qui le montrait aussi à un
+  // abonné parfaitement à jour ouvrant un vieux lien. L'état réel vient
+  // maintenant d'accesOuvert() (lib/abonnement.ts), comme dans le middleware.
+
   // ?upgrade=planning_chantier (ou autre feature) : on arrive ici depuis une
   // page bloquée pour les utilisateurs Essentiel. Affichage d'un bandeau
   // explicatif avec le message custom de UPGRADE_MESSAGES (cf. lib/plans.ts).
@@ -392,13 +440,11 @@ function AbonnementPageContent() {
     )
   }
 
-  // L'utilisateur est expiré si :
-  // - trial avec joursRestants < 0
-  // - suspendu sans date ou avec date dépassée
-  const isUserBlocked =
-    (status.type === 'trial' && status.joursRestants !== null && status.joursRestants < 0) ||
-    (status.type === 'suspendu' &&
-      (status.expireAt === null || (status.joursRestants !== null && status.joursRestants <= 0)))
+  // 27/08/2026 — l'état de blocage vient désormais de la MÊME fonction que le
+  // middleware (lib/abonnement.ts) : la page affichait « toutes vos pages sont
+  // bloquées » alors que le dashboard fonctionnait encore (délai de grâce), et
+  // inversement « essai en cours » pendant les premières 24 h après expiration.
+  const isUserBlocked = !accesOuvert(entreprise as unknown as AbonnementEtat)
 
   // Prix et features du plan actuellement sélectionné (source : lib/plans.ts)
   const priceHT = PLANS[selectedPlan].priceMonthlyHT
@@ -440,7 +486,9 @@ function AbonnementPageContent() {
       )}
 
       {/* Bannière de blocage : UTILISATEUR EXPIRÉ */}
-      {(isUserBlocked || isExpiredFlow) && (
+      {/* isExpiredFlow (?expired=1) n'est plus une condition suffisante : un
+          abonné actif qui ouvrait un vieux lien voyait « Accès suspendu ». */}
+      {isUserBlocked && (
         <div className="mb-6 rounded-2xl border border-red-300/60 bg-gradient-to-br from-red-50 to-orange-50/60 p-5 sm:p-6
                         shadow-[0_4px_16px_rgba(220,38,38,0.08)]">
           <div className="flex items-start gap-4">
@@ -499,7 +547,11 @@ function AbonnementPageContent() {
                     ? 'Période d’essai expirée'
                     : status.type === 'actif'
                       ? 'Abonnement actif'
-                      : 'Abonnement suspendu'}
+                      : status.type === 'offert'
+                        ? 'Accès offert en cours'
+                        : status.type === 'offert_termine'
+                          ? 'Accès offert terminé'
+                          : 'Abonnement suspendu'}
               </h1>
               <span
                 className={`inline-flex items-center px-3 py-1 rounded-full border font-hanken text-[11.5px] font-bold tracking-wider uppercase ${badgeColorMap[status.badge.color]}`}
@@ -508,7 +560,9 @@ function AbonnementPageContent() {
               </span>
             </div>
           </div>
-          {status.type === 'actif' && (
+          {/* Le portail Stripe n'existe que pour un vrai abonné : sans client
+              Stripe, ce bouton renvoyait une erreur 404 à l'utilisateur. */}
+          {status.type === 'actif' && status.hasStripeSubscription && (
             <button
               onClick={handlePortal}
               disabled={loadingPortal}
@@ -564,7 +618,7 @@ function AbonnementPageContent() {
           </div>
         )}
 
-        {status.type === 'actif' && (
+        {status.type === 'actif' && !status.expireAt && (
           <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/70 p-4 flex items-start gap-3">
             <CheckCircle2 size={20} className="text-emerald-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -574,6 +628,69 @@ function AbonnementPageContent() {
               <p className="font-hanken text-xs text-emerald-700 mt-1">
                 Pour modifier votre carte, télécharger vos factures ou résilier, cliquez sur «&nbsp;Gérer
                 mon abonnement&nbsp;». Vous serez redirigé vers le portail sécurisé Stripe.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Résiliation programmée depuis le portail Stripe : l'app ne le disait
+            nulle part, le client perdait l'accès sans aucun préavis. */}
+        {status.type === 'actif' && status.expireAt && (
+          <div className="rounded-xl bg-amber-50/80 border border-amber-200/70 p-4 flex items-start gap-3">
+            <AlertTriangle size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-hanken text-sm text-amber-900 font-medium">
+                Résiliation programmée — votre accès reste complet jusqu&apos;au{' '}
+                <span className="font-spline-mono font-medium">{formatDateFr(status.expireAt)}</span>.
+              </p>
+              <p className="font-hanken text-xs text-amber-700 mt-1">
+                Vous pouvez annuler cette résiliation à tout moment depuis «&nbsp;Gérer mon
+                abonnement&nbsp;» : votre abonnement reprendra normalement.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Accès offert en cours : dire la date de fin, et laisser souscrire. */}
+        {status.type === 'offert' && (
+          <div className="rounded-xl bg-blue-50/80 border border-blue-200/70 p-4 flex items-start gap-3">
+            <Gift size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-hanken text-sm text-blue-900 font-medium">
+                Vous bénéficiez d&apos;un accès offert
+                {status.expireAt ? (
+                  <>
+                    {' '}jusqu&apos;au{' '}
+                    <span className="font-spline-mono font-medium">{formatDateFr(status.expireAt)}</span>
+                  </>
+                ) : null}
+                .
+              </p>
+              <p className="font-hanken text-xs text-blue-700 mt-1">
+                Toutes les fonctionnalités sont débloquées, sans carte bancaire. Vous pouvez souscrire
+                dès maintenant pour ne pas être interrompu : votre abonnement prendra le relais.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {status.type === 'offert_termine' && (
+          <div className="rounded-xl bg-red-50/80 border border-red-200/70 p-4 flex items-start gap-3">
+            <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-hanken text-sm text-red-900 font-medium">
+                Votre période offerte est terminée
+                {status.expireAt ? (
+                  <>
+                    {' '}depuis le{' '}
+                    <span className="font-spline-mono font-medium">{formatDateFr(status.expireAt)}</span>
+                  </>
+                ) : null}
+                .
+              </p>
+              <p className="font-hanken text-xs text-red-700 mt-1">
+                Vos données sont conservées en sécurité. Choisissez une offre pour retrouver l&apos;accès
+                immédiatement.
               </p>
             </div>
           </div>
@@ -599,14 +716,10 @@ function AbonnementPageContent() {
             <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-hanken text-sm text-red-900 font-medium">
-                {status.badge.label === 'Accès offert terminé'
-                  ? 'Votre période offerte est terminée.'
-                  : 'Votre abonnement est suspendu.'}
+                Votre abonnement est suspendu.
               </p>
               <p className="font-hanken text-xs text-red-700 mt-1">
-                {status.badge.label === 'Accès offert terminé'
-                  ? 'Choisissez une offre pour retrouver l’accès à toutes vos données, qui sont conservées.'
-                  : 'Réactivez-le pour retrouver l’accès à toutes vos données.'}
+                Réactivez-le pour retrouver l’accès à toutes vos données.
               </p>
             </div>
           </div>
@@ -785,7 +898,9 @@ function AbonnementPageContent() {
               ) : (
                 <>
                   <CreditCard size={20} />
-                  {status.type === 'suspendu' ? 'Réactiver mon abonnement' : 'Souscrire maintenant'}
+                  {status.type === 'suspendu' && status.hasStripeSubscription
+                    ? 'Réactiver mon abonnement'
+                    : 'Souscrire maintenant'}
                 </>
               )}
             </button>
