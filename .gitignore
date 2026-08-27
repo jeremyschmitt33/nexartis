@@ -54,12 +54,51 @@ components/parametres/DocumentMockup.tsx.new
 push-*.bat
 diagnostic-*.bat
 nettoyage-*.bat
+debloquer-git.bat
+install-deps.bat
+redeploy-*.bat
 mockup-*.html
+mockup_*.html
+maquette-*.html
+avant-apres-*.html
 _archives/
+_corbeille_*/
+_to_delete/
 
 # Docs de travail internes (gardes en local, jamais versionnes)
+# --- 27/08/2026 : generalise en motifs. Ces documents de session
+#     n'ont pas a etre versionnes : ils polluaient `git status` avec
+#     plus de 80 entrees non suivies, au point de rendre la commande
+#     illisible et de faire passer du VRAI travail inapercu.
 ARGUMENTAIRE_MARKETING.md
 AUDIT_SITE_2026-06-11.md
 DESIGN_SYSTEM_V4.md
 HANDOFF_BANDEAU_DESIGN.md
 STRATEGIE_PRICING_2_OFFRES.md
+ARTIDOC_*.md
+AUDIT_*.md
+A_TON_RETOUR_*.md
+IDEES_*.md
+MAINTENANCE_MODE.md
+PASSATION_*.md
+PLAN_*.md
+PLAN_MARKETING_*.html
+VEILLE_*.md
+email-premier-client.md
+
+# Donnees de prospection (RGPD : ne JAMAIS versionner de fichiers
+# contenant des coordonnees de personnes)
+*.xlsx
+*.csv
+
+# Captures et images de travail
+_tmp*.png
+
+# Scripts et exports ponctuels
+test-*.mjs
+supabase-superpdp-connexions.sql
+
+# Contenus de reseaux sociaux (dossiers de travail)
+instagram/
+carrousel-instagram/
+prospection-formation/

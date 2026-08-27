@@ -98,7 +98,7 @@ export default function Page() {
 
       {/* ───── Hero ───── */}
       <section className="bg-gradient-to-b from-cream/70 to-white border-b border-navy/10">
-        <div className="max-w-container mx-auto px-5 sm:px-8 py-12 sm:py-16">
+        <div className="max-w-container mx-auto px-5 sm:px-8 pt-28 pb-12 sm:pt-32 sm:pb-16">
           <nav aria-label="Fil d'Ariane" className="text-sm text-navy/50 mb-4">
             <Link href="/" className="hover:text-orange">
               Accueil

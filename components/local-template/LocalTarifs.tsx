@@ -51,7 +51,7 @@ export default function LocalTarifs({ ville }: { ville: string }) {
             </li>
             <li className="flex gap-2">
               <span className="text-[#ff7a1a]" aria-hidden="true">&#10003;</span>
-              <span>Mentions Factur-X 2026 incluses</span>
+              <span>Facturation électronique intégrée</span>
             </li>
             <li className="flex gap-2">
               <span className="text-[#ff7a1a]" aria-hidden="true">&#10003;</span>

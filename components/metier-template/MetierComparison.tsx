@@ -7,7 +7,7 @@ interface MetierComparisonProps {
 const rows = [
   { label: "Spécialisé artisans BTP", nexartis: "Inclus", concurrent1: "Partiel", concurrent2: "—" },
   { label: "TVA 5,5% / 10% / 20% auto", nexartis: "Inclus", concurrent1: "Inclus", concurrent2: "—" },
-  { label: "Mentions Factur-X 2026", nexartis: "Inclus", concurrent1: "—", concurrent2: "Partiel" },
+  { label: "Facturation électronique (réception + émission)", nexartis: "Inclus", concurrent1: "—", concurrent2: "Partiel" },
   { label: "Signature électronique client", nexartis: "Inclus", concurrent1: "Inclus", concurrent2: "Inclus" },
   { label: "Planning d&apos;équipe & chantiers", nexartis: "Inclus", concurrent1: "—", concurrent2: "Inclus" },
   { label: "Dictée vocale IA terrain", nexartis: "Inclus", concurrent1: "—", concurrent2: "—" },

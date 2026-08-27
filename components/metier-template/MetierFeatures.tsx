@@ -20,9 +20,9 @@ const features = [
   },
   {
     icon: "⚡",
-    title: "Mentions Factur-X 2026 incluses",
+    title: "Facturation électronique intégrée",
     text:
-      "La facture électronique devient obligatoire pour le BTP. Vos factures incluent déjà les mentions légales exigées par la réforme 2026.",
+      "La facture électronique devient obligatoire. Nexartis gère la réception des factures fournisseurs (obligation au 1er septembre 2026) et l'émission de vos factures au format électronique (Factur-X), via une plateforme agréée, pour l'échéance qui vous concerne à partir du 1er septembre 2027.",
   },
   {
     icon: "📅",
