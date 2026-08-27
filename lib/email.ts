@@ -1229,3 +1229,105 @@ export async function sendRappelEcheance(params: RappelEcheanceParams): Promise<
     return false
   }
 }
+
+// ---------------------------------------------------------------------------
+// SEQUENCE D'ACTIVATION DES NOUVEAUX COMPTES
+// Ajoutee le 27/08/2026.
+//
+// Constat chiffre sur la base du 27/08 : 10 comptes sur 18 ne se sont connectes
+// qu'UN SEUL JOUR, et 8 n'ont jamais cree le moindre devis. Le trou principal
+// n'est donc pas la fin d'essai (le rappel J-7 arrive chez quelqu'un qui a
+// oublie Nexartis depuis une semaine) mais le LENDEMAIN de l'inscription.
+//
+// Ces deux emails ne racontent pas le produit : ils demandent UNE action
+// precise et courte, avec un lien qui tombe directement dessus.
+// ---------------------------------------------------------------------------
+
+interface ActivationParams {
+  to: { email: string; name?: string }
+  entrepriseNom?: string | null
+  logoUrl?: string | null
+  /** 1 = J+1 (aucun devis), 3 = J+3 (toujours aucun devis). */
+  etape: 1 | 3
+  /** Jours restants d'essai, pour situer l'urgence sans la surjouer. */
+  joursEssaiRestants: number | null
+}
+
+/** Email d'activation d'un compte qui n'a pas encore cree son premier devis. */
+export async function sendActivationEmail(params: ActivationParams): Promise<boolean> {
+  try {
+    const entNom = params.entrepriseNom || ''
+    const j = params.joursEssaiRestants
+
+    let sujet: string
+    let titre: string
+    let corps: string
+
+    if (params.etape === 1) {
+      sujet = 'Votre premier devis Nexartis, en 2 minutes'
+      titre = 'On commence par un devis&nbsp;?'
+      corps = `
+        <p style="font-size:15px;color:#475569;line-height:1.7;">
+          Vous avez cree votre compte hier&nbsp;: merci. La meilleure facon de voir si Nexartis
+          vous convient, c'est de faire <strong>un vrai devis</strong>, pour un vrai client.
+          Comptez deux minutes.
+        </p>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px 20px;margin:22px 0;">
+          <p style="margin:0 0 10px;font-size:12px;color:#1d4ed8;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Comment ca se passe</p>
+          <p style="margin:0;font-size:14px;color:#334155;line-height:1.8;">
+            1. Vous choisissez un client (ou vous le creez au passage).<br/>
+            2. Vous ajoutez vos lignes&nbsp;: le catalogue de plus de 700 prestations vous les propose.<br/>
+            3. La TVA, les mentions BTP et vos coordonnees sont ajoutees automatiquement.<br/>
+            4. Vous envoyez&nbsp;: votre client signe depuis son telephone, sans creer de compte.
+          </p>
+        </div>`
+    } else {
+      sujet = 'Un coup de main pour demarrer sur Nexartis&nbsp;?'
+      titre = 'Quelque chose vous a bloque&nbsp;?'
+      corps = `
+        <p style="font-size:15px;color:#475569;line-height:1.7;">
+          Vous vous etes inscrit il y a quelques jours et vous n'avez pas encore fait de devis.
+          C'est peut-etre le manque de temps&nbsp;: c'est le quotidien du batiment. Mais si c'est
+          autre chose&mdash;une fonction qui manque, un ecran pas clair, un doute sur la conformite&mdash;
+          <strong>dites-le-moi</strong>. Repondez a cet email&nbsp;: c'est une vraie personne qui vous lira,
+          et votre retour fera evoluer le logiciel.
+        </p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin:22px 0;">
+          <p style="margin:0 0 10px;font-size:12px;color:#475569;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Les raccourcis utiles</p>
+          <p style="margin:0;font-size:14px;color:#334155;line-height:1.8;">
+            &bull; Vous avez deja vos clients ailleurs&nbsp;? Importez-les depuis un fichier Excel ou CSV.<br/>
+            &bull; Vous chiffrez sur le chantier&nbsp;? Dictez votre devis a la voix.<br/>
+            &bull; Vous voulez juste voir le rendu&nbsp;? Creez un devis fictif, vous le supprimerez apres.
+          </p>
+        </div>`
+    }
+
+    const rappelEssai = (j !== null && j >= 0)
+      ? `<p style="font-size:14px;color:#64748b;line-height:1.7;">Il vous reste ${j} jour${j > 1 ? 's' : ''} d'essai gratuit, sans carte bancaire.</p>`
+      : ''
+
+    const body = `
+    <h2 style="margin:0 0 12px;font-size:22px;color:#0f1a3a;font-weight:800;">${titre}</h2>
+    <p style="font-size:15px;color:#475569;line-height:1.7;">Bonjour${entNom ? ` ${entNom}` : ''},</p>
+    ${corps}
+    ${btn(params.etape === 1 ? 'Creer mon premier devis' : 'Ouvrir mon tableau de bord',
+          params.etape === 1 ? 'https://nexartis.fr/dashboard/devis/nouveau' : 'https://nexartis.fr/dashboard')}
+    ${rappelEssai}
+    <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6;">
+        Cet email a ete envoye automatiquement par Nexartis a propos de votre compte.
+      </p>
+    </div>`
+
+    await sendEmail({
+      to: { email: params.to.email, name: params.to.name || entNom || params.to.email },
+      subject: sujet.replace(/&nbsp;/g, ' '),
+      html: layout(body, { logoUrl: params.logoUrl || undefined, entrepriseNom: entNom || undefined }),
+      senderName: 'Nexartis',
+    })
+    return true
+  } catch (err) {
+    console.error('[sendActivationEmail] error', err)
+    return false
+  }
+}

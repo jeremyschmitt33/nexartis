@@ -47,6 +47,55 @@ function finDePeriodeMs(subscription: Stripe.Subscription): number {
   return Date.now()
 }
 
+/**
+ * Revoque l'acces d'un client apres un remboursement TOTAL ou un litige
+ * bancaire (chargeback).
+ *
+ * Ajoute le 27/08/2026 : `charge.refunded` et `charge.dispute.created` ne
+ * servaient qu'a annuler une recompense de parrainage. L'acces au logiciel,
+ * lui, restait complet. Autrement dit : payer, contester le paiement aupres de
+ * sa banque, recuperer son argent, et continuer a utiliser Nexartis.
+ *
+ * On suspend immediatement (abonnement_expire_at = null) et on trace le motif
+ * dans les notes admin. C'est reversible en un clic depuis le back-office si
+ * le litige se resout en votre faveur.
+ *
+ * eslint-disable-next-line @typescript-eslint/no-explicit-any
+ */
+async function revoquerAcces(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  customerId: string | null,
+  motif: 'remboursement total' | 'litige bancaire',
+): Promise<void> {
+  if (!customerId) return
+
+  const { data: entreprise } = await supabase
+    .from('entreprises')
+    .select('id, notes_admin')
+    .eq('stripe_customer_id', customerId)
+    .single()
+
+  if (!entreprise) return
+
+  const stamp = new Date().toLocaleDateString('fr-FR')
+  const note = `[Auto] Acces suspendu le ${stamp} — ${motif}`
+  const notes = entreprise.notes_admin ? `${entreprise.notes_admin}\n${note}` : note
+
+  await supabase
+    .from('entreprises')
+    .update({
+      abonnement_type: 'suspendu',
+      abonnement_expire_at: null, // suspension immediate
+      stripe_subscription_id: null,
+      resiliation_prevue_le: null,
+      notes_admin: notes.length > 500 ? notes.slice(-500) : notes,
+    })
+    .eq('id', entreprise.id)
+
+  console.warn(`[Stripe] Acces revoque pour entreprise ${entreprise.id} — ${motif}`)
+}
+
 /** Offre (essential/complete) portee par la souscription, ou null si inconnue. */
 function planDeLaSouscription(subscription: Stripe.Subscription): 'essential' | 'complete' | null {
   const sub = subscription as unknown as {
@@ -433,6 +482,14 @@ export async function POST(req: NextRequest) {
           const { annulerRecompensePourFacture } = await import('@/lib/parrainage-recompense')
           await annulerRecompensePourFacture(supabase, stripe, invoiceId, 'remboursement')
         }
+        // 27/08/2026 — on coupe aussi l'ACCES, pas seulement la recompense de
+        // parrainage : un client integralement rembourse gardait le logiciel.
+        if (remboursementTotal) {
+          const customerId = typeof charge.customer === 'string'
+            ? charge.customer
+            : (charge.customer as Stripe.Customer | null)?.id ?? null
+          await revoquerAcces(supabase, customerId, 'remboursement total')
+        }
         break
       }
 
@@ -451,6 +508,13 @@ export async function POST(req: NextRequest) {
             const { annulerRecompensePourFacture } = await import('@/lib/parrainage-recompense')
             await annulerRecompensePourFacture(supabase, stripe, invoiceId, 'litige')
           }
+          // 27/08/2026 — un chargeback rendait l'argent SANS couper l'acces.
+          // On suspend le temps du litige ; c'est reversible en un clic depuis
+          // le back-office si Stripe tranche en votre faveur.
+          const customerId = typeof ch.customer === 'string'
+            ? ch.customer
+            : (ch.customer as Stripe.Customer | null)?.id ?? null
+          await revoquerAcces(supabase, customerId, 'litige bancaire')
         }
         break
       }

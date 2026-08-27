@@ -69,18 +69,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la création du compte' }, { status: 500 })
     }
 
-    // 2. Créer la ligne entreprise
-    try {
-      await supabaseAdmin.from('entreprises').insert({
-        user_id: userId,
-        email,
-        nom: entreprise || '',
-        prenom: prenom || '',
-        metier: '',
-        abonnement_type: 'trial',
-        trial_started_at: new Date().toISOString(),
-      })
-    } catch {} // Non bloquant
+    // 2. Créer la ligne entreprise (filet de secours du trigger SQL
+    //    handle_new_user, qui l'a normalement déjà créée).
+    //
+    //    27/08/2026 — ce bloc était un `try { … } catch {}` INOPÉRANT :
+    //    supabase-js ne lève pas d'exception, il retourne `{ error }`. Un
+    //    échec de création passait donc totalement inaperçu, et le compte
+    //    se retrouvait sans profil : écran mort sur la page abonnement ET
+    //    accès gratuit illimité (middleware et layout sont fail-open).
+    //    On vérifie maintenant le résultat, et surtout on CONTRÔLE que la
+    //    ligne existe vraiment avant de continuer.
+    const { error: insertEntrepriseErr } = await supabaseAdmin.from('entreprises').insert({
+      user_id: userId,
+      email,
+      nom: entreprise || '',
+      prenom: prenom || '',
+      metier: '',
+      abonnement_type: 'trial',
+      trial_started_at: new Date().toISOString(),
+    })
+
+    // Un doublon est le cas NORMAL : le trigger a déjà fait le travail.
+    const estDoublon = insertEntrepriseErr?.code === '23505'
+      || /duplicate|already exists/i.test(insertEntrepriseErr?.message ?? '')
+
+    if (insertEntrepriseErr && !estDoublon) {
+      console.error('[register] insert entreprise error:', insertEntrepriseErr.message, 'user:', userId)
+    }
+
+    // Contrôle final : sans profil, le compte serait inutilisable ET jamais
+    // facturé. On le signale bruyamment dans les logs pour pouvoir réagir.
+    const { data: profilOk } = await supabaseAdmin
+      .from('entreprises')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (!profilOk) {
+      console.error(
+        `[register] ALERTE : compte ${userId} (${email}) cree SANS ligne entreprises. ` +
+        'Il tombera sur la reparation de /dashboard/abonnement.',
+      )
+    }
 
     // 2ter. PARRAINAGE : rattacher le filleul a son parrain si un code ?ref est present.
     // L'entreprise du filleul est creee de maniere synchrone par le trigger

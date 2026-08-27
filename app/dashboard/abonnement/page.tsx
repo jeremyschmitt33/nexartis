@@ -56,7 +56,7 @@ const ESSENTIAL_DISPLAY_FEATURES = [
   'QR de virement SEPA',
   'Tableau de bord du CA',
   '10 calculatrices métier + aide URSSAF',
-  'Catalogue +700 prestations (biblio perso 50 max)',
+  'Catalogue +700 prestations + bibliothèque perso illimitée',
   'Rappels assurance décennale',
   'Clients & chantiers illimités',
   '1 utilisateur',
@@ -70,7 +70,6 @@ const COMPLETE_DISPLAY_FEATURES = [
   'Factures de situation',
   'Export comptable CSV (Sage / EBP)',
   'Rapport d’intervention',
-  'Bibliothèque de prestations illimitée',
 ]
 
 // -------------------------------------------------------------------
@@ -267,6 +266,9 @@ function AbonnementPageContent() {
   const [cgvAccepted, setCgvAccepted] = useState(false)
   // Offre choisie par l'utilisateur. Défaut 'complete' (recommandée + rétrocompatible).
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('complete')
+  // Réparation d'un compte sans ligne `entreprises` (cf. plus bas).
+  const [repairing, setRepairing] = useState(false)
+  const [repairError, setRepairError] = useState<string | null>(null)
 
   // NB : le paramètre ?expired=1 n'est volontairement plus lu. Il servait à
   // afficher le bandeau « accès suspendu », ce qui le montrait aussi à un
@@ -298,17 +300,67 @@ function AbonnementPageContent() {
     }
   }, [searchParams])
 
+  /**
+   * Recrée la ligne `entreprises` manquante puis recharge la page.
+   * La route serveur est idempotente et ne rouvre pas un essai de 14 jours
+   * (elle repart de la date d'inscription réelle).
+   */
+  async function handleRepairProfile() {
+    setRepairError(null)
+    setRepairing(true)
+    try {
+      const res = await fetch('/api/auth/ensure-entreprise', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'La réparation a échoué')
+      window.location.reload()
+    } catch (e) {
+      setRepairError(
+        e instanceof Error
+          ? `${e.message}. Écrivez-nous à contact.nexartis@gmail.com, on le fait pour vous.`
+          : 'Erreur inattendue.',
+      )
+      setRepairing(false)
+    }
+  }
+
   if (loadingEntreprise || loadingUser) {
     return <LoadingSkeleton rows={8} />
   }
 
+  // 27/08/2026 — un compte sans ligne `entreprises` (trigger SQL manqué,
+  // inscription interrompue) tombait ici sur un écran mort : ni abonnement
+  // possible, ni action, et le checkout Stripe aurait refusé de toute façon.
+  // On propose maintenant la réparation, qui est idempotente côté serveur.
   if (!entreprise || !user) {
     return (
       <div className="bg-white rounded-3xl border border-[#0f1a3a]/[0.06] p-8 text-center
                       shadow-[0_8px_24px_rgba(15,26,58,0.06),_0_1px_4px_rgba(15,26,58,0.04)]">
-        <p className="font-hanken text-gray-500">
-          Impossible de charger votre profil. Veuillez recharger la page.
+        <p className="font-hanken font-semibold text-[#0f1a3a] mb-2">
+          Votre profil d&apos;entreprise n&apos;a pas pu être chargé
         </p>
+        <p className="font-hanken text-sm text-gray-500 mb-5">
+          Cela arrive quand une inscription a été interrompue. Aucune donnée n&apos;est perdue :
+          un clic suffit à rétablir votre profil.
+        </p>
+        <button
+          onClick={handleRepairProfile}
+          disabled={repairing}
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-[#ff7a1a] text-white
+                     font-hanken font-semibold text-sm hover:bg-[#e86d10]
+                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {repairing ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Réparation…
+            </>
+          ) : (
+            'Rétablir mon profil'
+          )}
+        </button>
+        {repairError && (
+          <p className="font-hanken text-sm text-red-600 mt-4">{repairError}</p>
+        )}
       </div>
     )
   }

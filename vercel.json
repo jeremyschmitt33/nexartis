@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/echeances-abonnement",
       "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/activation-nouveaux",
+      "schedule": "0 10 * * *"
     }
   ]
 }

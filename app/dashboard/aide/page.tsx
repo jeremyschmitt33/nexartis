@@ -1786,12 +1786,7 @@ export default function AidePage() {
               prête par métier (<span className="font-spline-mono">700+</span>), à copier en un clic.
             </FaqItem>
             <FaqItem q="Y a-t-il une limite ?">
-              En Essentiel, <span className="font-spline-mono">50</span> prestations perso ; illimité en
-              Complet.
-            </FaqItem>
-            <FaqItem q="J’ai atteint 50 prestations (Essentiel), je fais quoi ?">
-              Passe à l&apos;offre Complet pour une bibliothèque illimitée, ou fais le ménage dans tes
-              prestations existantes.
+              Non : ta bibliothèque de prestations est illimitée, quelle que soit ton offre.
             </FaqItem>
           </FaqBlock>
         </>

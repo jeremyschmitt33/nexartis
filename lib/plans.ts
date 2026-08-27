@@ -88,6 +88,9 @@ const ESSENTIAL_FEATURES: FeatureKey[] = [
   'facturX_2026',
   'suivi_impayes',
   'tableau_bord_ca',
+  // 27/08/2026 : la bibliotheque perso n'est plus bridee sur l'Essentiel
+  // (limite annoncee mais jamais appliquee — cf. limits.bibliothequePrestations).
+  'bibliotheque_prestations_illimitee',
 ]
 
 const COMPLETE_FEATURES: FeatureKey[] = [
@@ -96,7 +99,6 @@ const COMPLETE_FEATURES: FeatureKey[] = [
   'alertes_conflit_planning',
   'gestion_equipe',
   'devis_vocal_ia',
-  'bibliotheque_prestations_illimitee',
   'factures_situation',
   'export_comptable',
   'rapport_intervention',
@@ -120,7 +122,11 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     limits: {
       clients: 0, // illimité
       chantiers: 0, // illimité
-      bibliothequePrestations: 50,
+      // 27/08/2026 : limite retiree. Elle etait ANNONCEE sur /tarifs mais
+      // jamais appliquee dans le code. Plutot que de brider l'offre d'entree
+      // face a un concurrent qui met 30 000 ouvrages a 12,50 EUR, on aligne
+      // le marketing sur le produit reel. 0 = illimite.
+      bibliothequePrestations: 0,
       utilisateurs: 1, // mono-utilisateur
     },
   },
@@ -304,11 +310,6 @@ export const UPGRADE_MESSAGES: Partial<Record<FeatureKey, { title: string; descr
     title: 'Le devis vocal par IA est réservé à l\'offre Complet',
     description:
       'Dictez votre devis depuis le chantier. L\'intelligence artificielle structure les lignes pour vous. Disponible dans l\'offre Complet à 25 € HT/mois.',
-  },
-  bibliotheque_prestations_illimitee: {
-    title: 'La bibliothèque illimitée est réservée à l\'offre Complet',
-    description:
-      'L\'offre Essentiel limite à 50 prestations enregistrées. L\'offre Complet à 25 € HT/mois supprime cette limite.',
   },
   factures_situation: {
     title: 'Les factures de situation sont réservées à l\'offre Complet',

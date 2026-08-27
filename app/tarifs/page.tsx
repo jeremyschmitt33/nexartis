@@ -52,7 +52,6 @@ const COMPLETE_EXTRA: CompleteExtra[] = [
   { label: "Factures de situation (#1, #2, #3 avec cumul)" },
   { label: "Export comptable CSV (Sage / EBP)" },
   { label: "Rapport d'intervention" },
-  { label: "Bibliothèque de prestations illimitée" },
   { label: "Support prioritaire" },
 ];
 
@@ -67,7 +66,7 @@ const COMPARISON: CompareRow[] = [
   { label: "Gestion d'équipe & intervenants", essential: false, complete: true },
   { label: "Rapport d'intervention", essential: false, complete: true },
   { label: "Export comptable CSV (Sage / EBP)", essential: false, complete: true },
-  { label: "Bibliothèque de prestations", essential: "50 max", complete: "Illimitée" },
+  { label: "Bibliothèque de prestations illimitée", essential: true, complete: true },
   { label: "Support", essential: "Email", complete: "Prioritaire" },
 ];
 

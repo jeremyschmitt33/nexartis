@@ -74,7 +74,7 @@ const ESSENTIAL_GROUPS: FeatureGroup[] = [
     title: "Outils métier & confort",
     items: [
       { label: "10 calculatrices métier + aide URSSAF" },
-      { label: "Catalogue de +700 prestations + biblio perso (50 max)" },
+      { label: "Catalogue de +700 prestations + bibliothèque perso illimitée" },
       { label: "Rappels assurance décennale" },
       { label: "Photos de chantier par client" },
       { label: "Messagerie, réseau de confrères et chantiers confiés" },
