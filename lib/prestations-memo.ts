@@ -10,7 +10,8 @@
 //
 // Comportement mémorisation (validé par Jeremy) :
 //   - On mémorise chaque ligne PRESTATION (type 'line'), désignation non vide
-//     (<=120 car.), prix > 0.
+//     (SANS limite de longueur, retours à la ligne compris — 15/09/2026 :
+//     « tout doit être enregistré, c'est la promesse »), prix > 0.
 //   - Clé d'unicité = (désignation normalisée + prix) → on garde toutes les
 //     variantes de prix d'une même désignation (ex : "ouverture de porte"
 //     à 20/30/40 €). On n'écrase JAMAIS un prix de référence.
@@ -100,7 +101,6 @@ export async function memorizePrestations(lines: MemoLine[]): Promise<void> {
         l.type === 'line' &&
         typeof l.designation === 'string' &&
         l.designation.trim() !== '' &&
-        l.designation.trim().length <= 120 &&
         Number(l.priceHT) > 0,
       )
       .map(l => ({

@@ -398,8 +398,11 @@ const MesPrestations = forwardRef<MesPrestationsHandle>(function MesPrestations(
                     idx % 2 === 1 ? 'bg-cream/40' : ''
                   }`}
                 >
-                  <td className="px-4 py-3 text-sm font-hanken font-semibold text-navy max-w-[300px]">
-                    {(prestation.designation as string) ?? ''}
+                  <td
+                    className="px-4 py-3 text-sm font-hanken font-semibold text-navy max-w-[300px]"
+                    title={(prestation.designation as string) ?? ''}
+                  >
+                    <span className="line-clamp-3 whitespace-pre-line">{(prestation.designation as string) ?? ''}</span>
                   </td>
                   <td className="px-4 py-3 text-sm font-hanken text-navy/60">{(prestation.unite as string) ?? ''}</td>
                   <td className="px-4 py-3 text-sm font-spline-mono font-semibold text-navy">{prixHT.toLocaleString('fr-FR')}&nbsp;€</td>
@@ -485,7 +488,7 @@ const MesPrestations = forwardRef<MesPrestationsHandle>(function MesPrestations(
               className="bg-white rounded-xl border border-navy/15 p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="flex-1 text-sm font-hanken font-semibold text-navy">
+                <p className="flex-1 min-w-0 text-sm font-hanken font-semibold text-navy line-clamp-3 whitespace-pre-line">
                   {(prestation.designation as string) ?? ''}
                 </p>
                 <div className="relative shrink-0">
@@ -575,12 +578,12 @@ const MesPrestations = forwardRef<MesPrestationsHandle>(function MesPrestations(
             {/* Désignation */}
             <div>
               <label className="block text-sm font-hanken font-medium text-navy mb-1">Désignation</label>
-              <input
-                type="text"
+              <textarea
                 value={modalDesignation}
                 onChange={(e) => setModalDesignation(e.target.value)}
                 placeholder="Ex: Fourniture et pose chauffe-eau"
-                className="w-full h-10 rounded-lg border border-navy/15 px-3 text-sm font-hanken focus:border-sky focus:ring-1 focus:ring-sky outline-none"
+                rows={3}
+                className="w-full min-h-[2.5rem] rounded-lg border border-navy/15 px-3 py-2 text-sm font-hanken focus:border-sky focus:ring-1 focus:ring-sky outline-none resize-y"
               />
             </div>
 
@@ -598,6 +601,9 @@ const MesPrestations = forwardRef<MesPrestationsHandle>(function MesPrestations(
                   <option value="m²">m²</option>
                   <option value="ml">ml (Mètre linéaire)</option>
                   <option value="h">h (Heure)</option>
+                  {!['U', 'Fft', 'm²', 'ml', 'h'].includes(modalUnite) && modalUnite && (
+                    <option value={modalUnite}>{modalUnite}</option>
+                  )}
                 </select>
               </div>
               <div>
