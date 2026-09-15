@@ -187,6 +187,22 @@ export interface FactureData {
   // sur une facture de situation (factures.plan_images). Optionnel : absent =
   // PDF strictement inchangé (miroir de DevisData.plan_images).
   plan_images?: PdfPlanImage[]
+  // 15/09/2026 — Facture acquittee (cf. AcquitteeInfo). Absent = PDF inchange.
+  acquittee?: AcquitteeInfo
+}
+
+/**
+ * 15/09/2026 — Facture ACQUITTEE : version a part de la facture, avec un bandeau
+ * « Facture acquittee ». Rempli UNIQUEMENT par le serveur (lib/facture-acquittee.ts)
+ * apres verification que la facture est soldee. Absent = PDF strictement inchange.
+ */
+export interface AcquitteeInfo {
+  /** Date du reglement qui solde la facture (ISO). */
+  date: string
+  /** Modes de reglement lisibles (« virement bancaire », « chèque », « avoir »...). */
+  modes: string[]
+  /** Montant TTC regle. */
+  montantRegle: number
 }
 
 export const DEFAULT_CONDITIONS_PAIEMENT =
@@ -399,6 +415,11 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     y = drawObjet(doc, data.objet, data.chantier_adresse, y, palette) + 4
   }
 
+  // 4.ter 15/09/2026 — Bandeau FACTURE ACQUITTEE (version a part, jamais sur un avoir).
+  if (data.acquittee && !isAvoir) {
+    y = drawAcquitteeBanner(doc, data.acquittee, y)
+  }
+
   // 4.bis V3.0c.18 — Bandeau AVANCEMENT pour factures de situation
   // (porté depuis lib/pdf.ts.clean L1098-1144, adapté à l'architecture modulaire V3.0c).
   // Affiche : Situation #N · % avancement | cumul précédent | cette situation | reste à facturer.
@@ -447,6 +468,17 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
       montant: r2(data.retenue_garantie_ht as number),
     })
   }
+  // 15/09/2026 — Facture acquittee : le reglement recu vient en deduction, le
+  // bloc affiche « Reste à payer 0,00 € » (et plus « Net à payer » plein), sans
+  // bloc IBAN « pour régler par virement » ni echeancier d'acompte.
+  const acq = data.acquittee && !isAvoir ? data.acquittee : undefined
+  if (acq) {
+    const dejaDeduit = factureDeductions.reduce((s, d) => s + d.montant, 0)
+    const regle = r2(Math.max(0, (data.montant_ttc || 0) - dejaDeduit))
+    if (regle > 0.01) {
+      factureDeductions.push({ label: `Réglé le ${fmtDate(acq.date)}`, montant: regle })
+    }
+  }
   const totalDeductions = factureDeductions.reduce((s, d) => s + d.montant, 0)
   y = drawTotals(
     doc,
@@ -454,15 +486,15 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
       numero: data.numero,
       conditions_paiement: data.conditions_paiement || data.notes,
       notes_personnalisees: data.notes_personnalisees,
-      acompte_pourcent: data.acompte_pourcent,
-      acompte_montant_ht: data.acompte_montant_ht,
-      acompte_montant_ttc: data.acompte_montant_ttc,
-      acompte_label: data.acompte_label,
+      acompte_pourcent: acq ? undefined : data.acompte_pourcent,
+      acompte_montant_ht: acq ? undefined : data.acompte_montant_ht,
+      acompte_montant_ttc: acq ? undefined : data.acompte_montant_ttc,
+      acompte_label: acq ? undefined : data.acompte_label,
       montant_ht: data.montant_ht,
       montant_tva: data.montant_tva,
       montant_ttc: data.montant_ttc,
       entreprise: ent,
-      netLabel: isAvoir ? 'Net à créditer' : 'Net à payer',
+      netLabel: isAvoir ? 'Net à créditer' : acq ? 'Reste à payer' : 'Net à payer',
       isAvoir,
       deductions: factureDeductions.length > 0 ? factureDeductions : undefined,
       netAPayer: factureDeductions.length > 0
@@ -470,7 +502,7 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
         : undefined,
     },
     lignes,
-    true, // bloc IBAN actif pour facture
+    !acq, // bloc IBAN actif pour facture (pas sur une facture acquittee)
     y,
     palette,
   )
@@ -482,7 +514,8 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
     const netAPayer = (data.montant_ttc || 0) - (data.acompte_montant_ttc || 0) - (data.avoir_impute_montant || 0) - (data.retenue_garantie_ht || 0)
     const entInfo = ent as { nom?: string; iban?: string }
     // V-AVOIR : pas de QR de virement SEPA sur un avoir (somme a crediter, pas a payer).
-    if (!isAvoir && canDrawSepaQr(entInfo?.iban, netAPayer)) {
+    // 15/09/2026 : pas de QR de virement sur une facture acquittee (deja reglee).
+    if (!isAvoir && !data.acquittee && canDrawSepaQr(entInfo?.iban, netAPayer)) {
       y = drawSepaPaymentBlock(
         doc,
         {
@@ -522,6 +555,62 @@ export function generateFacturePdf(data: FactureData, theme?: DocumentTheme | nu
   drawFooterAllPages(doc, ent, data.numero, isAvoir ? 'Avoir' : 'Facture', palette)
 
   return doc.output('datauristring').split(',')[1]
+}
+
+// ===========================================================================
+// HELPER — Bandeau FACTURE ACQUITTEE (15/09/2026)
+// ===========================================================================
+// Carte vert pale + barre verte a gauche. Couleurs FIXES (non thematables) :
+// le vert « regle » doit rester lisible quel que soit le theme du document.
+function drawAcquitteeBanner(doc: jsPDF, a: AcquitteeInfo, yStart: number): number {
+  const X = 18
+  const W = 174
+  const PAD = 5
+  const BAR_W = 2
+  const GREEN: readonly [number, number, number] = [4, 120, 87]
+  const GREEN_PALE: readonly [number, number, number] = [236, 253, 245]
+  const innerX = X + BAR_W + PAD
+  const innerW = W - BAR_W - PAD * 2
+
+  const ligne1 = `Réglée intégralement le ${fmtDate(a.date)} — montant réglé : ${fmt(a.montantRegle)}`
+  const ligne2 = a.modes.length > 0
+    ? `Mode de règlement : ${a.modes.join(', ')}`
+    : ''
+
+  font(doc, 'Hanken Grotesk', 'bold', 10, GREEN)
+  const l1 = doc.splitTextToSize(ligne1, innerW) as string[]
+  font(doc, 'Hanken Grotesk', 'medium', 9, GREEN)
+  const l2 = ligne2 ? (doc.splitTextToSize(ligne2, innerW) as string[]) : []
+
+  const H_TITLE = 5.5
+  const LH1 = 4.8
+  const LH2 = 4.3
+  const totalH = PAD + H_TITLE + l1.length * LH1 + l2.length * LH2 + PAD - 1
+
+  let y0 = yStart
+  if (y0 + totalH > 270) {
+    doc.addPage()
+    y0 = 25
+  }
+
+  setFill(doc, GREEN_PALE)
+  doc.roundedRect(X, y0, W, totalH, 3, 3, 'F')
+  setFill(doc, GREEN)
+  doc.rect(X, y0, BAR_W, totalH, 'F')
+
+  let cy = y0 + PAD + 2.5
+  font(doc, 'Hanken Grotesk', 'bold', 8, GREEN)
+  doc.text('FACTURE ACQUITTÉE', innerX, cy, { charSpace: 0.6 })
+  cy += H_TITLE
+
+  font(doc, 'Hanken Grotesk', 'bold', 10, GREEN)
+  for (const t of l1) { doc.text(t, innerX, cy); cy += LH1 }
+  if (l2.length > 0) {
+    font(doc, 'Hanken Grotesk', 'medium', 9, GREEN)
+    for (const t of l2) { doc.text(t, innerX, cy); cy += LH2 }
+  }
+
+  return y0 + totalH + 5
 }
 
 // ===========================================================================

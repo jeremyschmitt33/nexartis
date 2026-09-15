@@ -4,6 +4,8 @@ import { generateFacturePdf } from '@/lib/pdf'
 import { computeHierarchicalNumbers } from '@/lib/numerotation'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { bccArtisan, type EntrepriseCopie } from '@/lib/email-copie'
+import { chargerAcquittement } from '@/lib/facture-acquittee'
+import type { AcquitteeInfo } from '@/lib/pdf'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID, isValidEmail,
@@ -22,7 +24,9 @@ export async function POST(req: NextRequest) {
     const user = await getAuthenticatedUser()
     if (!user) return unauthorizedError()
 
-    const { factureId, emailDestinataire, messagePersonnalise } = await req.json()
+    const { factureId, emailDestinataire, messagePersonnalise, acquittee } = await req.json()
+    // 15/09/2026 : acquittee === true -> envoi de la version « facture acquittee ».
+    const versionAcquittee = acquittee === true
 
     if (!factureId || !emailDestinataire) {
       return secureError('Données manquantes')
@@ -47,6 +51,14 @@ export async function POST(req: NextRequest) {
     // ✅ SÉCURITÉ : Vérifier que la facture appartient à l'utilisateur connecté
     const { data: facture, error: factureErr } = await supabase.from('factures').select('*').eq('id', factureId).eq('user_id', user.id).single()
     if (factureErr || !facture) return secureError('Facture introuvable', 404)
+
+    // 15/09/2026 — Facture acquittee : refusee tant que la facture n'est pas soldee.
+    let infosAcquittee: AcquitteeInfo | undefined
+    if (versionAcquittee) {
+      const acq = await chargerAcquittement(supabase, facture)
+      if (!acq.ok) return secureError(acq.raison, 409)
+      infosAcquittee = acq.acquittee
+    }
 
     const { data: lignes } = await supabase.from('facture_lignes').select('*').eq('facture_id', factureId).order('ordre')
     const { data: entreprise } = await supabase.from('entreprises').select('*').eq('user_id', facture.user_id).single()
@@ -176,19 +188,24 @@ export async function POST(req: NextRequest) {
             .map((x) => ({ titre: String(x?.titre ?? 'Plan'), dataUrl: String(x?.dataUrl ?? '') }))
             .filter((x) => x.dataUrl.startsWith('data:image'))
         : undefined,
+      // 15/09/2026 — version facture acquittee (absent = PDF inchange).
+      acquittee: infosAcquittee,
     }, themeFromEntreprise(entreprise))
 
     // Build email body
     const entNom = String(ent.nom || 'Nexartis')
     const entEmail = String(ent.email || 'no-reply@nexartis.fr')
-    const preheader = 'Facture n\u00b0 ' + facture.numero + ' - ' + fmt(totalTTC)
+    const libelleDoc = versionAcquittee ? 'Facture acquitt\u00e9e' : 'Facture'
+    const preheader = libelleDoc + ' n\u00b0 ' + facture.numero + ' - ' + fmt(totalTTC)
 
     let emailBody: string
     if (messagePersonnalise) {
       emailBody = String(messagePersonnalise).replace(/\n/g, '<br/>')
     } else {
       const echeanceLine = dateEcheance ? " Dans l'attente de votre r\u00e8glement avant le " + dateEcheance + '.' : ''
-      emailBody = 'Bonjour ' + clientNom + ',<br/><br/>Veuillez trouver ci-joint votre facture n\u00b0 ' + facture.numero + " d'un montant de " + fmt(totalTTC) + '.' + echeanceLine + '<br/><br/>Cordialement,<br/><strong>' + entNom + '</strong>'
+      emailBody = versionAcquittee
+        ? 'Bonjour ' + clientNom + ',<br/><br/>Veuillez trouver ci-joint votre facture acquitt\u00e9e n\u00b0 ' + facture.numero + " d'un montant de " + fmt(totalTTC) + '. Nous vous remercions pour votre r\u00e8glement.<br/><br/>Cordialement,<br/><strong>' + entNom + '</strong>'
+        : 'Bonjour ' + clientNom + ',<br/><br/>Veuillez trouver ci-joint votre facture n\u00b0 ' + facture.numero + " d'un montant de " + fmt(totalTTC) + '.' + echeanceLine + '<br/><br/>Cordialement,<br/><strong>' + entNom + '</strong>'
     }
 
     const html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;"><span style="display:none;max-height:0;overflow:hidden;">' + preheader + '</span><div style="max-width:580px;margin:0 auto;padding:20px;"><div style="background:#fff;border-radius:8px;border:1px solid #e5e7eb;"><div style="padding:28px;"><p style="font-size:15px;color:#374151;margin:0 0 16px;line-height:1.6;">' + emailBody + '</p><p style="font-size:14px;color:#6b7280;margin:16px 0 0;line-height:1.6;">Vous trouverez la facture d\u00e9taill\u00e9e en pi\u00e8ce jointe de cet email.</p></div><div style="padding:12px 28px;border-top:1px solid #e5e7eb;text-align:center;"><p style="margin:0;font-size:11px;color:#9ca3af;">Envoy\u00e9 via Nexartis \u2014 nexartis.fr</p></div></div></div></body></html>'
@@ -208,12 +225,12 @@ export async function POST(req: NextRequest) {
         sender: { name: entNom, email: 'no-reply@nexartis.fr' },
         to: [{ email: emailDestinataire, name: clientNom }],
         ...(bcc ? { bcc } : {}),
-        subject: 'Facture n\u00b0 ' + facture.numero + ' \u2014 ' + entNom,
+        subject: libelleDoc + ' n\u00b0 ' + facture.numero + ' \u2014 ' + entNom,
         replyTo: { email: entEmail, name: entNom },
         htmlContent: html,
         attachment: [{
           content: pdfBase64,
-          name: 'Facture-' + facture.numero + '.pdf',
+          name: (versionAcquittee ? 'Facture-acquittee-' : 'Facture-') + facture.numero + '.pdf',
         }],
       }),
     })

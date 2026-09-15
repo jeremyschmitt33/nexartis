@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateFacturePdf } from '@/lib/pdf'
 import { themeFromEntreprise } from '@/lib/document-theme'
 import { buildFactureDataFromDb } from '@/lib/facturx/build-facture-data'
+import { chargerAcquittement } from '@/lib/facture-acquittee'
 import {
   getAuthenticatedUser, getClientIp, checkRateLimit,
   isValidUUID,
@@ -21,8 +22,10 @@ export async function POST(req: NextRequest) {
     const user = await getAuthenticatedUser()
     if (!user) return unauthorizedError()
 
-    const { factureId } = await req.json()
+    const { factureId, acquittee } = await req.json()
     if (!factureId) return secureError('factureId manquant')
+    // 15/09/2026 : acquittee === true -> version « facture acquittee » (verifiee serveur).
+    const versionAcquittee = acquittee === true
 
     // ✅ SÉCURITÉ : Valider l'input
     if (!isValidUUID(factureId)) return secureError('ID de facture invalide')
@@ -49,10 +52,21 @@ export async function POST(req: NextRequest) {
     // et le PDF Factur-X (/api/download-facture-x) partent des memes donnees et
     // rendent un visuel strictement identique.
     const { data, entreprise } = await buildFactureDataFromDb(supabase, facture)
+
+    // 15/09/2026 — Facture acquittee : refusee tant que la facture n'est pas soldee.
+    if (versionAcquittee) {
+      const acq = await chargerAcquittement(supabase, facture)
+      if (!acq.ok) return secureError(acq.raison, 409)
+      data.acquittee = acq.acquittee
+    }
+
     const pdfBase64 = generateFacturePdf(data, themeFromEntreprise(entreprise))
 
     // Return the base64 PDF
-    return NextResponse.json({ pdfBase64, filename: `Facture-${facture.numero}.pdf` })
+    const filename = versionAcquittee
+      ? `Facture-acquittee-${facture.numero}.pdf`
+      : `Facture-${facture.numero}.pdf`
+    return NextResponse.json({ pdfBase64, filename })
   } catch (error) {
     // ✅ SÉCURITÉ (R1-009) : log serveur detaille, reponse generique au client
     // (ne pas exposer error.message brut de Postgres/Supabase).

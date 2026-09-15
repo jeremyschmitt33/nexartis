@@ -253,6 +253,9 @@ export default function FactureDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadingFx, setDownloadingFx] = useState(false)
+  // 15/09/2026 — Facture acquittee : telechargement + envoi par email (version a part).
+  const [downloadingAcq, setDownloadingAcq] = useState(false)
+  const [sendAcqOpen, setSendAcqOpen] = useState(false)
   // Etape 3 e-facture (admin only) : envoi electronique vers SUPER PDP.
   const [sendingEfacture, setSendingEfacture] = useState(false)
 
@@ -360,6 +363,33 @@ export default function FactureDetailPage() {
       setTimeout(() => setToastMsg(null), 4000)
     } finally {
       setDownloading(false)
+    }
+  }
+
+  // 15/09/2026 — Facture ACQUITTEE : meme PDF + bandeau « Facture acquittee ».
+  // Le serveur verifie lui-meme que la facture est soldee (409 sinon).
+  async function handleDownloadAcquittee() {
+    if (!facture || downloadingAcq) return
+    setDownloadingAcq(true)
+    setToastMsg('Génération de la facture acquittée...')
+    try {
+      const result = await fetchAndDownloadPdf(
+        '/api/download-facture',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ factureId: facture.id, acquittee: true }),
+        },
+        `Facture-acquittee-${facture.numero}.pdf`,
+      )
+      setToastMsg(result.helpMessage)
+      setTimeout(() => setToastMsg(null), result.openedInNewTab ? 6000 : 2500)
+    } catch (err) {
+      console.error('Download facture acquittee error:', err)
+      setToastMsg(err instanceof Error ? err.message : 'Erreur téléchargement de la facture acquittée')
+      setTimeout(() => setToastMsg(null), 4000)
+    } finally {
+      setDownloadingAcq(false)
     }
   }
 
@@ -591,6 +621,10 @@ export default function FactureDetailPage() {
   // Ils reduisent aussi le reste du -> une facture entierement creditee = reste 0.
   const totalAvoirsLies = avoirsLies.reduce((acc, a) => acc + a.montant_ttc, 0)
   const resteAPayer = Math.max(0, totalTTC - totalPaye - avoirImpute - totalAvoirsLies)
+  // 15/09/2026 — la version « facture acquittee » n'est proposee qu'une fois la
+  // facture entierement reglee (le serveur re-verifie de son cote).
+  const factureAcquittable =
+    facture.type !== 'avoir' && facture.statut !== 'brouillon' && totalTTC > 0.01 && resteAPayer <= 0.01
   const paymentPercent = totalTTC > 0 ? Math.min(100, Math.round(((totalPaye + avoirImpute + totalAvoirsLies) / totalTTC) * 100)) : 0
   // NET restant credit-able = TTC - paye - somme des avoirs lies (gating "Creer un avoir").
   const netAvoir = totalTTC - totalPaye - totalAvoirsLies
@@ -940,6 +974,34 @@ export default function FactureDetailPage() {
           >
             <Send size={14} /> Envoyer par email
           </button>
+          {/* 15/09/2026 — Facture acquittee (visible seulement quand la facture est soldee). */}
+          {factureAcquittable && (
+            <>
+              <button
+                onClick={() => runWithLock('télécharger la facture acquittée', handleDownloadAcquittee)}
+                disabled={downloadingAcq}
+                aria-busy={downloadingAcq}
+                title="Même facture, avec la mention « Facture acquittée », la date et le mode de règlement."
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 hover:bg-emerald-100 font-hanken text-[13.5px] font-semibold text-emerald-700 transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                {downloadingAcq ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                {downloadingAcq ? 'Génération...' : 'Facture acquittée'}
+              </button>
+              <button
+                onClick={() => {
+                  if (estVerrouillee) {
+                    setSendAcqOpen(true)
+                  } else {
+                    setLockConfirm({ titre: 'envoyer la facture acquittée', run: () => setSendAcqOpen(true), poseVerrouAuConfirm: false })
+                  }
+                }}
+                aria-label="Envoyer la facture acquittée par email"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 hover:bg-emerald-100 font-hanken text-[13.5px] font-semibold text-emerald-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                <Send size={14} /> Envoyer acquittée
+              </button>
+            </>
+          )}
           {facture.type !== 'avoir' && (!estVerrouillee ? (
             <Link
               href={`/dashboard/factures/${facture.id}/modifier`}
@@ -1292,6 +1354,27 @@ export default function FactureDetailPage() {
             // I2 : un envoi email fait passer une facture/avoir 'brouillon' a 'envoyee'.
             if (facture.statut === 'brouillon') {
               updateRow('factures', facture.id, { statut: 'envoyee' }).catch(() => {})
+            }
+            setTimeout(() => { setToastMsg(null); router.refresh() }, 2000)
+          }}
+        />
+      )}
+
+      {/* 15/09/2026 — Envoi de la facture acquittee (meme modal, version a part). */}
+      {facture && factureAcquittable && (
+        <EnvoyerFactureModal
+          open={sendAcqOpen}
+          onClose={() => setSendAcqOpen(false)}
+          factureId={facture.id}
+          numeroFacture={facture.numero}
+          clientEmail={client?.email || facture.client_email || facture.notes_client?.split(' | ').find((p: string) => p.includes('@')) || devisSource?.notes_client?.split(' | ').find((p: string) => p.includes('@')) || ''}
+          clientNom={resolvedClientName}
+          montantTTC={fmt(totalTTC)}
+          acquittee
+          onSuccess={() => {
+            setToastMsg('Facture acquittée envoyée avec succès !')
+            if (!estVerrouillee) {
+              updateRow('factures', facture.id, { verrouillee_at: new Date().toISOString() }).catch(() => {})
             }
             setTimeout(() => { setToastMsg(null); router.refresh() }, 2000)
           }}

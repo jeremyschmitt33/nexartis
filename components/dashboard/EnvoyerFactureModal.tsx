@@ -12,6 +12,8 @@ interface EnvoyerFactureModalProps {
   clientNom?: string
   montantTTC?: string
   onSuccess?: () => void
+  /** 15/09/2026 : true = envoi de la version « facture acquittée ». */
+  acquittee?: boolean
 }
 
 export default function EnvoyerFactureModal({
@@ -23,8 +25,17 @@ export default function EnvoyerFactureModal({
   clientNom = '',
   montantTTC = '',
   onSuccess,
+  acquittee = false,
 }: EnvoyerFactureModalProps) {
-  const defaultMessage = `Bonjour${clientNom ? ' ' + clientNom : ''},
+  const defaultMessage = acquittee
+    ? `Bonjour${clientNom ? ' ' + clientNom : ''},
+
+Veuillez trouver ci-joint votre facture acquittée n° ${numeroFacture}${montantTTC ? ` d'un montant de ${montantTTC}` : ''}.
+
+Nous vous remercions pour votre règlement et restons à votre disposition pour toute question.
+
+Cordialement`
+    : `Bonjour${clientNom ? ' ' + clientNom : ''},
 
 Veuillez trouver ci-joint votre facture n° ${numeroFacture}${montantTTC ? ` d'un montant de ${montantTTC}` : ''}.
 
@@ -45,7 +56,7 @@ Cordialement`
   useEffect(() => {
     setMessage(defaultMessage)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [numeroFacture, clientNom, montantTTC])
+  }, [numeroFacture, clientNom, montantTTC, acquittee])
 
   if (!open) return null
 
@@ -60,7 +71,7 @@ Cordialement`
       const res = await fetch('/api/send-facture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ factureId, emailDestinataire: email, messagePersonnalise: message }),
+        body: JSON.stringify({ factureId, emailDestinataire: email, messagePersonnalise: message, acquittee }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -85,7 +96,7 @@ Cordialement`
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
       <div className="bg-white rounded-2xl w-full max-w-lg p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <h3 className="font-syne font-bold text-base sm:text-xl text-[#1a1a2e]">Envoyer la facture par email</h3>
+          <h3 className="font-syne font-bold text-base sm:text-xl text-[#1a1a2e]">{acquittee ? 'Envoyer la facture acquittée' : 'Envoyer la facture par email'}</h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
         </div>
 
@@ -94,8 +105,8 @@ Cordialement`
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Send size={28} className="text-emerald-600" />
             </div>
-            <p className="font-syne font-bold text-lg text-[#1a1a2e]">Facture envoyée !</p>
-            <p className="font-manrope text-sm text-gray-500 mt-1">La facture n° {numeroFacture} a été envoyée à {email}</p>
+            <p className="font-syne font-bold text-lg text-[#1a1a2e]">{acquittee ? 'Facture acquittée envoyée !' : 'Facture envoyée !'}</p>
+            <p className="font-manrope text-sm text-gray-500 mt-1">{acquittee ? 'La facture acquittée' : 'La facture'} n° {numeroFacture} a été envoyée à {email}</p>
           </div>
         ) : (
           <>
