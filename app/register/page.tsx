@@ -5,7 +5,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { safeNextPath, NEXT_COOKIE } from '@/lib/safe-redirect'
 
 function getPasswordStrength(password: string) {
@@ -41,6 +41,13 @@ export default function RegisterPage() {
   // On le memorise en cookie (90 jours) pour resister a la navigation / OAuth,
   // et on le relit depuis le cookie si l'URL ne le contient pas.
   const [refCode, setRefCode] = useState('')
+  // Parrainage V2 (15/09/2026) : le code peut aussi etre TAPE a l'inscription
+  // (ex : entendu dans une video). Verification a la volee : null = pas encore
+  // verifie, true/false = resultat.
+  const [refValide, setRefValide] = useState<boolean | null>(null)
+  // true des que l'utilisateur a modifie le champ lui-meme (on ne touche pas au
+  // cookie pose par un lien ?ref= tant qu'il n'a rien change).
+  const refTouche = useRef(false)
   // NEXT : ou renvoyer l'invite apres la confirmation email (ex : retour vers
   // son invitation de confrere). '/dashboard' par defaut = inscription normale.
   const [nextPath, setNextPath] = useState('/dashboard')
@@ -72,6 +79,41 @@ export default function RegisterPage() {
     }
   }, [])
 
+  // Verification du code parrain (debounce 500 ms) + memorisation en cookie
+  // pour couvrir l'inscription Google (rattachement par ParrainageCapture).
+  useEffect(() => {
+    const code = refCode.trim().toUpperCase()
+    if (code.length < 6) {
+      setRefValide(null)
+      // Champ vide (ou trop court) saisi par l'utilisateur : on oublie l'ancien code.
+      if (refTouche.current) {
+        document.cookie = 'nexartis_ref=; path=/; max-age=0; SameSite=Lax'
+      }
+      return
+    }
+    let annule = false
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/parrainage/code?code=${encodeURIComponent(code)}`)
+        const data = await res.json().catch(() => ({}))
+        if (annule) return
+        const ok = res.ok && (data as { valide?: boolean }).valide === true
+        setRefValide(res.ok ? ok : null)
+        if (ok) {
+          document.cookie = `nexartis_ref=${code}; path=/; max-age=${90 * 24 * 3600}; SameSite=Lax`
+        } else if (res.ok && refTouche.current) {
+          document.cookie = 'nexartis_ref=; path=/; max-age=0; SameSite=Lax'
+        }
+      } catch {
+        if (!annule) setRefValide(null)
+      }
+    }, 500)
+    return () => {
+      annule = true
+      clearTimeout(t)
+    }
+  }, [refCode])
+
   const resendConfirmation = async () => {
     setResending(true)
     setResendSuccess(false)
@@ -101,7 +143,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, prenom, nom, entreprise, ref: refCode || undefined, next: nextPath }),
+      body: JSON.stringify({ email, password, prenom, nom, entreprise, ref: refValide === false ? undefined : (refCode.trim().toUpperCase() || undefined), next: nextPath }),
     })
 
     const data = await res.json()
@@ -146,10 +188,10 @@ export default function RegisterPage() {
         </div>
 
         {/* Bandeau parrainage (transparence filleul) */}
-        {!showConfirmation && refCode && (
+        {!showConfirmation && refCode && refValide === true && (
           <div className="flex justify-center mb-6">
             <span className="inline-flex items-center gap-1.5 bg-sky/10 text-[#1a6fb5] text-sm font-manrope font-medium px-4 py-2 rounded-full text-center">
-              &#127881; Vous avez été parrainé &mdash; 1 mois offert pour vous et votre parrain dès votre 1<sup>er</sup> abonnement
+              &#127881; Vous avez été parrainé &mdash; 5 € offerts sur votre abonnement dès votre 1<sup>er</sup> paiement
             </span>
           </div>
         )}
@@ -314,6 +356,31 @@ export default function RegisterPage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Code parrain (facultatif) — Parrainage V2 */}
+            <div>
+              <label htmlFor="code-parrain" className="block font-manrope font-medium text-sm text-gray-700 mb-1.5">
+                Code parrain <span className="text-gray-400 font-normal">(facultatif)</span>
+              </label>
+              <input
+                id="code-parrain"
+                type="text"
+                value={refCode}
+                onChange={(e) => {
+                  refTouche.current = true
+                  setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16))
+                }}
+                maxLength={16}
+                autoComplete="off"
+                placeholder="Ex : DUPONT2026"
+                aria-describedby="code-parrain-aide"
+                className={`${inputClasses} font-mono tracking-wider uppercase`}
+              />
+              <p id="code-parrain-aide" className="mt-1.5 text-xs font-manrope min-h-[1rem]" aria-live="polite">
+                {refValide === true && <span className="text-green-700">Code valide ✓ — 5 € offerts dès votre 1<sup>er</sup> paiement</span>}
+                {refValide === false && <span className="text-red-600">Code introuvable. Vérifiez l’orthographe (vous pouvez aussi laisser vide).</span>}
+              </p>
             </div>
 
             {/* Submit */}

@@ -13,6 +13,7 @@ interface Filleul {
   statut: string
   inscrit_le: string
   recompense_le: string | null
+  recompense_type: string | null
 }
 interface ParrainBloc {
   parrain_id: string
@@ -20,6 +21,7 @@ interface ParrainBloc {
   parrain_email: string | null
   filleuls: Filleul[]
   mois_gagnes: number
+  euros_gagnes: number
 }
 interface AdminData {
   total_parrainages: number
@@ -32,12 +34,14 @@ function formatDate(d: string | null): string {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function statutBadge(statut: string): { label: string; cls: string } {
+function statutBadge(statut: string, type: string | null): { label: string; cls: string } {
+  // Parrainage V2 : type = recompense du parrain pour ce filleul (NULL = ancienne regle).
+  const gain = type === '5eur' ? '5 €' : '1 mois'
   switch (statut) {
     case 'recompense':
-      return { label: 'Récompensé (les 2)', cls: 'bg-green-100 text-green-700' }
+      return { label: `Récompensé — parrain : ${gain}, filleul : 5 €`, cls: 'bg-green-100 text-green-700' }
     case 'recompense_filleul_seul':
-      return { label: 'Filleul payé — crédit parrain en attente', cls: 'bg-amber-100 text-amber-800' }
+      return { label: `Filleul payé — ${gain} parrain en attente d’abonnement`, cls: 'bg-amber-100 text-amber-800' }
     case 'non_recompense_plafond':
       return { label: 'Filleul payé — plafond parrain', cls: 'bg-blue-100 text-blue-700' }
     case 'annule':
@@ -126,7 +130,9 @@ export default function AdminParrainagesPage() {
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <div className="text-sm font-syne font-bold text-green-600">{p.mois_gagnes} mois</div>
+                  <div className="text-sm font-syne font-bold text-green-600">
+                    {[p.mois_gagnes > 0 ? `${p.mois_gagnes} mois` : null, p.euros_gagnes > 0 ? `${p.euros_gagnes} €` : null].filter(Boolean).join(' + ') || '0 €'}
+                  </div>
                   <div className="text-[10px] text-gray-400 font-manrope">{p.filleuls.length} filleul(s)</div>
                 </div>
               </div>
@@ -134,7 +140,7 @@ export default function AdminParrainagesPage() {
               {/* Filleuls en dessous */}
               <ul className="divide-y divide-gray-50">
                 {p.filleuls.map((f, i) => {
-                  const badge = statutBadge(f.statut)
+                  const badge = statutBadge(f.statut, f.recompense_type)
                   return (
                     <li key={i} className="px-5 py-3 flex items-center justify-between gap-3 pl-8">
                       <div className="flex items-center gap-3 min-w-0">

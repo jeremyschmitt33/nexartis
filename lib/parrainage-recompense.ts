@@ -1,33 +1,40 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
+import {
+  CREDIT_FILLEUL_CENTS,
+  CREDIT_PARRAIN_CENTS,
+  recompenseParrainPourRang,
+  type RecompenseParrainType,
+} from './parrainage'
 
 /**
  * RECOMPENSE DE PARRAINAGE (cote Stripe).
  *
- * Regle metier (validee par le fondateur) :
- *   - 1 MOIS OFFERT pour LES DEUX (parrain + filleul).
- *   - Declenche quand le FILLEUL paie son 1er mois plein => c'est le MOIS SUIVANT
- *     qui est offert aux deux.
- *   - Plafond : 10 recompenses parrain maximum (le filleul est toujours recompense).
+ * Regle metier V2 (validee par Jeremy le 15/09/2026, remplace « 1 mois aux deux ») :
+ *   - FILLEUL : 5 EUR de reduction sur sa prochaine facture.
+ *   - PARRAIN : 1 MOIS OFFERT pour son 1er et son 10e filleul payant ;
+ *     5 EUR de reduction pour chacun des autres. AUCUN plafond.
+ *   - Declenche quand le FILLEUL paie son 1er mois plein.
  *   - Coupe-circuit : variable d'env PARRAINAGE_ACTIF=false desactive l'octroi.
  *   - Anti-fraude : si le paiement declencheur est rembourse/conteste, la recompense
  *     est marquee 'annule' et le credit parrain en attente est retire.
  *
- * COMMENT le "mois offert" est livre :
- *   On CREDITE le SOLDE CLIENT Stripe du montant d'un mois (montant TTC reellement
- *   facture). Stripe deduit automatiquement ce credit de la PROCHAINE facture
- *   (=> le mois suivant est gratuit), sans toucher au mois deja paye.
- *   Avantages vs coupon : les credits se CUMULENT (un parrain avec N filleuls
- *   recoit N mois), et chaque credit porte une Idempotency-Key => aucun double credit
- *   en cas de rejeu/concurrence du webhook.
+ * COMMENT la recompense est livree :
+ *   On CREDITE le SOLDE CLIENT Stripe (5 EUR, ou le montant d'un mois TTC reellement
+ *   facture). Stripe deduit automatiquement ce credit de la PROCHAINE facture, et
+ *   reporte le reste sur les suivantes s'il depasse la facture.
+ *   Avantages vs coupon : les credits se CUMULENT, et chaque credit porte une
+ *   Idempotency-Key => aucun double credit en cas de rejeu du webhook.
  *
  * IDEMPOTENCE :
  *   - Passage de statut 'en_attente' -> final par UPDATE conditionnel (compare-and-swap).
  *   - Chaque credit Stripe porte une Idempotency-Key deterministe.
  */
 
-const PLAFOND_PARRAIN = 10
 const CREDIT_PARRAIN_JOURS = 90
+
+/** Statuts ou le filleul a REELLEMENT paye (rang du filleul). 'annule' exclu. */
+const STATUTS_FILLEUL_PAYE = ['recompense', 'recompense_filleul_seul', 'non_recompense_plafond']
 
 /** Le programme est-il actif ? (coupe-circuit via env, defaut: actif) */
 export function parrainageActif(): boolean {
@@ -51,10 +58,10 @@ export function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null
 }
 
 /**
- * Offre 1 mois en creditant le solde client Stripe (montant negatif = credit).
- * Idempotent grace a la cle fournie.
+ * Credite le solde client Stripe (montant negatif = credit), deduit de la
+ * prochaine facture. Idempotent grace a la cle fournie.
  */
-async function crediterUnMois(
+async function crediterSolde(
   stripe: Stripe,
   customerId: string,
   montantCents: number,
@@ -158,41 +165,48 @@ export async function traiterRecompenseParrainage(
     .single()
   if (!parrain) return
 
-  const { count: dejaRecompenses } = await admin
+  // Rang de CE filleul parmi les filleuls payants du parrain (1 = premier).
+  const { count: filleulsPayesAvant } = await admin
     .from('parrainages')
     .select('id', { count: 'exact', head: true })
     .eq('parrain_entreprise_id', parrain.id)
-    .in('statut', ['recompense', 'recompense_filleul_seul'])
-  const plafondAtteint = (dejaRecompenses ?? 0) >= PLAFOND_PARRAIN
+    .in('statut', STATUTS_FILLEUL_PAYE)
+  const rang = (filleulsPayesAvant ?? 0) + 1
+  const typeParrain: RecompenseParrainType = recompenseParrainPourRang(rang)
 
-  // --- Recompense FILLEUL (toujours, sauf programme off) : 1 mois credite ---
-  await crediterUnMois(
+  // --- Recompense FILLEUL (toujours, sauf programme off) : 5 EUR credites ---
+  await crediterSolde(
     stripe,
     customerId,
-    amountPaid,
+    CREDIT_FILLEUL_CENTS,
     currency,
-    'Parrainage Nexartis - 1 mois offert',
-    `referral-${parrainage.id}-filleul`,
+    'Parrainage Nexartis - 5 € offerts',
+    `referral-v2-${parrainage.id}-filleul`,
   )
 
-  // --- Recompense PARRAIN : seulement s'il est abonne ET hors plafond ---
-  let statutCible: 'recompense' | 'recompense_filleul_seul' | 'non_recompense_plafond'
-  if (plafondAtteint) {
-    statutCible = 'non_recompense_plafond'
-  } else if (parrain.stripe_subscription_id && parrain.stripe_customer_id) {
-    const m = await montantUnMois(stripe, parrain.stripe_customer_id, parrain.stripe_subscription_id)
-    if (m) {
-      await crediterUnMois(
+  // --- Recompense PARRAIN : creditee tout de suite s'il est abonne, sinon en attente ---
+  let statutCible: 'recompense' | 'recompense_filleul_seul'
+  if (parrain.stripe_subscription_id && parrain.stripe_customer_id) {
+    let montant: { amount: number; currency: string } | null
+    if (typeParrain === 'mois') {
+      montant = await montantUnMois(stripe, parrain.stripe_customer_id, parrain.stripe_subscription_id)
+    } else {
+      montant = { amount: CREDIT_PARRAIN_CENTS, currency }
+    }
+    if (montant) {
+      await crediterSolde(
         stripe,
         parrain.stripe_customer_id,
-        m.amount,
-        m.currency,
-        'Parrainage Nexartis - 1 mois offert (parrain)',
-        `referral-${parrainage.id}-parrain`,
+        montant.amount,
+        montant.currency,
+        typeParrain === 'mois'
+          ? `Parrainage Nexartis - 1 mois offert (filleul n°${rang})`
+          : 'Parrainage Nexartis - 5 € offerts (parrain)',
+        `referral-v2-${parrainage.id}-parrain`,
       )
       statutCible = 'recompense'
     } else {
-      // Abonne mais montant introuvable : on bascule en credit en attente.
+      // Abonne mais montant du mois introuvable : on bascule en credit en attente.
       statutCible = 'recompense_filleul_seul'
     }
   } else {
@@ -203,7 +217,7 @@ export async function traiterRecompenseParrainage(
   // --- Compare-and-swap : on ne marque que si toujours 'en_attente' ---
   const nowIso = new Date().toISOString()
   const creditExpire = new Date(Date.now() + CREDIT_PARRAIN_JOURS * 86_400_000).toISOString()
-  const { data: claimed } = await admin
+  const { data: claimed, error: claimErr } = await admin
     .from('parrainages')
     .update({
       statut: statutCible,
@@ -212,17 +226,22 @@ export async function traiterRecompenseParrainage(
       parrain_recompense_at: statutCible === 'recompense' ? nowIso : null,
       parrain_credit_en_attente: statutCible === 'recompense_filleul_seul',
       parrain_credit_expire_at: statutCible === 'recompense_filleul_seul' ? creditExpire : null,
+      parrain_recompense_type: typeParrain,
       updated_at: nowIso,
     })
     .eq('id', parrainage.id)
     .eq('statut', 'en_attente')
     .select('id')
 
+  // 15/09/2026 : si l'UPDATE echoue, on JETTE (webhook 500 -> rejeu Stripe sous
+  // 24 h, cles d'idempotence encore valides) au lieu de laisser la ligne
+  // 'en_attente' et de recrediter au renouvellement suivant.
+  if (claimErr) throw new Error(`[parrainage] maj statut impossible: ${claimErr.message}`)
   // 0 ligne => un autre traitement a deja gagne -> stop (pas de double mail).
   if (!claimed || claimed.length === 0) return
 
   try {
-    await notifierRecompense(filleul, parrain, statutCible)
+    await notifierRecompense(filleul, parrain, statutCible, typeParrain)
   } catch (e) {
     console.error('[parrainage] notif recompense echouee:', e)
   }
@@ -232,9 +251,9 @@ export async function traiterRecompenseParrainage(
  * Applique les credits parrain EN ATTENTE quand le parrain finit par s'abonner.
  * Appele depuis le webhook sur `checkout.session.completed` (cote parrain).
  *
- * Chaque parrainage en attente (non expire) donne 1 mois credite => les mois
- * se CUMULENT correctement (N filleuls = N mois), et chaque ligne est soldee
- * individuellement.
+ * Chaque parrainage en attente (non expire) est credite selon SON type
+ * (1 mois ou 5 EUR, cf. parrain_recompense_type) => les credits se CUMULENT,
+ * et chaque ligne est soldee individuellement.
  *
  * @param montantCents montant TTC du 1er paiement du parrain (= 1 mois)
  */
@@ -250,7 +269,7 @@ export async function appliquerCreditsParrainEnAttente(
 
   const { data: enAttente } = await admin
     .from('parrainages')
-    .select('id, parrain_credit_expire_at')
+    .select('id, parrain_credit_expire_at, parrain_recompense_type')
     .eq('parrain_entreprise_id', parrainEntrepriseId)
     .eq('statut', 'recompense_filleul_seul')
     .eq('parrain_credit_en_attente', true)
@@ -264,12 +283,14 @@ export async function appliquerCreditsParrainEnAttente(
     const exp = p.parrain_credit_expire_at ? new Date(p.parrain_credit_expire_at).getTime() : null
     if (exp !== null && exp <= now) continue // credit expire => on ne credite pas
 
-    await crediterUnMois(
+    // NULL = parrainage de l'ancienne regle (1 mois) : on honore ce qui a ete promis.
+    const estMois = (p as { parrain_recompense_type?: string | null }).parrain_recompense_type !== '5eur'
+    await crediterSolde(
       stripe,
       customerId,
-      montantCents,
+      estMois ? montantCents : CREDIT_PARRAIN_CENTS,
       cur,
-      'Parrainage Nexartis - 1 mois offert (parrain)',
+      estMois ? 'Parrainage Nexartis - 1 mois offert (parrain)' : 'Parrainage Nexartis - 5 € offerts (parrain)',
       `referral-credit-${p.id}`,
     )
 
@@ -329,28 +350,34 @@ export async function annulerRecompensePourFacture(
 async function notifierRecompense(
   filleul: EntrepriseRow,
   parrain: EntrepriseRow,
-  statutCible: 'recompense' | 'recompense_filleul_seul' | 'non_recompense_plafond',
+  statutCible: 'recompense' | 'recompense_filleul_seul',
+  typeParrain: RecompenseParrainType,
 ): Promise<void> {
   const { sendEmail } = await import('@/lib/email')
 
   if (filleul.email) {
     await sendEmail({
       to: { email: filleul.email, name: filleul.nom || filleul.email },
-      subject: 'Votre mois offert Nexartis est applique',
+      subject: 'Vos 5 € de parrainage Nexartis sont appliqués',
       html: emailRecompenseHtml(
         filleul.nom || '',
-        "Merci d'avoir rejoint Nexartis via un parrainage ! Votre prochain mois d'abonnement est <strong>offert</strong> : votre prochaine facture sera deduite d'un mois.",
+        "Merci d'avoir rejoint Nexartis grâce à un parrainage ! <strong>5 € de réduction</strong> seront déduits de votre prochaine facture.",
       ),
     }).catch(() => {})
   }
 
   if (statutCible === 'recompense' && parrain.email) {
+    const estMois = typeParrain === 'mois'
     await sendEmail({
       to: { email: parrain.email, name: parrain.nom || parrain.email },
-      subject: "Votre filleul s'est abonne - 1 mois offert pour vous",
+      subject: estMois
+        ? "Votre filleul s'est abonné - 1 mois offert pour vous"
+        : "Votre filleul s'est abonné - 5 € offerts pour vous",
       html: emailRecompenseHtml(
         parrain.nom || '',
-        "Bonne nouvelle : un de vos filleuls vient de s'abonner. Votre prochain mois d'abonnement est <strong>offert</strong>. Merci de faire grandir Nexartis !",
+        estMois
+          ? "Bonne nouvelle : un de vos filleuls vient de s'abonner. Votre prochain mois d'abonnement est <strong>offert</strong>. Merci de faire grandir Nexartis !"
+          : "Bonne nouvelle : un de vos filleuls vient de s'abonner. <strong>5 € de réduction</strong> seront déduits de votre prochaine facture. Merci de faire grandir Nexartis !",
       ),
     }).catch(() => {})
   }
@@ -370,10 +397,10 @@ function emailRecompenseHtml(name: string, message: string): string {
       <div style="padding:32px;">
         <h2 style="margin:0 0 8px;font-size:20px;color:#1e293b;">${hello}</h2>
         <p style="font-size:15px;color:#475569;line-height:1.7;">${message}</p>
-        <p style="font-size:13px;color:#94a3b8;margin-top:24px;line-height:1.6;">Vous pouvez suivre vos parrainages depuis vos parametres Nexartis.</p>
+        <p style="font-size:13px;color:#94a3b8;margin-top:24px;line-height:1.6;">Vous pouvez suivre vos parrainages depuis vos paramètres Nexartis.</p>
       </div>
       <div style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center;">
-        <p style="margin:0;font-size:11px;color:#9ca3af;">Envoye via Nexartis - nexartis.fr</p>
+        <p style="margin:0;font-size:11px;color:#9ca3af;">Envoyé via Nexartis - nexartis.fr</p>
       </div>
     </div>
   </div>

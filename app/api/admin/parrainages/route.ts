@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest) {
 
   const { data: parrainages } = await supabase
     .from('parrainages')
-    .select('id, parrain_entreprise_id, filleul_entreprise_id, statut, created_at, filleul_recompense_at, parrain_recompense_at, parrain_credit_en_attente')
+    .select('id, parrain_entreprise_id, filleul_entreprise_id, statut, created_at, filleul_recompense_at, parrain_recompense_at, parrain_credit_en_attente, parrain_recompense_type')
     .order('created_at', { ascending: false })
 
   const liste = parrainages ?? []
@@ -52,8 +52,10 @@ export async function GET(_req: NextRequest) {
       statut: string
       inscrit_le: string
       recompense_le: string | null
+      recompense_type: string | null
     }>
     mois_gagnes: number
+    euros_gagnes: number
   }>()
 
   for (const p of liste) {
@@ -66,6 +68,7 @@ export async function GET(_req: NextRequest) {
         parrain_email: info?.email ?? null,
         filleuls: [],
         mois_gagnes: 0,
+        euros_gagnes: 0,
       })
     }
     const bloc = parrainsMap.get(pid)!
@@ -76,8 +79,13 @@ export async function GET(_req: NextRequest) {
       statut: p.statut as string,
       inscrit_le: p.created_at as string,
       recompense_le: (p.filleul_recompense_at as string | null) ?? null,
+      recompense_type: (p.parrain_recompense_type as string | null) ?? null,
     })
-    if (p.statut === 'recompense') bloc.mois_gagnes += 1
+    // Parrainage V2 : 5 EUR ou 1 mois selon le rang (NULL = ancienne regle = 1 mois).
+    if (p.statut === 'recompense') {
+      if (p.parrain_recompense_type === '5eur') bloc.euros_gagnes += 5
+      else bloc.mois_gagnes += 1
+    }
   }
 
   const parrains = Array.from(parrainsMap.values()).sort(

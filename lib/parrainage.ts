@@ -3,15 +3,55 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 /**
  * Utilitaires partages du systeme de PARRAINAGE.
  *
- * Regle metier (validee) :
- *   - Un artisan possede un code de parrainage unique (entreprises.referral_code).
- *   - Quand un nouvel artisan s'inscrit via ?ref=CODE, on enregistre le duo
- *     parrain <-> filleul dans la table `parrainages` (statut 'en_attente').
- *   - La recompense (1 mois offert pour les deux) est appliquee plus tard, par
- *     le webhook Stripe, au 1er vrai paiement du filleul (cf lib/parrainage-recompense.ts).
+ * Regle metier (V2 validee par Jeremy le 15/09/2026) :
+ *   - Un artisan possede un code de parrainage unique (entreprises.referral_code),
+ *     qu'il peut PERSONNALISER (Parametres > Parrainage).
+ *   - Quand un nouvel artisan s'inscrit via ?ref=CODE (lien, QR code) ou en tapant
+ *     le code a l'inscription, on enregistre le duo parrain <-> filleul dans la
+ *     table `parrainages` (statut 'en_attente').
+ *   - La recompense est appliquee plus tard, par le webhook Stripe, au 1er vrai
+ *     paiement du filleul (cf lib/parrainage-recompense.ts) :
+ *       * filleul : 5 EUR de reduction sur sa prochaine facture ;
+ *       * parrain : 1 mois offert pour son 1er et son 10e filleul payant,
+ *         5 EUR de reduction pour chacun des autres. Aucun plafond.
  *
- * Ce fichier ne contient QUE la capture du lien (pas la recompense Stripe).
+ * Ce fichier ne contient QUE la regle partagee et la capture du lien
+ * (pas d'appel Stripe) : il est importable cote navigateur.
  */
+
+/** Credit offert au FILLEUL, en centimes. */
+export const CREDIT_FILLEUL_CENTS = 500
+/** Credit offert au PARRAIN (hors rangs « mois offert »), en centimes. */
+export const CREDIT_PARRAIN_CENTS = 500
+/** Rangs de filleul payant qui valent 1 MOIS OFFERT au parrain (au lieu des 5 EUR). */
+export const RANGS_MOIS_OFFERT: readonly number[] = [1, 10]
+
+export type RecompenseParrainType = 'mois' | '5eur'
+
+/** Recompense du parrain pour son N-ieme filleul payant (N commence a 1). */
+export function recompenseParrainPourRang(rang: number): RecompenseParrainType {
+  return RANGS_MOIS_OFFERT.includes(rang) ? 'mois' : '5eur'
+}
+
+/** Codes interdits (confusion avec la marque ou l'administration). */
+const CODES_RESERVES = ['NEXARTIS', 'ADMIN', 'ADMINISTRATEUR', 'SUPPORT', 'CONTACT', 'PARRAIN', 'PARRAINAGE']
+
+/**
+ * Valide un code PERSONNALISE saisi par l'artisan.
+ * Regle : 6 a 16 caracteres, lettres A-Z et chiffres uniquement (sans espace,
+ * accent ni tiret), stocke en MAJUSCULES.
+ */
+export function validerCodePersonnalise(raw: unknown): { ok: true; code: string } | { ok: false; erreur: string } {
+  if (typeof raw !== 'string') return { ok: false, erreur: 'Code manquant.' }
+  const code = raw.trim().toUpperCase()
+  if (!/^[A-Z0-9]{6,16}$/.test(code)) {
+    return { ok: false, erreur: 'Le code doit contenir de 6 à 16 lettres ou chiffres, sans espace, accent ni tiret.' }
+  }
+  if (CODES_RESERVES.includes(code)) {
+    return { ok: false, erreur: 'Ce code est réservé. Choisissez-en un autre.' }
+  }
+  return { ok: true, code }
+}
 
 /** Nettoie un code de parrainage recu (URL, cookie, body). Renvoie null si invalide. */
 export function sanitizeReferralCode(raw: unknown): string | null {

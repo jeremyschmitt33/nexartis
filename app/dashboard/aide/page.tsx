@@ -2918,18 +2918,25 @@ export default function AidePage() {
     {
       id: 'parrainage',
       icon: Gift,
-      title: 'Parrainage — 1 mois offert pour chaque artisan parrainé',
-      subtitle: 'Un lien personnel à partager par SMS, email ou réseaux',
+      title: 'Parrainage — 5 € par filleul, 1 mois offert au 1er et au 10e',
+      subtitle: 'Un code personnalisable, un lien et un QR code à partager',
       content: (
         <>
           <p className="mb-4">
-            Dans <strong>Paramètres &gt; onglet Parrainage</strong>, tu obtiens ton lien de parrainage
-            personnel.
+            Dans <strong>Paramètres &gt; onglet Parrainage</strong>, tu trouves ton code parrain (que tu peux
+            personnaliser), ton lien et ton QR code à partager par SMS, email, sur les réseaux ou sur tes
+            cartes de visite.
           </p>
           <p className="mb-3">
-            Pour chaque artisan que tu parraines et qui s&apos;abonne, tu gagnes{' '}
-            <span className="font-spline-mono">1 mois offert</span>. À partager par SMS, email ou sur les
-            réseaux.
+            Dès qu&apos;un artisan s&apos;abonne avec ton code (lien, QR code ou code tapé à
+            l&apos;inscription) : il gagne <span className="font-spline-mono">5 €</span> de réduction, et toi
+            aussi <span className="font-spline-mono">5 €</span> par filleul, sans limite. Bonus :{' '}
+            <span className="font-spline-mono">1 mois offert</span> pour ton 1<sup>er</sup> et ton 10
+            <sup>e</sup> filleul (à la place des 5 €).
+          </p>
+          <p className="mb-3">
+            Les réductions sont déduites automatiquement de tes prochaines factures d&apos;abonnement et se
+            cumulent. Si tu changes ton code, les liens et QR codes déjà partagés ne fonctionnent plus.
           </p>
         </>
       ),
