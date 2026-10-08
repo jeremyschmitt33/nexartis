@@ -90,6 +90,9 @@ interface Entreprise {
   logo_url?: string
   signature_base64?: string
   tampon_base64?: string
+  /** IBAN/BIC : renvoyés par l'API uniquement si le devis prévoit un acompte */
+  iban?: string | null
+  bic?: string | null
   /** V3.0d — Theme personnalise documents (6 couleurs hex #RRGGBB).
    *  Optionnel : si une colonne est absente/null, le fallback Nexartis s applique. */
   doc_color_bandeau_haut?: string
@@ -545,6 +548,8 @@ export default function SignerDevisPage() {
       tva_intracommunautaire: entreprise.tva_intracommunautaire ?? null,
       telephone: entreprise.telephone ?? null,
       email: entreprise.email ?? null,
+      iban: entreprise.iban ?? null,
+      bic: entreprise.bic ?? null,
       logo_url: entreprise.logo_url ?? null,
       signature_base64: entreprise.signature_base64 ?? null,
       tampon_base64: entreprise.tampon_base64 ?? null,

@@ -397,7 +397,7 @@ function TotalsBox({ totals, docType, meta }: { totals: DocumentTotals; docType:
 }
 
 function RecapDevis({ data }: { data: DocumentData }) {
-  const { totals, meta } = data
+  const { artisan, totals, meta } = data
   const hasAcompte = totals.acomptePct > 0
   // Dedoublonne les lignes (certaines conditions sont stockees dupliquees en base).
   const conditionsLibres = (() => {
@@ -432,6 +432,15 @@ function RecapDevis({ data }: { data: DocumentData }) {
           </div>
         )}
         {/* Déchets (AGEC) : déplacé en pleine largeur avant les mentions légales — voir <DechetsBand/>. */}
+        {/* IBAN sur le devis uniquement si acompte à la commande (parité PDF : lib/pdf.ts). */}
+        {hasAcompte && artisan.iban && (
+          <div className="dv-pay">
+            <div className="dv-pay-k">Pour régler par virement</div>
+            <div className="dv-pay-row"><span>IBAN</span><strong>{artisan.iban}</strong></div>
+            {artisan.bic && (<div className="dv-pay-row"><span>BIC</span><strong>{artisan.bic}</strong></div>)}
+            <div className="dv-pay-row"><span>Bénéficiaire</span><strong>{artisan.nom}</strong></div>
+          </div>
+        )}
       </div>
       <TotalsBox totals={totals} docType="devis" meta={meta} />
     </div>

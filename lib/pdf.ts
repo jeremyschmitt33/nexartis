@@ -294,7 +294,9 @@ export function generateDevisPdf(data: DevisData, theme?: DocumentTheme | null):
       netLabel: 'Net à payer',
     },
     mainLignes,
-    false, // pas de bloc IBAN pour les devis
+    // Bloc IBAN sur le devis uniquement s'il y a un acompte a verser a la commande
+    // (parite HTML : RecapDevis dans components/document/DocumentRender.tsx).
+    (data.acompte_pourcent ?? 0) > 0,
     y,
     palette,
   )

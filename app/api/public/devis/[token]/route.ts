@@ -89,7 +89,7 @@ export async function GET(
     // ce sont juste des couleurs hex destinees a l affichage du devis.
     const { data: entreprise } = await supabase
       .from('entreprises')
-      .select('nom, adresse, code_postal, ville, telephone, email, siret, tva_intracommunautaire, assurance_nom, assurance_zone, forme_juridique, capital_social, rcs_rm, franchise_tva, logo_url, decennale_numero, qualification_pro, mediateur, mediateur_nom, mediateur_adresse, mediateur_code_postal, mediateur_ville, mentions_legales_custom, doc_color_bandeau_haut, doc_color_accent, doc_color_cadre_emetteur, doc_color_cadre_adresse, doc_color_net_payer, doc_color_footer')
+      .select('nom, adresse, code_postal, ville, telephone, email, siret, tva_intracommunautaire, assurance_nom, assurance_zone, forme_juridique, capital_social, rcs_rm, franchise_tva, logo_url, decennale_numero, qualification_pro, mediateur, mediateur_nom, mediateur_adresse, mediateur_code_postal, mediateur_ville, mentions_legales_custom, iban, bic, doc_color_bandeau_haut, doc_color_accent, doc_color_cadre_emetteur, doc_color_cadre_adresse, doc_color_net_payer, doc_color_footer')
       .eq('user_id', devis.user_id)
       .single()
 
@@ -174,7 +174,11 @@ export async function GET(
         afficher_dechets: devis.afficher_dechets,
       },
       lignes: lignes || [],
-      entreprise: entreprise || {},
+      // IBAN/BIC exposés uniquement si le devis prévoit un acompte à la commande
+      // (même règle que le PDF et le rendu HTML).
+      entreprise: entreprise
+        ? ((devis.acompte_pourcent ?? 0) > 0 ? entreprise : { ...entreprise, iban: null, bic: null })
+        : {},
       client: {
         nom: clientNom,
         adresse: clientAdresse,
